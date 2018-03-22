@@ -21,6 +21,7 @@ const quizzes = fs
 amqp
   .connect(process.env.AMPQ_ADDRESS)
   .then(conn => {
+    console.log("worker up")
     // create  seperate channel for this instance of the worker
     return conn.createChannel().then(ch => {
       logger.info('channel created');
@@ -35,7 +36,6 @@ amqp
           // the queue name is created by the folders in /models
           const rpc_queue = quizName + DB_RPC_WORKER;
           const write_queue = quizName + DB_WRITE_QUEUE;
-          logger.info('in promise all');
           // name of the queue
           // this queue is not marked as durable, as it is an rpc
           // if rabbitmq goes down, theres really nothing to replyTo
@@ -43,7 +43,6 @@ amqp
           return ch
             .assertQueue(rpc_queue, { durable })
             .then(() => {
-              logger.log('queue asserted', rpc_queue);
               // set the maximum amount of messages that can be waiting before this channel accepts more
               // more info here http://www.squaremobius.net/amqp.node/channel_api.html#channel_prefetch
               ch.prefetch(1);
@@ -103,7 +102,10 @@ amqp
                     // acknowledge receipt
                     ch.ack(msg);
                     if (CONFIG.forum) {
+                      console.log("forum config is on")
                       if (method == 'forum.createForumPost') {
+                        console.log("createing a forum post")
+
                         // notify the quiz author that someone has created a new forum post about their quiz
                         data = data.toJSON();
                         return Worker['forum.raw'](`SELECT * FROM authors where quiz_name = '${data.quiz}'`)

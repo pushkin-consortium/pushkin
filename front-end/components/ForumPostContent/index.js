@@ -81,6 +81,7 @@ class ForumQuestion extends React.Component {
             <StaticQuestionContainer
               closeQuestion={this.closeQuestion}
               question={this.state.data.stim}
+              userInfo={userInfo}
             />
           </div>
         )}

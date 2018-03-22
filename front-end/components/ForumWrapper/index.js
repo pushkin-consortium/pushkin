@@ -16,6 +16,7 @@ import {
   getUserInfo,
   generateAnonymousUser
 } from '../../actions/userinfo';
+import { last } from 'lodash'
 
 import s from './styles.css';
 
@@ -98,6 +99,8 @@ const withForum = (Quiz, quiz_name, config) => {
         }
       };
       makeForumPost = (post, cb) => {
+        const submitURL = _.last(window.location.pathname.split('/')) + '/stimulusResponse'
+        post.stim.submitURL = submitURL;
         this.props.dispatch(makePost(post, cb));
       };
       render() {

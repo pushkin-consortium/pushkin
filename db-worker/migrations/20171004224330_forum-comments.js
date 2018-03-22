@@ -4,10 +4,12 @@ exports.up = function(knex, Promise) {
     table.string('auth0_id');
     table.string('responses');
     table.timestamp('created_at');
+    table.timestamp('updated_at');
     table
       .integer('post_id')
       .references('id')
-      .inTable('forum-posts');
+      .inTable('forum-posts')
+      .onDelete('CASCADE')
   });
 };
 
