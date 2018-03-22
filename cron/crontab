@@ -1,0 +1,6 @@
+*/5 * * * * root echo "test" >> /var/log/cron.log 2>&1
+*/5 * * * * root printenv >> /var/log/cron.log 2>&1
+*/5 * * * * root /scripts/test.js >> /var/log/cron.log 2>&1
+*/5 * * * * root /scripts/test.py >> /var/log/cron.log 2>&1
+
+

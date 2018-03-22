@@ -1,0 +1,129 @@
+/*
+ * CSS for jsPsych experiments.
+ *
+ * This stylesheet provides minimal styling to make jsPsych
+ * experiments look polished without any additional styles.
+ */
+
+ /* Container holding jsPsych content */
+
+ p {
+  font-family: 'Open Sans', 'Arial', sans-serif;
+  font-size: 18px;
+  line-height: 1.6em;
+ }
+
+ .p {
+  font-family: 'Open Sans', 'Arial', sans-serif;
+  font-size: 18px;
+  line-height: 1.6em;
+  font-weight: normal;
+ }
+
+ .jspsych-display-element {
+   display: flex;
+   flex-direction: column;
+   justify-content: center;
+   align-items: center;
+   margin-left: 20px;
+   margin-right: 20px;
+ }
+
+ .jspsych-content-wrapper {
+   display: flex;
+   justify-content: center;
+   align-items: center;
+   flex: 1 1 100%;
+   max-width: 1000px;
+   margin-bottom: 50px
+ }
+
+ .jspsych-content {
+   max-width: 100%; /* this is mainly an IE 10-11 fix */
+   text-align: center;
+   margin: auto; /* this is for overflowing content */
+ }
+
+ .jspsych-top {
+   align-items: flex-start;
+ }
+
+ .jspsych-middle {
+   align-items: center;
+ }
+
+
+
+/* fonts and type */
+
+@import url(https://fonts.googleapis.com/css?family=Open+Sans:400italic,700italic,400,700);
+
+.jspsych-display-element {
+  font-family: 'Open Sans', 'Arial', sans-serif;
+  font-size: 18px;
+  line-height: 1.6em;
+}
+
+/* Form elements like input fields and buttons */
+
+input[type="text"] {
+  font-family: 'Open Sans', 'Arial', sans-sefif;
+  font-size: 14px;
+}
+
+/* borrowing Bootstrap style for btn elements, but combining styles a bit */
+.jspsych-btn {
+  display: inline-block;
+  padding: 6px 12px;
+  margin: 0px 8px;
+  font-size: 14px;
+  font-weight: 400;
+  font-family: 'Open Sans', 'Arial', sans-serif;
+  cursor: pointer;
+  line-height: 1.4;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: middle;
+  background-image: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: #333;
+  background-color: #fff;
+  border-color: #ccc;
+}
+
+.jspsych-btn:hover {
+  background-color: #ddd;
+  border-color: #aaa;
+}
+
+/* jsPsych progress bar */
+
+#jspsych-progressbar-container {
+  color: #777;
+  border-bottom: 2px solid #dedede;
+  background-color: #f3f3f3;
+  margin-bottom: 1em;
+  text-align: center;
+  padding: 10px 0px;
+  width:100%;
+}
+#jspsych-progressbar-outer {
+  background-color: #dedede;
+  border-radius: 5px;
+  padding: 1px;
+  width: 800px;
+  margin: auto;
+}
+#jspsych-progressbar-inner {
+  background-color: #aaa;
+  /* #3EB3D7; */
+  width: 0%;
+  height: 1em;
+  border-radius: 5px;
+}
+
+/* Control appearance of jsPsych.data.displayData() */
+#jspsych-data-display {
+  text-align: left;
+}

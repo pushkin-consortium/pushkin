@@ -1,0 +1,31 @@
+.question-title {
+  font-size: 24px;
+  line-height: 1.35;
+  font-weight: normal;
+  margin-bottom: 0.5em;
+  cursor: pointer;
+  color: #242729;
+}
+.question-title:hover {
+  color: #242729;
+}
+.question-details {
+  display: flex;
+  font-size: 10px;
+  width: 50%;
+}
+.question-details div {
+  margin-right: 10px;
+  width: fit-content;
+  font-size: 10px;
+}
+.quiz-tag {
+  background: lightblue;
+  width: fit-content;
+  padding: 5px;
+  margin-right: 5px;
+}
+.question-container {
+  display: flex;
+  margin-bottom: 20px;
+}

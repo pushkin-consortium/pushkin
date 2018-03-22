@@ -1,0 +1,119 @@
+/**
+* React Static Boilerplate
+* https://github.com/kriasoft/react-static-boilerplate
+*
+* Copyright © 2015-present Kriasoft, LLC. All rights reserved.
+*
+* This source code is licensed under the MIT license found in the
+* LICENSE.txt file in the root directory of this source tree.
+*/
+.navWrapper {
+    text-align: center;
+    position: absolute;
+    top: 23px;
+    right: 10px;
+}
+.row {
+  padding: 40px;
+}
+
+.landing {
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  width: 100%;
+  height: 80vh;
+  background-image: require('../../img/logo_button-min.png');
+
+}
+
+.title {
+  color: #fff;
+  text-decoration: none;
+}
+
+@media all and (max-width: 278px) {
+  .header {
+    min-height: 105px !important;
+  }
+}
+@media all and (max-width: 768px) {
+  .logo {
+    float: left;
+  }
+}
+
+.logo {
+  height: 100px;
+  margin: auto;
+  display: block;
+  padding: 15px;
+
+}
+@import url("https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css");
+
+@import url("https://fonts.googleapis.com/css?family=Roboto+Slab");
+
+@import url("https://fonts.googleapis.com/css?family=News+Cycle|Ribeye+Marrow|Antic+Slab");
+
+/*header {
+    background-color: #D6D6E0;
+}
+
+
+@media (min-width:768px) {
+	header {
+	    background-color: white;
+	}
+}*/
+
+.header li a {
+  color: #ffffff;
+}
+
+.header li a:hover {
+  color: #000000;
+}
+.header {
+  background-color: #a9a9a9;
+  min-height: 100px;
+}
+
+.gray {
+	/*background-color: #D6D6E0;*/
+  background-color: #a9a9a9;
+  min-height: 53px;
+}
+
+.grayHome {
+  background-color: #a9a9a9;
+  min-height: 53px;
+}
+
+.white {
+  background-color: #ffffff;
+  min-height: 53px;
+}
+.nav {
+  margin: 0;
+  font-family: 'Ribeye Marrow', cursive; 
+  font-size: 20px;
+  background-color: #A9A9A9;
+}
+
+.navLinks {
+    font-family: 'Roboto Slab', serif;
+    font-size: 15px;
+}
+
+/*div.landing { 
+    background: url(/../../img/logo_button-min.png) no-repeat center center; 
+    -webkit-background-size: cover; 
+    -moz-background-size: cover; 
+    -o-background-size: cover; 
+    background-size: cover;
+    width: 100%;
+    height: 80vh; 
+}*/
+
+/*@import url("https://cdnjs.cloudflare.com/ajax/libs/foundation/6.2.4/foundation-flex.css");*/

@@ -1,0 +1,49 @@
+
+/*@import url("https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css");*/
+
+/*@import url("https://cdnjs.cloudflare.com/ajax/libs/foundation/6.2.4/foundation-flex.css");*/
+
+.textCenter {
+	text-align: center;
+}
+
+.footer {
+  background-color: #0B6075;
+    width: 100%;
+  /* Set the fixed height of the footer here */
+  height: 100px;
+}
+
+.normal {
+  background-color: #0B6075;
+  width: 100%;
+  /* Set the fixed height of the footer here */
+  height: 110px;
+}
+.socialIcon {
+  color: red;
+}
+
+.vert {
+  text-align: center;
+  position: relative;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+@media all and (max-width: 768px) {
+  .pad5 {
+    padding: 2.5px !important;
+  }
+  :global .social-icon {
+    width: 40px !important;
+    height: 40px !important;
+  }
+}
+.pad5 {
+  padding: 5px;
+}
+
+.pad7 {
+  padding: 7px;
+}

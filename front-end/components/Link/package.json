@@ -1,0 +1,6 @@
+{
+  "name": "Link",
+  "version": "0.5.0",
+  "private": true,
+  "main": "./Link.js"
+}

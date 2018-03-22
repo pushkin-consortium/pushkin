@@ -1,0 +1,86 @@
+version: '2'
+services:
+  api:
+    image: 'pushkin/api:latest'
+    environment:
+      - 'AMPQ_ADDRESS=amqp://message-queue:5672'
+      - NODE_ENV=production
+    links:
+      - message-queue
+    command:
+      - bash
+      - start.sh
+    labels:
+      io.rancher.scheduler.global: 'true'
+  cron:
+    image: 'pushkin/cron:latest'
+    environment:
+      - 'AMPQ_ADDRESS=amqp://message-queue:5672'
+      - 'API_ADDRESS=http://api:3000/api'
+      - DATABASE_URL=INSERT_HERE
+      - TRANSACTION_DATABASE_URL=INSERT_HERE 
+    links:
+      - message-queue
+      - api
+    labels:
+      io.rancher.scheduler.global: 'true'
+  db-worker:
+    image: 'pushkin/db-worker:latest'
+    environment:
+      - 'AMPQ_ADDRESS=amqp://message-queue:5672'
+      - DATABASE_URL=INSERT_HERE
+      - TRANSACTION_DATABASE_URL=INSERT_HERE
+      - NODE_ENV=production
+    links:
+      - message-queue
+    command:
+      - bash
+      - start.sh
+    labels:
+      io.rancher.scheduler.global: 'true'
+  load-balancer:
+    image: rancher/lb-service-haproxy
+    ports:
+      - '80'
+      - '443'
+    labels:
+      io.rancher.scheduler.global: 'true'
+      io.rancher.container.agent.role: environmentAdmin
+      io.rancher.container.create_agent: 'true'
+  message-queue:
+    image: 'pushkin/message-queue:latest'
+    environment:
+      CONFD_ARGS: '--interval 5'
+      RABBITMQ_CLUSTER_PARTITION_HANDLING: autoheal
+      RABBITMQ_NET_TICKTIME: '60'
+    volumes_from:
+      - message-queue-datavolume
+    labels:
+      io.rancher.scheduler.global: 'true'
+      io.rancher.sidekicks: 'message-queue-base,message-queue-datavolume'
+      io.rancher.container.hostname_override: container_name
+  message-queue-base:
+    image: 'rabbitmq:3.6-management'
+    environment:
+      RABBITMQ_ERLANG_COOKIE: message-queue-cookie
+    entrypoint:
+      - /opt/rancher/bin/run.sh
+    network_mode: 'container:message-queue'
+    volumes_from:
+      - message-queue-datavolume
+    labels:
+      io.rancher.container.hostname_override: container_name
+  message-queue-datavolume:
+    image: 'rabbitmq:3.6-management'
+    entrypoint:
+      - /bin/true
+    volumes:
+      - /etc/rabbitmq
+      - /opt/rancher/bin
+    labels:
+      io.rancher.container.start_once: 'true'
+      io.rancher.container.hostname_override: container_name
+  server:
+    image: 'pushkin/server:latest'
+    labels:
+      io.rancher.scheduler.global: 'true'

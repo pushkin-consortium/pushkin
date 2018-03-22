@@ -1,0 +1,6 @@
+
+typings/
+node_modules
+admin.txt
+log
+.env

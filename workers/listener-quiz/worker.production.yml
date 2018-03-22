@@ -1,0 +1,9 @@
+image: DOCKERHUB_ID/pushkin-worker:latest
+command: bash start.sh
+depends_on:
+  - "message-queue"
+environment:
+  - AMPQ_ADDRESS=amqp://message-queue:5672
+  -
+links:
+  - message-queue

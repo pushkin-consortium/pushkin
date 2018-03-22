@@ -1,0 +1,14 @@
+image:
+build:
+  context:
+  dockerfile: Dockerfile
+volumes:
+  -
+command: bash start.debug.sh
+depends_on:
+  - "message-queue"
+environment:
+  - AMPQ_ADDRESS=amqp://message-queue:5672
+  -
+links:
+  - message-queue

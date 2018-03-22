@@ -1,0 +1,4 @@
+FROM postgres:latest
+MAINTAINER Robert Wilkinson
+LABEL Name=games-with-words-transactiondb Version=0.0.1 
+ADD CreateTransactionDB.sql /docker-entrypoint-initdb.d/
