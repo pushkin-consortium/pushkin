@@ -51,7 +51,6 @@ amqp.connect(process.env.AMPQ_ADDRESS, function(err, conn) {
       .catch(next);
   });
   app.get('/api/mail/health', (req, res, next) => {
-    console.log('checking mail-health')
     var rpcInput = {
       method: 'health'
     };
@@ -76,6 +75,7 @@ amqp.connect(process.env.AMPQ_ADDRESS, function(err, conn) {
     logger.error(err.message);
   });
   app.listen(PORT, function() {
+    require('express-routemap')(app)
     //Callback triggered when server is successfully listening. Hurray!
     console.log('Server listening on: http://localhost:%s', PORT);
   });

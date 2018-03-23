@@ -30,18 +30,6 @@ const checkUser = (username, password) => {
 module.exports = (rpc, conn, dbWrite) => {
   const fileName = getFileName();
   const router = new express.Router();
-  router.get('/health', (req, res, next) => {
-    const rpcInput = {
-      method: 'health',
-      params: []
-    };
-    return rpc(conn, channelName, rpcInput)
-    .then(data => {
-      res.json(data);
-    })
-    .catch(next);
-
-  })
   router.post('/createUser', (req, res, next) => {
     const rpcInput = {
       method: 'generateUser',
