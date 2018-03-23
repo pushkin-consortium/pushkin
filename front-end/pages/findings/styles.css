@@ -1,0 +1,131 @@
+/**
+ * React Static Boilerplate
+ * https://github.com/koistya/react-static-boilerplate
+ *
+ * Copyright © 2015-2016 Konstantin Tarkus (@koistya)
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE.txt file in the root directory of this source tree.
+ */
+
+/*@import url("https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css");*/
+
+/*@import url("https://cdnjs.cloudflare.com/ajax/libs/foundation/6.2.4/foundation-flex.css");*/
+
+/*@media screen and (max-width: 1024px) {
+
+  .content {
+    padding: 0 16px;
+  }
+
+}*/
+
+@import url("https://fonts.googleapis.com/css?family=Noticia+Text");
+@import url("https://fonts.googleapis.com/css?family=Oswald");
+@import url("https://fonts.googleapis.com/css?family=Roboto+Slab");
+@import url("https://fonts.googleapis.com/css?family=News+Cycle|Ribeye+Marrow|Antic+Slab");
+
+.tan {
+  background-color: #ebebe1;
+  border-width: 0px;
+  margin: 0px;
+}
+
+.sub {
+  font-size: 16px;
+}
+
+.white {
+  background-color: #ffffff;
+  border-width: 0px;
+  margin: 0px;
+}
+
+.gray {
+  background-color: #a9a9a9;
+  border-width: 0px;
+  margin: 0px;
+}
+
+.textCenter {
+  text-align: center;
+}
+
+.textLeft {
+  text-align: left;
+}
+
+.textJustify {
+  text-align: justify;
+  text-justify: inter-word;
+}
+
+.title {
+  font-family: "Antic Slab", serif;
+  font-size: 22px;
+  margin-bottom: 25px;
+  text-align: right;
+}
+
+.blurb {
+  font-family: "Noticia Text", serif;
+  font-size: 16px;
+  color: #000000;
+  /*    text-align: justify;
+    text-justify: inter-word;*/
+}
+
+.ul {
+  font-family: "Noticia Text", serif;
+  font-size: 16px;
+  margin-bottom: 0px;
+}
+
+.ul a {
+  font-family: "Noticia Text", serif;
+  font-size: 16px;
+  color: #2199e8;
+}
+
+.ulm {
+  font-family: "Noticia Text", serif;
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+
+.ulm a {
+  font-family: "Noticia Text", serif;
+  font-size: 16px;
+  color: #2199e8;
+}
+
+.gif {
+  display: block;
+  margin: auto;
+}
+
+.heading {
+  /*font-family: 'Oswald', sans-serif;*/
+  font-family: "Ribeye Marrow", cursive;
+  font-size: 75px;
+  color: #a9a9a9;
+  text-align: center;
+}
+
+.subText {
+  /*font-family: 'Roboto Slab', serif;*/
+  font-family: "Antic Slab", serif;
+  font-size: 31px;
+  color: #a9a9a9;
+  text-align: center;
+}
+
+.rightBorder {
+  borderright: dashed #a9a9a9;
+  borderwidth: 2px;
+}
+
+.bottomBorder {
+  borderbottom: dashed #a9a9a9;
+  borderwidth: 2px;
+}

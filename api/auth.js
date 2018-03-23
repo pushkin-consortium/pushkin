@@ -26,7 +26,8 @@ module.exports = (rpc, conn) => {
     // request token
     return getToken().then(access_token => {
       const options = {
-        url: `https://${process.env.DOMAIN}/api/v2/users/${req.params.id}`,
+        // url: `https://gww.auth0.com/api/v2/users/${req.params.id}`,
+        url: `https://gameswithwords.auth0.com/api/v2/users/${req.params.id}`,
         method: 'GET',
         headers: {
           Authorization: 'Bearer ' + access_token

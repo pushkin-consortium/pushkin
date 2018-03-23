@@ -1,10 +1,5 @@
 node_modules
 boilerplate_documentation
-public/index.html
-public/dist/
-gif/
-img/
-experiments/
-pages/
-core/auth0-variables.js
-public/quizzes
+
+
+

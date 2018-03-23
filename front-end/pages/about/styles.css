@@ -1,0 +1,110 @@
+@import url("https://fonts.googleapis.com/css?family=Noticia+Text");
+@import url("https://fonts.googleapis.com/css?family=Oswald");
+@import url("https://fonts.googleapis.com/css?family=Roboto+Slab");
+@import url("https://fonts.googleapis.com/css?family=News+Cycle|Ribeye+Marrow|Antic+Slab");
+
+.tan {
+  background-color: #ebebe1;
+  border-width: 0px;
+  margin: 0px;
+}
+
+.sub {
+  font-size: 16px;
+}
+
+.white {
+  background-color: #ffffff;
+  border-width: 0px;
+  margin: 0px;
+}
+
+.gray {
+  background-color: #a9a9a9;
+  border-width: 0px;
+  margin: 0px;
+}
+
+.textCenter {
+  text-align: center;
+}
+
+.textLeft {
+  text-align: left;
+}
+
+.textJustify {
+  text-align: justify;
+  text-justify: inter-word;
+}
+
+.title {
+  font-family: "Antic Slab", serif;
+  font-size: 30px;
+  /*color: #000000;*/
+  text-align: right;
+  cursor: pointer;
+}
+
+.blurb {
+  font-family: "Noticia Text", serif;
+  font-size: 16px;
+  color: #000000;
+  /*    text-align: justify;
+    text-justify: inter-word;*/
+}
+
+.ul {
+  font-family: "Noticia Text", serif;
+  font-size: 16px;
+  margin-bottom: 22px;
+}
+
+.ul a {
+  font-family: "Noticia Text", serif;
+  font-size: 16px;
+  color: #2199e8;
+}
+
+.ulm {
+  font-family: "Noticia Text", serif;
+  font-size: 16px;
+  margin-bottom: 22px;
+}
+
+.ulm a {
+  font-family: "Noticia Text", serif;
+  font-size: 16px;
+  color: #2199e8;
+}
+
+.gif {
+  display: block;
+  margin: auto;
+}
+
+.heading {
+  /*font-family: 'Oswald', sans-serif;*/
+  font-family: "Ribeye Marrow", cursive;
+  font-size: 75px;
+  color: #a9a9a9;
+  text-align: center;
+}
+
+.subText {
+  /*font-family: 'Roboto Slab', serif;*/
+  font-family: "Antic Slab", serif;
+  font-size: 31px;
+  color: #a9a9a9;
+  text-align: center;
+}
+
+.rightBorder {
+  borderright: dashed #a9a9a9;
+  borderwidth: 2px;
+}
+
+.bottomBorder {
+  borderbottom: dashed #a9a9a9;
+  borderwidth: 2px;
+}

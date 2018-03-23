@@ -2,6 +2,6 @@ node_modules
 out
 typings
 seeds/Seeds.numbers
-seeds/
+
 log
-package-lock.json
+

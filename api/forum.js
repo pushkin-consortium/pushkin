@@ -96,8 +96,7 @@ module.exports = (rpc, conn, dbwrite) => {
           'post_content',
           'stim',
           'quiz',
-          'post_subject',
-          'submitURL'
+          'post_subject'
         ])
       ])
       return rpc(conn, channelName, rpcInput)

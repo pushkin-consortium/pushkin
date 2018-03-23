@@ -19,7 +19,6 @@
     "dotenv": "^4.0.0",
     "express": "^4.14.0",
     "express-jwt": "^5.3.0",
-    "express-routemap": "^1.1.0",
     "jwks-rsa": "^1.2.1",
     "lodash": "^4.17.4",
     "request-promise": "^4.2.2",

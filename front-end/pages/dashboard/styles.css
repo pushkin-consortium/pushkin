@@ -1,0 +1,10 @@
+.dashboard-nav {
+  display: flex;
+  min-height: 350px;
+}
+.dashboard-nav .section {
+  margin-right: 40px;
+}
+.dashboard-nav .content {
+  flex: 1;
+}
