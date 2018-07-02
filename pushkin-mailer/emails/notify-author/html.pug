@@ -1,0 +1,118 @@
+doctype html
+html(xmlns='http://www.w3.org/1999/xhtml', lang='en', xml:lang='en')
+  head
+    link(rel='stylesheet', type='text/css', href='/app.css' data-inline)
+    meta(http-equiv='Content-Type', content='text/html; charset=utf-8')
+    meta(name='viewport', content='width=device-width')
+    title My Drip Email Template Subject
+    // <style>
+  body
+    span.preheader
+    table.body
+      tr
+        td.center(align='center', valign='top')
+          center(data-parsed='')
+            table.container.header.float-center(align='center')
+              tbody
+                tr
+                  td
+                    table.row.collapse
+                      tbody
+                        tr
+                          th.small-12.large-12.columns.first.last
+                            table
+                              tr
+                                th
+                                  img(src='http://placehold.it/150x30/663399', alt='')
+                                th.expander
+            table.spacer.float-center
+              tbody
+                tr
+                  td(height='16px', style='font-size:16px;line-height:16px;')  
+            table.container.body-drip.float-center(align='center')
+              tbody
+                tr
+                  td
+                    table.spacer
+                      tbody
+                        tr
+                          td(height='16px', style='font-size:16px;line-height:16px;')  
+                    center(data-parsed='')
+                      img.float-center(src='http://placehold.it/120/663399', alt='', align='center')
+                    table.spacer
+                      tbody
+                        tr
+                          td(height='16px', style='font-size:16px;line-height:16px;')  
+                    table.row
+                      tbody
+                        tr
+                          th.small-12.large-12.columns.first.last
+                            table
+                              tr
+                                th
+                                  h4.text-center #{title}
+                                  p.text-center 
+                                th.expander
+                    hr
+                    table.row
+                      tbody
+                        tr
+                          th.small-12.large-12.columns.first.last
+                            table
+                              tr
+                                th
+                                  p.text-center
+                                    | Someone has created a new forum thread or comment about your quiz #{quiz}
+                                  center(data-parsed='')
+                                    table.button.success.float-center
+                                      tr
+                                        td
+                                          table
+                                            tr
+                                              td
+                                                - var url =`${URL}/forum/posts/${post_id}` ;
+                                                a(href=url) View it now
+                                th.expander
+                    table.row.collapsed.footer
+                      tbody
+                        tr
+                          th.small-12.large-12.columns.first.last
+                            table
+                              tr
+                                th
+                                  table.spacer
+                                    tbody
+                                      tr
+                                        td(height='16px', style='font-size:16px;line-height:16px;')  
+                                  p.text-center
+                                    | @copywrite nobody
+                                    br
+                                    a(href='#') hello@nocopywrite.com
+                                    |  
+                                    a(href='#') Manage Email Notifications
+                                    |  
+                                    a(href='#') Unsubscribe
+                                  center(data-parsed='')
+                                    table.menu.float-center(align='center')
+                                      tr
+                                        td
+                                          table
+                                            tr
+                                              th.menu-item.float-center
+                                                a(href='undefined')
+                                                  img(src='http://placehold.it/25/663399', alt='')
+                                              th.menu-item.float-center
+                                                a(href='undefined')
+                                                  img(src='http://placehold.it/25/663399', alt='')
+                                              th.menu-item.float-center
+                                                a(href='undefined')
+                                                  img(src='http://placehold.it/25/663399', alt='')
+                                              th.menu-item.float-center
+                                                a(href='undefined')
+                                                  img(src='http://placehold.it/25/663399', alt='')
+                                              th.menu-item.float-center
+                                                a(href='undefined')
+                                                  img(src='http://placehold.it/25/663399', alt='')
+                                th.expander
+    // prevent Gmail on iOS font size manipulation
+    div(style='display:none; white-space:nowrap; font:15px courier; line-height:0;')                                                              

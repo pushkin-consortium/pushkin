@@ -1,0 +1,5 @@
+*.swp
+.env
+docker-compose.production.noEnvDependency.yml
+server/html/*
+front-end/dist/*

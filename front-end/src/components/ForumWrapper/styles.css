@@ -1,0 +1,16 @@
+.modal-content {
+  height: 300px;
+  display: table-cell;
+  vertical-align: middle;
+}
+.modal-content h4 {
+  text-align: center;
+  padding: 5px;
+}
+.modal-close {
+  padding: 5px 5px 5px 10px;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}

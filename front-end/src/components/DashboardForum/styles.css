@@ -1,0 +1,10 @@
+.quiz-tag {
+  width: fit-content;
+  padding: 5px;
+  margin-right: 5px;
+  height: 35px;
+}
+.question-container {
+  display: flex;
+  margin: 20px 0px;
+}

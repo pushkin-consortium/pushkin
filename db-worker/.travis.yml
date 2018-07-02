@@ -1,0 +1,21 @@
+language: node_js
+node_js: stable
+before_install:
+   # Repo for newer Node.js versions
+  - cp knexfile.travis.js knexfile.js
+  - npm install -g knex
+  - psql -c "create database games_with_words_development;" -U postgres
+env:
+  - CXX=g++-4.8
+before_script:
+  - knex migrate:latest
+  - knex seed:run
+addons:
+  postgresql: '9.4'
+services:
+  - postgresql
+language: node_js
+node_js:
+  - "6"
+script:
+  - npm test

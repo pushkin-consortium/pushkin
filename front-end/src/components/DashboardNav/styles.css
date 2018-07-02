@@ -1,0 +1,21 @@
+.nav-item {
+  height: 100%;
+  position: relative;
+  border-right: 2px dashed tomato;
+}
+.nav-item div {
+  cursor: pointer;
+  line-height: 50px;
+  width: 200px;
+}
+.nav-item div:hover {
+  color: #ff8969;
+}
+.nav-item div i {
+  margin-right: 10px;
+  margin-left: 10px;
+}
+.nav-item .logout {
+  position: absolute;
+  bottom: 0;
+}

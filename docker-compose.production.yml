@@ -1,0 +1,124 @@
+version: '2'
+services:
+  api:
+    image: "${IMAGE_PREFIX}/pushkin-api:${IMAGE_TAG}"
+    environment:
+      - 'AMQP_ADDRESS=amqp://message-queue:5672'
+      - 'NODE_ENV=production'
+      - PORT=${API_PORT}
+    expose:
+      - "${API_PORT}"
+    links:
+      - message-queue
+    command:
+      - bash
+      - start.sh
+    labels:
+      io.rancher.scheduler.global: 'true'
+
+  front-end:
+    image: "${IMAGE_PREFIX}/pushkin-front-end:${IMAGE_TAG}"
+    environment:
+      - "CLOUDFRONT_URL=${CLOUDFRONT_URL}"
+      - "GOOGLE_ANALYTICS_SITE_ID=${GOOGLE_ANALYTICS_SITE_ID}"
+      - 'PORT=80'
+    expose:
+      - '80'
+      - '443'
+
+  cron:
+    image: '${IMAGE_PREFIX}/pushkin-cron:${IMAGE_TAG}'
+    environment:
+      - 'AMQP_ADDRESS=amqp://message-queue:5672'
+      - "API_ADDRESS=http://api:${API_PORT}/api"
+      - "DATABASE_URL=postgres://${MAIN_DB_USER}:${MAIN_DB_PASS}@${MAIN_DB_URL}/${MAIN_DB_NAME}"
+      - "TRANSACTION_DATABASE_URL=postgres://${TRANSACTION_DB_USER}:${TRANSACTION_DB_PASS}@${TRANSACTION_DB_URL}/${TRANSACTION_DB_NAME}"
+    links:
+      - message-queue
+      - api
+    labels:
+      io.rancher.scheduler.global: 'true'
+
+  db-worker:
+    image: '${IMAGE_PREFIX}/pushkin-db-worker:${IMAGE_TAG}'
+    environment:
+      - 'NODE_ENV=production'
+      - 'AMQP_ADDRESS=amqp://message-queue:5672'
+      - "DATABASE_URL=postgres://${MAIN_DB_USER}:${MAIN_DB_PASS}@${MAIN_DB_URL}/${MAIN_DB_NAME}"
+      - "TRANSACTION_DATABASE_URL=postgres://${TRANSACTION_DB_USER}:${TRANSACTION_DB_PASS}@${TRANSACTION_DB_URL}/${TRANSACTION_DB_NAME}"
+    links:
+      - message-queue
+    command:
+      - bash
+      - start.sh
+    labels:
+      io.rancher.scheduler.global: 'true'
+
+# need corresponding rancher-compose file for this to work properly, which we're missing
+# just set up on rancher via the ui for now (link to front-end? server?)
+      #  load-balancer:
+      #    image: 'rancher/lb-service-haproxy'
+      #    ports:
+      #      - '80'
+      #      - '443'
+      #    labels:
+      #      io.rancher.scheduler.global: 'true'
+      #      io.rancher.container.agent.role: environmentAdmin
+      #      io.rancher.container.create_agent: 'true'
+
+  message-queue:
+    #    image: 'gameswithwords/message-queue:latest'
+    image: 'rabbitmq:3.6-management'
+    expose:
+      - '5672'
+    environment:
+      CONFD_ARGS: '--interval 5'
+      RABBITMQ_CLUSTER_PARTITION_HANDLING: autoheal
+      RABBITMQ_NET_TICKTIME: '60'
+      RABBITMQ_ERLANG_COOKIE: 'message-queue-cookie'
+      RABBITMQ_NODENAME: "rabbitmqnode@${HOSTNAME}"
+    volumes:
+        # database location
+        # config file stored in /etc/rabbitmq/rabbitmq.config
+      - message_queue_datavolume:/var/lib/rabbitmq 
+    labels:
+      io.rancher.scheduler.global: 'true'
+
+  server:
+    image: '${IMAGE_PREFIX}/pushkin-server:${IMAGE_TAG}'
+    labels:
+      io.rancher.scheduler.global: 'true'
+    environment:
+      API_PORT: "${API_PORT}"
+    expose:
+      - '80'
+      - '443'
+    ports:
+      - '80'
+      - '433'
+    links:
+      - api
+
+      #  listener-quiz:
+      #    image: '${IMAGE_PREFIX}/pushkin-listener-quiz:latest'
+      #    command: 'bash start.sh'
+      #    depends_on:
+      #      - message-queue
+      #    environment:
+      #      - AMQP_ADDRESS=amqp://message-queue:5672
+      #      - QUEUE=listener-quiz
+      #    links:
+      #      - message-queue
+      #    labels:
+      #      io.rancher.scheduler.global: 'true'
+      #    volumes:
+      #      - message_queue_datavolume:/rabbitmq
+
+volumes:
+  # for rabbitmq
+  message_queue_datavolume: 
+
+
+
+
+
