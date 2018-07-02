@@ -35,6 +35,84 @@
             
   <div class="section" id="initial-deployment">
 <span id="id1"></span><h1>Initial Deployment<a class="headerlink" href="#initial-deployment" title="Permalink to this headline">¶</a></h1>
+<blockquote>
+<div><p>Walk through the initial deployment of Pushkin, including setting up AWS.</p>
+<blockquote>
+<div><p>These instructions assume you have:</p>
+<ul class="simple">
+<li>a working version of Pushkin</li>
+<li>access to AWS</li>
+<li>a Docker (Hub) account</li>
+</ul>
+</div></blockquote>
+<ol class="arabic simple">
+<li>Define security groups</li>
+</ol>
+<p>You’ll need two security groups — one for rancher and one for the databases.</p>
+<ul class="simple">
+<li>The rancher EC2 security group should be open to all traffic on ports 80 (tcp) and 8080 (also tcp). This is for normal web access and the rancher management web UI respectively.</li>
+<li>The database security group should be open to all traffic on ports 3306 (MySQL) and 5432 (Postgres).</li>
+</ul>
+<p>Instructions on creating a security group can be found on AWS.</p>
+<ol class="arabic simple" start="2">
+<li>Get an EC2</li>
+</ol>
+<p>The most straightforward way to do this is to use the official Rancher OS already on Amazon. Create it with the AMI from the list here appropriate to your region.</p>
+<p>Instructions on creating EC2 instances can be found on AWS.</p>
+<ol class="arabic simple" start="3">
+<li>Get databases (RDS)</li>
+</ol>
+<p>You’ll need three databases. One’s for rancher, one’s for transactions, and one’s for stored data. Launch all three with the database security group created previously. t2.medium is the recommended size for all of them.</p>
+<ul class="simple">
+<li>Rancher DB: MySQL</li>
+<li>Transaction DB: Postgres</li>
+<li>Data DB: Postgres</li>
+</ul>
+<p>Instructions on creating RDS Instances can be found on AWS.</p>
+<ol class="arabic simple" start="4">
+<li>Prepare the transactions database</li>
+</ol>
+<p>Connect to the transactions database just created using any postgres client and run the following code to make a transactions table:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">create</span> <span class="n">table</span> <span class="n">transactions</span> <span class="p">(</span>
+   <span class="nb">id</span>  <span class="n">SERIAL</span> <span class="n">PRIMARY</span> <span class="n">KEY</span><span class="p">,</span>
+   <span class="n">query</span> <span class="n">TEXT</span> <span class="ow">not</span> <span class="n">null</span><span class="p">,</span>
+   <span class="n">bindings</span> <span class="n">TEXT</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Prepare Locally</p>
+<ol class="arabic simple">
+<li>prepareToDeploy</li>
+</ol>
+<p>This step of deployment has been greatly simplified with the inclusion of the script “prepareToDeploy.sh”, which is located in the root folder of the repo. Make sure the Dcoker daemon is running and then execute this script from a terminal (e.g. ./prepareToDeploy.sh).</p>
+<p>It will prompt you for multiple things. Follow as you wish. Unless you’ve modified the structure or changed important file names, the defaults should be all set.</p>
+<p>It will handle compiling (NOT DONE YET – front-end/compile.js is broken), copying over files to the server, creating docker images, and uploading those images to docker hub. Finally, it will generate a new docker compose file that’s free of all environment variables (set in .env, the environment file), which will make rancher happy later on.</p>
+<p>Setup Rancher</p>
+<ol class="arabic simple">
+<li>Login to Rancher</li>
+</ol>
+<p>SSH into the Rancher EC2 instance and start the docker container for Rancher. Replace the capitalized parts of the following command with the information for the rancher database created earlier.</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>sudo docker run -d –restart=unless-stopped –name=rancher -p 8080:8080 rancher/server </dt>
+<dd>–db-host DB_URL –db-port 3306 –db-user DB_USER –db-pass DB_PASSWORD –db-name DB_NAME</dd>
+</dl>
+</div></blockquote>
+<p>You should now be able to connect to Rancher’s web interface by going to the EC2 URL at port 8080. It’s recommended you set a password by following the instructions here.</p>
+<ol class="arabic simple" start="2">
+<li>Create a new stack</li>
+</ol>
+<p>Create a new stack through the web UI and upload the docker-compose file the prepareToDeploy script generated for you (probably called something like “docker-compose.production.noEnvDependency.yml”).</p>
+<ol class="arabic simple" start="2">
+<li>Add a host</li>
+</ol>
+<p>Setup Autoscaling</p>
+<p>Maintenance &amp; Troubleshooting</p>
+<p>Logs</p>
+<ul class="simple">
+<li>Nginx (server) logs are stored inside the container in /var/log/nginx/access.log and /var/log/nginx/error.log. The standard nginx docker image symlinks these to stdout and stderr respectively, the combination of which can be viewed by running docker logs [container] outside of the container.</li>
+</ul>
+</div></blockquote>
 </div>
 
 
