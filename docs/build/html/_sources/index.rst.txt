@@ -17,7 +17,6 @@ Welcome to Pushkin's documentation!
 Indices and tables
 ==================
 
-* :ref:`initial-deployment`
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
