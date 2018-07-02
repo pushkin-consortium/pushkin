@@ -57,6 +57,13 @@ Setup AWS
          bindings TEXT
       )
 
+5. Get storage and CDN (S3/Cloudfront)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+  Create a new S3 bucket with open permissions.
+
+  Setup cloudfront. (These parts of the docs are not done yet.)
+
 Prepare Locally
 ---------------
 
