@@ -1,0 +1,86 @@
+router                                                                                                         
+ ├── query                                         *                                                           
+ ├── expressInit                                   *                                                           
+ ├── jsonParser                                    *                                                           
+ ├── corsMiddleware                                *                                                           
+ ├── <anonymous>                                   *                                                           
+ ├── router                                        /^\/api\/listener-quiz\/?(?=\/|$)/                          
+ │   router                                                                                                    
+ │    ├── bound dispatch                           /createUser                                                 POST
+ │    │    └── <anonymous>                         /                                                           POST
+ │    │   
+ │    ├── bound dispatch                           /users/:auth_id                                             PUT
+ │    │    └── <anonymous>                         /                                                           PUT
+ │    │   
+ │    ├── bound dispatch                           /deleteUser                                                 POST
+ │    │    └── <anonymous>                         /                                                           POST
+ │    │   
+ │    ├── bound dispatch                           /questions                                                  GET
+ │    │    └── <anonymous>                         /                                                           GET
+ │    │   
+ │    ├── bound dispatch                           /getAllStimuli                                              POST
+ │    │    └── <anonymous>                         /                                                           POST
+ │    │   
+ │    ├── bound dispatch                           /stimulusResponse                                           POST
+ │    │    └── <anonymous>                         /                                                           POST
+ │    │   
+ │    ├── bound dispatch                           /response                                                   POST
+ │    │    └── <anonymous>                         /                                                           POST
+ │    │   
+ │    └── bound dispatch                           /clean                                                      POST
+ │         └── <anonymous>                         /                                                           POST
+ │        
+ │   
+ ├── router                                        /api                                                        
+ │   router                                                                                                    
+ │    ├── bound dispatch                           /posts                                                      GET
+ │    │    └── <anonymous>                         /                                                           GET
+ │    │   
+ │    ├── bound dispatch                           /user/:auth0Id/posts                                        GET
+ │    │    └── <anonymous>                         /                                                           GET
+ │    │   
+ │    ├── bound dispatch                           /posts/:id                                                  GET
+ │    │    └── <anonymous>                         /                                                           GET
+ │    │   
+ │    ├── bound dispatch                           /posts                                                      POST
+ │    │    ├── middleware                          /                                                           POST
+ │    │    └── <anonymous>                         /                                                           POST
+ │    │   
+ │    ├── bound dispatch                           /posts/:postId/comments                                     POST
+ │    │    ├── middleware                          /                                                           POST
+ │    │    └── <anonymous>                         /                                                           POST
+ │    │   
+ │    ├── bound dispatch                           /comments                                                   GET
+ │    │    ├── middleware                          /                                                           GET
+ │    │    └── <anonymous>                         /                                                           GET
+ │    │   
+ │    ├── bound dispatch                           /posts/:id                                                  DELETE
+ │    │    ├── middleware                          /                                                           DELETE
+ │    │    └── <anonymous>                         /                                                           DELETE
+ │    │   
+ │    └── bound dispatch                           /posts/:post_id/comments/:id                                DELETE
+ │         ├── middleware                          /                                                           DELETE
+ │         └── <anonymous>                         /                                                           DELETE
+ │        
+ │   
+ ├── router                                        /api                                                        
+ │   router                                                                                                    
+ │    ├── bound dispatch                           /getAuth0User/:id                                           GET
+ │    │    └── <anonymous>                         /                                                           GET
+ │    │   
+ │    └── bound dispatch                           /users/:auth0_id                                            POST
+ │         ├── middleware                          /                                                           POST
+ │         └── <anonymous>                         /                                                           POST
+ │        
+ │   
+ ├── bound dispatch                                /api/users                                                  GET
+ │    └── <anonymous>                              /                                                           GET
+ │   
+ ├── bound dispatch                                /api/mail/health                                            GET
+ │    └── <anonymous>                              /                                                           GET
+ │   
+ ├── bound dispatch                                /api/routes                                                 GET
+ │    └── <anonymous>                              /                                                           GET
+ │   
+ ├── <anonymous>                                   *                                                           
+ └── <anonymous>                                   *                                                           

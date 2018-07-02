@@ -1,0 +1,11 @@
+.reply-textarea {
+  width: 100%;
+  z-index: auto;
+  position: relative;
+  line-height: 18.2px;
+  font-size: 14px;
+  transition: none;
+  background: transparent !important;
+  opacity: 1;
+  height: 188px;
+}
