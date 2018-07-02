@@ -10,6 +10,8 @@ Welcome to Pushkin's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   deployment/initialDeployment
+
 
 
 Indices and tables
