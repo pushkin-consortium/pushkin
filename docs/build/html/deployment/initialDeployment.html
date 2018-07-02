@@ -51,15 +51,19 @@
 <ol class="arabic simple">
 <li>Define security groups</li>
 </ol>
-<p>You’ll need two security groups — one for rancher and one for the databases.</p>
+<blockquote>
+<div><p>You’ll need two security groups — one for rancher and one for the databases.</p>
 <p>The rancher EC2 security group should be open to all traffic on ports 80 (tcp) and 8080 (also tcp). This is for normal web access and the rancher management web UI respectively.</p>
 <p>The database security group should be open to all traffic on ports 3306 (MySQL) and 5432 (Postgres).</p>
 <p>Instructions on creating a security group can be found on AWS.</p>
+</div></blockquote>
 <ol class="arabic simple" start="2">
 <li>Get an EC2</li>
 </ol>
-<p>The most straightforward way to do this is to use the official Rancher OS already on Amazon. Create it with the AMI from the list here appropriate to your region.</p>
+<blockquote>
+<div><p>The most straightforward way to do this is to use the official Rancher OS already on Amazon. Create it with the AMI from the list here appropriate to your region.</p>
 <p>Instructions on creating EC2 instances can be found on AWS.</p>
+</div></blockquote>
 <ol class="arabic simple" start="3">
 <li>Get databases (RDS)</li>
 </ol>
