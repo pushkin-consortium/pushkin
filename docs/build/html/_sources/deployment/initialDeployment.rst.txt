@@ -18,6 +18,7 @@ Setup AWS
 ---------------
 
 1. Define security groups
+^^^^^^^^^^^^^^^^^
 
   You'll need two security groups — one for rancher and one for the databases.
 

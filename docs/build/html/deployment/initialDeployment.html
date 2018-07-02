@@ -48,9 +48,8 @@
 </div>
 <div class="section" id="setup-aws">
 <h2>Setup AWS<a class="headerlink" href="#setup-aws" title="Permalink to this headline">¶</a></h2>
-<ol class="arabic simple">
-<li>Define security groups</li>
-</ol>
+<div class="section" id="define-security-groups">
+<h3>1. Define security groups<a class="headerlink" href="#define-security-groups" title="Permalink to this headline">¶</a></h3>
 <blockquote>
 <div><p>You’ll need two security groups — one for rancher and one for the databases.</p>
 <p>The rancher EC2 security group should be open to all traffic on ports 80 (tcp) and 8080 (also tcp). This is for normal web access and the rancher management web UI respectively.</p>
@@ -84,6 +83,7 @@
    <span class="n">bindings</span> <span class="n">TEXT</span>
 <span class="p">)</span>
 </pre></div>
+</div>
 </div>
 </div>
 <div class="section" id="prepare-locally">
@@ -132,7 +132,10 @@
   <ul>
 <li><a class="reference internal" href="#">Initial Deployment</a><ul>
 <li><a class="reference internal" href="#requirements">Requirements</a></li>
-<li><a class="reference internal" href="#setup-aws">Setup AWS</a></li>
+<li><a class="reference internal" href="#setup-aws">Setup AWS</a><ul>
+<li><a class="reference internal" href="#define-security-groups">1. Define security groups</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#prepare-locally">Prepare Locally</a></li>
 <li><a class="reference internal" href="#setup-rancher">Setup Rancher</a><ul>
 <li><a class="reference internal" href="#setup-autoscaling">Setup Autoscaling</a></li>
