@@ -11,6 +11,7 @@ Welcome to Pushkin's documentation!
    :caption: Contents:
 
    deployment/initialDeployment
+   maintenance/maintenance
 
 
 
