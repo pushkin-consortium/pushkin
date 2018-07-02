@@ -56,27 +56,30 @@
 <p>The database security group should be open to all traffic on ports 3306 (MySQL) and 5432 (Postgres).</p>
 <p>Instructions on creating a security group can be found on AWS.</p>
 </div></blockquote>
-<ol class="arabic simple" start="2">
-<li>Get an EC2</li>
-</ol>
+</div>
+<div class="section" id="get-an-ec2">
+<h3>2. Get an EC2<a class="headerlink" href="#get-an-ec2" title="Permalink to this headline">¶</a></h3>
 <blockquote>
 <div><p>The most straightforward way to do this is to use the official Rancher OS already on Amazon. Create it with the AMI from the list here appropriate to your region.</p>
 <p>Instructions on creating EC2 instances can be found on AWS.</p>
 </div></blockquote>
-<ol class="arabic simple" start="3">
-<li>Get databases (RDS)</li>
-</ol>
-<p>You’ll need three databases. One’s for rancher, one’s for transactions, and one’s for stored data. Launch all three with the database security group created previously. t2.medium is the recommended size for all of them.</p>
+</div>
+<div class="section" id="get-databases-rds">
+<h3>3. Get databases (RDS)<a class="headerlink" href="#get-databases-rds" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><p>You’ll need three databases. One’s for rancher, one’s for transactions, and one’s for stored data. Launch all three with the database security group created previously. t2.medium is the recommended size for all of them.</p>
 <ul class="simple">
 <li>Rancher DB: MySQL</li>
 <li>Transaction DB: Postgres</li>
 <li>Data DB: Postgres</li>
 </ul>
 <p>Instructions on creating RDS Instances can be found on AWS.</p>
-<ol class="arabic simple" start="4">
-<li>Prepare the transactions database</li>
-</ol>
-<p>Connect to the transactions database just created using any postgres client and run the following code to make a transactions table:</p>
+</div></blockquote>
+</div>
+<div class="section" id="prepare-the-transactions-database">
+<h3>4. Prepare the transactions database<a class="headerlink" href="#prepare-the-transactions-database" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><p>Connect to the transactions database just created using any postgres client and run the following code to make a transactions table:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">create</span> <span class="n">table</span> <span class="n">transactions</span> <span class="p">(</span>
    <span class="nb">id</span>  <span class="n">SERIAL</span> <span class="n">PRIMARY</span> <span class="n">KEY</span><span class="p">,</span>
    <span class="n">query</span> <span class="n">TEXT</span> <span class="ow">not</span> <span class="n">null</span><span class="p">,</span>
@@ -84,23 +87,26 @@
 <span class="p">)</span>
 </pre></div>
 </div>
+</div></blockquote>
 </div>
 </div>
 <div class="section" id="prepare-locally">
 <h2>Prepare Locally<a class="headerlink" href="#prepare-locally" title="Permalink to this headline">¶</a></h2>
-<ol class="arabic simple">
-<li>prepareToDeploy</li>
-</ol>
-<p>This step of deployment has been greatly simplified with the inclusion of the script “prepareToDeploy.sh”, which is located in the root folder of the repo. Make sure the Dcoker daemon is running and then execute this script from a terminal (e.g. ./prepareToDeploy.sh).</p>
+<div class="section" id="preparetodeploy">
+<h3>1. prepareToDeploy<a class="headerlink" href="#preparetodeploy" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><p>This step of deployment has been greatly simplified with the inclusion of the script “prepareToDeploy.sh”, which is located in the root folder of the repo. Make sure the Dcoker daemon is running and then execute this script from a terminal (e.g. ./prepareToDeploy.sh).</p>
 <p>It will prompt you for multiple things. Follow as you wish. Unless you’ve modified the structure or changed important file names, the defaults should be all set.</p>
 <p>It will handle compiling (NOT DONE YET – front-end/compile.js is broken), copying over files to the server, creating docker images, and uploading those images to docker hub. Finally, it will generate a new docker compose file that’s free of all environment variables (set in .env, the environment file), which will make rancher happy later on.</p>
+</div></blockquote>
+</div>
 </div>
 <div class="section" id="setup-rancher">
 <h2>Setup Rancher<a class="headerlink" href="#setup-rancher" title="Permalink to this headline">¶</a></h2>
-<ol class="arabic simple">
-<li>Login to Rancher</li>
-</ol>
-<p>SSH into the Rancher EC2 instance and start the docker container for Rancher. Replace the capitalized parts of the following command with the information for the rancher database created earlier.</p>
+<div class="section" id="login-to-rancher">
+<h3>1. Login to Rancher<a class="headerlink" href="#login-to-rancher" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><p>SSH into the Rancher EC2 instance and start the docker container for Rancher. Replace the capitalized parts of the following command with the information for the rancher database created earlier.</p>
 <blockquote>
 <div><dl class="docutils">
 <dt>sudo docker run -d –restart=unless-stopped –name=rancher -p 8080:8080 rancher/server </dt>
@@ -108,13 +114,16 @@
 </dl>
 </div></blockquote>
 <p>You should now be able to connect to Rancher’s web interface by going to the EC2 URL at port 8080. It’s recommended you set a password by following the instructions here.</p>
-<ol class="arabic simple" start="2">
-<li>Create a new stack</li>
-</ol>
-<p>Create a new stack through the web UI and upload the docker-compose file the prepareToDeploy script generated for you (probably called something like “docker-compose.production.noEnvDependency.yml”).</p>
-<ol class="arabic simple" start="2">
-<li>Add a host</li>
-</ol>
+</div></blockquote>
+</div>
+<div class="section" id="create-a-new-stack">
+<h3>1. Create a new stack<a class="headerlink" href="#create-a-new-stack" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div>Create a new stack through the web UI and upload the docker-compose file the prepareToDeploy script generated for you (probably called something like “docker-compose.production.noEnvDependency.yml”).</div></blockquote>
+</div>
+<div class="section" id="add-a-host">
+<h3>2. Add a host<a class="headerlink" href="#add-a-host" title="Permalink to this headline">¶</a></h3>
+</div>
 <div class="section" id="setup-autoscaling">
 <h3>Setup Autoscaling<a class="headerlink" href="#setup-autoscaling" title="Permalink to this headline">¶</a></h3>
 </div>
@@ -134,10 +143,19 @@
 <li><a class="reference internal" href="#requirements">Requirements</a></li>
 <li><a class="reference internal" href="#setup-aws">Setup AWS</a><ul>
 <li><a class="reference internal" href="#define-security-groups">1. Define security groups</a></li>
+<li><a class="reference internal" href="#get-an-ec2">2. Get an EC2</a></li>
+<li><a class="reference internal" href="#get-databases-rds">3. Get databases (RDS)</a></li>
+<li><a class="reference internal" href="#prepare-the-transactions-database">4. Prepare the transactions database</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#prepare-locally">Prepare Locally</a></li>
+<li><a class="reference internal" href="#prepare-locally">Prepare Locally</a><ul>
+<li><a class="reference internal" href="#preparetodeploy">1. prepareToDeploy</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#setup-rancher">Setup Rancher</a><ul>
+<li><a class="reference internal" href="#login-to-rancher">1. Login to Rancher</a></li>
+<li><a class="reference internal" href="#create-a-new-stack">1. Create a new stack</a></li>
+<li><a class="reference internal" href="#add-a-host">2. Add a host</a></li>
 <li><a class="reference internal" href="#setup-autoscaling">Setup Autoscaling</a></li>
 </ul>
 </li>
