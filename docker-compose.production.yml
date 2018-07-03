@@ -16,15 +16,16 @@ services:
     labels:
       io.rancher.scheduler.global: 'true'
 
-  front-end:
-    image: "${IMAGE_PREFIX}/pushkin-front-end:${IMAGE_TAG}"
-    environment:
-      - "CLOUDFRONT_URL=${CLOUDFRONT_URL}"
-      - "GOOGLE_ANALYTICS_SITE_ID=${GOOGLE_ANALYTICS_SITE_ID}"
-      - 'PORT=80'
-    expose:
-      - '80'
-      - '443'
+      #  front-end:
+      #    image: "${IMAGE_PREFIX}/pushkin-front-end:${IMAGE_TAG}"
+      #    environment:
+      #      - "CLOUDFRONT_URL=${CLOUDFRONT_URL}"
+      #      - "GOOGLE_ANALYTICS_SITE_ID=${GOOGLE_ANALYTICS_SITE_ID}"
+      #      - "ISDEBUG=${ISDEBUG}"
+      #      - 'PORT=80'
+      #    expose:
+      #      - '80'
+      #      - '443'
 
   cron:
     image: '${IMAGE_PREFIX}/pushkin-cron:${IMAGE_TAG}'
@@ -76,7 +77,7 @@ services:
       RABBITMQ_CLUSTER_PARTITION_HANDLING: autoheal
       RABBITMQ_NET_TICKTIME: '60'
       RABBITMQ_ERLANG_COOKIE: 'message-queue-cookie'
-      RABBITMQ_NODENAME: "rabbitmqnode@${HOSTNAME}"
+      RABBITMQ_NODENAME: "rabbitmqnode@${RABBITMQ_HOSTNAME}"
     volumes:
         # database location
         # config file stored in /etc/rabbitmq/rabbitmq.config
@@ -93,9 +94,9 @@ services:
     expose:
       - '80'
       - '443'
-    ports:
-      - '80'
-      - '433'
+        #    ports:
+        #      - '80'
+        #      - '433'
     links:
       - api
 

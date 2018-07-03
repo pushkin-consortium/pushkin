@@ -14,23 +14,27 @@ require('dotenv').config();
 const PORT = process.env.PORT;
 app.use(bodyParser.json());
 app.use(cors());
+
 amqp.connect(process.env.AMQP_ADDRESS, function(err, conn) {
-  if (err) {
-    return logger.error(err);
-  }
+
+  if (err) return logger.error(err);
+
   app.use((req, res, next) => {
     logger.info(req.url);
     next();
   });
+
   const controllers = fs
     .readdirSync(path.resolve(__dirname, 'controllers'))
     .filter(file => path.parse(file).ext === '.js');
+
   controllers.forEach(controllerFile => {
     const short = controllerFile.replace('.js', '');
     const route = '/api/' + short;
     const controller = require('./controllers/' + short)(rpc, conn, dbWrite);
     app.use(route, controller);
   });
+
   if (CONFIG.forum) {
     const forumController = require('./forum')(rpc, conn, dbWrite);
     app.use('/api', forumController);

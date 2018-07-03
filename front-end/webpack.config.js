@@ -4,15 +4,24 @@ const path = require('path');
 const webpack = require('webpack');
 const pkg = require('./package.json');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const commandLineArgs = require('command-line-args');
 
-const isDebug = true; //  global.DEBUG === false ? false : !process.argv.includes('--release');
-const isVerbose =
-	process.argv.includes('--verbose') || process.argv.includes('-v');
-const useHMR = !!global.HMR; // Hot Module Replacement (HMR)
-const babelConfig = Object.assign({}, pkg.babel, {
+
+const argOptions = [
+	{ name: 'debug', alias: 'd', type: Boolean },
+	{ name: 'verbose', alias: 'v', type: Boolean },
+	{ name: 'publicPath', alias: 'p', type: String, defaultOption: '' },
+];
+const args = commandLineArgs(argOptions);
+
+const isDebug = args.debug;
+const isVerbose = args.verbose;
+const useHMR = false; //!!global.HMR; // Hot Module Replacement (HMR)
+const babelConfig = { 
+	...pkg.babel,
 	babelrc: true,
 	cacheDirectory: useHMR
-});
+};
 
 // Webpack configuration (main.js => dist/main.{hash}.js)
 // http://webpack.github.io/docs/configuration.html
@@ -22,13 +31,11 @@ const config = {
 	// The base directory for resolving the entry option
 	context: path.resolve(__dirname),
 
-	entry: [
-		'./src/main.js'
-	],
+	entry: [ './src/main.js' ],
 
 	output: {
 		path: path.resolve(__dirname, 'dist'),
-		publicPath: isDebug ? '' : 'http://' + process.env.CLOUDFRONT_URL + '/dist/', // where bundled files are uploaded on server
+		publicPath: isDebug ? '' : args.publicPath, // where bundled files are uploaded on server
 		filename: '[name].[hash].js',
 		chunkFilename: '[id].[chunkhash].js',
 	},
