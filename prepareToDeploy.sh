@@ -71,20 +71,23 @@ for i in "${BUILD_IMAGES[@]}"; do
 done
 echoBold "will compile front-end (run 'node compile.js') from ${normal}front-end${bold} folder"
 echoBold "will copy compiled web code from ${normal}${PUB_WEB_SRC} ${bold}to${normal} ${PUB_WEB_DST}"
-echoBold "will DELETE everything in api/controllers, db-worker/models, db-worker/migrations db-worker/seeds, front-end/src/quizzes, directories in cron/scripts"
+echoBold "will DELETE everything in api/controllers, db-worker/models, db-worker/migrations db-worker/seeds, front-end/src/quizzes, server/html, directories in cron/scripts"
+echoBold "will sync front-end/dist with ${s3_bucket_name} s3 bucket"
 
 echo
 confirmContinue "continue ?"
 
+
 ######################## start ########################
 # clean
-echoBold "cleaning quiz info imported from quizzes"
-rm -rf ./api/controllers/*/
-rm -rf ./db-worker/models/*/
-rm -rf ./db-worker/migrations/*/
-rm -rf ./db-worker/seeds/*/
+echoBold "cleaning"
+rm -rf ./api/controllers/*
+rm -rf ./db-worker/models/*
+rm -rf ./db-worker/migrations/*
+rm -rf ./db-worker/seeds/*
 rm -rf ./front-end/src/quizzes/*/
 rm -rf ./cron/scripts/*/
+rm -rf ./server/html/*
 
 
 # move user specific quizzes to appropriate locations
@@ -118,17 +121,16 @@ for quiz in */; do
 done
 set -e
 cd ../..
-exit
 
 # compile front-end
 echoBold "compiling from front-end"
 cd front-end
-# node compile.js
+node compile.js --publicPath="${CLOUDFRONT_URL}"
 cd ..
 
 # copy compiled files
 echoBold "copying web files"
-cp -rf "./${PUB_WEB_SRC}" "./${PUB_WEB_DST}"
+cp -rf "./${PUB_WEB_SRC}"/* "./${PUB_WEB_DST}"
 
 # build all docker images
 for i in "${BUILD_IMAGES[@]}"; do
@@ -155,6 +157,9 @@ set -a
 set +a
 cat $DOCKER_COMPOSE | envsubst > $DOCKER_COMPOSE_NEW
 
+# sync front-end/dist with s3 bucket
+echoBold "syncing ${PUB_WEB_DST} with ${s3_bucket_name} s3 bucket"
+aws s3 sync "./${PUB_WEB_DST}" s3://${s3_bucket_name}
 
 # done
 echoBold "preparation complete"

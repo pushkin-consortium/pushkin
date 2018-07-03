@@ -9,6 +9,7 @@
   "dependencies": {
     "axios": "^0.15.3",
     "classnames": "^2.2.5",
+    "command-line-args": "^5.0.2",
     "fastclick": "^1.0.6",
     "history": "^3.0.0",
     "imagesloaded": "*",
