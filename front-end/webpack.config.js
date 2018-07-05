@@ -26,6 +26,9 @@ const babelConfig = {
 // Webpack configuration (main.js => dist/main.{hash}.js)
 // http://webpack.github.io/docs/configuration.html
 const config = {
+	node: {
+		fs: 'empty'
+	},
 	mode: isDebug ? 'development' : 'production',
 
 	// The base directory for resolving the entry option
