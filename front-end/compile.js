@@ -1,5 +1,5 @@
+/* eslint-disable no-console */
 
-const fs = require('fs');
 const del = require('del');
 const webpack = require('webpack');
 
@@ -15,10 +15,10 @@ let pack = () => {
 	return new Promise( (resolve, reject) => {
 		webpack(webpackConfig).run( (err, stats) => {
 			if (err || stats.hasErrors()) {
-				console.log(err || stats.toString());
+				console.log(err || stats.toString()); 
 				reject();
 			} else {
-				console.log(stats.toString(webpackConfig.stats));
+				console.log(stats.toString(webpackConfig.stats)); 
 				resolve();
 			}
 		});
@@ -28,4 +28,4 @@ let pack = () => {
 Promise.resolve()
 	.then( () => { clean(); })
 	.then( () => { pack(); })
-	.catch( (err) => { console.log(err); });
+	.catch( (err) => { console.log(err); }); 

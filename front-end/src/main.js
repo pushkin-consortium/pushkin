@@ -23,47 +23,47 @@ import { compose, createStore, applyMiddleware } from 'redux';
 import { hot } from 'react-hot-loader';
 
 export default function configureStore(initialState) {
-  const middleWares = [thunkMiddleware];
-  if (process.env.NODE_ENV === 'development') {
-    middleWares.push(require('redux-logger')());
-  }
+	const middleWares = [thunkMiddleware];
+	if (process.env.NODE_ENV === 'development') {
+		middleWares.push(require('redux-logger')());
+	}
 
-  const store = createStore(
-    rootReducer,
-    initialState,
-    compose(applyMiddleware.apply(this, middleWares))
-  );
-  // Hot reload reducers (requires Webpack or Browserify HMR to be enabled)
-  if (module.hot) {
-    module.hot.accept('./reducers', () =>
-      store.replaceReducer(require('./reducers/index').rootReducer)
-    );
-  }
-  return store;
+	const store = createStore(
+		rootReducer,
+		initialState,
+		compose(applyMiddleware.apply(this, middleWares))
+	);
+	// Hot reload reducers (requires Webpack or Browserify HMR to be enabled)
+	if (module.hot) {
+		module.hot.accept('./reducers', () =>
+			store.replaceReducer(require('./reducers/index').rootReducer)
+		);
+	}
+	return store;
 }
 
 const store = configureStore();
 const history = syncHistoryWithStore(browserHistory, store);
 const App = hot(module)(function({ routes }) {
-  return (
-    <Provider store={store}>
-      <Router onUpdate={() => window.scrollTo(0, 0)} history={history}>
-        {routes}
-      </Router>
-    </Provider>
-  );
+	return (
+		<Provider store={store}>
+			<Router onUpdate={() => window.scrollTo(0, 0)} history={history}>
+				{routes}
+			</Router>
+		</Provider>
+	);
 });
 
 function render(routes) {
-  FastClick.attach(document.body);
-  ReactDOM.render(
-    <App routes={routes} />,
-    document.getElementById('container')
-  );
+	FastClick.attach(document.body);
+	ReactDOM.render(
+		<App routes={routes} />,
+		document.getElementById('container')
+	);
 }
 render(routes);
 if (module.hot) {
-  module.hot.accept('./core/routes', () => {
-    render(require('./core/routes').routes);
-  });
+	module.hot.accept('./core/routes', () => {
+		render(require('./core/routes').routes);
+	});
 }
