@@ -16,7 +16,6 @@ Setup AWS
 ---------------
 
 #. Define security groups
-^^^^^^^^^^^^^^^^^^^^^^^^^^
 
   You'll need two security groups — one for rancher and one for the databases.
 
@@ -41,7 +40,6 @@ Setup AWS
   .. todo:: Add link for instructions.
 
 #. Get an EC2
-^^^^^^^^^^^^^^
 
   The most straightforward way to do this is to use the official Rancher OS already on Amazon. Create it with the AMI from the list here appropriate to your region.
 
@@ -50,7 +48,6 @@ Setup AWS
   .. todo:: Add link for instructions.
 
 #. Get databases (RDS)
-^^^^^^^^^^^^^^^^^^^^^^^
 
   You'll need three databases. One's for rancher, one's for transactions, and one's for stored data. Launch all three with the database security group created previously. t#.medium is the recommended size for all of them.
 
@@ -63,7 +60,6 @@ Setup AWS
   .. todo:: Add link for instructions.
 
 #. Prepare the transactions database
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
   Connect to the transactions database just created using any Postgres client and run the following code to make a transactions table::
 
@@ -74,26 +70,22 @@ Setup AWS
       )
 
 #. Get an S3 Bucket
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
   Create a new S3 bucket with open permissions for all traffic.
 
   .. todo:: Give more details.
 
 #. Get Cloudfront
-^^^^^^^^^^^^^^^^^^^
 
   Setup cloudfront to point to the new bucket.
 
   .. todo:: Give more details.
 
 #. Get AWS CLI Tools
-^^^^^^^^^^^^^^^^^^^^^
 
   Follow Amazon's instructions for installing the AWS CLI `here <https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-welcome.html>`_. Alternatively, you could use `Homebrew <https://brew.sh>`_ if you're on a Mac.
 
 #. Set up an IAM User
-^^^^^^^^^^^^^^^^^^^^^^
 
   This will be programmatic access from the command line AWS tools via the prepareToDeploy.sh script.
 
@@ -105,7 +97,6 @@ Setup Rancher
 --------------
 
 #. Login to Rancher
-^^^^^^^^^^^^^^^^^^^^
 
   SSH into the Rancher EC2 instance and start the docker container for Rancher. Replace the capitalized parts of the following command with the information for the rancher database created earlier.
 
@@ -116,12 +107,10 @@ Setup Rancher
   You should now be able to connect to Rancher's web interface by going to the EC2 URL at port 8080.
 
 #. Add a Password
-^^^^^^^^^^^^^^^^^
 
    Go to Admin > Access Control and set up an access control type of your choice.
 
 #. Add a host
-^^^^^^^^^^^^^^^^^
 
   Go to Infrastructure > Hosts > Add Host. Use the public IP of the current Rancher EC2 instance for the public IP of the host and run the command given in the SSH connection already open.
 
@@ -129,12 +118,10 @@ Prepare Locally
 ---------------
 
 #. Set Variables
-^^^^^^^^^^^^^^^^^^^
 
   The ".env" in the root directory of Pushkin is used to house the configuration of a myriad of settings. Open it in a plain text editor and enter in the corresponding information for each line.
 
 #. prepareToDeploy
-^^^^^^^^^^^^^^^^^^^
 
   This step of deployment has been greatly simplified with the inclusion of the script "prepareToDeploy.sh", which is located in the root folder of the repo. Make sure the Docker daemon is running and then execute this script from a terminal (e.g. ./prepareToDeploy.sh).
 
@@ -144,7 +131,6 @@ Prepare Locally
 
 
 #. Create a new stack
-^^^^^^^^^^^^^^^^^^^^^^^
 
   Go to Stacks > New Stack in the Rancher web UI and upload the docker-compose file the prepareToDeploy script generated for you (called "docker-compose.production.noEnvDependency.yml" by default).
 
