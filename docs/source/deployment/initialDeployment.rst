@@ -109,8 +109,9 @@ Setup Rancher
 
   SSH into the Rancher EC2 instance and start the docker container for Rancher. Replace the capitalized parts of the following command with the information for the rancher database created earlier.
 
-      sudo docker run -d --restart=unless-stopped --name=rancher -p 8080:8080 rancher/server \
-          --db-host DB_URL --db-port 3306 --db-user DB_USER --db-pass DB_PASSWORD --db-name DB_NAME
+  .. code-block:: bash
+
+    sudo docker run -d --restart=unless-stopped --name=rancher -p 8080:8080 rancher/server --db-host DB_URL --db-port 3306 --db-user DB_USER --db-pass DB_PASSWORD --db-name DB_NAME
 
   You should now be able to connect to Rancher's web interface by going to the EC2 URL at port 8080. It's recommended you set a password by following the instructions here.
 
