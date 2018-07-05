@@ -1,13 +1,13 @@
 version: '2'
 services:
   api:
-    image: "${IMAGE_PREFIX}/pushkin-api:${IMAGE_TAG}"
+    image: "${image_prefix}/pushkin-api:${image_tag}"
     environment:
       - 'AMQP_ADDRESS=amqp://message-queue:5672'
       - 'NODE_ENV=production'
-      - PORT=${API_PORT}
+      - PORT=${api_port}
     expose:
-      - "${API_PORT}"
+      - "${api_port}"
     links:
       - message-queue
     command:
@@ -17,23 +17,23 @@ services:
       io.rancher.scheduler.global: 'true'
 
       #  front-end:
-      #    image: "${IMAGE_PREFIX}/pushkin-front-end:${IMAGE_TAG}"
+      #    image: "${image_prefix}/pushkin-front-end:${image_tag}"
       #    environment:
-      #      - "CLOUDFRONT_URL=${CLOUDFRONT_URL}"
-      #      - "GOOGLE_ANALYTICS_SITE_ID=${GOOGLE_ANALYTICS_SITE_ID}"
-      #      - "ISDEBUG=${ISDEBUG}"
+      #      - "cloudfront_url=${cloudfront_url}"
+      #      - "google_analytics_site_id=${google_analytics_site_id}"
+      #      - "isdebug=${isdebug}"
       #      - 'PORT=80'
       #    expose:
       #      - '80'
       #      - '443'
 
   cron:
-    image: '${IMAGE_PREFIX}/pushkin-cron:${IMAGE_TAG}'
+    image: '${image_prefix}/pushkin-cron:${image_tag}'
     environment:
       - 'AMQP_ADDRESS=amqp://message-queue:5672'
-      - "API_ADDRESS=http://api:${API_PORT}/api"
-      - "DATABASE_URL=postgres://${MAIN_DB_USER}:${MAIN_DB_PASS}@${MAIN_DB_URL}/${MAIN_DB_NAME}"
-      - "TRANSACTION_DATABASE_URL=postgres://${TRANSACTION_DB_USER}:${TRANSACTION_DB_PASS}@${TRANSACTION_DB_URL}/${TRANSACTION_DB_NAME}"
+      - "API_ADDRESS=http://api:${api_port}/api"
+      - "DATABASE_URL=postgres://${main_db_user}:${main_db_pass}@${main_db_url}/${main_db_name}"
+      - "transaction_database_url=postgres://${transaction_db_user}:${transaction_db_pass}@${transaction_db_url}/${transaction_db_name}"
     links:
       - message-queue
       - api
@@ -41,12 +41,12 @@ services:
       io.rancher.scheduler.global: 'true'
 
   db-worker:
-    image: '${IMAGE_PREFIX}/pushkin-db-worker:${IMAGE_TAG}'
+    image: '${image_prefix}/pushkin-db-worker:${image_tag}'
     environment:
       - 'NODE_ENV=production'
       - 'AMQP_ADDRESS=amqp://message-queue:5672'
-      - "DATABASE_URL=postgres://${MAIN_DB_USER}:${MAIN_DB_PASS}@${MAIN_DB_URL}/${MAIN_DB_NAME}"
-      - "TRANSACTION_DATABASE_URL=postgres://${TRANSACTION_DB_USER}:${TRANSACTION_DB_PASS}@${TRANSACTION_DB_URL}/${TRANSACTION_DB_NAME}"
+      - "database_url=postgres://${main_db_user}:${main_db_pass}@${main_db_url}/${main_db_name}"
+      - "transaction_database_url=postgres://${transaction_db_user}:${transaction_db_pass}@${transaction_db_url}/${transaction_db_name}"
     links:
       - message-queue
     command:
@@ -77,7 +77,7 @@ services:
       RABBITMQ_CLUSTER_PARTITION_HANDLING: autoheal
       RABBITMQ_NET_TICKTIME: '60'
       RABBITMQ_ERLANG_COOKIE: 'message-queue-cookie'
-      RABBITMQ_NODENAME: "rabbitmqnode@${RABBITMQ_HOSTNAME}"
+      RABBITMQ_NODENAME: "rabbitmqnode@${rabbitmq_hostname}"
     volumes:
         # database location
         # config file stored in /etc/rabbitmq/rabbitmq.config
@@ -86,11 +86,11 @@ services:
       io.rancher.scheduler.global: 'true'
 
   server:
-    image: '${IMAGE_PREFIX}/pushkin-server:${IMAGE_TAG}'
+    image: '${image_prefix}/pushkin-server:${image_tag}'
     labels:
       io.rancher.scheduler.global: 'true'
     environment:
-      API_PORT: "${API_PORT}"
+      API_PORT: "${api_port}"
     expose:
       - '80'
       - '443'
