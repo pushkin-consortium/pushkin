@@ -13,8 +13,6 @@ import s from './styles.css';
 import quizzes from '../../quizzes/quizzes.js';
 import { Link } from 'react-router';
 
-import tq from '../../quizzes/bloodmagic';
-
 class QuizPage extends React.Component {
 	render() {
 		if (this.props.children) return this.props.children;
@@ -22,11 +20,15 @@ class QuizPage extends React.Component {
 		return (
 			<div>
 				<p>Quizzes</p>
-				<Link to='/quizzes/bloodmagic'>TEST</Link>
+				<Link to='/test'>TEST</Link>
 				<ul>
-					{ quizzes.map( q => (<li><Link to={require(`../../quizzes/${q}`)}>{q.split('/')[0]}</Link></li>) ) }
+					{
+						quizzes.map(
+							q => (<li key={q}><Link to={`/quizzes/${q}`}>{q.split('/')[0]}</Link></li>)
+						)
+					}
 				</ul>
-		</div>
+			</div>
 		);
 	}
 }
