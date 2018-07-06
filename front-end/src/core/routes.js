@@ -15,12 +15,12 @@ import Auth from './auth';
 import { CONFIG } from '../config';
 // Pass in a component, and the quiz name
 import ForumWrapper from '../components/ForumWrapper/index';
+import quizzes from '../quizzes/quizzes.js';
 
-const fs = require('fs');
+const quizRoutes = quizzes.map(
+	q => (<Route path={`/quizzes/${q}`} component={require(`../quizzes/${q}index`)} />)
+);
 
-const quizRoutes = fs.readFileSync('quizzes.txt').toString().split('\n')
-	.filter( line => line.trim()[0] != '#' )
-	.map( quiz => (<Route path={`/quizzes/${quiz}`} component={require(`../quizzes/${quiz}`)} />) );
 
 // Any quiz passed to forum wrapper just needs to call `this.props.mountCurrentQuestion` with an object
 // that object needs to have a `question property, and a prompt within that at a minimum
@@ -67,6 +67,8 @@ export const routes = (
 	  */}
 		<Route path="/quizzes" component={Quizzes} />
 		{quizRoutes}
+		<Route path="/quizzes/bloodmagic" component={require('../quizzes/bloodmagic/index')} />
+
 		
 		{CONFIG.auth && (
 			<Route
