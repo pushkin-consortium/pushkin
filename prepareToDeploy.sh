@@ -24,12 +24,14 @@ usage() {
 
 # args
 do_copy_quizzes=true
-do_comp_front=true
+do_comp_front=false
 do_copy_comp_files=false
 do_build_docker=false
-do_docker_compose=true
+do_docker_compose=false
 do_push_docker=false
 do_sync_aws=false
+
+fe_quiz_list='front-end/src/quizzes/quizzes.js'
 
 #while getopts "mcbh" o; do
 #	case "${o}" in
@@ -136,7 +138,14 @@ rm -rf ./server/html/*
 
 # move user specific quizzes to appropriate locations
 if [[ "$do_copy_quizzes" = true ]]; then
-	echoBold "moving back new quizzes from quizzes to appropriate locations"
+	echoBold "moving back new quizzes from quizzes to appropriate locations and writing quiz list to front-end"
+
+	# add quiz names to front-end/src/quizzes/quizzes.js
+	# to be read by routes.js and quiz page
+	echo '// This file generated automatically by prepareToDeploy.sh' > "$fe_quiz_list"
+	echo '// Do not edit directly (your changes will be overwritten)' >> "$fe_quiz_list"
+	echo 'export default [' >> "$fe_quiz_list"
+
 	cd ./quizzes/quizzes/
 	# might not have all things for cp
 	set +e
@@ -162,10 +171,13 @@ if [[ "$do_copy_quizzes" = true ]]; then
 		# add route to routes in core/routes.js
 		# and link in quizzes page?
 		############################################
-
+		cd ../..
+		echo "	'${quiz}'," >> "$fe_quiz_list"
+		cd ./quizzes/quizzes
 	done
 	set -e
 	cd ../..
+	echo '];' >> "$fe_quiz_list"
 fi
 
 # compile front-end
