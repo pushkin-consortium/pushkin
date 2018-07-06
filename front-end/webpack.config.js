@@ -10,8 +10,8 @@ const argOptions = [
 	{ name: 'debug', alias: 'd', type: Boolean },
 	{ name: 'verbose', alias: 'v', type: Boolean },
 	{ name: 'hmr', alias: 'h', type: Boolean },
-	{ name: 'google_analytics_site_id', alias: 'g', type: String, defaultOption: '' },
-	{ name: 'publicPath', alias: 'p', type: String, defaultOption: '' },
+	{ name: 'google_analytics_site_id', alias: 'g', type: String, defaultValue: '' },
+	{ name: 'publicPath', alias: 'p', type: String, defaultValue: '' },
 ];
 const args = commandLineArgs(argOptions);
 
@@ -81,8 +81,7 @@ const config = {
 							localIdentName: args.debug
 							? '[name]_[local]_[hash:base64:3]'
 							: '[hash:base64:4]',
-							// CSS Nano http://cssnano.co/options/
-							minimize: !args.debug
+							minimize: !args.debug // CSS Nano http://cssnano.co/options/
 						}
 					}
 				]

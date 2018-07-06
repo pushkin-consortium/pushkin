@@ -18,8 +18,9 @@ import ForumWrapper from '../components/ForumWrapper/index';
 import quizzes from '../quizzes/quizzes.js';
 
 const quizRoutes = quizzes.map(
-	q => (<Route path={`/quizzes/${q}`} component={require(`../quizzes/${q}index`)} />)
+	q => (<Route path={`/quizzes/${q}`} component={require('../quizzes/bloodmagic')} />)
 );
+const test = require('../pages/about');
 
 
 // Any quiz passed to forum wrapper just needs to call `this.props.mountCurrentQuestion` with an object
@@ -65,9 +66,10 @@ export const routes = (
 	  </Route>
 	  This method of nesting routes is good if you want all children of a particular route to still cause the relevant menu bar tab to remain in the active css configuration when you progress to a child. I.e. /quizzes and /quizzes/listener-quiz both make the quiz tab in the menu bar display as active. Note how below I'll declare the same routes but not nest them, as I don't want the active class to be inherited.
 	  */}
+		<Route path='/test' component={test} />
 		<Route path="/quizzes" component={Quizzes} />
 		{quizRoutes}
-		<Route path="/quizzes/bloodmagic" component={require('../quizzes/bloodmagic/index')} />
+		<Route path='/quizzes/test' component={require('../pages/about')} />
 
 		
 		{CONFIG.auth && (
