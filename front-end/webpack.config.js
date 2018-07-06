@@ -6,39 +6,40 @@ const pkg = require('./package.json');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const commandLineArgs = require('command-line-args');
 
-
 const argOptions = [
 	{ name: 'debug', alias: 'd', type: Boolean },
 	{ name: 'verbose', alias: 'v', type: Boolean },
+	{ name: 'hmr', alias: 'h', type: Boolean },
+	{ name: 'google_analytics_site_id', alias: 'g', type: String, defaultOption: '' },
 	{ name: 'publicPath', alias: 'p', type: String, defaultOption: '' },
 ];
 const args = commandLineArgs(argOptions);
 
-const isDebug = args.debug;
-const isVerbose = args.verbose;
-const useHMR = false; //!!global.HMR; // Hot Module Replacement (HMR)
 const babelConfig = { 
 	...pkg.babel,
 	babelrc: true,
-	cacheDirectory: useHMR
+	cacheDirectory: args.hmr,
+	plugins: [
+		...(args.debug && args.hmr ? ['react-hot-loader/babel'] : [])
+	]
 };
 
 // Webpack configuration (main.js => dist/main.{hash}.js)
 // http://webpack.github.io/docs/configuration.html
 const config = {
-	node: {
-		fs: 'empty'
-	},
-	mode: isDebug ? 'development' : 'production',
+	node: { fs: 'empty' },
+	mode: args.debug ? 'development' : 'production',
 
-	// The base directory for resolving the entry option
-	context: path.resolve(__dirname),
+	context: path.resolve(__dirname), // The base directory for resolving the entry option
 
-	entry: [ './src/main.js' ],
+	entry: [
+		'./src/main.js',
+		...(args.debug && args.hmr ?  ['react-hot-loader/patch', 'webpack-host-middleware/client'] : [])
+	],
 
 	output: {
 		path: path.resolve(__dirname, 'dist'),
-		publicPath: isDebug ? '' : args.publicPath, // where bundled files are uploaded on server
+		publicPath: args.debug ? '' : args.publicPath, // where bundled files are uploaded on server
 		filename: '[name].[hash].js',
 		chunkFilename: '[id].[chunkhash].js',
 	},
@@ -46,21 +47,20 @@ const config = {
 	// Switch loaders to debug or release mode
 	// Developer tool to enhance debugging, source maps
 	// http://webpack.github.io/docs/configuration.html#devtool
-	devtool: isDebug ? 'eval-source-map' : false,
+	devtool: args.debug ? 'eval-source-map' : false,
 
 	// What information should be printed to the console
 	stats: {
 		colors: true,
-		reasons: isDebug,
-		hash: isVerbose,
-		version: isVerbose,
+		reasons: args.debug,
+		hash: args.verbose,
+		version: args.verbose,
 		timings: true,
-		chunks: isVerbose,
-		chunkModules: isVerbose,
-		cached: isVerbose,
-		cachedAssets: isVerbose
+		chunks: args.verbose,
+		chunkModules: args.verbose,
+		cached: args.verbose,
+		cachedAssets: args.verbose
 	},
-
 
 	// Options affecting the normal modules
 	module: {
@@ -68,30 +68,21 @@ const config = {
 			{
 				test: /\.jsx?$/,
 				exclude: [new RegExp('jsPsych'), /node_modules/],
-				use: [
-					{
-						loader: 'babel-loader',
-						options: babelConfig
-					}
-				]
+				use: [ { loader: 'babel-loader', options: babelConfig } ]
 			},
 			{
 				test: /\.css/,
-				use: [
-					{
-						loader: 'style-loader'
-					},
+				use: [ { loader: 'style-loader' },
 					{
 						loader: 'css-loader',
 						options: {
-							sourceMap: isDebug,
-							// CSS Modules https://github.com/css-modules/css-modules
-							modules: true,
-							localIdentName: isDebug
+							sourceMap: args.debug,
+							modules: true, // CSS Modules https://github.com/css-modules/css-modules
+							localIdentName: args.debug
 							? '[name]_[local]_[hash:base64:3]'
 							: '[hash:base64:4]',
 							// CSS Nano http://cssnano.co/options/
-							minimize: !isDebug
+							minimize: !args.debug
 						}
 					}
 				]
@@ -103,14 +94,11 @@ const config = {
 					{
 						loader: 'css-loader',
 						options: {
-							sourceMap: isDebug,
+							sourceMap: args.debug,
 							// CSS Modules https://github.com/css-modules/css-modules
 							modules: true,
-							localIdentName: isDebug
-							? '[name]_[local]_[hash:base64:3]'
-							: '[hash:base64:4]',
-							// CSS Nano http://cssnano.co/options/
-							minimize: !isDebug
+							localIdentName: args.debug ? '[name]_[local]_[hash:base64:3]' : '[hash:base64:4]',
+							minimize: !args.debug // CSS Nano http://cssnano.co/options/
 						}
 					},
 					{ loader: 'sass-loader' }
@@ -131,14 +119,7 @@ const config = {
 			},
 			{
 				test: /\.(png|jpg|jpeg|gif|svg|woff|woff2|ico)$/,
-				use: [
-					{
-						loader: 'file-loader',
-						options: {
-							limit: 10000
-						}
-					}
-				]
+				use: [ { loader: 'file-loader', options: { limit: 10000 } } ]
 			},
 			{
 				test: /\.(eot|ttf|wav|mp3|mp4)$/,
@@ -150,29 +131,20 @@ const config = {
 		new HtmlWebpackPlugin({
 			template: './src/index.html',
 			title: 'Games With Words',
-//			template: 'src/index.ejs',
-//			inject: 'body',
 			options: {
-				debug: isDebug,
-				trackingID: process.env.GOOGLE_ANALYTICS_SITE_ID,
+				debug: args.debug,
+				trackingID: args.google_analytics_site_id,
 			}
 		}),
-		...(isDebug ? [] : [new webpack.optimize.AggressiveMergingPlugin()])
+		...(args.debug ? [] : [new webpack.optimize.AggressiveMergingPlugin()]),
+		...(args.debug && args.hmr ? [
+			new webpack.HotModuleReplacementPlugin(),
+			new webpack.NoEmitOnErrorsPlugin()
+		] : [])
 	],
 	optimization: {
-		minimize: !isDebug
+		minimize: !args.debug
 	}
 };
-
-// Hot Module Replacement (HMR) + React Hot Reload
-if (isDebug && useHMR) {
-	babelConfig.plugins.unshift('react-hot-loader/babel');
-	config.entry.unshift(
-		'react-hot-loader/patch',
-		'webpack-hot-middleware/client'
-	);
-	config.plugins.push(new webpack.HotModuleReplacementPlugin());
-	config.plugins.push(new webpack.NoEmitOnErrorsPlugin());
-}
 
 module.exports = config;
