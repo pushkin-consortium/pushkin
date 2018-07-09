@@ -15,6 +15,7 @@ import {
 import { makePost, search, clearSearch } from '../../actions/forum';
 import SearchResultList from '../../components/SearchResultList'
 import { Link } from 'react-router';
+import Container from '../containers/container';
 
 class Forum extends React.Component {
   constructor(props) {
@@ -79,6 +80,7 @@ class Forum extends React.Component {
   render() {
     const { forum, userInfo, formData, posts, results } = this.props;
     return (
+			<Container {...this.props}>
       <div className="styles_blurb_3jf">
         {this.props.children && <div>{this.props.children}</div>}
         {!this.props.children && (
@@ -113,6 +115,7 @@ class Forum extends React.Component {
           </div>
         )}
       </div>
+		</Container>
     );
   }
 }

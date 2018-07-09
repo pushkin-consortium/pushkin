@@ -8,9 +8,7 @@ class Container extends React.Component {
 	constructor() {
 		super();
 		this.updateMobile = this.updateMobile.bind(this);
-		this.state = {
-			ismobile: isMobile()
-		};
+		this.state = { ismobile: isMobile() };
 	}
 	componentDidMount() {
 		window.addEventListener('resize', this.updateMobile);
@@ -18,10 +16,8 @@ class Container extends React.Component {
 	componentWillUnmount() {
 		window.removeEventListener('resize', this.updateMobile);
 	}
-	updateMobile() {
-		console.log(`container: updateMobile: ismobile: ${isMobile()}`);
-		this.setState({ mobile: isMobile() });
-	}
+	updateMobile() { this.setState({ mobile: isMobile() }); }
+
 	render() {
 		const { auth, showForum } = this.props;
 		const isAdmin =
@@ -31,8 +27,15 @@ class Container extends React.Component {
 			this.props.userInfo.profile.groups.indexOf('Admin') > -1;
 
 		return (
-			<Layout {...( auth ? { auth: auth, isAdmin: isAdmin } : {})} showForum={showForum} ismobile={this.state.ismobile}>
-				<div className={s.wrap}>{this.props.children}</div>
+			<Layout
+				auth={auth}
+				isAdmin={isAdmin}
+				showForum={showForum}
+				ismobile={this.state.ismobile}
+			>
+				<div className={s.wrap}>
+					{this.props.children}
+				</div>
 			</Layout>
 		);
 	}

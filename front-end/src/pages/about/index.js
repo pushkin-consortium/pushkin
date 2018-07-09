@@ -8,18 +8,19 @@
  * LICENSE.txt file in the root directory of this source tree.
  */
 
-import * as b from 'react-bootstrap';
 import React from 'react';
 import s from './styles.scss';
+import * as b from 'react-bootstrap';
+import Container from '../containers/container';
 
-class AboutPage extends React.Component {
+export default class AboutPage extends React.Component {
 	render() {
 		return (
-			<div>
-				<p>All about us.</p>
-			</div>
+			<Container {...this.props}>
+				<div>
+					<p>All about us.</p>
+				</div>
+			</Container>
 		);
 	}
 }
-
-export default AboutPage;

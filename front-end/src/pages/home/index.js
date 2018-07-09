@@ -8,18 +8,20 @@
  * LICENSE.txt file in the root directory of this source tree.
  */
 
-import { Row, Col, Image } from 'react-bootstrap';
 import React from 'react';
 import s from './styles.css';
+import Container from '../containers/container';
 
 class HomePage extends React.Component {
-  render() {
-    return (
-      <div>
-		<p>Home page</p>
-	  </div>
-    );
-  }
+	render() {
+		return (
+			<Container auth={this.props.auth} showForum={this.props.forum}>
+				<div>
+					<p>Home page</p>
+				</div>
+			</Container>
+		);
+	}
 }
 
 export default HomePage;
