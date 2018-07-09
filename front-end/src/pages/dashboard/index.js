@@ -163,7 +163,7 @@ class Dashboard extends React.Component {
 			return (
 				<Container {...this.props}>
 				<div>
-					<h4>Please <a onClick={login}>Log In</a> to view your dashboard.</h4>
+					<p>Please <a onClick={login}>Log In</a> to view your dashboard.</p>
 				</div>
 			</Container>
 			);

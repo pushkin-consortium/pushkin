@@ -12,7 +12,9 @@ Welcome to Pushkin's documentation!
 
    deployment/initialDeployment
    deployment/localDeployment
+   quizzes/new_quiz
    maintenance/maintenance
+   maintenance/prepareToDeploy
 
 
 

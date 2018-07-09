@@ -2,7 +2,7 @@ import React from 'react';
 import Layout from '../../components/Layout/Layout'; // eslint-disable-line
 import isMobile from '../../core/ismobile.js';
 import { connect } from 'react-redux';
-import s from './container.css';
+import s from './container.scss';
 
 class Container extends React.Component {
 	constructor() {
