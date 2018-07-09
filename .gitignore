@@ -3,7 +3,7 @@
 docker-compose.production.noEnvDependency.yml
 server/html/*
 front-end/dist/*
-quizzes/quizzes/*
 docs/build/*
 node_modules/
 front-end/src/quizzes/*
+quizzes/quizzes/*
