@@ -33,7 +33,7 @@ services:
       - 'AMQP_ADDRESS=amqp://message-queue:5672'
       - "API_ADDRESS=http://api:${api_port}/api"
       - "DATABASE_URL=postgres://${main_db_user}:${main_db_pass}@${main_db_url}/${main_db_name}"
-      - "transaction_database_url=postgres://${transaction_db_user}:${transaction_db_pass}@${transaction_db_url}/${transaction_db_name}"
+      - "TRANSACTION_DATABASE_URL=postgres://${transaction_db_user}:${transaction_db_pass}@${transaction_db_url}/${transaction_db_name}"
     links:
       - message-queue
       - api
@@ -45,8 +45,8 @@ services:
     environment:
       - 'NODE_ENV=production'
       - 'AMQP_ADDRESS=amqp://message-queue:5672'
-      - "database_url=postgres://${main_db_user}:${main_db_pass}@${main_db_url}/${main_db_name}"
-      - "transaction_database_url=postgres://${transaction_db_user}:${transaction_db_pass}@${transaction_db_url}/${transaction_db_name}"
+      - "DATABASE_URL=postgres://${main_db_user}:${main_db_pass}@${main_db_url}/${main_db_name}"
+      - "TRANSACTION_DATABASE_URL=postgres://${transaction_db_user}:${transaction_db_pass}@${transaction_db_url}/${transaction_db_name}"
     links:
       - message-queue
     command:
