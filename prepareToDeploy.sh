@@ -138,54 +138,60 @@ rm -rf ./server/html/*
 
 
 # move user specific quizzes to appropriate locations
+
+
+
+
 if [[ "$do_copy_quizzes" = true ]]; then
 	echoBold "moving back new quizzes from quizzes to appropriate locations and writing quiz list to front-end"
 
 	# might not have all things for cp
 	set +e
-	for quizPath in "${pushkin_root}/quizzes/quizzes/"*; do
-		quiz=$(basename ${quizPath})
 
+	echo $pushkin_root
+	for qPath in "${pushkin_root}/quizzes/quizzes/"*; do
+		qName=$(basename ${qPath})
 
+		cp -r "${qPath}/api_controllers/"* "${pushkin_root}/api/controllers/"
 
-# make paths absolute!
+		mkdir "${pushkin_root}/cron/scripts/${qName}"
+		cp -r "${qPath}/cron_scripts/scripts/"*/* "${pushkin_root}/cron/scripts/${qName}"
+		cat "${qPath}/cron_scripts/crontab.txt" >> "${pushkin_root}/cron/crontab"
 
+		mkdir "${pushkin_root}/db-worker/models/${qName}"
+		cp "${qPath}/db_models/"* "${pushkin_root}/db-worker/models/${qName}"
 
-		cp -r "${quiz}api_controllers/"* ../../api/controllers/
+		mkdir "${pushkin_root}/db-worker/migrations/${qName}"
+		cp -r "${qPath}/db_migrations/"* "${pushkin_root}/db-worker/migrations/${qName}"
 
-		mkdir "../../cron/scripts/${quiz}"
-		cp -r "${quiz}cron_scripts/scripts/"*/* "../../cron/scripts/${quiz}"
-		cat "${quiz}cron_scripts/crontab.txt" >> ../../cron/crontab
+		mkdir "${pushkin_root}/db-worker/seeds/${qName}"
+		cp -r "${qPath}/db_seeds/"* "${pushkin_root}/db-worker/seeds/${qName}"
 
-		mkdir "../../db-worker/models/${quiz}"
-		cp "${quiz}db_models/"* "../../db-worker/models/${quiz}"
-
-		mkdir "../../db-worker/migrations/${quiz}"
-		cp -r "${quiz}db_migrations/"* "../../db-worker/migrations/${quiz}"
-
-		mkdir "../../db-worker/seeds/${quiz}"
-		cp -r "${quiz}db_seeds/"* "../../db-worker/seeds/${quiz}"
-
-		mkdir "../../front-end/src/quizzes/${quiz}"
-		cp -r "${quiz}quiz_page/"* "../../front-end/src/quizzes/${quiz}"
+		mkdir "${pushkin_root}/front-end/src/quizzes/${qName}"
+		cp -r "${qPath}/quiz_page/"* "${pushkin_root}/front-end/src/quizzes/${qName}"
 	done
+
 	set -e
+
 	# build front-end/src/quizzes/quizzes.js "config"
 	# to be used by quiz page
-	cd ../..
 	echo '// This file generated automatically by prepareToDeploy.sh' > "${pushkin_root}/$fe_quiz_list"
-	wqf () { echo ${1} >> "${pushkin_root}/${fe_quiz_list}" }
+	wqf () { echo ${1} >> "${pushkin_root}/${fe_quiz_list}"; }
 	wqf '// Do not edit directly (your changes will be overwritten)'
 	wqf ''
-	for quiz in */; do
-		qname=${quiz%/}
-		wqf "import ${qname} from './${qname}';"
+
+	for qPath in "${pushkin_root}/quizzes/quizzes/"*; do
+		qName=$(basename ${qPath})
+		wqf "import ${qName} from './${qName}';"
 	done
+
 	wqf 'export default {'
-	for quiz in */; do
-		qname=${quiz%/}
-		wqf "	${qname}: ${qname},"
+
+	for qPath in "${pushkin_root}/quizzes/quizzes/"*; do
+		qName=$(basename ${qPath})
+		wqf "	${qName}: ${qName},"
 	done
+
 	wqf '};'
 fi
 

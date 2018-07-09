@@ -10,7 +10,7 @@
 
 import React from 'react';
 import s from './styles.css';
-import { BrowserRouter as Router, Route, Link } from 'react-router-dom';
+import { Route, Link } from 'react-router-dom';
 import Container from '../containers/container';
 /*
  * Some quizzes require a blank page. TakeQuiz simply loads the component
@@ -45,12 +45,10 @@ export default class QuizPage extends React.Component {
 		);
 
 		return (
-			<Router>
-				<div>
-					<Route exact path={match.path} component={QuizHome} />
-					<Route path={`${match.path}/:quizName`} component={TakeQuiz} />
-				</div>
-			</Router>
+			<div>
+				<Route exact path={match.path} component={QuizHome} />
+				<Route path={`${match.path}/:quizName`} component={TakeQuiz} />
+			</div>
 		);
 	}
 }
