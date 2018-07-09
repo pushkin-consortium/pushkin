@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import React, { PropTypes } from "react";
 import history from "../../core/history";
 import s from "./styles.css";
+import Container from '../containers/container';
 
 class ErrorPage extends React.Component {
   static propTypes = {
@@ -50,6 +51,7 @@ class ErrorPage extends React.Component {
           ["Error", "Oops, something went wrong"];
 
     return (
+			<Container {...this.props}>
       <div>
         <div>
           <Row>
@@ -79,6 +81,7 @@ class ErrorPage extends React.Component {
           </Row>
         </div>
       </div>
+		</Container>
     );
   }
 }

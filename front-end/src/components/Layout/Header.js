@@ -2,24 +2,96 @@
 import React from 'react';
 import * as b from 'react-bootstrap';
 import s from './Header.scss';
-import { Link } from 'react-router';
-import { LinkContainer } from 'react-router-bootstrap';
+import { Link, NavLink } from 'react-router-dom';
+// LinkContainer broken with v4 routing...
+//import { LinkContainer } from 'react-router-bootstrap';
 /* eslint-enable */
 
-class Header extends React.Component {
-	home() {
-		if (window.location.pathname.toString().split('/')[1] === '') {
-			return true;
-		} else {
-			return false;
-		}
-	}
+export default class Header extends React.Component {
 
 	render() {
 		const { auth, showForum, isAdmin, ismobile } = this.props;
 		let loggedIn = auth ? auth.isAuthenticated() : false;
-		console.log(`Header: render: ismobile: ${ismobile}`);
 
+		const mobileHeader = (
+			<header>
+				<b.Nav bsStyle="pills">
+					<b.NavDropdown active title="Menu">
+						<NavLink to="/about">
+							<b.MenuItem>
+								<span>About</span>
+							</b.MenuItem>
+						</NavLink>
+
+						<NavLink to="/quizzes">
+							<b.MenuItem>
+								<span>Quizzes</span>
+							</b.MenuItem>
+						</NavLink>
+
+						<NavLink to='/dashboard'>
+							<b.MenuItem>
+								<span>{ loggedIn ? 'Dashboard' : 'Log In' }</span>
+							</b.MenuItem>
+						</NavLink>
+
+						{showForum && (
+							<NavLink to="/forum">
+								<b.MenuItem>
+									<span>Forum</span>
+								</b.MenuItem>
+							</NavLink>
+						)}
+
+						{isAdmin && (
+							<NavLink to="/admin">
+								<b.MenuItem>
+									<span>Admin</span>
+								</b.MenuItem>
+							</NavLink>
+						)}
+					</b.NavDropdown>
+				</b.Nav>
+			</header>
+		);
+
+		const desktopHeader = (
+			<header>
+				<b.Navbar>
+					<b.Nav bsStyle="tabs" justified >
+						<NavLink to="/about">
+							<b.NavItem>About</b.NavItem>
+						</NavLink>
+
+						<NavLink to="/quizzes">
+							<b.NavItem>Quizzes</b.NavItem>
+						</NavLink>
+
+						<NavLink to="/dashboard">
+							<b.NavItem>{ loggedIn ? 'Dashboard' : 'Log In' }</b.NavItem>
+						</NavLink>
+
+						{showForum && (
+							<NavLink to="/forum">
+								<b.NavItem>Forum</b.NavItem>
+							</NavLink>
+						)}
+
+						{isAdmin && (
+							<NavLink to="/admin">
+								<b.NavItem>Admin</b.NavItem>
+							</NavLink>
+						)}
+					</b.Nav>
+				</b.Navbar>
+			</header>
+		);
+
+		return ismobile ? mobileHeader : desktopHeader;
+
+		/*
+		 * let's make a separate landing page for this
+		 *
 		if (this.home()) {
 			return (
 				<header>
@@ -31,82 +103,6 @@ class Header extends React.Component {
 				</header>
 			);
 		}
-		if (ismobile) {
-			return (
-				<header ref={node => (this.root = node)}>
-					<b.Nav bsStyle="pills">
-						<b.NavDropdown active title="Menu">
-							<LinkContainer to="/about">
-								<b.MenuItem>
-									<span>About</span>
-								</b.MenuItem>
-							</LinkContainer>
-
-							<LinkContainer to="/quizzes">
-								<b.MenuItem>
-									<span>Quizzes</span>
-								</b.MenuItem>
-							</LinkContainer>
-
-							<LinkContainer to='/dashboard'>
-								<b.MenuItem>
-									<span>{ loggedIn ? 'Dashboard' : 'Log In' }</span>
-								</b.MenuItem>
-							</LinkContainer>
-
-							{showForum && (
-								<LinkContainer to="/forum">
-									<b.MenuItem>
-										<span>Forum</span>
-									</b.MenuItem>
-								</LinkContainer>
-							)}
-
-							{isAdmin && (
-								<LinkContainer to="/admin">
-									<b.MenuItem>
-										<span>Admin</span>
-									</b.MenuItem>
-								</LinkContainer>
-							)}
-						</b.NavDropdown>
-					</b.Nav>
-				</header>
-			);
-		}
-		// desktop
-		return (
-			<header ref={node => (this.root = node)} >
-				<b.Navbar>
-					<b.Nav bsStyle="tabs" justified >
-						<LinkContainer to="/about">
-							<b.NavItem>About</b.NavItem>
-						</LinkContainer>
-
-						<LinkContainer to="/quizzes">
-							<b.NavItem>Quizzes</b.NavItem>
-						</LinkContainer>
-
-						<LinkContainer to="/dashboard">
-							<b.NavItem>{ loggedIn ? 'Dashboard' : 'Log In' }</b.NavItem>
-						</LinkContainer>
-
-						{showForum && (
-							<LinkContainer to="/forum">
-								<b.NavItem>Forum</b.NavItem>
-							</LinkContainer>
-						)}
-
-						{isAdmin && (
-							<LinkContainer to="/admin">
-								<b.NavItem>Admin</b.NavItem>
-							</LinkContainer>
-						)}
-					</b.Nav>
-				</b.Navbar>
-			</header>
-		);
+		*/
 	}
 }
-
-export default Header;

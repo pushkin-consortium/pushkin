@@ -8,6 +8,7 @@ import DashboardProfile from "../../components/DashboardProfile/index";
 import baseUrl from "../../core/baseUrl";
 import localAxios from "../../actions/localAxios";
 import BadgeHolder from "../../components/LeaderBoardComponents/BadgeHolder";
+import Container from '../containers/container';
 import {
 	checkLogin,
 	login,
@@ -160,28 +161,32 @@ class Dashboard extends React.Component {
 
 		if (!authenticated) {
 			return (
+				<Container {...this.props}>
 				<div>
 					<h4>Please <a onClick={login}>Log In</a> to view your dashboard.</h4>
 				</div>
+			</Container>
 			);
 		}
 		if (!profile) return (<h1>Error</h1>);
 		return (
-			<div>
+			<Container {...this.props}>
 				<div>
-					<DashboardNav
-						setSection={this.setSection}
-						logOut={this.logout}
-						config={this.props.config}
-					/>
+					<div>
+						<DashboardNav
+							setSection={this.setSection}
+							logOut={this.logout}
+							config={this.props.config}
+						/>
+					</div>
+					<div>{this.showContent()}</div>
+					<div>
+						{this.state.badgeData.map(data => (
+							<BadgeHolder name={data.quiz_name} count={data.count} />
+						))}
+					</div>
 				</div>
-				<div>{this.showContent()}</div>
-				<div>
-					{this.state.badgeData.map(data => (
-						<BadgeHolder name={data.quiz_name} count={data.count} />
-					))}
-				</div>
-			</div>
+		</Container>
 		);
 	}
 

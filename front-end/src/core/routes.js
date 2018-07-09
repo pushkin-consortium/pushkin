@@ -50,45 +50,28 @@ function authSwitcher() {
 	return CONFIG.auth ? auth : null;
 }
 
+const ContainerC = props => (
+	<Container auth={authSwitcher()} showForum={CONFIG.forum} {...props} />
+);
+const ForumC = ( <Route path="/forum" component={Forum} /> );
+const DashboardC = props => ( <Dashboard config={CONFIG} {...props} /> );
 
 export const routes = (
-	<Route
-		path="/"
-		component={props => (
-			<Container auth={authSwitcher()} showForum={CONFIG.forum} {...props} />
-		)}
-	>
-		<IndexRoute component={HomePage} />
+	<Route exact path='/' component={ContainerC} />
 
-		{/*
-	  <Route path="/quizzes" component={Quizzes}>
-		<Route path="/quizzes/listener-quiz" component={listener-quiz} />
-	  </Route>
-	  This method of nesting routes is good if you want all children of a particular route to still cause the relevant menu bar tab to remain in the active css configuration when you progress to a child. I.e. /quizzes and /quizzes/listener-quiz both make the quiz tab in the menu bar display as active. Note how below I'll declare the same routes but not nest them, as I don't want the active class to be inherited.
-	  */}
-		<Route path='/test' component={test} />
-		<Route path="/quizzes" component={Quizzes} />
-		{quizRoutes}
-		<Route path='/quizzes/test' component={require('../pages/about')} />
+	{ CONFIG.forum && ( <Route path='/forum' component={ForumC} /> ) }
+	{ CONFIG.auth && ( <Route path="/dashboard" component={DashboardC} /> ) }
 
-		
-		{CONFIG.auth && (
-			<Route
-				path="/dashboard"
-				component={props => <Dashboard config={CONFIG} {...props} />}
-			/>
-		)}
 
-		{CONFIG.forum && (
-			<Route path="/forum" component={Forum}>
-				<Route path="posts/:id" component={ForumQuestion} />
-			</Route>
-		)}
-
-		<Route path="/admin" component={Admin} />
-		<Route path="/about" component={About} />
-		<Route path="/updates" component={Updates} />
-		<Route path="/error" component={ErrorPage} />
-		<Route path="*" component={ErrorPage} />
-	</Route>
+	<Route path="/quizzes" component={Quizzes} />
+	<Route path="/admin" component={Admin} />
+	<Route path="/about" component={About} />
+	<Route path="/updates" component={Updates} />
+	<Route path="/error" component={ErrorPage} />
+	<Route path="*" component={ErrorPage} />
 );
+
+
+
+/* Add to ForumQuestion component instead (React v4 routing)
+				<Route path="posts/:id" component={ForumQuestion} />*/

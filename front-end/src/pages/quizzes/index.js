@@ -10,27 +10,47 @@
 
 import React from 'react';
 import s from './styles.css';
+import { BrowserRouter as Router, Route, Link } from 'react-router-dom';
+import Container from '../containers/container';
+/*
+ * Some quizzes require a blank page. TakeQuiz simply loads the component
+ * of the quiz that's requested and nothing else (e.g. no Container wrapper).
+ * Designers of Pushkin quizzes can easily and explicitly choose exactly what
+ * they want on their quiz page.
+*/
+import TakeQuiz from './TakeQuiz.js';
 import quizzes from '../../quizzes/quizzes.js';
-import { Link } from 'react-router';
 
-class QuizPage extends React.Component {
+export default class QuizPage extends React.Component {
 	render() {
-		if (this.props.children) return this.props.children;
+		const { match } = this.props;
+
+		const QuizHome = () => (
+			<Container {...this.props}>
+				<div>
+					<p>Quizzes</p>
+					<ul>
+						{
+							Object.keys(quizzes).map( q =>
+								(
+									<li key={q}>
+										<Link to={`${match.url}/${q}`}>{q.split('/')[0]}</Link>
+									</li>
+								)
+							)
+						}
+					</ul>
+				</div>
+			</Container>
+		);
 
 		return (
-			<div>
-				<p>Quizzes</p>
-				<Link to='/test'>TEST</Link>
-				<ul>
-					{
-						quizzes.map(
-							q => (<li key={q}><Link to={`/quizzes/${q}`}>{q.split('/')[0]}</Link></li>)
-						)
-					}
-				</ul>
-			</div>
+			<Router>
+				<div>
+					<Route exact path={match.path} component={QuizHome} />
+					<Route path={`${match.path}/:quizName`} component={TakeQuiz} />
+				</div>
+			</Router>
 		);
 	}
 }
-
-export default QuizPage;

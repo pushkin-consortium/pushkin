@@ -32,6 +32,7 @@ do_push_docker=false
 do_sync_aws=false
 
 fe_quiz_list='front-end/src/quizzes/quizzes.js'
+pushkin_root=$(realpath .)
 
 #while getopts "mcbh" o; do
 #	case "${o}" in
@@ -140,16 +141,16 @@ rm -rf ./server/html/*
 if [[ "$do_copy_quizzes" = true ]]; then
 	echoBold "moving back new quizzes from quizzes to appropriate locations and writing quiz list to front-end"
 
-	# add quiz names to front-end/src/quizzes/quizzes.js
-	# to be read by routes.js and quiz page
-	echo '// This file generated automatically by prepareToDeploy.sh' > "$fe_quiz_list"
-	echo '// Do not edit directly (your changes will be overwritten)' >> "$fe_quiz_list"
-	echo 'export default [' >> "$fe_quiz_list"
-
-	cd ./quizzes/quizzes/
 	# might not have all things for cp
 	set +e
-	for quiz in */; do
+	for quizPath in "${pushkin_root}/quizzes/quizzes/"*; do
+		quiz=$(basename ${quizPath})
+
+
+
+# make paths absolute!
+
+
 		cp -r "${quiz}api_controllers/"* ../../api/controllers/
 
 		mkdir "../../cron/scripts/${quiz}"
@@ -167,17 +168,25 @@ if [[ "$do_copy_quizzes" = true ]]; then
 
 		mkdir "../../front-end/src/quizzes/${quiz}"
 		cp -r "${quiz}quiz_page/"* "../../front-end/src/quizzes/${quiz}"
-		############################################
-		# add route to routes in core/routes.js
-		# and link in quizzes page?
-		############################################
-		cd ../..
-		echo "	'${quiz}'," >> "$fe_quiz_list"
-		cd ./quizzes/quizzes
 	done
 	set -e
+	# build front-end/src/quizzes/quizzes.js "config"
+	# to be used by quiz page
 	cd ../..
-	echo '];' >> "$fe_quiz_list"
+	echo '// This file generated automatically by prepareToDeploy.sh' > "${pushkin_root}/$fe_quiz_list"
+	wqf () { echo ${1} >> "${pushkin_root}/${fe_quiz_list}" }
+	wqf '// Do not edit directly (your changes will be overwritten)'
+	wqf ''
+	for quiz in */; do
+		qname=${quiz%/}
+		wqf "import ${qname} from './${qname}';"
+	done
+	wqf 'export default {'
+	for quiz in */; do
+		qname=${quiz%/}
+		wqf "	${qname}: ${qname},"
+	done
+	wqf '};'
 fi
 
 # compile front-end
