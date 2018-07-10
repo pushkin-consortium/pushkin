@@ -1,12 +1,12 @@
 const fs = require('fs');
-const quizName = process.argv[2];
-const quizesDir = fs.readdirSync(__dirname + '/seeds');
 const inquirer = require('inquirer');
 const chalk = require('chalk');
 
-const quizFolder = quizesDir.filter(currentFolder => {
-  return currentFolder === quizName;
-});
+const quizName = process.argv[2];
+const quizesDir = fs.readdirSync(__dirname + '/seeds');
+
+const quizFolder = quizesDir.filter(folder => folder === quizName);
+
 if (quizFolder) {
   inquirer
     .prompt([

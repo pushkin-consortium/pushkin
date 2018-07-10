@@ -94,9 +94,9 @@ services:
     expose:
       - '80'
       - '443'
-        #    ports:
-        #      - '80'
-        #      - '433'
+    ports:
+      - '80'
+      - '433'
     links:
       - api
 

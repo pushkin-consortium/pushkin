@@ -25,7 +25,7 @@ module.exports = () => {
     .then(data => {
       console.log(data); // eslint-disable-line no-console
     })
-    .then(() => {
+/*    .then(() => {
       return db.knex('authors').insert({
         first_name: 'Joshua',
         last_name: 'Hartshorne',
@@ -33,6 +33,7 @@ module.exports = () => {
         quiz_name: quiz
       })
     })
+*/
     .then(() => {
       console.log('done seeding!');
       return process.exit();

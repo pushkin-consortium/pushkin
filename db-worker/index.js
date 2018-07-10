@@ -84,7 +84,7 @@ amqp
                     // TODO: put this in a seperate queue of bad messages.
                     // possible dead letter exchange: http://www.rabbitmq.com/dlx.html
                     throw new Error(
-                      `This method ${method} is not defined on the worker`
+                      `This method ${method} is not defined on the worker from ${quizName}`
                     );
                   }
                   // call the Worker with the defined method

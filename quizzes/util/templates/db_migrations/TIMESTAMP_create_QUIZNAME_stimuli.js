@@ -1,5 +1,5 @@
 exports.up = function(knex) {
-  return knex.schema.createTable('bloodmagic_stimuli', table => {
+  return knex.schema.createTable('${QUIZ_NAME}_stimuli', table => {
     table.increments('id').primary();
   	table.string('task');
     table.string('stimulus').unique();
@@ -9,5 +9,5 @@ exports.up = function(knex) {
 };
 
 exports.down = function(knex) {
-  return knex.schema.dropTable('bloodmagic_stimuli');
+  return knex.schema.dropTable('${QUIZ_NAME}_stimuli');
 };

@@ -13,12 +13,12 @@ module.exports = function (conn, q, body) {
               msg => {
                 if (msg.properties.correlationId == corr) {
                   const content = JSON.parse(msg.content.toString('utf8'));
-                  resolve(content)
+                  resolve(content);
                 }
               },
-              {
-                noAck: true
-              })
+							{ noAck: true }
+						);
+
             const payload = new Buffer(JSON.stringify(body));
             const options = {
               correlationId: corr,

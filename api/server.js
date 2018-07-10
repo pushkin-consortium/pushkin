@@ -33,19 +33,6 @@ amqp.connect(process.env.AMQP_ADDRESS, function(err, conn) {
 			app.use(route, controller);
 		});
 
-	/*
-  const controllers = fs
-    .readdirSync(path.resolve(__dirname, 'controllers'))
-    .filter(file => path.parse(file).ext === '.js');
-
-  controllers.forEach(controllerFile => {
-    const short = controllerFile.replace('.js', '');
-    const route = '/api/' + short;
-    const controller = require('./controllers/' + short)(rpc, conn, dbWrite);
-    app.use(route, controller);
-  });
-	*/
-
   if (CONFIG.forum) {
     const forumController = require('./forum')(rpc, conn, dbWrite);
     app.use('/api', forumController);
