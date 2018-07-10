@@ -161,8 +161,8 @@ if [[ "$do_copy_quizzes" = true ]]; then
 		mkdir "${pushkin_root}/db-worker/models/${qName}"
 		cp "${qPath}/db_models/"* "${pushkin_root}/db-worker/models/${qName}"
 
-		mkdir "${pushkin_root}/db-worker/migrations/${qName}"
-		cp -r "${qPath}/db_migrations/"* "${pushkin_root}/db-worker/migrations/${qName}"
+		# mkdir "${pushkin_root}/db-worker/migrations/${qName}"
+		cp -r "${qPath}/db_migrations/"* "${pushkin_root}/db-worker/migrations/"
 
 		mkdir "${pushkin_root}/db-worker/seeds/${qName}"
 		cp -r "${qPath}/db_seeds/"* "${pushkin_root}/db-worker/seeds/${qName}"
