@@ -3,6 +3,7 @@ const quizName = process.argv[2];
 const quizesDir = fs.readdirSync(__dirname + '/seeds');
 const inquirer = require('inquirer');
 const chalk = require('chalk');
+
 const quizFolder = quizesDir.filter(currentFolder => {
   return currentFolder === quizName;
 });
@@ -42,7 +43,7 @@ if (quizFolder) {
                   } else {
                     console.log(
                       chalk.red(
-                        'Please insure that you have correct CSV files before running this command. For more info go to ' +
+                        'Please ensure that you have correct CSV files before running this command. For more info go to ' +
                           chalk.blue('https://github.com/l3atbc/pushkin-db')
                       )
                     );
