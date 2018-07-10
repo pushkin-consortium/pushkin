@@ -1,6 +1,6 @@
 module.exports = db => {
   const Stimulus = db.Model.extend({
-    tableName: 'bloodmagic_stimuli',
+    tableName: 'myStimuli',
     idAttribute: 'stimulus',
     responses: function () {
       return this.hasMany('Response', 'stimulus', 'stimulus');

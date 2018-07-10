@@ -10,8 +10,8 @@ const argOptions = [
 	{ name: 'debug', alias: 'd', type: Boolean },
 	{ name: 'verbose', alias: 'v', type: Boolean },
 	{ name: 'hmr', alias: 'h', type: Boolean },
-	{ name: 'google_analytics_site_id', alias: 'g', type: String, defaultValue: '' },
-	{ name: 'publicPath', alias: 'p', type: String, defaultValue: '' },
+	{ name: 'google_analytics_site_id', alias: 'g', type: String, defaultValue: process.env.GOOGLE_ANALYTICS_SITE_ID },
+	{ name: 'publicPath', alias: 'p', type: String, defaultValue: process.env.CLOUDFRONT_URL },
 ];
 const args = commandLineArgs(argOptions);
 

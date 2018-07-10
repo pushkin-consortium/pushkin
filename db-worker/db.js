@@ -11,7 +11,7 @@ const db2config = {
 };
 
 // create connection to transaction db
-const db2 = knex(db2config);
+const db2 = require('knex')(db2config);
 
 // test db connection
 db2.raw('select 1+1 as result').then(() => {

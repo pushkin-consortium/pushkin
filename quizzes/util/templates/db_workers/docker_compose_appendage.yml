@@ -1,0 +1,9 @@
+image: '${image_prefix}/${QUIZ_NAME}_db_worker:${image_tag}'
+command: 'bash start.sh'
+depends_on:                                       
+  - "message-queue"                               
+links:
+  - message-queue
+environment:
+  - AMQP_ADDRESS=amqp://message-queue:5672
+  - QUIZ_NAME=${QUIZ_NAME}

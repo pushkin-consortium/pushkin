@@ -1,6 +1,6 @@
 module.exports = db => {
   const Response = db.Model.extend({
-    tableName: 'bloodmagic_responses',
+    tableName: 'myResponses',
     idAttribute: 'id',
     hasTimestamps: true,
     user: function() {

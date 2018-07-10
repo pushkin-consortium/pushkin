@@ -24,10 +24,10 @@ usage() {
 
 # args
 do_copy_quizzes=true
-do_comp_front=false
-do_copy_comp_files=false
-do_build_docker=false
-do_docker_compose=false
+do_comp_front=true
+do_copy_comp_files=true
+do_build_docker=true
+do_docker_compose=true
 do_push_docker=false
 do_sync_aws=false
 
@@ -199,7 +199,8 @@ fi
 if [[ "$do_comp_front" = true ]]; then
 	echoBold "compiling from front-end"
 	cd front-end
-	node compile.js --publicPath="${cloudfront_url}"
+	node compile.js
+	#--publicPath="${cloudfront_url}"
 	cd ..
 fi
 
