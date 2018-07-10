@@ -1,15 +1,17 @@
+
 const path = require('path');
 const fs = require('fs');
 // create the actual db connection
 const knex = require('knex')(require('./knexfile.js').development);
+
 // config for transaction DB
-const config = {
+const db2config = {
   client: 'postgresql',
   connection: process.env.TRANSACTION_DATABASE_URL
 };
 
 // create connection to transaction db
-const db2 = require('knex')(config);
+const db2 = knex(db2config);
 
 // test db connection
 db2.raw('select 1+1 as result').then(() => {
