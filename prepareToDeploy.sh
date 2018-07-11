@@ -23,14 +23,14 @@ usage() {
 }
 
 # args
-do_copy_quizzes=true
+do_copy_quizzes=false
 do_comp_front=false
 do_copy_comp_files=false
 do_build_docker=false
 do_build_quiz_dockers=true
-do_docker_compose=false
+do_push_docker=true
+do_docker_compose=true
 do_append_quiz_composes=true
-do_push_docker=false
 do_sync_aws=false
 
 fe_quiz_list='front-end/src/quizzes/quizzes.js'
@@ -81,6 +81,10 @@ if [[ -z ${image_tag} && ("$do_build_docker" = true || "$do_build_quiz_dockers" 
 fi
 
 
+# projectPrefix
+# repoName
+# tag
+
 if [[ "$do_build_docker" = true || "$do_build_quiz_dockers" = true ]]; then
 	default=${image_prefix}
 	read -p "docker repo (${default}): " docker_repo
@@ -91,7 +95,7 @@ if [[ "$do_build_docker" = true || "$do_build_quiz_dockers" = true ]]; then
 	docker_label=${docker_label:-${default}}
 fi
 
-if [[ "$do_docker_compose" = true ]]; then
+if [[ "$do_docker_compose" = true || "$do_append_quiz_composes" = true ]]; then
 	default='docker-compose.production.yml'
 	read -p "docker compose file (${default}): " docker_compose
 	docker_compose=${docker_compose:-${default}}
@@ -226,8 +230,8 @@ if [[ "$do_build_quiz_dockers" = true ]]; then
 	for qPath in "${pushkin_root}/quizzes/quizzes/"*; do
 		qName=$(basename "$qPath")
 		if [ -d "$qPath/db_workers" ] && [ -f "$qPath/db_workers/Dockerfile" ]; then
-			docker build -t "${docker_repo}/pushkin-${qName}-db-worker:${docker_label}" "$qPath"/db_workers
-			docker build -t "${docker_repo}/pushkin-${qName}-db-worker" "$qPath"/db_workers
+			docker build -t "${docker_repo}/pushkin-${qName}-db-worker:${docker_label}" \
+				-t "${docker_repo}/pushkin-${qName}-db-worker" "$qPath"/db_workers
 			build_images+=("${qName}-db-worker")
 		else
 			echo "did not detect a db worker for $qName, skipping"
