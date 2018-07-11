@@ -103,3 +103,35 @@ services:
     links:
       - api
 # quiz-specific workers auto-appended below this line
+# note: if this image name must be changed,
+# make sure prepareToDeploy matches up with it in the
+# build stage of quiz-specific workers
+#
+# indentation must match main compose file
+
+  bloodmagic-db-worker:
+    image: '${image_prefix}/bloodmagic-db-worker:${image_tag}'
+    command: 'bash start.sh'
+    depends_on:
+      - "message-queue"
+    links:
+      - message-queue
+    environment:
+      - AMQP_ADDRESS=amqp://message-queue:5672
+      - QUIZ_NAME=bloodmagic
+# note: if this image name must be changed,
+# make sure prepareToDeploy matches up with it in the
+# build stage of quiz-specific workers
+#
+# indentation must match main compose file
+
+  bloodmagic_db_worker:
+    image: '${image_prefix}/bloodmagic_db_worker:${image_tag}'
+    command: 'bash start.sh'
+    depends_on:
+      - "message-queue"
+    links:
+      - message-queue
+    environment:
+      - AMQP_ADDRESS=amqp://message-queue:5672
+      - QUIZ_NAME=bloodmagic
