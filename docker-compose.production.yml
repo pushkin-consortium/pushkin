@@ -1,4 +1,7 @@
 version: '2'
+volumes:
+  # for rabbitmq
+  message_queue_datavolume: 
 services:
   api:
     image: "${image_prefix}/pushkin-api:${image_tag}"
@@ -99,27 +102,4 @@ services:
       - '433'
     links:
       - api
-
-      #  listener-quiz:
-      #    image: '${IMAGE_PREFIX}/pushkin-listener-quiz:latest'
-      #    command: 'bash start.sh'
-      #    depends_on:
-      #      - message-queue
-      #    environment:
-      #      - AMQP_ADDRESS=amqp://message-queue:5672
-      #      - QUEUE=listener-quiz
-      #    links:
-      #      - message-queue
-      #    labels:
-      #      io.rancher.scheduler.global: 'true'
-      #    volumes:
-      #      - message_queue_datavolume:/rabbitmq
-
-volumes:
-  # for rabbitmq
-  message_queue_datavolume: 
-
-
-
-
-
+# quiz-specific workers auto-appended below this line

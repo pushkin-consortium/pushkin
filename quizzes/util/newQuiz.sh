@@ -21,6 +21,7 @@ cd ..
 sed -e "s/\${QUIZ_NAME}/${qname}/" ../util/templates/db_workers/docker_compose_appendage.yml > "./${qname}/db_workers/docker_compose_appendage.yml"
 sed -e "s/\${QUIZ_NAME}/${qname}/" ../util/templates/db_workers/start.sh > "./${qname}/db_workers/start.sh"
 cp ../util/templates/db_workers/worker.py "./${qname}/db_workers/worker.py"
+cp ../util/templates/db_workers/Dockerfile "./${qname}/db_workers/Dockerfile"
 
 # api controller
 cp ../util/templates/api_controller/api_controller.js "./${qname}/api_controllers/${qname}.js"

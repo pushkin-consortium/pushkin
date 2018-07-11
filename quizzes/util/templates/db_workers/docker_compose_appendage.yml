@@ -1,9 +1,16 @@
-image: '${image_prefix}/${QUIZ_NAME}_db_worker:${image_tag}'
-command: 'bash start.sh'
-depends_on:                                       
-  - "message-queue"                               
-links:
-  - message-queue
-environment:
-  - AMQP_ADDRESS=amqp://message-queue:5672
-  - QUIZ_NAME=${QUIZ_NAME}
+# note: if this image name must be changed,
+# make sure prepareToDeploy matches up with it in the
+# build stage of quiz-specific workers
+#
+# indentation must match main compose file
+
+  ${QUIZ_NAME}_db_worker:
+    image: '${image_prefix}/${QUIZ_NAME}_db_worker:${image_tag}'
+    command: 'bash start.sh'
+    depends_on:
+      - "message-queue"
+    links:
+      - message-queue
+    environment:
+      - AMQP_ADDRESS=amqp://message-queue:5672
+      - QUIZ_NAME=${QUIZ_NAME}
