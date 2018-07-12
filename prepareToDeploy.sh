@@ -23,13 +23,13 @@ usage() {
 }
 
 # args
-do_copy_quizzes=false
-do_comp_front=false
-do_copy_comp_files=false
-do_build_docker=false
-do_build_quiz_dockers=false
+do_copy_quizzes=true
+do_comp_front=true
+do_copy_comp_files=true
+do_build_docker=true
+do_build_quiz_dockers=true
 do_push_docker=false
-do_docker_compose=false
+do_docker_compose=true
 do_append_quiz_composes=true
 do_sync_aws=false
 

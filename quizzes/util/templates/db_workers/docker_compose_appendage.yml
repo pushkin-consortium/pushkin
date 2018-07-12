@@ -3,6 +3,8 @@
 # build stage of quiz-specific workers
 #
 # indentation must match main compose file
+#
+# image prefix and tag are variables stored in main .env file
 
   ${QUIZ_NAME}-db-worker:
     image: '${image_prefix}/${QUIZ_NAME}-db-worker:${image_tag}'
@@ -13,4 +15,4 @@
       - message-queue
     environment:
       - AMQP_ADDRESS=amqp://message-queue:5672
-      - QUIZ_NAME=${QUIZ_NAME}
+      - QUEUE=${QUIZ_NAME}
