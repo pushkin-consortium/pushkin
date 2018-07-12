@@ -246,6 +246,7 @@ if [[ "$do_build_quiz_dockers" = true ]]; then
 	for qPath in "${pushkin_root}/quizzes/quizzes/"*; do
 		qName=$(basename "$qPath")
 		if [ -d "$qPath/db_workers" ] && [ -f "$qPath/db_workers/Dockerfile" ]; then
+			echoBold "building ${normal}${qName}"
 			docker build -t "${docker_repo}/pushkin-${qName}-db-worker:${docker_label}" \
 				-t "${docker_repo}/pushkin-${qName}-db-worker" "$qPath"/db_workers
 			build_images+=("${qName}-db-worker")
