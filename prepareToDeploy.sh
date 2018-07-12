@@ -27,9 +27,9 @@ do_copy_quizzes=false
 do_comp_front=false
 do_copy_comp_files=false
 do_build_docker=false
-do_build_quiz_dockers=true
-do_push_docker=true
-do_docker_compose=true
+do_build_quiz_dockers=false
+do_push_docker=false
+do_docker_compose=false
 do_append_quiz_composes=true
 do_sync_aws=false
 
@@ -253,6 +253,10 @@ fi
 # append quiz-specific db-workers
 if [[ "$do_append_quiz_composes" = true ]]; then
 	echoBold "appending quiz composes to compose file"
+ 
+	sed -i.sedBak '/^#@AUTOAPPENDBELOWTHISLINE$/,$d' ${docker_compose}
+	echo '#@AUTOAPPENDBELOWTHISLINE' >> ${docker_compose}
+
 	for qPath in "${pushkin_root}/quizzes/quizzes/"*; do
 		qName=$(basename "$qPath")
 		if [ -f "$qPath/db_workers/docker_compose_appendage.yml" ]; then
