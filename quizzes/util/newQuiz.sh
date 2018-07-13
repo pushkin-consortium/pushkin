@@ -25,7 +25,7 @@ sed -e "s/\${QUIZ_NAME}/${qname}/" ../util/templates/db_workers/handleResponse.p
 cp ../util/templates/db_workers/Dockerfile "./${qname}/db_workers/Dockerfile"
 
 # api controller
-sed -e "s/\${QUIZ_NAME}/${qname}/" ../util/templates/api_controllers/index.js > "./${qname}/api_controllers/index.js"
+sed -e "s/\${QUIZ_NAME}/${qname}/" ../util/templates/api_controller/index.js > "./${qname}/api_controllers/index.js"
 cp .../util/templates/api_controller/RPCParams.js "./${qname}/api_controllers/RPCParams.js"
 
 # db models
