@@ -5,4 +5,3 @@ server/html/*
 front-end/dist/*
 docs/build/*
 node_modules/
-front-end/src/quizzes/*
