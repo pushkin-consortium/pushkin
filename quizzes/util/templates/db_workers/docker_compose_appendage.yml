@@ -6,13 +6,14 @@
 #
 # image prefix and tag are variables stored in main .env file
 
-  ${QUIZ_NAME}-db-worker:
-    image: '${image_prefix}/${QUIZ_NAME}-db-worker:${image_tag}'
+  pushkin-${QUIZ_NAME}-quiz:
+    image: '${image_prefix}/pushkin-${QUIZ_NAME}-quiz:${image_tag}'
     command: 'bash start.sh'
     depends_on:
       - "message-queue"
     links:
       - message-queue
     environment:
-      - AMQP_ADDRESS=amqp://message-queue:5672
-      - QUEUE=${QUIZ_NAME}
+      - "AMQP_ADDRESS=amqp://message-queue:5672"
+      - "DATABASE_URL=postgres://${main_db_user}:${main_db_pass}@${main_db_url}/${main_db_name}"
+      - "TRANSACTION_DATABASE_URL=postgres://${transaction_db_user}:${transaction_db_pass}@${transaction_db_url}/${transaction_db_name}"
