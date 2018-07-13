@@ -20,7 +20,8 @@ cd ..
 # db workers
 sed -e "s/\${QUIZ_NAME}/${qname}/" ../util/templates/db_workers/docker_compose_appendage.yml > "./${qname}/db_workers/docker_compose_appendage.yml"
 sed -e "s/\${QUIZ_NAME}/${qname}/" ../util/templates/db_workers/start.sh > "./${qname}/db_workers/start.sh"
-cp ../util/templates/db_workers/worker.py "./${qname}/db_workers/worker.py"
+sed -e "s/\${QUIZ_NAME}/${qname}/" ../util/templates/db_workers/worker.py > "./${qname}/db_workers/workey.py"
+sed -e "s/\${QUIZ_NAME}/${qname}/" ../util/templates/db_workers/handleResponse.py > "./${qname}/db_workers/handleResponse.py"
 cp ../util/templates/db_workers/Dockerfile "./${qname}/db_workers/Dockerfile"
 
 # api controller

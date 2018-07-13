@@ -154,7 +154,8 @@ if [[ "$do_copy_quizzes" = true ]]; then
 		qName=$(basename ${qPath})
 
 		#echo cp -r "${qPath}/api_controllers/"* "${pushkin_root}/api/controllers/"
-		cp -r "${qPath}/api_controllers/"* "${pushkin_root}/api/controllers/"
+		mkdir "${pushkin_root}/api/controllers/${qName}"
+		cp -r "${qPath}/api_controllers/"* "${pushkin_root}/api/controllers/${qName}"
 		#echo 
 		#echo 
 
