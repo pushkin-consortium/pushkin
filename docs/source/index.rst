@@ -15,7 +15,7 @@ Welcome to Pushkin's documentation!
    quizzes/new_quiz
    maintenance/maintenance
    maintenance/prepareToDeploy
-   old/tutorial.md
+   old/tutorial
 
 
 
