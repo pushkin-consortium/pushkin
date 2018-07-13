@@ -6,4 +6,3 @@ front-end/dist/*
 docs/build/*
 node_modules/
 front-end/src/quizzes/*
-quizzes/quizzes/*
