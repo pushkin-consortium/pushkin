@@ -51,6 +51,9 @@ services:
     image: 'rabbitmq:3.6-management'
     expose:
       - '5672'
+      - '15672'
+    ports:
+      - '15672'
     environment:
       CONFD_ARGS: '--interval 5'
       RABBITMQ_CLUSTER_PARTITION_HANDLING: autoheal
