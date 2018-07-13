@@ -150,27 +150,44 @@ if [[ "$do_copy_quizzes" = true ]]; then
 	# might not have all things for cp
 	set +e
 
-	echo $pushkin_root
 	for qPath in "${pushkin_root}/quizzes/quizzes/"*; do
 		qName=$(basename ${qPath})
 
-		cp -r "${qPath}/api_controllers/"* "${pushkin_root}/api/controllers/"
+		#echo cp -r "${qPath}/api_controllers/"* "${pushkin_root}/api/controllers/"
+		mkdir "${pushkin_root}/api/controllers/${qName}"
+		cp -r "${qPath}/api_controllers/"* "${pushkin_root}/api/controllers/${qName}"
+		#echo 
+		#echo 
 
 		mkdir "${pushkin_root}/cron/scripts/${qName}"
+		#echo cp -r "${qPath}/cron_scripts/scripts/"*/* "${pushkin_root}/cron/scripts/${qName}"
 		cp -r "${qPath}/cron_scripts/scripts/"*/* "${pushkin_root}/cron/scripts/${qName}"
+		#echo 
+		#echo 
 		cat "${qPath}/cron_scripts/crontab.txt" >> "${pushkin_root}/cron/crontab"
 
 		mkdir "${pushkin_root}/db-worker/models/${qName}"
+		#echo cp "${qPath}/db_models/"* "${pushkin_root}/db-worker/models/${qName}"
 		cp "${qPath}/db_models/"* "${pushkin_root}/db-worker/models/${qName}"
+		#echo 
+		#echo 
 
 		# mkdir "${pushkin_root}/db-worker/migrations/${qName}"
+		#echo cp -r "${qPath}/db_migrations/"* "${pushkin_root}/db-worker/migrations/"
 		cp -r "${qPath}/db_migrations/"* "${pushkin_root}/db-worker/migrations/"
+		#echo 
+		#echo 
 
 		mkdir "${pushkin_root}/db-worker/seeds/${qName}"
+		#echo cp -r "${qPath}/db_seeds/"* "${pushkin_root}/db-worker/seeds/${qName}"
 		cp -r "${qPath}/db_seeds/"* "${pushkin_root}/db-worker/seeds/${qName}"
+		#echo 
+		#echo 
 
 		mkdir "${pushkin_root}/front-end/src/quizzes/${qName}"
+		#echo cp -r "${qPath}/quiz_page/"* "${pushkin_root}/front-end/src/quizzes/${qName}"
 		cp -r "${qPath}/quiz_page/"* "${pushkin_root}/front-end/src/quizzes/${qName}"
+		#echo 
 
 		# quizzes/quizzes/[quiz]/db-workers does not need to be moved
 		# because it's just docker and not physically referenced by anything
@@ -230,6 +247,7 @@ if [[ "$do_build_quiz_dockers" = true ]]; then
 	for qPath in "${pushkin_root}/quizzes/quizzes/"*; do
 		qName=$(basename "$qPath")
 		if [ -d "$qPath/db_workers" ] && [ -f "$qPath/db_workers/Dockerfile" ]; then
+			echoBold "building ${normal}${qName}"
 			docker build -t "${docker_repo}/pushkin-${qName}-db-worker:${docker_label}" \
 				-t "${docker_repo}/pushkin-${qName}-db-worker" "$qPath"/db_workers
 			build_images+=("${qName}-db-worker")

@@ -19,17 +19,6 @@ services:
     labels:
       io.rancher.scheduler.global: 'true'
 
-      #  front-end:
-      #    image: "${image_prefix}/pushkin-front-end:${image_tag}"
-      #    environment:
-      #      - "cloudfront_url=${cloudfront_url}"
-      #      - "google_analytics_site_id=${google_analytics_site_id}"
-      #      - "isdebug=${isdebug}"
-      #      - 'PORT=80'
-      #    expose:
-      #      - '80'
-      #      - '443'
-
   cron:
     image: '${image_prefix}/pushkin-cron:${image_tag}'
     environment:
@@ -58,23 +47,13 @@ services:
     labels:
       io.rancher.scheduler.global: 'true'
 
-# need corresponding rancher-compose file for this to work properly, which we're missing
-# just set up on rancher via the ui for now (link to front-end? server?)
-      #  load-balancer:
-      #    image: 'rancher/lb-service-haproxy'
-      #    ports:
-      #      - '80'
-      #      - '443'
-      #    labels:
-      #      io.rancher.scheduler.global: 'true'
-      #      io.rancher.container.agent.role: environmentAdmin
-      #      io.rancher.container.create_agent: 'true'
-
   message-queue:
-    #    image: 'gameswithwords/message-queue:latest'
     image: 'rabbitmq:3.6-management'
     expose:
       - '5672'
+      - '15672'
+    ports:
+      - '15672'
     environment:
       CONFD_ARGS: '--interval 5'
       RABBITMQ_CLUSTER_PARTITION_HANDLING: autoheal
@@ -111,8 +90,10 @@ services:
 #
 # indentation must match main compose file
 
-  bloodmagic-db-worker:
-    image: '${image_prefix}/bloodmagic-db-worker:${image_tag}'
+# image prefix and tag are variables stored in main .env file
+
+  bloodmagic-quiz:
+    image: '${image_prefix}/pushkin-bloodmagic-quiz:${image_tag}'
     command: 'bash start.sh'
     depends_on:
       - "message-queue"

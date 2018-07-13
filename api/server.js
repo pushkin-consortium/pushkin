@@ -25,13 +25,15 @@ amqp.connect(process.env.AMQP_ADDRESS, function(err, conn) {
   });
 
 	// include custom quiz api controllers
-	fs.readdirSync(path.resolve(__dirname, 'controllers'))
-		.filter(file => path.parse(file).ext === '.js')
-		.forEach(controllerFile => {
-			const short = controllerFile.replace('.js', '');
-			const route = '/api/' + short;
-			const controller = require('./controllers/' + short)(rpc, conn, dbWrite);
+	fs.readdirSync('./controllers')
+		.filter(folder => fs.lstatSync(`./controllers/${folder}`).isDirectory())
+		.forEach(controllerDir => {
+			const short = controllerDir;
+			const route = `/api/${short}`;
+			const controller =
+				require(`./controllers/${controllerDir}/index.js`)(rpc, conn, dbWrite);
 			app.use(route, controller);
+			console.log(`using controller for ${short}`);
 		});
 
 	// main routes/quiz independent
