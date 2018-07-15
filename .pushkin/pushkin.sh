@@ -46,3 +46,26 @@ source '.pushkin/bin/core.sh'
 log () { echo "${boldFont}pushkin:${normalFont} ${1}"; }
 
 log "not yet implemented. should route subcommands to scripts in .pushkin/bin, passing in config directory as first argument"
+
+sub_command="${1}"
+shift
+case "${sub_command}" in
+	"prep")
+		./bin/prepareFiles.sh "$@"
+		;;
+	*)
+		die "command ${sub_command} does not exist"
+		;;
+
+
+
+
+
+
+
+
+
+
+
+
+
