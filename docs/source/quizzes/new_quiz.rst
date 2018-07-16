@@ -6,6 +6,7 @@ Creating a Quiz
 Creating quizzes on Pushkin is straightforward. Start in the root of the Pushkin directory and follow the below steps.
 
 In terminal, run the following commands:
+
 * ./.pushkin/pushkin.sh make quiz [quiz name]
 * ./.pushkin/pushkin.sh prep
 * ./.pushkin/pushkin.sh compile
