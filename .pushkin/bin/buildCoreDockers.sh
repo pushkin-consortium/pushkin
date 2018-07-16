@@ -5,40 +5,26 @@
 ##############################################
 
 set -e
-pushkin_conf_dir="${1}"
-source "${pushkin_conf_dir}/pushkin_config_vars.sh"
+pushkin_conf_dir="$PWD"/.pushkin
 
+source "${pushkin_conf_dir}/pushkin_config_vars.sh"
 source "${pushkin_conf_dir}/bin/core.sh"
 set +e
 
 ##############################################
 # variables
+# WORKING DIR: pushkin root
 ##############################################
 set -e
 
 log () { echo "${boldFont}buildCoreDockers:${normalFont} ${1}"; }
 
-coreDockers=()
-coreDockerNames=()
-
-coreDockers+=("$pushkin_api")
-coreDockerNames+=("$pushkin_api_docker_name")
-
-coreDockers+=("$pushkin_cron")
-coreDockerNames+=("$pushkin_cron_docker_name")
-
-coreDockers+=("$pushkin_db_worker")
-coreDockerNames+=("$pushkin_db_worker_docker_name")
-
-coreDockers+=("$pushkin_front_end")
-coreDockerNames+=("$pushkin_front_end_docker_name")
-
-# mailer not set up
-#coreDockers+=("$pushkin_mailer")
-#coreDockerNames+=("$pushkin_mailer_docker_name")
-
-coreDockers+=("$pushkin_server")
-coreDockerNames+=("$pushkin_server_docker_name")
+source "${pushkin_env_file}"
+docker_repo="${image_prefix}"
+docker_tag="${image_tag}"
+if [ ! -z "${docker_tag}" ]; then
+	docker_tag=":${docker_tag}"
+fi
 
 set +e
 
@@ -46,10 +32,23 @@ set +e
 # start
 ##############################################
 
-log "not yet implemented (see code in prepareToDeploy for reference)"
+log "building api as '${pushkin_api_docker_name}'"
+docker build -t "${docker_repo}/${pushkin_api_docker_name}${docker_tag}" "${pushkin_api}"
 
+log "building cron as '${pushkin_cron_docker_name}'"
+docker build -t "${docker_repo}/${pushkin_cron_docker_name}${docker_tag}" "${pushkin_cron}"
 
+log "building db_worker as '${pushkin_db_worker_docker_name}'"
+docker build -t "${docker_repo}/${pushkin_db_worker_docker_name}${docker_tag}" "${pushkin_db_worker}"
 
+log "building front_end as '${pushkin_front_end_docker_name}'"
+docker build -t "${docker_repo}/${pushkin_front_end_docker_name}${docker_tag}" "${pushkin_front_end}"
 
+# mailer not yet set up
+#log "building mailer as '${pushkin_mailer_docker_name}'"
+#docker build -t "${docker_repo}/${pushkin_mailer_docker_name}${docker_tag}" "${pushkin_mailer}"
 
+log "building server as '${pushkin_server_docker_name}'"
+docker build -t "${docker_repo}/${pushkin_server_docker_name}${docker_tag}" "${pushkin_server}"
 
+log "done"
