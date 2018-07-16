@@ -5,9 +5,9 @@
 ##############################################
 
 set -e
-pushkin_conf_dir="${1}"
-source "${pushkin_conf_dir}/pushkin_config_vars.sh"
+pushkin_conf_dir="$PWD"/.pushkin
 
+source "${pushkin_conf_dir}/pushkin_config_vars.sh"
 source "${pushkin_conf_dir}/bin/core.sh"
 set +e
 
@@ -15,7 +15,6 @@ set +e
 # variables
 # WORKING DIR: pushkin root
 ##############################################
-cd "${pushkin_conf_dir}/.."
 set -e
 
 log () { echo "${boldFont}prepareFiles:${normalFont} ${1}"; }
@@ -29,8 +28,10 @@ db_migrations="${pushkin_db_worker_migrations}"
 db_models="${pushkin_db_worker_models}"
 db_seeds="${pushkin_db_worker_seeds}"
 
-quizzes_dir="${pushkin_front_end_quizzes_dir}"
-quizzes_list="${pushkin_front_end_quizzes_list}"
+user_quizzes="${pushkin_user_quizzes}"
+
+fe_quizzes_dir="${pushkin_front_end_quizzes_dir}"
+fe_quizzes_list="${pushkin_front_end_quizzes_list}"
 
 server_html="${pushkin_server_html}"
 
@@ -48,14 +49,18 @@ rm -rf "${cron_scripts}"/*
 rm -rf "${db_migrations}"/*
 rm -rf "${db_models}"/*
 rm -rf "${db_seeds}"/*
-rm -rf "${quizzes_dir}"/*
+rm -rf "${fe_quizzes_dir}"/*
 rm -rf "${server_html}"/*
 echo "# This file created automatically" > "${cron_tab}"
 echo "# Do not edit directly (your changes will be overwritten)" >> "${cron_tab}"
 
 # there might be missing quiz files (i.e. no seeds)
 set +e
-for qPath in "${quizzes_dir}"/*; do
+for qPath in "${user_quizzes}"/*; do
+	if [ ! -d "${qPath}" ]; then
+		# if there are no quizzes * won't expand, so ignore that
+		continue
+	fi
 	qName=$(basename ${qPath})
 	log "moving files for ${qName}"
 
@@ -74,8 +79,8 @@ for qPath in "${quizzes_dir}"/*; do
 	mkdir "${db_seeds}/${qName}"
 	cp -r "${qPath}/db_seeds/"* "${db_seeds}/${qName}"
 
-	mkdir "${quizzes_dir}/${qName}"
-	cp -r "${qPath}/quiz_page/"* "${quizzes_dir}/${qName}"
+	mkdir "${fe_quizzes_dir}/${qName}"
+	cp -r "${qPath}/quiz_page/"* "${fe_quizzes_dir}/${qName}"
 
 	# quizzes/quizzes/[quiz]/db-workers does not need to be moved
 	# because it's just docker and not physically referenced by anything
@@ -83,24 +88,34 @@ done
 set +e
 
 # make front-end quizzes "config" to be used by quiz page
-log "creating quizzes list file (${quizzes_list})"
+log "creating quizzes list file (${fe_quizzes_list})"
 
-wqf () { echo ${1} >> "${pushkin_root}/${fe_quiz_list}"; }
+wqf () { echo ${1} >> "${fe_quizzes_list}"; }
 
-echo '// This file created automatically' > "${pushkin_root}/$fe_quiz_list"
+echo '// This file created automatically' > "${fe_quizzes_list}"
 wqf "// Do not edit directly (your changes will be overwritten)"
 wqf ''
 
-for qPath in "${quizzes_dir}"/*; do
+for qPath in "${user_quizzes}"/*; do
+	if [ ! -d "${qPath}" ]; then
+		# if there are no quizzes * won't expand, so ignore that
+		continue
+	fi
 	qName=$(basename ${qPath})
 	wqf "import ${qName} from './${qName}';"
 done
 
 wqf 'export default {'
 
-for qPath in "${quizzes_dir}"/*; do
+for qPath in "${user_quizzes}"/*; do
+	if [ ! -d "${qPath}" ]; then
+		# if there are no quizzes * won't expand, so ignore that
+		continue
+	fi
 	qName=$(basename "${qPath}")
 	wqf "	${qName}: ${qName},"
 done
 
 wqf '};'
+
+log "done"

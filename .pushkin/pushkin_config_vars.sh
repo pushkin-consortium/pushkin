@@ -8,7 +8,7 @@ pushkin_docker_compose_noDep_file='docker-compose.production.noEnvDependency.yml
 # root houses the Dockerfile
 pushkin_api='api'
 pushkin_api_docker_name='pushkin_api'
-pushkin_api_controllers="${pushkin_api_root}/controllers"
+pushkin_api_controllers="${pushkin_api}/controllers"
 
 pushkin_cron='cron'
 pushkin_cron_docker_name='pushkin_cron'
@@ -26,6 +26,7 @@ pushkin_front_end_docker_name='pushkin_front_end'
 pushkin_front_end_dist="${pushkin_front_end}/dist"
 pushkin_front_end_quizzes_dir="${pushkin_front_end}/src/quizzes"
 pushkin_front_end_quizzes_list="${pushkin_front_end}/src/quizzes/quizzes.js"
+# to run from front end directory
 pushkin_front_end_compile_cmd='node compile.js'
 
 pushkin_mailer='pushkin-mailer'
