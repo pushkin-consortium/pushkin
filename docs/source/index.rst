@@ -10,6 +10,7 @@ Welcome to Pushkin's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   setup/getPushkin
    deployment/initialDeployment
    deployment/localDeployment
    quizzes/new_quiz
