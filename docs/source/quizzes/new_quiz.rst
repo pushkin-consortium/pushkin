@@ -21,17 +21,22 @@ Front-end Page
 ---------------
 Under the folder 'quiz_page', this houses the React component(s) of a Pushkin quiz. When a user visits the quiz page of the website and clicks a link to a quiz, the default export from index.js is loaded and served on a blank canvas to give over full control of the page.
 
-Database Seeds
----------------
-.. todo:: Figure out what these are actually for. Migrating data?
-
-Database Models
----------------
-.. todo:: I don't know enough to give an actual explanation.
 
 Database Migrations
 ---------------
-.. todo:: Don't know what these are for either.
+
+Under the migrations folder, you will find four timestamped files for each Pushkin quiz. Each migration file serves to define and create the columns of a database table, by specifying the names and valid data types of each column. Each database table deals with a different aspect of quiz data. These are:
+
+"*" Quiz Stimuli 
+
+"-" .. image:: images/stim.png
+
+
+
+Database Seeds
+---------------
+
+
 
 Cron Scripts
 ---------------
@@ -43,6 +48,9 @@ The 'api_controllers' folder contains middleware that is accessible from [Pushki
 
 
 .. todo:: Seriously update this documentation.
+
+
+
 
 
 
