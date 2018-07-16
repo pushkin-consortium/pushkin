@@ -27,9 +27,9 @@ Database Migrations
 
 Under the migrations folder, you will find four timestamped files for each Pushkin quiz. Each migration file serves to define and create the columns of a database table, by specifying the names and valid data types of each column. Each database table deals with a different aspect of quiz data. These are:
 
-"*" Quiz Stimuli 
+* Quiz Stimuli 
 
-"-" .. image::stim.png
+- .. image::stim.png
 
 
 
