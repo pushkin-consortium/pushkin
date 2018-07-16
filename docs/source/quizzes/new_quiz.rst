@@ -5,11 +5,24 @@ Creating a Quiz
 
 Creating quizzes on Pushkin is straightforward. Start in the root of the Pushkin directory and follow the below steps.
 
-#. From the quizzes/util directory, run ``newQuiz.sh`` and give it the name you would like.
-#. Look in quizzes/quizzes/[your quiz name]. You should see some auto-generated folders.
-   These are the main components of any Pushkin quiz. See `foundational quiz components`_.
-#. Modify your quiz files.
-#. From the root of Pushkin, run ``prepareToDeploy.sh`` to, among `other things <prepareToDeploy_>`, handle moving all your quiz components to their appropriate locations in the Pushkin file system and tell Pushkin about their existence.
+In terminal, run the following commands:
+#. ./.pushkin/pushkin.sh make quiz [quiz name]
+#. ./.pushkin/pushkin.sh prep
+#. ./.pushkin/pushkin.sh compile
+#. ./.pushkin/pushkin.sh build all
+#. ./.pushkin/pushkin.sh sync all
+#. ./.pushkin/pushkin.sh make dockerCompose
+#. docker-compose -f docker-compose.production.noEnvDependency.yml up
+
+Now, we need to run migrations and seed the database. In terminal, run the following commands:
+
+#. docker ps - Copy the container id for db-worker-1.
+#. docker exec -it [container id] bash
+#. npm run migrations
+#. node seeder.js [quiz name]
+#. exit
+
+All done! The quiz has been made and the appropriate database space has been allocated to it. You are now ready to collect data.
 
 
 .. _`foundational quiz components`:
@@ -67,18 +80,18 @@ Sample .csv for use in seeding:
 
 .. image:: seeds.png
 
-Database Prep Commands
----------------
-
-Once prepareToDeploy.sh has been run, the website can be initialized with the command docker-compose -f docker-compose.production.yml up.
-
-This command initalizes docker images from each component of Pushkin, and then deploys them locally within docker containers. However, seeding does not proceed automatically. 
 
 Cron Scripts
 ---------------
+
+Cron is a language-agnostic (Meaning that code execution is not limited to a subset of programming languages) service for running programming scripts on a scheduled, periodic basis. In the context of Pushkin, Cron occupies its own docker container, with its own dependencies, and is composed of three main components:
+
+* Crontab
+
+This is a configuration file which schedules shell commands for execution. Each line of the crontab specifies a single job, and that job's schedule. 
+
 These scripts are optional but may be useful for periodically organizing or analyzing data. Docker provides this container access to your database via an enviroment variable called 'DATABASE_URL', which encodes the username and password as set in the '.env' file as well.
 
 
-
-
 API Controller
+---------------
