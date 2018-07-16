@@ -29,7 +29,7 @@ Under the migrations folder, you will find four timestamped files for each Pushk
 
 "*" Quiz Stimuli 
 
-"-" .. image:: stim.png
+"-" .. image::stim.png
 
 
 
