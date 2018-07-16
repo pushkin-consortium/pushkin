@@ -6,21 +6,22 @@ Creating a Quiz
 Creating quizzes on Pushkin is straightforward. Start in the root of the Pushkin directory and follow the below steps.
 
 In terminal, run the following commands:
-#. ./.pushkin/pushkin.sh make quiz [quiz name]
-#. ./.pushkin/pushkin.sh prep
-#. ./.pushkin/pushkin.sh compile
-#. ./.pushkin/pushkin.sh build all
-#. ./.pushkin/pushkin.sh sync all
-#. ./.pushkin/pushkin.sh make dockerCompose
-#. docker-compose -f docker-compose.production.noEnvDependency.yml up
+
+* ./.pushkin/pushkin.sh make quiz [quiz name]
+* ./.pushkin/pushkin.sh prep
+* ./.pushkin/pushkin.sh compile
+* ./.pushkin/pushkin.sh build all
+* ./.pushkin/pushkin.sh sync all
+* ./.pushkin/pushkin.sh make dockerCompose
+* docker-compose -f docker-compose.production.noEnvDependency.yml up
 
 Now, we need to run migrations and seed the database. In terminal, run the following commands:
 
-#. docker ps - Copy the container id for db-worker-1.
-#. docker exec -it [container id] bash
-#. npm run migrations
-#. node seeder.js [quiz name]
-#. exit
+* docker ps - Copy the container id for db-worker-1.
+* docker exec -it [container id] bash
+* npm run migrations
+* node seeder.js [quiz name]
+* exit
 
 All done! The quiz has been made and the appropriate database space has been allocated to it. You are now ready to collect data.
 
@@ -84,11 +85,33 @@ Sample .csv for use in seeding:
 Cron Scripts
 ---------------
 
-Cron is a language-agnostic (Meaning that code execution is not limited to a subset of programming languages) service for running programming scripts on a scheduled, periodic basis. In the context of Pushkin, Cron occupies its own docker container, with its own dependencies, and is composed of three main components:
+Cron is a language-agnostic (Meaning that code execution is not limited to a subset of programming languages) service for running programming scripts on a scheduled, periodic basis. In the context of Pushkin, Cron occupies its own docker container, with its own dependencies, and is composed of two main components:
 
 * Crontab
 
 This is a configuration file which schedules shell commands for execution. Each line of the crontab specifies a single job, and that job's schedule. 
+
+These sample tasks are executing python scripts, and saving their output (If any) to .txt files. 
+.. image:: croncommands.png
+
+This system of scheduling is powerful and easy-to-use. 
+.. image:: crontime.png
+
+* Scripts
+
+The jobs themselves can be written in any programming language, and can perform any necessary task on schedule. For example, the following script uses a python package called Boto3 to connect to AWS and upload a file to an S3 bucket.
+
+.. image:: cronBotoScript.png
+
+* DockerFile
+
+This file is responsible for establishing the environment of your docker container, installing necessary dependencies and packages by running shell commands. For example, the following three commands install curl, then pip, then boto3 for python. 
+
+* RUN apt-get install curl -y
+* RUN curl --silent --show-error --retry 5 https://bootstrap.pypa.io/get-pip.py | python
+* RUN pip install boto3
+
+---------------
 
 These scripts are optional but may be useful for periodically organizing or analyzing data. Docker provides this container access to your database via an enviroment variable called 'DATABASE_URL', which encodes the username and password as set in the '.env' file as well.
 
