@@ -67,8 +67,11 @@ Sample .csv for use in seeding:
 
 .. image:: seeds.png
 
+
 Database Prep Commands
 ---------------
+
+Run pushkin
 
 Once prepareToDeploy.sh has been run, the website can be initialized with the command docker-compose -f docker-compose.production.yml up.
 
@@ -76,9 +79,9 @@ This command initalizes docker images from each component of Pushkin, and then d
 
 Cron Scripts
 ---------------
+
 These scripts are optional but may be useful for periodically organizing or analyzing data. Docker provides this container access to your database via an enviroment variable called 'DATABASE_URL', which encodes the username and password as set in the '.env' file as well.
 
 
-
-
 API Controller
+---------------
