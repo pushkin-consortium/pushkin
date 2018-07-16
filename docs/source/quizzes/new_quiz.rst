@@ -88,7 +88,6 @@ Cron Scripts
 Cron is a language-agnostic (Meaning that code execution is not limited to a subset of programming languages) service for running programming scripts on a scheduled, periodic basis. In the context of Pushkin, Cron occupies its own docker container, with its own dependencies, and is composed of two main components:
 
 * Crontab
--------
 
 This is a configuration file which schedules shell commands for execution. Each line of the crontab specifies a single job, and that job's schedule. 
 
@@ -99,14 +98,12 @@ This system of scheduling is powerful and easy-to-use.
 .. image:: crontime.png
 
 * Scripts
--------
 
 The jobs themselves can be written in any programming language, and can perform any necessary task on schedule. For example, the following script uses a python package called Boto3 to connect to AWS and upload a file to an S3 bucket.
 
 .. image:: cronBotoScript.png
 
 * DockerFile
--------
 
 This file is responsible for establishing the environment of your docker container, installing necessary dependencies and packages by running shell commands. For example, the following three commands install curl, then pip, then boto3 for python. 
 
