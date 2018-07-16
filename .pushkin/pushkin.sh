@@ -27,6 +27,9 @@ checkPushkinNotCorrupt () {
 		fi
 	done
 }
+showUsage () {
+	echo "usage: ${0} [make | prep | build | sync | compile] [sub-command args]"
+}
 
 ##############################################
 # start
@@ -121,10 +124,11 @@ case "${sub_command}" in
 	"sync")
 		syncRouter "$@"
 		;;
-	"compileFrontEnd")
+	"compile")
 		.pushkin/bin/compileFrontEnd.sh "$@"
 		;;
 	*)
+		showUsage
 		die "command ${sub_command} does not exist"
 		;;
 esac
