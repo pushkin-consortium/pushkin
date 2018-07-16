@@ -27,11 +27,23 @@ Database Migrations
 
 Under the migrations folder, you will find four timestamped files for each Pushkin quiz. Each migration file serves to define and create the columns of a database table, by specifying the names and valid data types of each column. Each database table deals with a different aspect of quiz data. These are:
 
-* Quiz Stimuli 
+* Quiz Stimuli - Lists all of the available questions for a Pushkin quiz.
+
+Each stimulus entry consists of an ID number, the name of the quiz, the stimulus, answer options, a count of responses to that stimulus, and the category of question.
 
 .. image:: stim.png
 
+* Quiz Users - Lists all of the users who have contributed to that quiz.
 
+.. image:: user.png
+
+* Stimulus Responses - Lists all responses given, with stimulus prompt included.
+
+.. image:: stimResp.png
+
+* Responses - Lists all responses given, without stimulus prompt. 
+
+.. image:: responses.png
 
 Database Seeds
 ---------------
