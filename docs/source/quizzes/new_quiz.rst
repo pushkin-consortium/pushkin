@@ -49,6 +49,16 @@ Each stimulus entry consists of an ID number, the name of the quiz, the stimulus
 
 .. image:: responses.png
 
+.. image:: user.png
+
+* Stimulus Responses - Lists all responses given, with stimulus prompt included.
+
+.. image:: stimResp.png
+
+* Responses - Lists all responses given, without stimulus prompt. 
+
+.. image:: responses.png
+
 Database Seeds
 ---------------
 
