@@ -21,28 +21,61 @@ Front-end Page
 ---------------
 Under the folder 'quiz_page', this houses the React component(s) of a Pushkin quiz. When a user visits the quiz page of the website and clicks a link to a quiz, the default export from index.js is loaded and served on a blank canvas to give over full control of the page.
 
-Database Seeds
+Database Preparation Process
 ---------------
-.. todo:: Figure out what these are actually for. Migrating data?
 
-Database Models
----------------
-.. todo:: I don't know enough to give an actual explanation.
+Before a quiz can be run, and data recorded and stored, the database must contain the appropriate tables, and be seeded with an array of stimuli to present to quiz-takers. The first step in this process lies in the migrations folder.  
 
 Database Migrations
 ---------------
-.. todo:: Don't know what these are for either.
+
+Under the migrations folder, you will find four timestamped files for each Pushkin quiz. Each migration file serves to define and create the columns of a database table, by specifying the names and valid data types of each column. Each database table deals with a different aspect of quiz data, and does so by returning a knex schema. These are:
+
+* Quiz Stimuli - Lists all of the available questions for a Pushkin quiz.
+
+Each stimulus entry consists of an ID number, the name of the quiz, the stimulus, answer options, a count of responses to that stimulus, and the category of question.
+
+.. image:: stim.png
+
+* Quiz Users - Lists all of the users who have contributed to that quiz.
+
+.. image:: user.png
+
+* Stimulus Responses - Lists all responses given, with stimulus prompt included.
+
+.. image:: stimResp.png
+
+* Responses - Lists all responses given, without stimulus prompt. 
+
+.. image:: responses.png
+
+.. image:: user.png
+
+* Stimulus Responses - Lists all responses given, with stimulus prompt included.
+
+.. image:: stimResp.png
+
+* Responses - Lists all responses given, without stimulus prompt. 
+
+.. image:: responses.png
+
+Database Seeds
+---------------
+
+The next step is a seeder script, which uses a dataset of questions in .csv format to populate the stimuli table for each quiz. The seeder script is identical across quizzes, but care should be taken to ensure that the columns defined in the seed csv match those defined by the appropriate migrations.
+
+Sample .csv for use in seeding:
+
+.. image:: seeds.png
+
+Database Prep Commands
+---------------
+
 
 Cron Scripts
 ---------------
 These scripts are optional but may be useful for periodically organizing or analyzing data. Docker provides this container access to your database via an enviroment variable called 'DATABASE_URL', which encodes the username and password as set in the '.env' file as well.
 
-API Controllers
----------------
-The 'api_controllers' folder contains middleware that is accessible from [Pushkin URL]/api/. The template code provided shows a bare-bones Express router that does nothing. A Remote Procedure Calls (RPC) function is provided that connects via a message queue to the database workers.
-
-
-.. todo:: Seriously update this documentation.
 
 
 
