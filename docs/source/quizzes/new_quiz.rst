@@ -92,6 +92,5 @@ This is a configuration file which schedules shell commands for execution. Each 
 
 These scripts are optional but may be useful for periodically organizing or analyzing data. Docker provides this container access to your database via an enviroment variable called 'DATABASE_URL', which encodes the username and password as set in the '.env' file as well.
 
-
 API Controller
 ---------------
