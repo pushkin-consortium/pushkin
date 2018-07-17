@@ -94,9 +94,7 @@ Cron Scripts
 
   These sample tasks are executing python scripts, and saving their output (If any) to .txt files. 
     
-    
 .. image:: croncommands.png
-
 
   This system of scheduling is powerful and easy-to-use. 
     
