@@ -40,5 +40,32 @@ Moves the compiled files from ``pushkin_front_end_dist`` to ``pushkin_server_htm
 build
 --------
 
+core
+^^^^^^
+
+Builds the api, cron, server, and db worker containers.
+
+quizzes
+^^^^^^^^
+
+Builds each quiz's worker.
+
+all
+^^^^^^
+
+Does both the above steps
+
 sync
 --------
+
+coreDockers
+^^^^^^^^^^^^
+
+quizDockers
+^^^^^^^^^^^^^
+
+website
+^^^^^^^^^^^^
+
+all
+^^^^^^^^^

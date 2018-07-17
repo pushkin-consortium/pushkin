@@ -41,8 +41,8 @@ docker build -t "${docker_repo}/${pushkin_cron_docker_name}${docker_tag}" "${pus
 log "building db_worker as '${pushkin_db_worker_docker_name}'"
 docker build -t "${docker_repo}/${pushkin_db_worker_docker_name}${docker_tag}" "${pushkin_db_worker}"
 
-log "building front_end as '${pushkin_front_end_docker_name}'"
-docker build -t "${docker_repo}/${pushkin_front_end_docker_name}${docker_tag}" "${pushkin_front_end}"
+#log "building front_end as '${pushkin_front_end_docker_name}'"
+#docker build -t "${docker_repo}/${pushkin_front_end_docker_name}${docker_tag}" "${pushkin_front_end}"
 
 # mailer not yet set up
 #log "building mailer as '${pushkin_mailer_docker_name}'"
