@@ -25,8 +25,8 @@ Now, we need to run migrations and seed the database. In terminal, run the follo
 
 All done! The quiz has been made and the appropriate database space has been allocated to it. You are now ready to collect data.
 
-
 .. _`foundational quiz components`:
+
 Foundational Quiz Components
 =============================
 
@@ -36,12 +36,12 @@ Front-end Page
   Under the folder 'quiz_page', this houses the React component(s) of a Pushkin quiz. When a user visits the quiz page of the website and clicks a link to a quiz, the default export from index.js is loaded and served on a blank canvas to give over full control of the page.
 
 Database Preparation Process
----------------
+------------------------------
 
   Before a quiz can be run, and data recorded and stored, the database must contain the appropriate tables, and be seeded with an array of stimuli to present to quiz-takers. This task is handled by files contained in the db-worker folder within root. The first step in the process lies in db-worker/migrations.  
 
 Database Migrations
----------------
+---------------------
 
   Under the migrations folder, you will find four timestamped files for each Pushkin quiz. Each migration file serves to define and create the columns of a database table, by specifying the names and valid data types of each column. Each database table deals with a different aspect of quiz data, and does so by returning a knex schema. These are:
 
@@ -49,7 +49,7 @@ Database Migrations
 
   Each stimulus entry consists of an ID number, the name of the quiz, the stimulus, answer options, a count of responses to     that stimulus, and the category of question.
 
-.. codeblock:: python
+.. code:: python
 
    exports.up = function(knex) {
     return knex.schema.createTable('bloodmagic_stimuli', table => {
@@ -64,7 +64,7 @@ Database Migrations
   
 * Quiz Users - Lists all of the users who have contributed to that quiz.
 
-.. codeblock:: python
+.. code:: python
 
  exports.up = function(knex) {
    return knex.schema.createTable('bloodmagic_users', table => {
@@ -78,7 +78,7 @@ Database Migrations
 
 * Stimulus Responses - Lists all responses given, with stimulus prompt included.
 
-.. codeblock:: python
+.. code:: python
 
  exports.up = function(knex) {
    return knex.schema.createTable('bloodmagic_stimulusResponses', table => {
@@ -93,7 +93,7 @@ Database Migrations
 
 * Responses - Lists all responses given, without stimulus prompt. 
 
-.. codeblock:: python
+.. code:: python
 
  exports.up = function(knex) {
    return knex.schema.createTable('bloodmagic_responses', table => {
