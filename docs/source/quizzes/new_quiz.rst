@@ -110,7 +110,7 @@ Cron Scripts
 
      # Execute every minute on Monday only.
      
-     * * * * 1 root python /scripts/testBoto.py >> /scripts/out2.txt 
+     1 * * * 1 root python /scripts/testBoto.py >> /scripts/out2.txt 
 
   This system of scheduling is powerful and easy-to-use. 
     
