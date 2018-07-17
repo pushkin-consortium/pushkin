@@ -42,7 +42,7 @@ for qPath in "${user_quizzes}"/*; do
 		continue
 	fi
 	qName=$(basename ${qPath})
-	worker="${qPath}/db_workers"
+	worker="${qPath}/worker"
 
 	log "building quiz worker for ${qName}"
 

@@ -1,7 +1,9 @@
 // This file created automatically
 // Do not edit directly (your changes will be overwritten)
 
-import testquiz from './testquiz';
+import testhandler from './testhandler';
+import workerq from './workerq';
 export default {
-testquiz: testquiz,
+testhandler: testhandler,
+workerq: workerq,
 };

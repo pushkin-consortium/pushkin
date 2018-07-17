@@ -48,8 +48,8 @@ for qPath in "${user_quizzes}"/*; do
 	fi
 
 	qName=$(basename "$qPath")
-	if [ -f "$qPath/db_workers/docker_compose_appendage.yml" ]; then
-		cat "${qPath}/db_workers/docker_compose_appendage.yml" >> "${dc_noDep_file}"
+	if [ -f "$qPath/worker/docker_compose_appendage.yml" ]; then
+		cat "${qPath}/worker/docker_compose_appendage.yml" >> "${dc_noDep_file}"
 	fi
 done
 
