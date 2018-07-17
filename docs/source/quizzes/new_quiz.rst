@@ -94,6 +94,7 @@ Cron Scripts
 
   These sample tasks are executing python scripts, and saving their output (If any) to .txt files. 
     
+    
 .. image:: croncommands.png
 
 
@@ -105,7 +106,7 @@ Cron Scripts
 
   The jobs themselves can be written in any programming language, and can perform any necessary task on schedule. For example,   the following script uses a python package called Boto3 to connect to AWS and upload a file to an S3 bucket.
 
-  .. image:: cronBotoScript.png
+ .. image:: cronBotoScript.png
 
 * DockerFile
 
