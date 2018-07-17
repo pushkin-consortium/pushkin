@@ -39,3 +39,4 @@ pushkin_server='server'
 pushkin_server_docker_name='pushkin_server'
 pushkin_server_html="${pushkin_server}/html"
 
+s3_bucket_name='jacob-deployment-test'
