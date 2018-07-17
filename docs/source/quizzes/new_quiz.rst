@@ -93,8 +93,20 @@ Cron Scripts
   This is a configuration file which schedules shell commands for execution. Each line of the crontab specifies a single job,   and that job's schedule. 
 
   These sample tasks are executing python scripts, and saving their output (If any) to .txt files. 
-    
-.. image:: croncommands.png
+  
+  For example, some sample lines in the crontab.
+  
+     # Execute every 5 minutes.
+     5 * * * * root echo "test" >> /scripts/test.txt 
+
+     # Execute at time 00:00 (midnight) every day.
+     0 0 * * * root python /scripts/test.py >> /scripts/test2.txt 
+
+     # Execute at 10:00 on the first day of every month.
+     0 10 1 1 * root python /scripts/secondTest.py >> /scripts/out.txt 
+
+     # Execute every minute on Monday only.
+     * * * * 1 root python /scripts/testBoto.py >> /scripts/out2.txt 
 
   This system of scheduling is powerful and easy-to-use. 
     
@@ -103,8 +115,7 @@ Cron Scripts
 * Scripts
 
   The jobs themselves can be written in any programming language, and can perform any necessary task on schedule. For example,   the following script uses a python package called Boto3 to connect to AWS and upload a file to an S3 bucket.
-  
-.. image:: croncommands.png
+ 
 
  .. image:: cronBotoScript.png
 
