@@ -76,7 +76,7 @@ Database Migrations
 Database Seeds
 ---------------
 
-The next step is a seeder script, which uses a dataset of questions in .csv format to populate the stimuli table for each quiz. Under the seedsThe seeder script is identical across quizzes, but care should be taken to ensure that the columns defined in the seed csv match those defined by the appropriate migrations, as in the sample presented below.
+ The next step is a seeder script, which uses a dataset of questions in .csv format to populate the stimuli table for each quiz. Under the seedsThe seeder script is identical across quizzes, but care should be taken to ensure that the columns defined in the seed csv match those defined by the appropriate migrations, as in the sample presented below.
 
 Sample .csv for use in seeding:
 
@@ -92,11 +92,11 @@ Cron Scripts
 
   This is a configuration file which schedules shell commands for execution. Each line of the crontab specifies a single job,   and that job's schedule. 
 
-  These sample tasks are executing python scripts, and saving their output (If any) to .txt files. 
-.. image:: croncommands.png
+    These sample tasks are executing python scripts, and saving their output (If any) to .txt files. 
+  .. image:: croncommands.png
 
-  This system of scheduling is powerful and easy-to-use. 
-.. image:: crontime.png
+    This system of scheduling is powerful and easy-to-use. 
+  .. image:: crontime.png
 
 * Scripts
 
