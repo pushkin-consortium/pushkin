@@ -63,8 +63,6 @@ Database Migrations
 
  .. image:: responses.png
 
- .. image:: user.png
-
 * Stimulus Responses - Lists all responses given, with stimulus prompt included.
 
  .. image:: stimResp.png
