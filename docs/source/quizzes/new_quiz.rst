@@ -50,6 +50,7 @@ Database Migrations
   Each stimulus entry consists of an ID number, the name of the quiz, the stimulus, answer options, a count of responses to     that stimulus, and the category of question.
 
 .. codeblock:: python
+
    exports.up = function(knex) {
     return knex.schema.createTable('bloodmagic_stimuli', table => {
       table.increments('id').primary();
@@ -64,6 +65,7 @@ Database Migrations
 * Quiz Users - Lists all of the users who have contributed to that quiz.
 
 .. codeblock:: python
+
  exports.up = function(knex) {
    return knex.schema.createTable('bloodmagic_users', table => {
      table.increments('id').primary();
@@ -77,6 +79,7 @@ Database Migrations
 * Stimulus Responses - Lists all responses given, with stimulus prompt included.
 
 .. codeblock:: python
+
  exports.up = function(knex) {
    return knex.schema.createTable('bloodmagic_stimulusResponses', table => {
      table.increments('id').primary();
@@ -91,6 +94,7 @@ Database Migrations
 * Responses - Lists all responses given, without stimulus prompt. 
 
 .. codeblock:: python
+
  exports.up = function(knex) {
    return knex.schema.createTable('bloodmagic_responses', table => {
      table.increments('id').primary();
@@ -148,10 +152,8 @@ Cron Scripts
 
 * Scripts
 
-  The jobs themselves can be written in any programming language, and can perform any necessary task on schedule. For example,   the following script uses a python package called Boto3 to connect to AWS and upload a file to an S3 bucket.
- 
+  The jobs themselves can be written in any programming language, and can perform any required task on schedule. 
 
- .. image:: cronBotoScript.png
 
 * DockerFile
 
