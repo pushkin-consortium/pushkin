@@ -94,8 +94,6 @@ Cron Scripts
 
   These sample tasks are executing python scripts, and saving their output (If any) to .txt files. 
   
-  For example, some sample lines in the crontab.
-  
      # Execute every 5 minutes.
      
        5 * * * * root echo "test" >> /scripts/test.txt 
