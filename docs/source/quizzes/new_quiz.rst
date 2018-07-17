@@ -111,6 +111,8 @@ Cron Scripts
        1 * * * 1 root python /scripts/testBoto.py >> /scripts/out2.txt 
 
   This system of scheduling is powerful and easy-to-use. 
+  
+  *Note that asterisks are wildcard symbols which can assume any number*
     
 .. image:: crontime.png
 
