@@ -98,15 +98,15 @@ Cron Scripts
 
      # Execute at time 00:00 (midnight) every day.
      
-       0 0 * * * root python /scripts/test.py >> /scripts/test2.txt 
+       0 0 * * * root /usr/bin/python2.7  /scripts/test.py >> /scripts/test2.txt 
 
      # Execute at 10:00 on the first day of every month.
      
-       0 10 1 1 * root python /scripts/secondTest.py >> /scripts/out.txt 
+       0 10 1 1 * root /usr/bin/python2.7  /scripts/secondTest.py >> /scripts/out.txt 
 
      # Execute every minute on Monday only.
      
-       1 * * * 1 root python /scripts/testBoto.py >> /scripts/out2.txt 
+       1 * * * 1 root /usr/bin/python2.7  /scripts/testBoto.py >> /scripts/out2.txt 
 
   This system of scheduling is powerful and easy-to-use. 
   
