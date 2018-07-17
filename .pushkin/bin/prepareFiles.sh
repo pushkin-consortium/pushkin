@@ -82,7 +82,7 @@ for qPath in "${user_quizzes}"/*; do
 	mkdir "${fe_quizzes_dir}/${qName}"
 	cp -r "${qPath}/quiz_page/"* "${fe_quizzes_dir}/${qName}"
 
-	# quizzes/quizzes/[quiz]/db-workers does not need to be moved
+	# quizzes/quizzes/[quiz]/worker does not need to be moved
 	# because it's just docker and not physically referenced by anything
 done
 set +e
