@@ -76,7 +76,7 @@ Database Migrations
 Database Seeds
 ---------------
 
- The next step is a seeder script, which uses a dataset of questions in .csv format to populate the stimuli table for each quiz. Under the seedsThe seeder script is identical across quizzes, but care should be taken to ensure that the columns defined in the seed csv match those defined by the appropriate migrations, as in the sample presented below.
+ The next step is a seeder script, which uses a dataset of questions in .csv format to populate the stimuli table for each quiz. The seeder script is identical across quizzes, but care should be taken to ensure that the columns defined in the seed csv match those defined by the appropriate migrations, as in the sample presented below.
 
 Sample .csv for use in seeding:
 
