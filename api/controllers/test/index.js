@@ -42,7 +42,7 @@ module.exports = (rpc, conn, dbWrite) => { // don't use dbWrite (deprecated)
 	stdGets.forEach(point =>
 		router.get(point.path, (req, res, next) => {
 			const params = new RPCParams(point.method, point.data(req));
-			return rpc(conn, 'ExistentialCrisisGerbil_api_queue', params.getParams())
+			return rpc(conn, 'test_api_queue', params.getParams())
 				.then(data => res.send(data))
 				.catch(err => res.send(err));
 		})
@@ -51,7 +51,7 @@ module.exports = (rpc, conn, dbWrite) => { // don't use dbWrite (deprecated)
 	stdPosts.forEach(point =>
 		router.post(point.path, (req, res, next) => {
 			const params = new RPCParams(point.method, point.data(req));
-			return rpc(conn, 'ExistentialCrisisGerbil_api_queue', params.getParams())
+			return rpc(conn, 'test_api_queue', params.getParams())
 				.then(data => res.send(data))
 				.catch(err => res.send(err));
 		})
@@ -60,7 +60,7 @@ module.exports = (rpc, conn, dbWrite) => { // don't use dbWrite (deprecated)
 	stdPuts.forEach(point =>
 		router.put(point.path, (req, res, next) => {
 			const params = new RPCParams(point.method, point.data(req));
-			return rpc(conn, 'ExistentialCrisisGerbil_api_queue', params.getParams())
+			return rpc(conn, 'test_api_queue', params.getParams())
 				.then(data => res.send(data))
 				.catch(err => res.send(err));
 		})
