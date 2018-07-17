@@ -31,12 +31,12 @@ module.exports = (rpc, conn, dbWrite) => { // don't use dbWrite (deprecated)
 				num_responses: parseInt(req.body.num_responses) + 1
 			}) },
 		{ path: '/response', method: 'createResponse',
-			data: req => { user_id: req.body.user_id, data_string: req.body.data_string } }
+			data: req => ({ user_id: req.body.user_id, data_string: req.body.data_string }) }
 	];
 
 	const stdPuts = [
 		{ path: '/users/:auth_id', method: 'updateUser',
-			data: req => { user_id: req.body.user_id, auth_id: req.params.auth_id } }
+			data: req => ({ user_id: req.body.user_id, auth_id: req.params.auth_id }) }
 	];
 
 	stdGets.forEach(point =>

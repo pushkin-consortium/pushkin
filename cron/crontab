@@ -1,4 +1,6 @@
 # This file created automatically
 # Do not edit directly (your changes will be overwritten)
 # contents of this file auto-appended to cron/crontab during build
-* 0 0 0 0 root /scripts/testquiz/exampleCron.py
+* 0 0 0 0 root /scripts/testhandler/exampleCron.py
+# contents of this file auto-appended to cron/crontab during build
+* 0 0 0 0 root /scripts/workerq/exampleCron.py

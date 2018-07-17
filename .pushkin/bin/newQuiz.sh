@@ -48,17 +48,17 @@ mkdir "${user_quizzes}/${qname}"/cron_scripts
 mkdir "${user_quizzes}/${qname}"/db_models
 mkdir "${user_quizzes}/${qname}"/db_migrations
 mkdir "${user_quizzes}/${qname}"/db_seeds
-mkdir "${user_quizzes}/${qname}"/db_workers
+mkdir "${user_quizzes}/${qname}"/worker
 mkdir "${user_quizzes}/${qname}"/quiz_page
 
 #### add default starting files (names are set) #####
 
 # db workers
-sed -e "s/\${QUIZ_NAME}/${qname}/" "${templates}"/db_workers/docker_compose_appendage.yml > "${user_quizzes}/${qname}/db_workers/docker_compose_appendage.yml"
-sed -e "s/\${QUIZ_NAME}/${qname}/" "${templates}"/db_workers/start.sh > "${user_quizzes}/${qname}/db_workers/start.sh"
-sed -e "s/\${QUIZ_NAME}/${qname}/" "${templates}"/db_workers/worker.py > "${user_quizzes}/${qname}/db_workers/workey.py"
-sed -e "s/\${QUIZ_NAME}/${qname}/" "${templates}"/db_workers/handleResponse.py > "${user_quizzes}/${qname}/db_workers/handleResponse.py"
-cp "${templates}"/db_workers/Dockerfile "${user_quizzes}/${qname}/db_workers/Dockerfile"
+sed -e "s/\${QUIZ_NAME}/${qname}/" "${templates}"/worker/docker_compose_appendage.yml > "${user_quizzes}/${qname}/worker/docker_compose_appendage.yml"
+sed -e "s/\${QUIZ_NAME}/${qname}/" "${templates}"/worker/start.sh > "${user_quizzes}/${qname}/worker/start.sh"
+sed -e "s/\${QUIZ_NAME}/${qname}/" "${templates}"/worker/worker.py > "${user_quizzes}/${qname}/worker/worker.py"
+sed -e "s/\${QUIZ_NAME}/${qname}/" "${templates}"/worker/handleResponse.py > "${user_quizzes}/${qname}/worker/handleResponse.py"
+cp "${templates}"/worker/Dockerfile "${user_quizzes}/${qname}/worker/Dockerfile"
 
 # api controller
 sed -e "s/\${QUIZ_NAME}/${qname}/" "${templates}"/api_controller/index.js > "${user_quizzes}/${qname}/api_controllers/index.js"
