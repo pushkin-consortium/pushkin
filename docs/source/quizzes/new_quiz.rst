@@ -50,7 +50,6 @@ Database Migrations
   Each stimulus entry consists of an ID number, the name of the quiz, the stimulus, answer options, a count of responses to     that stimulus, and the category of question.
 
 .. codeblock:: python
-
    exports.up = function(knex) {
     return knex.schema.createTable('bloodmagic_stimuli', table => {
       table.increments('id').primary();
@@ -64,23 +63,45 @@ Database Migrations
   
 * Quiz Users - Lists all of the users who have contributed to that quiz.
 
- .. image:: user.png
+.. codeblock:: python
+ exports.up = function(knex) {
+   return knex.schema.createTable('bloodmagic_users', table => {
+     table.increments('id').primary();
+     table.string('auth0_id');
+     table.timestamp('created_at');
+     table.timestamp('updated_at');
+   });
+ };
+
 
 * Stimulus Responses - Lists all responses given, with stimulus prompt included.
 
- .. image:: stimResp.png
+.. codeblock:: python
+ exports.up = function(knex) {
+   return knex.schema.createTable('bloodmagic_stimulusResponses', table => {
+     table.increments('id').primary();
+     table.integer('user_id').references('id').inTable('bloodmagic_users');
+     table.string('stimulus').references('stimulus').inTable('bloodmagic_stimuli');
+     table.json('data_string');
+     table.timestamp('created_at');
+     table.timestamp('updated_at');
+   });
+ };
 
 * Responses - Lists all responses given, without stimulus prompt. 
 
- .. image:: responses.png
+.. codeblock:: python
+ exports.up = function(knex) {
+   return knex.schema.createTable('bloodmagic_responses', table => {
+     table.increments('id').primary();
+     table.integer('user_id').references('id').inTable('bloodmagic_users');
+     table.json('data_string');
+     table.timestamp('created_at');
+     table.timestamp('updated_at');
+   });
+ };
 
-* Stimulus Responses - Lists all responses given, with stimulus prompt included.
 
- .. image:: stimResp.png
-
-* Responses - Lists all responses given, without stimulus prompt. 
-
- .. image:: responses.png
 
 Database Seeds
 ---------------
