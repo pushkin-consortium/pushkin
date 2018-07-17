@@ -57,11 +57,11 @@ makeRouter () {
 		"quiz")
 			.pushkin/bin/newQuiz.sh "$@"
 			;;
-		"dockerCompose")
+		"compose")
 			.pushkin/bin/makeDockerCompose.sh "$@"
 			;;
 		*)
-			die "can make 'quiz' or 'dockerCompose'"
+			die "can make 'quiz' or 'compose'"
 			;;
 	esac
 }

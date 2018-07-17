@@ -31,15 +31,12 @@ set +e
 # start
 ##############################################
 
-log "making no-env dependency file"
-set -a
-. "${env_file}"
-set +a
-cat "${dc_file}" | envsubst > "${dc_noDep_file}"
+log "creating copy with .new suffix"
+cp "${dc_file}" "${dc_file}".new
 
 log "appending quiz-compose appendages"
-sed -i.sedBak '/^#@AUTOAPPENDBELOWTHISLINE$/,$d' ${dc_noDep_file}
-echo '#@AUTOAPPENDBELOWTHISLINE' >> ${dc_noDep_file}
+sed -i.sedBak '/^#@AUTOAPPENDBELOWTHISLINE$/,$d' "${dc_file}".new
+echo '#@AUTOAPPENDBELOWTHISLINE' >> "${dc_file}".new
 
 for qPath in "${user_quizzes}"/*; do
 	if [ ! -d "${qPath}" ]; then
@@ -49,8 +46,18 @@ for qPath in "${user_quizzes}"/*; do
 
 	qName=$(basename "$qPath")
 	if [ -f "$qPath/worker/docker_compose_appendage.yml" ]; then
-		cat "${qPath}/worker/docker_compose_appendage.yml" >> "${dc_noDep_file}"
+		cat "${qPath}/worker/docker_compose_appendage.yml" >> "${dc_file}".new
 	fi
 done
+
+
+log "making no-env dependency file"
+set -a
+. "${env_file}"
+set +a
+cat "${dc_file}".new | envsubst > "${dc_noDep_file}"
+
+rm "${dc_file}".new
+rm "${dc_file}".new.sedBak
 
 log "done"
