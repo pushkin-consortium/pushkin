@@ -49,29 +49,29 @@ Database Migrations
 
   Each stimulus entry consists of an ID number, the name of the quiz, the stimulus, answer options, a count of responses to     that stimulus, and the category of question.
 
-.. image:: stim.png
+ .. image:: stim.png
 
 * Quiz Users - Lists all of the users who have contributed to that quiz.
 
-.. image:: user.png
+ .. image:: user.png
 
 * Stimulus Responses - Lists all responses given, with stimulus prompt included.
 
-.. image:: stimResp.png
+ .. image:: stimResp.png
 
 * Responses - Lists all responses given, without stimulus prompt. 
 
-.. image:: responses.png
+ .. image:: responses.png
 
-.. image:: user.png
+ .. image:: user.png
 
 * Stimulus Responses - Lists all responses given, with stimulus prompt included.
 
-.. image:: stimResp.png
+ .. image:: stimResp.png
 
 * Responses - Lists all responses given, without stimulus prompt. 
 
-.. image:: responses.png
+ .. image:: responses.png
 
 Database Seeds
 ---------------
@@ -80,7 +80,7 @@ Database Seeds
 
 Sample .csv for use in seeding:
 
-.. image:: seeds.png
+ .. image:: seeds.png
 
 
 Cron Scripts
@@ -102,7 +102,7 @@ Cron Scripts
 
   The jobs themselves can be written in any programming language, and can perform any necessary task on schedule. For example,   the following script uses a python package called Boto3 to connect to AWS and upload a file to an S3 bucket.
 
-.. image:: cronBotoScript.png
+  .. image:: cronBotoScript.png
 
 * DockerFile
 
