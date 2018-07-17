@@ -92,11 +92,12 @@ Cron Scripts
 
   This is a configuration file which schedules shell commands for execution. Each line of the crontab specifies a single job,   and that job's schedule. 
 
-    These sample tasks are executing python scripts, and saving their output (If any) to .txt files. 
+  These sample tasks are executing python scripts, and saving their output (If any) to .txt files. 
     
 .. image:: croncommands.png
 
-    This system of scheduling is powerful and easy-to-use. 
+
+  This system of scheduling is powerful and easy-to-use. 
     
 .. image:: crontime.png
 
