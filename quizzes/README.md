@@ -9,6 +9,7 @@ Each quiz should have its own folder inside the quizzes folder in this folder. I
 - DB Models (`db_models`)
 - DB Migrations (`db_migrations`)
 - DB Seeds (`db_seeds`)
+- Worker (db_workers)
 - Quiz pages (`quiz_page`)
 
-Setting up a new quiz can be automated slightly with the newQuiz.sh script in the util folder.
+See the docs for making a new quiz.

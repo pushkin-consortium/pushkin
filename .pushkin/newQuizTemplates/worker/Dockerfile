@@ -1,4 +1,4 @@
-FROM stackbrew/debian:jessie
+FROM debian:jessie
 MAINTAINER Robert Wilkinson
 RUN apt-get update && apt-get install -qy netcat \
 			python \
