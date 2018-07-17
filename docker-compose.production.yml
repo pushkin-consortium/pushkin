@@ -4,7 +4,7 @@ volumes:
   message_queue_datavolume: 
 services:
   api:
-    image: "${image_prefix}/pushkin-api:${image_tag}"
+    image: "${image_prefix}/api:${image_tag}"
     environment:
       - 'AMQP_ADDRESS=amqp://message-queue:5672'
       - 'NODE_ENV=production'
@@ -20,7 +20,7 @@ services:
       io.rancher.scheduler.global: 'true'
 
   cron:
-    image: '${image_prefix}/pushkin-cron:${image_tag}'
+    image: '${image_prefix}/cron:${image_tag}'
     environment:
       - "API_ADDRESS=http://api:${api_port}/api"
       - 'AMQP_ADDRESS=amqp://message-queue:5672'
@@ -32,6 +32,7 @@ services:
     labels:
       io.rancher.scheduler.global: 'true'
 
+<<<<<<< HEAD
       #  db-worker:
       #    image: '${image_prefix}/pushkin-db-worker:${image_tag}'
       #    environment:
@@ -46,6 +47,22 @@ services:
       #      - start.sh
       #    labels:
       #      io.rancher.scheduler.global: 'true'
+=======
+  db-worker:
+    image: '${image_prefix}/db-worker:${image_tag}'
+    environment:
+      - 'NODE_ENV=production'
+      - 'AMQP_ADDRESS=amqp://message-queue:5672'
+      - "DATABASE_URL=postgres://${main_db_user}:${main_db_pass}@${main_db_url}/${main_db_name}"
+      - "TRANSACTION_DATABASE_URL=postgres://${transaction_db_user}:${transaction_db_pass}@${transaction_db_url}/${transaction_db_name}"
+    links:
+      - message-queue
+    command:
+      - bash
+      - start.sh
+    labels:
+      io.rancher.scheduler.global: 'true'
+>>>>>>> merge conf
 
   message-queue:
     image: 'rabbitmq:3.6-management'
@@ -68,7 +85,7 @@ services:
       io.rancher.scheduler.global: 'true'
 
   server:
-    image: '${image_prefix}/pushkin-server:${image_tag}'
+    image: '${image_prefix}/server:${image_tag}'
     labels:
       io.rancher.scheduler.global: 'true'
     environment:
@@ -82,16 +99,23 @@ services:
     links:
       - api
 
-  db-logger:
-    image: '${image_prefix}/pushkin-db-logger:${image_tag}'
-    environment:
-      - 'QUEUE=db_logger_queue'
-      - 'AMQP_ADDRESS=amqp://message-queue:5672'
-      - "DATABASE_URL=postgres://${main_db_user}:${main_db_pass}@${main_db_url}/${main_db_name}"
-      - "TRANSACTION_DATABASE_URL=postgres://${transaction_db_user}:${transaction_db_pass}@${transaction_db_url}/${transaction_db_name}"
-    links:
-      - message-queue
+# ###############################################################
+# #@AUTOAPPENDBELOWTHISLINE
+# # note: if this image name must be changed,
+# # make sure prepareToDeploy matches up with it in the
+# # build stage of quiz-specific workers
+# #
+# # indentation must match main compose file
 
+# # image prefix and tag are variables stored in main .env file
 
-###############################################################
-#@AUTOAPPENDBELOWTHISLINE
+#   bloodmagic-quiz:
+#     image: '${image_prefix}/pushkin-bloodmagic-quiz:${image_tag}'
+#     command: 'bash start.sh'
+#     depends_on:
+#       - "message-queue"
+#     links:
+#       - message-queue
+#     environment:
+#       - AMQP_ADDRESS=amqp://message-queue:5672
+#       - QUEUE=bloodmagic_api_queue
