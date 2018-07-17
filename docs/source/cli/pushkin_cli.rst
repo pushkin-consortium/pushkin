@@ -3,7 +3,7 @@
 Pushkin CLI
 =============
 
-Pushkin CLI comes packaged in the repo. Setup instructions can be found `here <_get-pushin>`.
+Pushkin CLI comes packaged in the repo. Setup instructions can be found in :ref:`get-pushkin`.
 
 Variables relating to file structure and naming practices can be found in '.pushkin/pushkin_config_vars.sh'.
 
@@ -20,7 +20,7 @@ Creates a new quiz with all the required basic components. Pass the quiz name as
 compose
 ^^^^^^^^
 
-Creates the file specified by ``pushkin_docker_compose_noDep_file``, replacing all docker variables set in ``.env`` as well as appending quiz compose files from the quizzes directory.
+Creates the file specified by ``pushkin_docker_compose_noDep_file``, replacing all docker variables set in ``.env`` as well as appending quiz compose files from the quizzes directory. Uses ``pushkin_docker_compose_file`` for the original compose file.
 
 
 prep
