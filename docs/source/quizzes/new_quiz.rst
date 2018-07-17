@@ -97,15 +97,19 @@ Cron Scripts
   For example, some sample lines in the crontab.
   
      # Execute every 5 minutes.
+     
      5 * * * * root echo "test" >> /scripts/test.txt 
 
      # Execute at time 00:00 (midnight) every day.
+     
      0 0 * * * root python /scripts/test.py >> /scripts/test2.txt 
 
      # Execute at 10:00 on the first day of every month.
+     
      0 10 1 1 * root python /scripts/secondTest.py >> /scripts/out.txt 
 
      # Execute every minute on Monday only.
+     
      * * * * 1 root python /scripts/testBoto.py >> /scripts/out2.txt 
 
   This system of scheduling is powerful and easy-to-use. 
