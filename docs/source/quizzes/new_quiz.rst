@@ -49,27 +49,63 @@ Database Migrations
 
   Each stimulus entry consists of an ID number, the name of the quiz, the stimulus, answer options, a count of responses to     that stimulus, and the category of question.
 
- .. image:: stim.png
+.. codeblock:: python
 
+   exports.up = function(knex) {
+    return knex.schema.createTable('bloodmagic_stimuli', table => {
+      table.increments('id').primary();
+      table.string('task');
+      table.string('stimulus').unique();
+      table.string('options');
+      table.integer('num_responses');
+      table.string('question_category');
+    });
+  };
+  
 * Quiz Users - Lists all of the users who have contributed to that quiz.
 
- .. image:: user.png
+.. codeblock:: python
+
+ exports.up = function(knex) {
+   return knex.schema.createTable('bloodmagic_users', table => {
+     table.increments('id').primary();
+     table.string('auth0_id');
+     table.timestamp('created_at');
+     table.timestamp('updated_at');
+   });
+ };
+
 
 * Stimulus Responses - Lists all responses given, with stimulus prompt included.
 
- .. image:: stimResp.png
+.. codeblock:: python
+
+ exports.up = function(knex) {
+   return knex.schema.createTable('bloodmagic_stimulusResponses', table => {
+     table.increments('id').primary();
+     table.integer('user_id').references('id').inTable('bloodmagic_users');
+     table.string('stimulus').references('stimulus').inTable('bloodmagic_stimuli');
+     table.json('data_string');
+     table.timestamp('created_at');
+     table.timestamp('updated_at');
+   });
+ };
 
 * Responses - Lists all responses given, without stimulus prompt. 
 
- .. image:: responses.png
+.. codeblock:: python
 
-* Stimulus Responses - Lists all responses given, with stimulus prompt included.
+ exports.up = function(knex) {
+   return knex.schema.createTable('bloodmagic_responses', table => {
+     table.increments('id').primary();
+     table.integer('user_id').references('id').inTable('bloodmagic_users');
+     table.json('data_string');
+     table.timestamp('created_at');
+     table.timestamp('updated_at');
+   });
+ };
 
- .. image:: stimResp.png
 
-* Responses - Lists all responses given, without stimulus prompt. 
-
- .. image:: responses.png
 
 Database Seeds
 ---------------
@@ -98,15 +134,15 @@ Cron Scripts
 
      # Execute at time 00:00 (midnight) every day.
      
-       0 0 * * * root python /scripts/test.py >> /scripts/test2.txt 
+       0 0 * * * root /usr/bin/python2.7  /scripts/test.py >> /scripts/test2.txt 
 
      # Execute at 10:00 on the first day of every month.
      
-       0 10 1 1 * root python /scripts/secondTest.py >> /scripts/out.txt 
+       0 10 1 1 * root /usr/bin/python2.7  /scripts/secondTest.py >> /scripts/out.txt 
 
      # Execute every minute on Monday only.
      
-       1 * * * 1 root python /scripts/testBoto.py >> /scripts/out2.txt 
+       1 * * * 1 root /usr/bin/python2.7  /scripts/testBoto.py >> /scripts/out2.txt 
 
   This system of scheduling is powerful and easy-to-use. 
   
@@ -116,10 +152,8 @@ Cron Scripts
 
 * Scripts
 
-  The jobs themselves can be written in any programming language, and can perform any necessary task on schedule. For example,   the following script uses a python package called Boto3 to connect to AWS and upload a file to an S3 bucket.
- 
+  The jobs themselves can be written in any programming language, and can perform any required task on schedule. 
 
- .. image:: cronBotoScript.png
 
 * DockerFile
 
