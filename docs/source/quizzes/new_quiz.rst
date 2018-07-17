@@ -49,8 +49,17 @@ Database Migrations
 
   Each stimulus entry consists of an ID number, the name of the quiz, the stimulus, answer options, a count of responses to     that stimulus, and the category of question.
 
- .. image:: stim.png
-
+   exports.up = function(knex) {
+    return knex.schema.createTable('bloodmagic_stimuli', table => {
+      table.increments('id').primary();
+     table.string('task');
+      table.string('stimulus').unique();
+      table.string('options');
+      table.integer('num_responses');
+    table.string('question_category');
+    });
+  };
+  
 * Quiz Users - Lists all of the users who have contributed to that quiz.
 
  .. image:: user.png
