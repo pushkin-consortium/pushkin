@@ -137,3 +137,5 @@ These scripts are optional but may be useful for periodically organizing or anal
 
 API Controller
 ---------------
+
+The API controller is a set of scripts which establish router endpoints, to allow applications in the front-end to perform tasks in the back-end, such as data storage and retrieval. The core code for the API establishes a connection to RabbitMQ
