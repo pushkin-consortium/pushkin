@@ -79,7 +79,6 @@ Database Migrations
  };
 
 
-
 Database Seeds
 ---------------
 
@@ -145,4 +144,51 @@ These scripts are optional but may be useful for periodically organizing or anal
 API Controller
 ---------------
 
-The API controller is a set of scripts which establish router endpoints, to allow applications in the front-end to perform tasks in the back-end, such as data storage and retrieval. The core code for the API establishes a connection to RabbitMQ
+The API controller is a script which establishes communication endpoints between the front-end, represented by the quiz and user interface, and the back-end, which consists of the database and associated workers. Each endpoint serves as an interface which allows the frontend to make HTTP requests to the main Pushkin API. These requests pertain to writing or reading data - The path of the request, the name of the method, and the data which is associated with the request, are all defined in the quiz-specific API controller. 
+
+You may wish to add additional methods for reading and writing from the database. To do so, you will have to define an endpoint in API controller, and include the information which you wish to send to the backend. The controller is added to the API and placed into a queue. The quiz-specific db-worker contains a script called handleResponse.js. This scripts listens for HTTP requests sent from the API, and uses the controller to select the appropriate database query, which you will have to define. 
+
+An couple of a GET endpoint from a quiz controller:
+
+  .. code:: javascript
+
+  { path: '/questionsAnswered', method: 'questionsAnswered',
+			data: req => ({ user_id: req.query.user_id })},
+
+------
+
+The corresponding method in handleResponse.js (db-worker):
+
+.. code:: python
+
+# Executes whatever SQL query it is given, using psycopg2 for python. 
+
+def queryDbMain(sql):
+    conn = None
+    try:
+        conn = dbConnData()
+        cur = conn.cursor()
+        cur.execute(sql)
+        result = cur.fetchall()
+        cur.close()
+        return result
+
+    except (Exception, psycopg2.DatabaseError) as err:
+        print(err)
+        return { 'message': 'query error: {}'.format(err) }
+
+    finally:
+        if conn is not None:
+            conn.close()
+
+# The SQL query for a method, making use of the data passed by a controller endpoint. 
+
+def userQuestionResponses(data):
+    sql = 'SELECT COUNT(*) FROM "quizName_stimulusResponses" WHERE user_id = {}'.format(data.user_id)
+    return queryDbMain(sql)
+
+# An object which calls the appropriate query for a given method. 
+
+methods = {
+        "questionsAnswered": userQuestionResponses,
+        }
