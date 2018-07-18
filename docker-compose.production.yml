@@ -82,16 +82,6 @@ services:
     links:
       - api
 
-  db-logger:
-    image: '${image_prefix}/pushkin-db-logger:${image_tag}'
-    environment:
-      - 'QUEUE=db_logger_queue'
-      - 'AMQP_ADDRESS=amqp://message-queue:5672'
-      - "DATABASE_URL=postgres://${main_db_user}:${main_db_pass}@${main_db_url}/${main_db_name}"
-      - "TRANSACTION_DATABASE_URL=postgres://${transaction_db_user}:${transaction_db_pass}@${transaction_db_url}/${transaction_db_name}"
-    links:
-      - message-queue
-
 
 ###############################################################
 #@AUTOAPPENDBELOWTHISLINE
