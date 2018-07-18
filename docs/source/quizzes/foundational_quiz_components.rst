@@ -152,8 +152,7 @@ An couple of a GET endpoint from a quiz controller:
 
   .. code:: javascript
 
-  { path: '/questionsAnswered', method: 'questionsAnswered',
-			data: req => ({ user_id: req.query.user_id })},
+  { path: '/questionsAnswered', method: 'questionsAnswered', data: req => ({ user_id: req.query.user_id })},
 
 ------
 
@@ -161,34 +160,34 @@ The corresponding method in handleResponse.js (db-worker):
 
 .. code:: python
 
-# Executes whatever SQL query it is given, using psycopg2 for python. 
+  # Executes whatever SQL query it is given, using psycopg2 for python. 
 
-def queryDbMain(sql):
-    conn = None
-    try:
-        conn = dbConnData()
-        cur = conn.cursor()
-        cur.execute(sql)
-        result = cur.fetchall()
-        cur.close()
-        return result
+  def queryDbMain(sql):
+      conn = None
+      try:
+          conn = dbConnData()
+          cur = conn.cursor()
+          cur.execute(sql)
+          result = cur.fetchall()
+          cur.close()
+          return result
 
-    except (Exception, psycopg2.DatabaseError) as err:
-        print(err)
-        return { 'message': 'query error: {}'.format(err) }
+      except (Exception, psycopg2.DatabaseError) as err:
+          print(err)
+          return { 'message': 'query error: {}'.format(err) }
 
-    finally:
-        if conn is not None:
-            conn.close()
+      finally:
+          if conn is not None:
+              conn.close()
 
-# The SQL query for a method, making use of the data passed by a controller endpoint. 
+  # The SQL query for a method, making use of the data passed by a controller endpoint. 
 
-def userQuestionResponses(data):
-    sql = 'SELECT COUNT(*) FROM "quizName_stimulusResponses" WHERE user_id = {}'.format(data.user_id)
-    return queryDbMain(sql)
+  def userQuestionResponses(data):
+      sql = 'SELECT COUNT(*) FROM "quizName_stimulusResponses" WHERE user_id = {}'.format(data.user_id)
+      return queryDbMain(sql)
 
-# An object which calls the appropriate query for a given method. 
+  # An object which calls the appropriate query for a given method. 
 
-methods = {
-        "questionsAnswered": userQuestionResponses,
-        }
+  methods = {
+          "questionsAnswered": userQuestionResponses,
+          }
