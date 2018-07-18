@@ -40,7 +40,8 @@ Get an EC2
 
   Instructions on creating EC2 instances can be found on AWS.
 
-  .. todo:: Add link for instructions.
+.. _AWS: https://docs.aws.amazon.com/efs/latest/ug/getting-started.html
+
 
 Get databases (RDS)
 ---------------------------
@@ -51,9 +52,9 @@ Get databases (RDS)
   * Transaction DB: Postgres
   * Data DB: Postgres
 
-  Instructions on creating RDS Instances can be found on AWS_.
+  Instructions on creating RDS Instances can be found on AWS.
 
-.. _Instructions on creating RDS Instances can be found on AWS: https://docs.aws.amazon.com/efs/latest/ug/getting-started.html
+.. _AWS: https://docs.aws.amazon.com/efs/latest/ug/getting-started.html
 
 Prepare the transactions database
 ---------------------------
