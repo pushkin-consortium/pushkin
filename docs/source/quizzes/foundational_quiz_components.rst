@@ -150,7 +150,7 @@ You may wish to add additional methods for reading and writing from the database
 
 A GET endpoint from a quiz controller:
 
-  .. code:: js
+  .. code:: javascript
 
   { path: '/questionsAnswered', method: 'questionsAnswered', data: req => ({ user_id: req.query.user_id })},
 
