@@ -4,6 +4,7 @@ import json
 import handleResponse
 
 def consumeCallback(ch, method, props, body):
+    print('RECEIVED RPC')
     bodyJson = json.loads(body)
     # body is expected to have these from the api controller
     rpcParamMethod = bodyJSON['method']
@@ -20,17 +21,22 @@ def consumeCallback(ch, method, props, body):
 
     ch.basic_ack(delivery_tag = method.delivery_tag)
 
-def on_channel_open(ch):
-    ch.basic_qos(prefetch_count=1)
-
-    ch.queue_declare(queue=readQueue, durable=False)
-    ch.queue_declare(queue=writeQueue, durable=True)
-
-    ch.basic_consume(consumeCallback, queue=readQueue)
-    ch.basic_consume(consumeCallback, queue=writeQueue)
-
-def on_open(con):
-    con.channel(on_channel_open)
+#multiple queues
+#def on_queue_declare(ch):
+#    print('listening on {}'.format(readQueue))
+#    ch.basic_consume(consumeCallback, queue=readQueue)
+#    print('listening on {}'.format(writeQueue))
+#    ch.basic_consume(consumeCallback, queue=writeQueue)
+#
+#def on_channel_open(ch):
+#    ch.basic_qos(prefetch_count=1)
+#
+#    ch.queue_declare(callback=on_queue_declare, queue=readQueue, durable=False)
+#    ch.queue_declare(queue=on_queue_declare, durable=True)
+#
+#
+#def on_open(con):
+#    con.channel(on_channel_open)
 
 ###############################
 # setup
@@ -49,9 +55,15 @@ handler = handleResponse.Handler(mainDbUrl, transDbUrl)
 # consume
 ###############################################
 connParams = pika.URLParameters(rabbitAddress)
-connection = pika.SelectConnection(parameters=connParams,
-                                on_open_callback=on_open)
-try:
-    channel = connection.channel()
-except KeyboardInterrupt:
-    connection.close()
+connection = pika.BlockingConnection(connParams)
+
+channel = connection.channel()
+channel.queue_declare(queue=readQueue, durable=False)
+print('just consuming on {} (no write yet)'.format(readQueue))
+channel.basic_consume(consumeCallback, queue=readQueue)
+
+#multiple queues
+#try:
+#    channel = connection.ioloop.start()
+#except KeyboardInterrupt:
+#    connection.close()

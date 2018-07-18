@@ -8,6 +8,7 @@ class DBLogger():
 
     def query(self, sql):
         return { 'message': 'from db logger' }
+    """
         conn = None
         try:
             mainDbConn = psycopg2.connect(self.mainDbUrl)
@@ -18,12 +19,10 @@ class DBLogger():
             result = cur.fetchall()
             cur.close()
 
-            return result
-
 # put the query in the transaction db (unfinished)
             cur = transDbConn.cursor()
             cur.execute(
-                    sql.SQL("INSERT INTO transactions VALUES (%s, %s)", 
+                    sql.SQL("INSERT INTO transactions VALUES (%s, %s)", )
 
             return result
 
@@ -36,4 +35,4 @@ class DBLogger():
                 mainDbConn.close()
             if transDbConn is not None:
                 transDbConn.close();
-
+"""

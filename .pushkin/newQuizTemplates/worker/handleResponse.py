@@ -1,8 +1,8 @@
-import dbLogger
+from dbLogger import DBLogger
 
 class Handler():
     def __init__(self, mainDbUrl, transDbUrl):
-        self.dbLogger = dbLogger(mainDbUrl, transDbUrl)
+        self.dbLogger = DBLogger(mainDbUrl, transDbUrl)
 
     def handle(self, method, data):
         # map all api methods requested via the controller to functions
