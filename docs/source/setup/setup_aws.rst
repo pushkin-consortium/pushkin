@@ -103,11 +103,7 @@ Get AWS CLI Tools
 Set up an IAM User
 ---------------------------
 
-  This will be programmatic access from the command line AWS tools via the prepareToDeploy.sh script.
-
-  Run ``aws configure`` from your local computer and enter in the appropriate information to set up the AWS CLI.
-
-  .. todo:: Give more details.
+An IAM 
 
 .. todo::
 

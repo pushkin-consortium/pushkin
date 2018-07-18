@@ -13,6 +13,7 @@ Welcome to Pushkin's documentation!
    setup/getPushkin
    quizzes/new_quiz
    quizzes/foundational_quiz_components
+   setup/local_deploy_pushkin
    setup/setup_aws
    deployment/initialDeployment
    deployment/setup_rancher
