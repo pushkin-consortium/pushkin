@@ -7,26 +7,27 @@ module.exports = (rpc, conn, dbWrite) => { // don't use dbWrite (deprecated)
 	const router = new express.Router();
 
 	const task_queue = '${QUIZ_NAME}_quiz_task_worker'; // for stuff that'll need ML, etc.
-	const worker_queue = '${QUIZ_NAME}_quiz_main_worker'; // simple endpoints
+	const db_read_queue = '${QUIZ_NAME}_quiz_db_read'; // simple endpoints
+	const db_write_queue = '${QUIZ_NAME}_quiz_db_read'; // simple endpoints
 
 	const stdGets = [
 		// user-specific endpoints
 		{ path: '/nextQuestion', method: 'nextQuestion', // get the next question for user in this quiz
-			data: req => ({user_id: req.query.user_id}), queue: worker_queue },
+			data: req => ({user_id: req.query.user_id}), queue: db_read_queue },
 		{ path: '/questionsAnswered', method: 'questionsAnswered', // questions answered by this user so far
-			data: req => ({ user_id: req.query.user_id }), queue: worker_queue },
+			data: req => ({ user_id: req.query.user_id }), queue: db_read_queue },
 		{ path: '/feedback', method: 'getFeedback', // called when quiz has ended, make a prediction based on user responses
 			data: req => ({ user_id: req.query.user_id }), queue: task_queue },
 
 		// general quiz endpoints
-		{ path: '/health', method: 'health', data: req => '', queue: worker_queue }, // test if server is responsive
-		{ path: '/random', method: 'random', data: req => '', queue: worker_queue }, // get a random question
-		{ path: '/questions', method: 'getAllQuestions', data: req => '', queue: worker_queue } // get all questions in this quiz
-		{ path: '/totalQuestions', method: 'totalQuestions', data: req => '', queue: worker_queue }, // total questions answered by all users
+		{ path: '/health', method: 'health', data: req => '', queue: db_read_queue }, // test if server is responsive
+		{ path: '/random', method: 'random', data: req => '', queue: db_read_queue }, // get a random question
+		{ path: '/questions', method: 'getAllQuestions', data: req => '', queue: db_read_queue } // get all questions in this quiz
+		{ path: '/totalQuestions', method: 'totalQuestions', data: req => '', queue: db_read_queue }, // total questions answered by all users
 	];
 
 	const stdPosts = [
-		{ path: '/respond', method: 'createResponse', queue: worker_queue // create a response for this user in the database
+		{ path: '/respond', method: 'createResponse', queue: db_write_queue // create a response for this user in the database
 			data: req => ({ user_id: req.body.user_id, data_string: req.body.data_string }) }
 	];
 
