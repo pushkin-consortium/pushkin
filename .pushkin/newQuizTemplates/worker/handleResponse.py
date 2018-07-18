@@ -5,38 +5,35 @@ class Handler():
         self.dbLogger = dbLogger(mainDbUrl, transDbUrl)
 
     def handle(self, method, data):
-        #########################################################################
         # map all api methods requested via the controller to functions
         # to be called from the main worker file
-        #
-        # using a mapping allows for helper functions to be used
-        # that aren't directly accessible through the api
-        #########################################################################
         methods = {
+                "nextQuestion": getNextUserQuestion,
+                "questionsAnswered": countUserQuestionsAnswered,
+                "createResponse": createUserResponse,
                 "health": health,
-                "totalQuestionsAnswered": totalQuestionResponses,
-                "userQuestionsAnswered": userQuestionResponses,
+                "random": getRandomQuestion,
+                "getAllQuestions": getAllQuestions,
+                "totalQuestions": countAllAnsweredQuestions
                 }
-
         notFound = lambda x: { 'message': 'method not found' }
-        handler = methods.get(method, notFound)
-        return handler(data)
 
-    def queryDbMain(sql):
+        return methods.get(method, notFound)(data)
+
+    # used to enforce logging in the transaction database
+    def queryDbMain(self, sql):
         return self.dbLogger.query(sql)
 
     #########################################################################
-    # all methods below are rpc-used methods
-    # and must return a jsonizable object
+    # all methods below either correspond to api endpoints/methods or
+    # are used as helper functions for others that do.
+    # must return a jsonizable object
     #########################################################################
 
-    def health(data):
-        return { 'message': 'very healthy' }
+    def getNextUserQuestion(self, data):
+        return { 'message': 'not implemented' }
 
-    def totalQuestionResponses(data):
-        return queryDbMain('SELECT COUNT(*) FROM "${QUIZ_NAME}_stimuli"')
-
-    def userQuestionResponses(data):
+    def countUserQuestionsAnswered(self, data):
         sql = """
             SELECT COUNT(*)
             FROM "${QUIZ_NAME}_stimulusResponses"
@@ -44,8 +41,23 @@ class Handler():
             """.format(data.user_id)
         return queryDbMain(sql)
 
+    def createUserResponse(self, data):
+        return { 'message': 'not implemented' }
+
+    def health(self, data):
+        return { 'message': 'very healthy' }
+
+    def random(self, data):
+        return { 'message': 'not implemented' }
+
+    def getAllQuestions(self, data):
+        return { 'message': 'not implemented' }
+
+    def countAllAnsweredQuestions(self, data):
+        return { 'message': 'not implemented' }
+
 
     #########################################################################
     # not all enpoints yet implemented
-    # see the api controller for the methods that are expected
+    # see the corresponding api controller for the methods that are expected
     #########################################################################
