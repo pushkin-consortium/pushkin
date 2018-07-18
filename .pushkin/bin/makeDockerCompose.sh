@@ -54,6 +54,7 @@ done
 log "making no-env dependency file"
 set -a
 . "${env_file}"
+. "${pushkin_conf_dir}/pushkin_config_vars.sh"
 set +a
 cat "${dc_file}".new | envsubst > "${dc_noDep_file}"
 
