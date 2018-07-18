@@ -38,9 +38,9 @@ Get an EC2
 
   The most straightforward way to do this is to use the official Rancher OS already on Amazon. Create it with the AMI from the list here appropriate to your region.
 
-  Instructions on creating EC2 instances can be found on AWS.
+  Instructions on creating EC2_ instances can be found on AWS.
 
-.. _AWS: https://docs.aws.amazon.com/efs/latest/ug/getting-started.html
+.. _EC2: https://docs.aws.amazon.com/efs/latest/ug/getting-started.html
 
 
 Get databases (RDS)
@@ -52,9 +52,9 @@ Get databases (RDS)
   * Transaction DB: Postgres
   * Data DB: Postgres
 
-  Instructions on creating RDS Instances can be found on AWS.
+  Instructions on creating RDS_ Instances can be found on AWS.
 
-.. _AWS: https://docs.aws.amazon.com/efs/latest/ug/getting-started.html
+.. _RDS: https://docs.aws.amazon.com/efs/latest/ug/getting-started.html
 
 Prepare the transactions database
 ---------------------------
