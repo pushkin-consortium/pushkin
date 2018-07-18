@@ -148,9 +148,9 @@ The API controller is a script which establishes communication endpoints between
 
 You may wish to add additional methods for reading and writing from the database. To do so, you will have to define an endpoint in API controller, and include the information which you wish to send to the backend. The controller is added to the API and placed into a queue. The quiz-specific db-worker contains a script called handleResponse.js. This scripts listens for HTTP requests sent from the API, and uses the controller to select the appropriate database query, which you will have to define. 
 
-An couple of a GET endpoint from a quiz controller:
+A GET endpoint from a quiz controller:
 
-  .. code:: javascript
+  .. code:: js
 
   { path: '/questionsAnswered', method: 'questionsAnswered', data: req => ({ user_id: req.query.user_id })},
 
