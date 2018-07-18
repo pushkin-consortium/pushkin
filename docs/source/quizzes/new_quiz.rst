@@ -9,6 +9,10 @@ Creating quizzes on Pushkin is straightforward. Start in the root of the Pushkin
 
 Make and setup the basics of a quiz by running the following commands::
 
+*Take Note: If you did not set a Pushkin alias, then you would use the following command, **./.pushkin/pushkin.sh**,  in place of pushkin, which calls the pushkin.sh script from its source in root.*
+
+
+
   pushkin make [quiz name]
   pushki prep
   pushkin build all
