@@ -63,6 +63,8 @@ sed -e "s/\${QUIZ_NAME}/${qname}/" "${templates}"/worker/worker.py > "${user_qui
 
 sed -e "s/\${QUIZ_NAME}/${qname}/" "${templates}"/worker/handleResponse.py > "${user_quizzes}/${qname}/worker/handleResponse.py"
 
+sed -e "s/\${QUIZ_NAME}/${qname}/" "${templates}"/worker/dbLogger.py > "${user_quizzes}/${qname}/worker/dbLogger.py"
+
 cp "${templates}"/worker/Dockerfile "${user_quizzes}/${qname}/worker/Dockerfile"
 
 # api controller
