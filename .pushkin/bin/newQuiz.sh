@@ -55,9 +55,14 @@ mkdir "${user_quizzes}/${qname}"/quiz_page
 
 # db workers
 sed -e "s/\${QUIZ_NAME}/${qname}/" "${templates}"/worker/docker_compose_appendage.yml > "${user_quizzes}/${qname}/worker/docker_compose_appendage.yml"
+sed -i -e "s/\${pushkin_user_quizzes_docker_suffix}/${pushkin_user_quizzes_docker_suffix}/" "${user_quizzes}/${qname}/worker/docker_compose_appendage.yml"
+
 sed -e "s/\${QUIZ_NAME}/${qname}/" "${templates}"/worker/start.sh > "${user_quizzes}/${qname}/worker/start.sh"
+
 sed -e "s/\${QUIZ_NAME}/${qname}/" "${templates}"/worker/worker.py > "${user_quizzes}/${qname}/worker/worker.py"
+
 sed -e "s/\${QUIZ_NAME}/${qname}/" "${templates}"/worker/handleResponse.py > "${user_quizzes}/${qname}/worker/handleResponse.py"
+
 cp "${templates}"/worker/Dockerfile "${user_quizzes}/${qname}/worker/Dockerfile"
 
 # api controller
