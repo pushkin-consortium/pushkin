@@ -101,6 +101,8 @@ Cron Scripts
 
   These sample tasks are executing python scripts, and saving their output (If any) to .txt files. 
   
+  .. code:: python
+
      # Execute every 5 minutes.
      
        5 * * * * root echo "test" >> /scripts/test.txt 
@@ -121,7 +123,7 @@ Cron Scripts
   
   *Note that asterisks are wildcard symbols which can assume any number*
     
-.. todo: Put back in images .. image:: crontime.png
+.. image:: crontime.png
 
 * Scripts
 
