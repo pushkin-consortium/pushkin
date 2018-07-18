@@ -54,18 +54,14 @@ mkdir "${user_quizzes}/${qname}"/quiz_page
 #### add default starting files (names are set) #####
 
 # db workers
-sed -e "s/\${QUIZ_NAME}/${qname}/" "${templates}"/worker/docker_compose_appendage.yml > "${user_quizzes}/${qname}/worker/docker_compose_appendage.yml"
-sed -i -e "s/\${pushkin_user_quizzes_docker_suffix}/${pushkin_user_quizzes_docker_suffix}/" "${user_quizzes}/${qname}/worker/docker_compose_appendage.yml"
-
-sed -e "s/\${QUIZ_NAME}/${qname}/" "${templates}"/worker/start.sh > "${user_quizzes}/${qname}/worker/start.sh"
-
-sed -e "s/\${QUIZ_NAME}/${qname}/" "${templates}"/worker/worker.py > "${user_quizzes}/${qname}/worker/worker.py"
-
-sed -e "s/\${QUIZ_NAME}/${qname}/" "${templates}"/worker/handleResponse.py > "${user_quizzes}/${qname}/worker/handleResponse.py"
-
-sed -e "s/\${QUIZ_NAME}/${qname}/" "${templates}"/worker/dbLogger.py > "${user_quizzes}/${qname}/worker/dbLogger.py"
-
-cp "${templates}"/worker/Dockerfile "${user_quizzes}/${qname}/worker/Dockerfile"
+for t in "${templates}/worker"/*; do
+	name=$(basename "${t}")
+	if [ -f "${t}" ]; then
+		sed -e "s/\${QUIZ_NAME}/${qname}/" "${t}" > "${user_quizzes}/${qname}/worker/${name}"
+	else
+		cp -r "${t}" "${user_quizzes}/${qname}/worker/${name}"
+	fi
+done
 
 # api controller
 sed -e "s/\${QUIZ_NAME}/${qname}/" "${templates}"/api_controller/index.js > "${user_quizzes}/${qname}/api_controllers/index.js"
