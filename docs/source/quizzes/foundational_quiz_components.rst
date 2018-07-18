@@ -87,7 +87,7 @@ Database Seeds
 
 Sample .csv for use in seeding:
 
-.. todo: Put back in images .. image:: seeds.png
+.. image:: seeds.png
 
 
 Cron Scripts
