@@ -6,7 +6,7 @@
 #
 # image prefix and tag are variables stored in main .env file
 
-  pushkin-${QUIZ_NAME}-quiz:
+  ${QUIZ_NAME}${pushkin_user_quizzes_docker_suffix}:
     image: '${image_prefix}/${QUIZ_NAME}${pushkin_user_quizzes_docker_suffix}:${image_tag}'
     command: 'bash start.sh'
     depends_on:

@@ -6,9 +6,9 @@ const RPCParams = require('./RPCParams');
 module.exports = (rpc, conn, dbWrite) => { // don't use dbWrite (deprecated)
 	const router = new express.Router();
 
-	const task_queue = '${QUIZ_NAME}_quiz_task_worker'; // for stuff that'll need ML, etc.
-	const db_read_queue = '${QUIZ_NAME}_quiz_db_read'; // simple endpoints
-	const db_write_queue = '${QUIZ_NAME}_quiz_db_read'; // simple endpoints
+	const task_queue = '${QUIZ_NAME}_quiz_taskworker'; // for stuff that'll need ML, etc.
+	const db_read_queue = '${QUIZ_NAME}_quiz_dbread'; // simple endpoints
+	const db_write_queue = '${QUIZ_NAME}_quiz_dbwrite'; // simple endpoints
 
 	const stdGets = [
 		// user-specific endpoints
