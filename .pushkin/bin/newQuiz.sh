@@ -74,13 +74,10 @@ cp -r "${templates}"/db_models/* "${user_quizzes}/${qname}/db_models/"
 # NB: The order of these migrations matters (the timestamps must be consecutive in the following order because of relational dependencies)
 # changing will cause knex migrations to fail
 timestamp () { date +"%Y%m%d%H%M%S"; sleep 1; }
-sed -e "s/\${QUIZ_NAME}/${qname}/" "${templates}"/db_migrations/TIMESTAMP_create_QUIZNAME_stimuli.js > "${user_quizzes}/${qname}/db_migrations/$(timestamp)_create_${qname}_stimuli.js"
 
-sed -e "s/\${QUIZ_NAME}/${qname}/" "${templates}"/db_migrations/TIMESTAMP_create_QUIZNAME_users.js > "${user_quizzes}/${qname}/db_migrations/$(timestamp)_create_${qname}_users.js"
-
-sed -e "s/\${QUIZ_NAME}/${qname}/" "${templates}"/db_migrations/TIMESTAMP_create_QUIZNAME_stimulusResponses.js > "${user_quizzes}/${qname}/db_migrations/$(timestamp)_create_${qname}_stimulusResponses.js"
-
-sed -e "s/\${QUIZ_NAME}/${qname}/" "${templates}"/db_migrations/TIMESTAMP_create_QUIZNAME_responses.js > "${user_quizzes}/${qname}/db_migrations/$(timestamp)_create_${qname}_responses.js"
+for t in "${templates}/worker"/*; do
+	sed -e "s/\${QUIZ_NAME}/${qname}/" "${t}" > "${user_quizzes}/${qname}/db_migrations/$(timestamp)_create_${qname}_stimuli.js"
+done
 
 # cron
 echo '# contents of this file auto-appended to cron/crontab during build' > "${user_quizzes}/${qname}/cron_scripts/crontab.txt"
@@ -89,7 +86,14 @@ mkdir -p "${user_quizzes}/${qname}/cron_scripts/scripts/${qname}/"
 touch "${user_quizzes}/${qname}/cron_scripts/scripts/${qname}/exampleCron.py"
 
 # quiz page
-sed -e "s/\${QUIZ_NAME}/${qname}/" "${templates}"/quiz_page/index.js > "${user_quizzes}/${qname}/quiz_page/index.js"
+for t in "${templates}/worker"/*; do
+	name=$(basename "${t}")
+	if [ -f "${t}" ]; then
+		sed -e "s/\${QUIZ_NAME}/${qname}/" "${t}" > "${user_quizzes}/${qname}/quiz_page/${name}"
+	else
+		cp -r "${t}" "${user_quizzes}/${qname}/quiz_page/"
+	fi
+done
 cp "${templates}"/quiz_page/styles.scss "${user_quizzes}/${qname}/quiz_page/"
 
 log "done"
