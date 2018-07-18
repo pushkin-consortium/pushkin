@@ -51,9 +51,9 @@ Get databases (RDS)
   * Transaction DB: Postgres
   * Data DB: Postgres
 
-  Instructions on creating RDS Instances can be found on AWS.
+  Instructions on creating RDS Instances can be found on AWS_.
 
-  .. todo:: Add link for instructions.
+.. _Instructions on creating RDS Instances can be found on AWS: https://docs.aws.amazon.com/efs/latest/ug/getting-started.html
 
 Prepare the transactions database
 ---------------------------
