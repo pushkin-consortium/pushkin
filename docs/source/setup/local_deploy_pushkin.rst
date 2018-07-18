@@ -9,7 +9,7 @@ First, run ``docker-compose -f docker-compose.production.noEnvDependency.yml up`
 
 Now, we need to seed the database for any quizzes which we wish to test or develop. Run ``docker ps`` and find the name of the DB worker container, which is 'db-worker_1' by default.
 
-.. code:: python
+.. code:: bash
 
     CONTAINER ID        IMAGE                          COMMAND                  CREATED             STATUS              PORTS             NAMES
     be3c744c9a81        pushkin_db-worker        "bash start.debug.sh"    23 hours ago        Up 23 hours                           pushkin_db-worker_1
@@ -18,7 +18,7 @@ Now, copy that container ID in full, then run ``docker exec -it [container ID] b
 
 We're almost done. The last step is to find your server container. Run ``docker ps`` again, and this time look for the server container.
 
-.. code:: python
+.. code:: bash
 
     CONTAINER ID        IMAGE                          COMMAND                  CREATED             STATUS              PORTS             NAMES
     1744091332f1        pushkin_server           "nginx -g 'daemon ..."   24 hours ago        Up 7 seconds        0.0.0.0:54328->80/tcp   pushkin_server_1
