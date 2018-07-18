@@ -28,10 +28,10 @@ do_comp_front=true
 do_copy_comp_files=true
 do_build_docker=true
 do_build_quiz_dockers=true
-do_push_docker=false
+do_push_docker=true
 do_docker_compose=true
 do_append_quiz_composes=true
-do_sync_aws=false
+do_sync_aws=true
 
 fe_quiz_list='front-end/src/quizzes/quizzes.js'
 pushkin_root=$(realpath .)

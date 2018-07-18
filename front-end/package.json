@@ -14,6 +14,7 @@
     "fs": "0.0.1-security",
     "history": "^3.0.0",
     "imagesloaded": "*",
+    "moment": "^2.22.2",
     "pushkin-react": "^1.1.0",
     "rc-progress": "^2.0.6",
     "react": "^15.2.1",

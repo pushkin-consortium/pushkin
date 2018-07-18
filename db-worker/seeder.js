@@ -38,7 +38,7 @@ if (quizFolder) {
                 ])
                 .then(answer => {
                   if (answer.properSeeds) {
-                    const runSeed = require(`./seeds/${quizFolder}/index`);
+                    const runSeed = require(`./seeds/${quizFolder}index`);
                     runSeed();
                   } else {
                     console.log(
