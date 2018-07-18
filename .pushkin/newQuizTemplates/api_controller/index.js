@@ -22,12 +22,12 @@ module.exports = (rpc, conn, dbWrite) => { // don't use dbWrite (deprecated)
 		// general quiz endpoints
 		{ path: '/health', method: 'health', data: req => '', queue: db_read_queue }, // test if server is responsive
 		{ path: '/random', method: 'random', data: req => '', queue: db_read_queue }, // get a random question
-		{ path: '/questions', method: 'getAllQuestions', data: req => '', queue: db_read_queue } // get all questions in this quiz
-		{ path: '/totalQuestions', method: 'totalQuestions', data: req => '', queue: db_read_queue }, // total questions answered by all users
+		{ path: '/questions', method: 'getAllQuestions', data: req => '', queue: db_read_queue }, // get all questions in this quiz
+		{ path: '/totalQuestions', method: 'totalQuestions', data: req => '', queue: db_read_queue } // total questions answered by all users
 	];
 
 	const stdPosts = [
-		{ path: '/respond', method: 'createResponse', queue: db_write_queue // create a response for this user in the database
+		{ path: '/respond', method: 'createResponse', queue: db_write_queue, // create a response for this user in the database
 			data: req => ({ user_id: req.body.user_id, data_string: req.body.data_string }) }
 	];
 
@@ -36,6 +36,7 @@ module.exports = (rpc, conn, dbWrite) => { // don't use dbWrite (deprecated)
 	stdGets.forEach(point =>
 		router.get(point.path, (req, res, next) => {
 			const params = new RPCParams(point.method, point.data(req));
+			console.log(`API SENT RPC ON QUEUE ${point.queue}`);
 			return rpc(conn, point.queue, params.getParams())
 				.then(data => res.send(data))
 				.catch(err => res.send(err));
