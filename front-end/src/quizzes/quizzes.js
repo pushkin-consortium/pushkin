@@ -1,9 +1,13 @@
 // This file created automatically
 // Do not edit directly (your changes will be overwritten)
 
-import testhandler from './testhandler';
-import workerq from './workerq';
+import bloodmagic from './bloodmagic';
+import bloodmagicbak from './bloodmagicbak';
+import bonegerbil from './bonegerbil';
+import test from './test';
 export default {
-testhandler: testhandler,
-workerq: workerq,
+bloodmagic: bloodmagic,
+bloodmagicbak: bloodmagicbak,
+bonegerbil: bonegerbil,
+test: test,
 };
