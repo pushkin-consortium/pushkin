@@ -1,10 +1,8 @@
-FROM debian:latest
-MAINTAINER Robert Wilkinson
-RUN apt-get update && apt-get install -qy netcat \
-			python \
-			python-pip
-RUN pip install pika psycopg2 reload
-RUN mkdir -p /usr/src/app
-WORKDIR /usr/src/app
+FROM node:latest
+RUN apt-get update && apt-get install -qy netcat
 COPY . /usr/src/app
-CMD python worker.py
+WORKDIR /usr/src/app
+RUN npm install
+RUN npm install --save amqplib
+EXPOSE 8000
+CMD ["npm","start"]
