@@ -13,6 +13,8 @@
     "eslint": "^5.1.0"
   },
   "dependencies": {
-    "amqplib": "^0.5.2"
+    "amqplib": "^0.5.2",
+    "knex": "^0.15.1",
+    "pg": "^7.4.3"
   }
 }
