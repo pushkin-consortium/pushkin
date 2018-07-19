@@ -30,7 +30,11 @@ module.exports = class Handler {
 								// nevertheless will continue to execute, which is a waste
 			}
 			const requireDataFields = fields => {
-				const missing = fields.reduce( (acc, field) => ((field in req.data) ? acc : [...acc, field]) );
+				const missing =
+					(typeof req.data == 'object' ?
+						fields.reduce( (acc, field) => ((field in req.data) ? acc : [...acc, field]), [])
+						: fields
+					);
 				if (missing.length > 0) {
 					reject({ error: `${req.method}'s data must have ${fields} as data. Missing ${missing}` });
 					return;
@@ -59,9 +63,11 @@ module.exports = class Handler {
 	}
 	/*************** API METHODS ****************/
 // user-specific endpoints
-	countUserResponses(user) {
+	countUserResponses(user) { // user must be a number
 		return new Promise( (resolve, reject) => {
-
+			this.pg_main('listener-quiz_stimulusResponses').count('*').where({ user_id: user })
+				.then(resolve)
+				.catch(reject)
 		});
 	}
 // general endpoints
