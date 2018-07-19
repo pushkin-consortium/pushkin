@@ -86,7 +86,7 @@ mkdir -p "${user_quizzes}/${qname}/cron_scripts/scripts/${qname}/"
 touch "${user_quizzes}/${qname}/cron_scripts/scripts/${qname}/exampleCron.py"
 
 # quiz page
-for t in "${templates}/worker"/*; do
+for t in "${templates}/quiz_page"/*; do
 	name=$(basename "${t}")
 	if [ -f "${t}" ]; then
 		sed -e "s/\${QUIZ_NAME}/${qname}/" "${t}" > "${user_quizzes}/${qname}/quiz_page/${name}"
