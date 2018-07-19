@@ -1,0 +1,30 @@
+{
+    "env": {
+        "es6": true,
+        "node": true
+    },
+    "extends": "eslint:recommended",
+    "parserOptions": {
+        "ecmaVersion": 2017,
+        "sourceType": "module"
+    },
+    "rules": {
+        "indent": [
+            "warning",
+            "tab"
+        ],
+        "linebreak-style": [
+            "warning",
+            "unix"
+        ],
+        "quotes": [
+            "warning",
+            "single"
+        ],
+        "semi": [
+            "warning",
+            "always"
+        ],
+				"no-console": "off"
+    }
+}
