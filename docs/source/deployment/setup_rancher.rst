@@ -1,6 +1,6 @@
 .. _setup_rancher:
 
-Setup Rancher
+Set Up Rancher
 ==================
 
 If you haven't :ref:`setup_aws` yet, do that first.
