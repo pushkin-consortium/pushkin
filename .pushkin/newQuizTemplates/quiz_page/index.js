@@ -1,3 +1,6 @@
+// At build time, this (and everything else in this folder) is moved to
+// ${pushkin_front_end_quizzes_dir}, so all paths are relative to that root
+
 import React from 'react'
 import s from './styles.scss'
 
