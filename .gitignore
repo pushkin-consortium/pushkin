@@ -1,10 +1,25 @@
 *.swp
+# the following two have passwords
 .env
 docker-compose.production.noEnvDependency.yml
+
+# make lots of irrelevant changes when testing new quizzes
 server/html/*
 front-end/dist/*
-docs/build/*
+front-end/src/quizzes/quizzes.js
+quizzes/quizzes/*
+db-worker/models/*
+db-worker/migrations/*
+db-worker/seeds/*
+cron/scripts/*
+api/controllers/*
+
+
+# just don't need synced
 node_modules/
+docs/build/*
+
+
 ## Core latex/pdflatex auxiliary files:
 **/*.aux
 **/*.lof
