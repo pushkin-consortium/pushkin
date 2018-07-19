@@ -1,5 +1,6 @@
 const AMQP_ADDRESS = 'amqp://localhost'; //process.env.AMQP_ADDRESS;
-const QUEUE = '${QUIZ_NAME}_quiz_dbread';
+const READ_QUEUE = '${QUIZ_NAME}_quiz_dbread';
+const WRITE_QUEUE = '${QUIZ_NAME}_quiz_dbwrite';
 
 const amqp = require('amqplib/callback_api');
 const Handler = new (require('./handler'))();
@@ -14,10 +15,10 @@ amqp.connect(AMQP_ADDRESS, (err, conn) => {
 			console.log(err);
 			process.exit(1);
 		}
-		ch.assertQueue(QUEUE, {durable: false});
+		ch.assertQueue(READ_QUEUE, {durable: false});
+		ch.assertQueue(WRITE_QUEUE, {durable: true});
 		ch.prefetch(1);
-		console.log(`consuming on ${QUEUE}`);
-		ch.consume(QUEUE, msg => {
+		const consumeCallback = msg => {
 			console.log(`got message: ${msg.content.toString()}`);
 			Promise.resolve(msg.content.toString())
 				.then(JSON.parse)
@@ -45,7 +46,15 @@ amqp.connect(AMQP_ADDRESS, (err, conn) => {
 					);
 					*/
 				});
-		});
+		};
+		console.log(`consuming on ${READ_QUEUE}`);
+		ch.consume(READ_QUEUE, consumeCallback);
+		console.log(`consuming on ${WRITE_QUEUE}`);
+		ch.consume(WRITE_QUEUE, consumeCallback);
 	});
 });
+
+
+
+
 
