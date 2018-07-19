@@ -1,13 +1,10 @@
-# note: if this image name must be changed,
-# make sure prepareToDeploy matches up with it in the
-# build stage of quiz-specific workers
-#
 # indentation must match main compose file
-#
 # image prefix and tag are variables stored in main .env file
+# variables defined in pushkin_config_vars.sh will be substituted on creation of the quiz
+# along with QUIZ_NAME
 
-  pushkin-${QUIZ_NAME}-quiz:
-    image: '${image_prefix}/pushkin-${QUIZ_NAME}-quiz:${image_tag}'
+  ${QUIZ_NAME}${pushkin_user_quizzes_docker_suffix}:
+    image: '${image_prefix}/${QUIZ_NAME}${pushkin_user_quizzes_docker_suffix}:${image_tag}'
     command: 'bash start.sh'
     depends_on:
       - "message-queue"
