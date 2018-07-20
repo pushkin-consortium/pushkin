@@ -37,10 +37,8 @@ set +e
 ##############################################
 
 for qPath in "${user_quizzes}"/*; do
-	if [ ! -d "${qPath}" ]; then
-		# if there are no quizzes * won't expand, so ignore that
-		continue
-	fi
+	if ! isQuiz "${qPath}"; then continue; fi
+
 	qName=$(basename ${qPath})
 	log "syncing docker worker for quiz ${qName}"
 	docker push "${docker_repo}/${qName}${quiz_name_suffix}${docker_tag}"

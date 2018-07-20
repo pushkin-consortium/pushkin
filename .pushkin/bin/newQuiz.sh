@@ -96,4 +96,9 @@ for t in "${templates}/quiz_page"/*; do
 done
 cp "${templates}"/quiz_page/styles.scss "${user_quizzes}/${qname}/quiz_page/"
 
+# quick test
+if ! isQuiz "${user_quizzes}/${qname}"; then
+	die "ERROR: Failed to build quiz. Did not detect quiz at build location after build attempt. Something is either wrong with newQuiz.sh, isQuiz.sh, or Pushkin's permissions are wrong." 
+fi
+
 log "done"
