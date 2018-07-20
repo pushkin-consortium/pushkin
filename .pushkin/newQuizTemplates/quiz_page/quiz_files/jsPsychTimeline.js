@@ -1,5 +1,7 @@
 import axios from "../axiosConfigInitial"
 
+// This function is not related to timeline data. It shouldn't be in this file.
+//
 // Function needed for saving data through an Axios call to an API endpoint.
 
 const recordData = function(data){
