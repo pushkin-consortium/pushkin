@@ -12,26 +12,45 @@ module.exports = (rpc, conn, dbWrite) => { // don't use dbWrite (deprecated)
 
 	const stdGets = [
 		// user-specific endpoints
+		{ path: '/startExperiment', method: 'startExperiment', queue: task_queue, data: req => '' },
+		{ path: '/nextStimulus', method: 'nextStimulus', queue: task_queue,
+			data: req => ({ user_id: req.body.user_id }) },
+
 		{ path: '/nextQuestion', method: 'nextQuestion', // get the next question for user in this quiz
 			data: req => ({user_id: req.query.user_id}), queue: db_read_queue },
-		{ path: '/questionsAnswered', method: 'questionsAnswered', // questions answered by this user so far
-			data: req => ({ user_id: req.query.user_id }), queue: db_read_queue },
 		{ path: '/feedback', method: 'getFeedback', // called when quiz has ended, make a prediction based on user responses
 			data: req => ({ user_id: req.query.user_id }), queue: task_queue },
 
 		// general quiz endpoints
 		{ path: '/health', method: 'health', data: req => '', queue: db_read_queue }, // test if server is responsive
-		{ path: '/random', method: 'random', data: req => '', queue: db_read_queue }, // get a random question
-		{ path: '/questions', method: 'getAllQuestions', data: req => '', queue: db_read_queue }, // get all questions in this quiz
-		{ path: '/totalQuestions', method: 'totalQuestions', data: req => '', queue: db_read_queue } // total questions answered by all users
 	];
 
 	const stdPosts = [
-		{ path: '/respond', method: 'createResponse', queue: db_write_queue, // create a response for this user in the database
-			data: req => ({ user_id: req.body.user_id, data_string: req.body.data_string }) }
+		// user-specific endpoints
+		{ path: '/createUser', method: 'generateUser', queue: db_write_queue,
+			data: req => ({ user_id: req.body.user_id, auth_id: req.query.auth_id }) },
+
+		{ path: '/deleteUser', method: 'deleteUser', queue: db_write_queue,
+			data: req => ({ user_id: req.body.user_id, auth_id: req.body.auth_id }) },
+
+		{ path: '/getAllStimuli', method: 'getStimuli', queue: db_read_queue,
+			data: req => ({ user_id: req.body.user_id }) },
+
+		{ path: '/stimulusResponse', method: 'insertStimulusResponse', queue: db_write_queue, // create a response for this user in the database
+			data: req => ({ user_id: req.body.user_id, data_string: req.body.data_string }) },
+		
+		{ path: '/metaResponse', method: 'insertMetaResponse', queue: db_write_queue, // create a response for this user in the database
+			data: req => ({ user_id: req.body.user_id, data: req.body.data }) },
+
+		// general quiz endpoints
+		{ path: '/clean', method: 'clean', queue: db_write_queue,
+			data: req => ({ username: req.body.user, password: req.body.pass }) },
 	];
 
-	const stdPuts = [];
+	const stdPuts = [
+		{ path: '/users/:auth_id', method: 'updateUser', queue: db_write_queue,
+			data: req => ({ user_id: req.body.user_id, auth_id: req.params.auth_id }) }
+	];
 
 	stdGets.forEach(point =>
 		router.get(point.path, (req, res, next) => {
