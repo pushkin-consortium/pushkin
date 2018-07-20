@@ -39,10 +39,7 @@ sed -i.sedBak '/^#@AUTOAPPENDBELOWTHISLINE$/,$d' "${dc_file}".new
 echo '#@AUTOAPPENDBELOWTHISLINE' >> "${dc_file}".new
 
 for qPath in "${user_quizzes}"/*; do
-	if [ ! -d "${qPath}" ]; then
-		# if there are no quizzes * won't expand, so ignore that
-		continue
-	fi
+	if ! isQuiz "${qPath}"; then continue; fi
 
 	qName=$(basename "$qPath")
 	if [ -f "$qPath/worker/docker_compose_appendage.yml" ]; then
