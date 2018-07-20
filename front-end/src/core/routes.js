@@ -17,9 +17,11 @@ import { CONFIG } from '../config';
 import ForumWrapper from '../components/ForumWrapper/index';
 import quizzes from '../quizzes/quizzes.js';
 
-const quizRoutes = quizzes.map(
-	q => (<Route path={`/quizzes/${q}`} component={require('../quizzes/bloodmagic')} />)
-);
+import test from "../quizzes/test/index"
+
+// const quizRoutes = quizzes.map(
+// 	q => (<Route path={`/quizzes/${q}`} component={require('../quizzes/bloodmagic')} />)
+// );
 const test = require('../pages/about');
 
 
@@ -69,6 +71,9 @@ export const routes = (
 	<Route path="/updates" component={Updates} />
 	<Route path="/error" component={ErrorPage} />
 	<Route path="*" component={ErrorPage} />
+
+
+	<Route path="/quizzes/test" component={test} />
 );
 
 
