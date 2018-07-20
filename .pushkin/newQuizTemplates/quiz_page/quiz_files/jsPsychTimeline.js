@@ -1,3 +1,5 @@
+import axios from "../axiosConfigInitial"
+
 const explain_study = {
 	type: 'instructions',
 	pages:["<p align='left'> This vocabulary test was designed by researchers at Boston College. </p><p align='left'> When you finish, you will see how well you did compared to other people of a similar age and educational background. </p><p align='left'> We are studying how people's vocabularies are affected by things like age, birth order, and when you started learning English. </p><p align='left'> We also hope the quiz is fun and informative. Thank you for your participation! </p>"],
@@ -14,11 +16,36 @@ const consent = {
 
 const intro = {
 	type: 'instructions',
-	pages: [" <p align='left'> Are you interested in how your experience affects your language? So are we! </p><p align='left'> Please answer the following questions about yourself. </p><p align='left'> We will use the answers to show you your score compared to others like you and also for our research into language learning. </p><p align='left'> All answers are anonymous and confidential. </p>"],
+	pages: [" <p align='left'> A sample paragraph written in HTML! </p>"],
 	show_clickable_nav: true,
 	button_label_next:'Continue'
 };
 
+// Function needed for saving data through an Axios call to an API endpoint.
 
-const timeline = [explain_study, consent, intro];
+const recordData = function(data){
+
+  return axios
+		.post('/stimulusResponse', {
+			user_id: user,
+			data_string: toSend,
+		})
+		.then(function(res) {
+			self.props.dispatchTempResponse({
+			user_id: user,
+			data_string: toSend,
+			});
+	  	})
+  
+}
+	
+const timeline = [{demographics,
+					on_finish: data => {
+										recordData(data);
+										}
+					}, 
+
+					consent, 
+					intro];
+
 export default timeline;
