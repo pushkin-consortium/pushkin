@@ -59,14 +59,63 @@ Below is a sample trial. It is helpful to reference the source code of the plugi
         fbButtonImg: `${baseUrl}/quizzes/fb.png`,
         twitterButtonImg: `${baseUrl}/quizzes/twitter.png`,
         weiboButtonImg: `${baseUrl}/quizzes/weibo.png`,
+
+        # Take note of this recordData function. This tells jsPsych what to do with data
+        # recently collected from a trial.
+
+        on_finish: data => {
+                            recordData(data);
+                            }
+        }
     }
 
 To create a new trial, simply declare it in ``jsPsychTimeline.js``, and then choose where to insert it into the timeline. 
 
+Each trial, or type of trial, also requires a methods for making an Axios call to the API controller.
+
 Saving Data
 ------------
 
-Data saving is carried out automatically by Axios calls within the quiz/index.js. Only advanced users should attempt to edit the endpoints to provide functionality other than basic database reading and writing. 
+Data saving is carried out automatically by Axios calls within ``jsPsychTimeline.js``. Advanced users should attempt to edit the endpoints to provide functionality other than basic database reading and writing. 
+
+
+.. code:: javascript
+
+    # This function serves to place an Axios call to a pre-defined endpoint, passing along the user's ID number
+    # and the data from the trial as a JSON string, to be processed by the methods attached to that endpoint in
+    # the quiz API controller.
+
+    const recordData = function(data){
+        return axios
+                .post('/stimulusResponse', {
+                    user_id: self.props.user.profile.id,
+                    data_string: data,
+                })
+                .then(function(res) {
+                    self.props.dispatchTempResponse({
+                        user_id: self.props.user.profile.id,
+                        data_string: data,
+                    });
+                })
+    }
+
+    # This illustrates a timeline containing only a single trial, with a data recording function attached at the bottom. 
+
+    timeline = [
+        {
+        type:"survey-multi-choice",
+        required:[true],
+        preamble: ['Click on the word that comes closest in meaning to the word in all CAPS:'],
+        questions:[stimuli[i].stimulus],
+        options:[stimuli[i].options.split(", ")],
+        correct:[stimuli[i].correct],
+        horizontal:false,
+        force_correct:false,
+        on_finish: function(data){      
+            recordData(data)
+        }
+    ]
+    
 
 
 
