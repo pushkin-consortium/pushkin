@@ -9,6 +9,7 @@ pushkin_conf_dir="$PWD"/.pushkin
 
 source "${pushkin_conf_dir}/pushkin_config_vars.sh"
 source "${pushkin_conf_dir}/bin/core.sh"
+source "${pushkin_conf_dir}/bin/util/isQuiz.sh"
 set +e
 
 ##############################################
@@ -57,15 +58,13 @@ echo "# Do not edit directly (your changes will be overwritten)" >> "${cron_tab}
 # there might be missing quiz files (i.e. no seeds)
 set +e
 for qPath in "${user_quizzes}"/*; do
-	if [ ! -d "${qPath}" ]; then
-		# if there are no quizzes * won't expand, so ignore that
-		continue
-	fi
+	if ! isQuiz "${qPath}"; then continue; fi
+
 	qName=$(basename ${qPath})
 	log "moving files for ${qName}"
 
 	mkdir "${api_controllers}/${qName}"
-	cp -r "${qPath}/api_controllers"/* "${api_controllers}/${qName}"
+	cp -r "${qPath}/api_controller"/* "${api_controllers}/${qName}"
 
 	mkdir "${cron_scripts}/${qName}"
 	cp -r "${qPath}/cron_scripts/scripts/"*/* "${cron_scripts}/${qName}"
@@ -97,10 +96,10 @@ wqf "// Do not edit directly (your changes will be overwritten)"
 wqf ''
 
 for qPath in "${user_quizzes}"/*; do
-	if [ ! -d "${qPath}" ]; then
-		# if there are no quizzes * won't expand, so ignore that
-		continue
-	fi
+	# already told about non quizzes in first loop
+	silent=$(isQuiz "${qPath}")
+	if (( "$?" > 0 )); then continue; fi
+
 	qName=$(basename ${qPath})
 	wqf "import ${qName} from './${qName}';"
 done
@@ -108,14 +107,15 @@ done
 wqf 'export default {'
 
 for qPath in "${user_quizzes}"/*; do
-	if [ ! -d "${qPath}" ]; then
-		# if there are no quizzes * won't expand, so ignore that
-		continue
-	fi
+	# already told about non quizzes in first loop
+	silent=$(isQuiz "${qPath}")
+	if (( "$?" > 0 )); then continue; fi
+
 	qName=$(basename "${qPath}")
 	wqf "	${qName}: ${qName},"
 done
 
 wqf '};'
+
 
 log "done"

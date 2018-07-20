@@ -9,6 +9,7 @@ pushkin_conf_dir="$PWD"/.pushkin
 
 source "${pushkin_conf_dir}/pushkin_config_vars.sh"
 source "${pushkin_conf_dir}/bin/core.sh"
+source "${pushkin_conf_dir}/bin/util/isQuiz.sh"
 source "${pushkin_env_file}"
 set +e
 
@@ -39,10 +40,7 @@ sed -i.sedBak '/^#@AUTOAPPENDBELOWTHISLINE$/,$d' "${dc_file}".new
 echo '#@AUTOAPPENDBELOWTHISLINE' >> "${dc_file}".new
 
 for qPath in "${user_quizzes}"/*; do
-	if [ ! -d "${qPath}" ]; then
-		# if there are no quizzes * won't expand, so ignore that
-		continue
-	fi
+	if ! isQuiz "${qPath}"; then continue; fi
 
 	qName=$(basename "$qPath")
 	if [ -f "$qPath/worker/docker_compose_appendage.yml" ]; then

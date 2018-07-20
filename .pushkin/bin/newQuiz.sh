@@ -10,6 +10,7 @@ pushkin_conf_dir="$PWD"/.pushkin
 
 source "${pushkin_conf_dir}/pushkin_config_vars.sh"
 source "${pushkin_conf_dir}/bin/core.sh"
+source "${pushkin_conf_dir}/bin/util/isQuiz.sh"
 set +e
 
 ##############################################
@@ -40,60 +41,58 @@ set +e
 ##############################################
 
 set -e
+# set -v
 
+replaceQuizName () {
+	local file="${1}"
+	local quizName="${2}"
+	sed -e "s/\${QUIZ_NAME}/${quizName}/" "${file}"
+}
+recurseReplace () {
+	local outRoot="${1}"
+	local cur="${2}"
+	local quizName="${3}"
+	for thing in "${cur}"/*; do
+		local base=$(basename "${thing}")
+		if [ -f "${thing}" ]; then
+			replaceQuizName "${thing}" "${quizName}" > "${outRoot}/${base}"
+		elif [ -d "${thing}" ]; then
+			# for testing purposes only
+			# once the worker works we should remove node modules entirely
+			# and use prepareFiles to install the dependencies in the front-end
+			# package or wherever else they're needed
+			if [ "${base}" == "node_modules" ]; then continue; fi # special case
+
+			# workers don't need to be anywhere else
+			if [ "${base}" == "worker" ]; then continue; fi # special case
+
+			# db migration files have special file names with timestamps for knex
+			if [ "${base}" == "db_migrations" ]; then
+				mkdir "${outRoot}/db_migrations"
+				timestamp () { date +"%Y%m%d%H%M%S"; sleep 1; }
+				for migration in "${thing}"/*; do
+					local migBase=$(basename "${migration}")
+					local newBase=$(echo "${migBase}" | sed -e "s/TIMESTAMP/$(timestamp)/g" -e "s/QUIZNAME/${quizName}/g")
+					replaceQuizName "${migration}" "${quizName}" > "${outRoot}/db_migrations/${newBase}"
+				done
+				continue
+			fi # special case
+
+			# normal case/otherwise:
+			mkdir "${outRoot}/${base}"
+			recurseReplace "${outRoot}/${base}" "${thing}" "${qname}"
+		else
+			log "${thing} is not a file or folder, ignoring"
+		fi
+	done
+}
 
 mkdir "${user_quizzes}/${qname}"
-mkdir "${user_quizzes}/${qname}"/api_controllers
-mkdir "${user_quizzes}/${qname}"/cron_scripts
-mkdir "${user_quizzes}/${qname}"/db_models
-mkdir "${user_quizzes}/${qname}"/db_migrations
-mkdir "${user_quizzes}/${qname}"/db_seeds
-mkdir "${user_quizzes}/${qname}"/worker
-mkdir "${user_quizzes}/${qname}"/quiz_page
+recurseReplace "${user_quizzes}/${qname}" "${templates}" "${qname}"
 
-#### add default starting files (names are set) #####
-
-# db workers
-for t in "${templates}/worker"/*; do
-	name=$(basename "${t}")
-	if [ -f "${t}" ]; then
-		sed -e "s/\${QUIZ_NAME}/${qname}/" "${t}" > "${user_quizzes}/${qname}/worker/${name}"
-	else
-		cp -r "${t}" "${user_quizzes}/${qname}/worker/${name}"
-	fi
-done
-
-# api controller
-sed -e "s/\${QUIZ_NAME}/${qname}/" "${templates}"/api_controller/index.js > "${user_quizzes}/${qname}/api_controllers/index.js"
-cp "${templates}"/api_controller/RPCParams.js "${user_quizzes}/${qname}/api_controllers/RPCParams.js"
-
-# db models
-cp -r "${templates}"/db_models/* "${user_quizzes}/${qname}/db_models/"
-
-# db migrations
-# NB: The order of these migrations matters (the timestamps must be consecutive in the following order because of relational dependencies)
-# changing will cause knex migrations to fail
-timestamp () { date +"%Y%m%d%H%M%S"; sleep 1; }
-
-for t in "${templates}/worker"/*; do
-	sed -e "s/\${QUIZ_NAME}/${qname}/" "${t}" > "${user_quizzes}/${qname}/db_migrations/$(timestamp)_create_${qname}_stimuli.js"
-done
-
-# cron
-echo '# contents of this file auto-appended to cron/crontab during build' > "${user_quizzes}/${qname}/cron_scripts/crontab.txt"
-echo "* 0 0 0 0 root /scripts/${qname}/exampleCron.py" >> "${user_quizzes}/${qname}/cron_scripts/crontab.txt"
-mkdir -p "${user_quizzes}/${qname}/cron_scripts/scripts/${qname}/"
-touch "${user_quizzes}/${qname}/cron_scripts/scripts/${qname}/exampleCron.py"
-
-# quiz page
-for t in "${templates}/worker"/*; do
-	name=$(basename "${t}")
-	if [ -f "${t}" ]; then
-		sed -e "s/\${QUIZ_NAME}/${qname}/" "${t}" > "${user_quizzes}/${qname}/quiz_page/${name}"
-	else
-		cp -r "${t}" "${user_quizzes}/${qname}/quiz_page/"
-	fi
-done
-cp "${templates}"/quiz_page/styles.scss "${user_quizzes}/${qname}/quiz_page/"
+# quick test
+if ! isQuiz "${user_quizzes}/${qname}"; then
+	die "ERROR: Failed to build quiz. Did not detect quiz at build location after build attempt. Something is either wrong with newQuiz.sh, isQuiz.sh, or Pushkin's permissions are wrong." 
+fi
 
 log "done"
