@@ -1,7 +1,7 @@
 // This file created automatically
 // Do not edit directly (your changes will be overwritten)
 
-import testdb from './testdb';
+import test from './test';
 export default {
-testdb: testdb,
+test: test,
 };
