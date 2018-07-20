@@ -50,7 +50,11 @@ rm -rf "${cron_scripts}"/*
 rm -rf "${db_migrations}"/*
 rm -rf "${db_models}"/*
 rm -rf "${db_seeds}"/*
-rm -rf "${fe_quizzes_dir}"/*
+for qdir in "${fe_quizzes_dir}"/*; do
+	base=$(basename "${qdir}")
+	if [ "${base}" == "libraries" ]; then continue; fi
+	rm -rf "${qdir}"
+done
 rm -rf "${server_html}"/*
 echo "# This file created automatically" > "${cron_tab}"
 echo "# Do not edit directly (your changes will be overwritten)" >> "${cron_tab}"
