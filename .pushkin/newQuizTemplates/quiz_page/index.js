@@ -7,7 +7,7 @@ import { browserHistory } from 'react-router';
 
 import s from './styles.scss';
 import jsPsychTimeline from './quiz_files/jsPsychTimeline';
-const jsPsych = require("../../libraries/jsPsych/jspsych.js");
+import jsPsych from '../libraryies/jsPsych/jspsych';
 
 export default class QUIZ_NAME extends React.Component {
 
