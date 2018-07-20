@@ -36,28 +36,6 @@ export default class QUIZ_NAME extends React.Component {
 		return (
 			<div id="jsPsychContainer"> 
 				<script type='text/javascript' src={jsPsych}></script>
-				{/* <link>s only go in <head> ideally
-					also, import them– that's how webpack reduces load time and requests and stuff
-					<link
-					rel="stylesheet"
-					type="text/css"
-					href={`${baseUrl}/css/jspsych.css`}
-				/>*/}
-				{/*
-				<div ref="preamble" id="preamble">
-					<div style={{ display: this.state.loading ? 'block' : 'none' }}>
-						<p className={s.loading}>
-							<b>Loading...</b>
-						</p>
-					</div>
-
-					<div style={{ display: loading ? 'none' : '' }}>
-						<p className={s.title}>${QUIZ_NAME}</p>
-						<hr className={s.divider} />
-					</div>
-				</div>
-				*/}
-
 				<div ref="jsPsychTarget"></div>
 			</div>
 		);
