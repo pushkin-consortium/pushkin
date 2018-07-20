@@ -10,6 +10,7 @@ pushkin_conf_dir="$PWD"/.pushkin
 
 source "${pushkin_conf_dir}/pushkin_config_vars.sh"
 source "${pushkin_conf_dir}/bin/core.sh"
+source "${pushkin_conf_dir}/bin/util/isQuiz.sh"
 source "${pushkin_env_file}"
 set +e
 
