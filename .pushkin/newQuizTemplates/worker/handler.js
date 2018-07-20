@@ -19,6 +19,7 @@ module.exports = class Handler {
 			connection: TRANS_DB_URL,
 		});
 	}
+	// HTTP request, 
 	handle(req) {
 		return new Promise( (resolve, reject) => {
 			// some methods send '' as the data string when none is needed

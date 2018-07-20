@@ -10,6 +10,7 @@ pushkin_conf_dir="$PWD"/.pushkin
 
 source "${pushkin_conf_dir}/pushkin_config_vars.sh"
 source "${pushkin_conf_dir}/bin/core.sh"
+source "${pushkin_conf_dir}/bin/util/isQuiz.sh"
 source "${pushkin_env_file}"
 set +e
 
@@ -37,10 +38,8 @@ set +e
 ##############################################
 
 for qPath in "${user_quizzes}"/*; do
-	if [ ! -d "${qPath}" ]; then
-		# if there are no quizzes * won't expand, so ignore that
-		continue
-	fi
+	if ! isQuiz "${qPath}"; then continue; fi
+
 	qName=$(basename ${qPath})
 	log "syncing docker worker for quiz ${qName}"
 	docker push "${docker_repo}/${qName}${quiz_name_suffix}${docker_tag}"
