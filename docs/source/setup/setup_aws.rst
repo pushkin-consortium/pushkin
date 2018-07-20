@@ -32,10 +32,12 @@ Define security groups
   The database security group should be open to all TCP traffic on ports 3306 (MySQL) and 5432 (Postgres).
 
   Instructions on creating an EC2-security-group_ can be found on AWS. * Note: Link for linux instances *
+
   .. _EC2-security-group: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-network-security.html
 
 
   Instructions on creating a database-security-group_ can be found on AWS.
+
   .. _database-security-group: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.RDSSecurityGroups.html
 
 
@@ -103,9 +105,8 @@ Get AWS CLI Tools
 Set up an IAM User
 ---------------------------
 
-An IAM 
+  You will need some way of securely controlling access to AWS services and resources. This can be done by setting up IAM roles and users, which allows other developers and contributers to access your resources without needing to share access keys or passwords.
 
-.. todo::
+  More information on IAM users can be found here_
 
-  Add in information regarding:
-    - notes on cloudfront invalidation (see `here <https://aws.amazon.com/blogs/aws/new-cloudfront-feature-invalidation/>`_)
+  .. _here: https://docs.aws.amazon.com/IAM/latest/UserGuide/introduction.html
