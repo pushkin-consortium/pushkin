@@ -45,14 +45,41 @@ module.exports = class Handler {
 			// it allows us to have other functions without exposing them all to the api
 			switch (req.method) {
 			// user-specific endpoints
+				case 'generateUser':
+					break;
+				case 'updateUser':
+					break;
+				case 'deleteUser':
+					break;
+				case 'insertStimulusResponse': // needs renaming (- Josh)
+					break;
+				case 'insertMetaResponse': // needs renaming (- Josh)
+					break;
+				case 'getUserStimulusResponses': // doesn't exist yet
+					break;
+				case 'getDataForPrediction': // doesn't exist yet
+					break;
 				case 'totalUserQuestions':
 					requireDataFields(['user_id']);
 					this.countUserResponses(req.data.user_id).then(resolve).catch(reject);
 					break;
+
+
 			// general endpoints
 				case 'health':
 					this.health().then(resolve).catch(reject);
 					break;
+				case 'clean':
+					break;
+				case 'getStimuli': // needs renaming (- Josh)
+					break;
+				case 'updateStimulusPriorities': // doesn't exist yet
+					break;
+				case 'activateStimuli': // doesn't exist yet
+					break;
+					// commenting out to discourage use
+					//				case 'raw':
+					//					break;
 				case 'getAllStimuli':
 					this.getAllStimuli().then(resolve).catch(reject);
 					break;
