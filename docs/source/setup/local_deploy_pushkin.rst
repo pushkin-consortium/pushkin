@@ -18,7 +18,7 @@ to prep, build, and push all files online. This may take a few minutes. Once it'
 
 
 Deploying Pushkin Locally
-===========================
+-------------------------
 
 Once you've gone through the process of creating and compiling a quiz, you can proceed to locally deploy Pushkin, in order to freely develop and test quizzes and other site features. 
 
