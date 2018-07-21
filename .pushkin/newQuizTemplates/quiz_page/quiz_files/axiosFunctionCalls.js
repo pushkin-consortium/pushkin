@@ -21,4 +21,4 @@ const axiosMethods = {
 
 }
 
-export default axiosMethods
+module.exports = axiosMethods
