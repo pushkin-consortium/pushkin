@@ -1,22 +1,5 @@
-import axios from "../axiosConfigInitial"
 
-// Function needed for saving data through an Axios call to an API endpoint.
-
-const recordData = function(data){
-
-	return axios
-		  .post('/stimulusResponse', {
-			  user_id: user,
-			  data_string: toSend,
-		  })
-		  .then(function(res) {
-			  self.props.dispatchTempResponse({
-			  user_id: user,
-			  data_string: toSend,
-			  });
-			})
-	
-  }
+import axiosMethods from "./axiosFunctionCalls"
 
 const explain_study = {
 	type: 'instructions',
@@ -24,7 +7,7 @@ const explain_study = {
 	show_clickable_nav: true,
 	button_label_next:'Continue',
 	on_finish: function(data){
-		recordData(data)
+		axiosMethods.recordData(data)
 	}
 };
 
@@ -34,7 +17,7 @@ const consent = {
 	show_clickable_nav: true,
 	button_label_next:'Continue',
 	on_finish: function(data){
-		recordData(data)
+		axiosMethods.recordData(data)
 	}
 };
 
@@ -44,7 +27,7 @@ const intro = {
 	show_clickable_nav: true,
 	button_label_next:'Continue',
 	on_finish: function(data){
-		recordData(data)
+		axiosMethods.recordData(data)
 	}
 };
 
