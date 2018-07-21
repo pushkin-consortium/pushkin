@@ -1,5 +1,5 @@
 
-import axiosMethods from "./axiosFunctionCalls"
+const axiosMethods = require("axiosFunctionCalls")
 
 const explain_study = {
 	type: 'instructions',
