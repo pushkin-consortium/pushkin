@@ -30,7 +30,6 @@ export default class QUIZ_NAME extends React.Component {
 		});
 	};
 
-
 	render() {
 
 		return (
