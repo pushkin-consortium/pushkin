@@ -63,9 +63,6 @@ recurseReplace () {
 			# package or wherever else they're needed
 			if [ "${base}" == "node_modules" ]; then continue; fi # special case
 
-			# workers don't need to be anywhere else
-			if [ "${base}" == "worker" ]; then continue; fi # special case
-
 			# db migration files have special file names with timestamps for knex
 			if [ "${base}" == "db_migrations" ]; then
 				mkdir "${outRoot}/db_migrations"
