@@ -39,6 +39,7 @@ amqp.connect(AMQP_ADDRESS, (err, conn) => {
 				})
 				.catch(err => {
 					console.log(err);
+					ch.ack(msg);
 					/*
 					ch.sendToQueue(msg.properties.replyTo,
 						new Buffer(JSON.stringify(err)),
