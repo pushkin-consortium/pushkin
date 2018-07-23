@@ -31,7 +31,7 @@ amqp.connect(process.env.AMQP_ADDRESS, function(err, conn) {
 			const short = controllerDir;
 			const route = `/api/${short}`;
 			const controller =
-				require(`./controllers/${controllerDir}/index.js`)(rpc, conn, dbWrite);
+				require(`./controllers/${controllerDir}/index.js`)(rpc, conn);
 			app.use(route, controller);
 			console.log(`using controller for ${short}`);
 		});
