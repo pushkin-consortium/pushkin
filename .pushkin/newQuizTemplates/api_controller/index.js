@@ -10,69 +10,36 @@ module.exports = (rpc, conn, dbWrite) => { // don't use dbWrite (deprecated)
 	const db_read_queue = '${QUIZ_NAME}_quiz_dbread'; // simple endpoints
 	const db_write_queue = '${QUIZ_NAME}_quiz_dbwrite'; // simple endpoints
 
-	const stdGets = [
-		// user-specific endpoints
-		{ path: '/startExperiment', method: 'startExperiment', queue: task_queue, data: req => '' },
-		{ path: '/nextStimulus', method: 'nextStimulus', queue: task_queue,
-			data: req => ({ user_id: req.body.user_id }) },
-
-		{ path: '/nextQuestion', method: 'nextQuestion', // get the next question for user in this quiz
-			data: req => ({user_id: req.query.user_id}), queue: db_read_queue },
-		{ path: '/feedback', method: 'getFeedback', // called when quiz has ended, make a prediction based on user responses
-			data: req => ({ user_id: req.query.user_id }), queue: task_queue },
-
-		// general quiz endpoints
-		{ path: '/health', method: 'health', data: req => '', queue: db_read_queue }, // test if server is responsive
-	];
-
+	// everything is just going to use POST as of 7/23/18's meeting
 	const stdPosts = [
-		// user-specific endpoints
 		{ path: '/createUser', method: 'generateUser', queue: db_write_queue,
 			data: req => ({ user_id: req.body.user_id, auth_id: req.query.auth_id }) },
 
-		{ path: '/deleteUser', method: 'deleteUser', queue: db_write_queue,
-			data: req => ({ user_id: req.body.user_id, auth_id: req.body.auth_id }) },
+		{ path: '/users/:auth_id', method: 'updateUser', queue: db_write_queue,
+			data: req => ({ user_id: req.body.user_id, auth_id: req.params.auth_id }) },
+
+		{ path: '/startExperiment', method: 'startExperiment', queue: task_queue, data: req => '' },
 
 		{ path: '/getAllStimuli', method: 'getStimuli', queue: db_read_queue,
 			data: req => ({ user_id: req.body.user_id }) },
 
-		{ path: '/stimulusResponse', method: 'insertStimulusResponse', queue: db_write_queue, // create a response for this user in the database
-			data: req => ({ user_id: req.body.user_id, data_string: req.body.data_string }) },
-		
-		{ path: '/metaResponse', method: 'insertMetaResponse', queue: db_write_queue, // create a response for this user in the database
+		{ path: '/metaResponse', method: 'insertMetaResponse', queue: db_write_queue, 
 			data: req => ({ user_id: req.body.user_id, data: req.body.data }) },
 
-		// general quiz endpoints
-		{ path: '/clean', method: 'clean', queue: db_write_queue,
-			data: req => ({ username: req.body.user, password: req.body.pass }) },
-	];
+		{ path: '/stimulusResponse', method: 'insertStimulusResponse', queue: db_write_queue,
+			data: req => ({ user_id: req.body.user_id, data_string: req.body.data_string }) },
 
-	const stdPuts = [
-		{ path: '/users/:auth_id', method: 'updateUser', queue: db_write_queue,
-			data: req => ({ user_id: req.body.user_id, auth_id: req.params.auth_id }) }
-	];
+		{ path: '/nextStimulus', method: 'nextStimulus', queue: task_queue,
+			data: req => ({ user_id: req.body.user_id }) },
 
-	stdGets.forEach(point =>
-		router.get(point.path, (req, res, next) => {
-			const params = new RPCParams(point.method, point.data(req));
-			console.log(`API SENT RPC ON QUEUE ${point.queue}`);
-			return rpc(conn, point.queue, params.getParams())
-				.then(data => res.send(data))
-				.catch(err => res.send(err));
-		})
-	);
+		{ path: '/activateStimuli', method: 'activateStimuli', queue: task_queue, data: req => '' },
+
+		{ path: '/feedback', method: 'getFeedback', 
+			data: req => ({ user_id: req.query.user_id }), queue: task_queue },
+	];
 
 	stdPosts.forEach(point =>
 		router.post(point.path, (req, res, next) => {
-			const params = new RPCParams(point.method, point.data(req));
-			return rpc(conn, point.queue, params.getParams())
-				.then(data => res.send(data))
-				.catch(err => res.send(err));
-		})
-	);
-
-	stdPuts.forEach(point =>
-		router.put(point.path, (req, res, next) => {
 			const params = new RPCParams(point.method, point.data(req));
 			return rpc(conn, point.queue, params.getParams())
 				.then(data => res.send(data))
