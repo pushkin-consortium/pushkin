@@ -20,7 +20,7 @@ module.exports = (rpc, conn, dbWrite) => { // don't use dbWrite (deprecated)
 
 		{ path: '/startExperiment', method: 'startExperiment', queue: task_queue, data: req => '' },
 
-		{ path: '/getAllStimuli', method: 'getStimuli', queue: db_read_queue,
+		{ path: '/getAllStimuli', method: 'getAllStimuli', queue: db_read_queue,
 			data: req => ({ user_id: req.body.user_id }) },
 
 		{ path: '/metaResponse', method: 'insertMetaResponse', queue: db_write_queue, 
@@ -32,10 +32,10 @@ module.exports = (rpc, conn, dbWrite) => { // don't use dbWrite (deprecated)
 		{ path: '/nextStimulus', method: 'nextStimulus', queue: task_queue,
 			data: req => ({ user_id: req.body.user_id }) },
 
-		{ path: '/activateStimuli', method: 'activateStimuli', queue: task_queue, data: req => '' },
-
 		{ path: '/feedback', method: 'getFeedback', 
 			data: req => ({ user_id: req.query.user_id }), queue: task_queue },
+
+		{ path: '/activateStimuli', method: 'activateStimuli', queue: task_queue, data: req => '' }
 	];
 
 	stdPosts.forEach(point =>
