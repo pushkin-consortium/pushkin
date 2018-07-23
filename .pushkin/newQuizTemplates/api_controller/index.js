@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const RPCParams = require('./RPCParams');
 
-module.exports = (rpc, conn, dbWrite) => { // don't use dbWrite (deprecated)
+module.exports = (rpc, conn) => {
 	const router = new express.Router();
 
 	const task_queue = '${QUIZ_NAME}_quiz_taskworker'; // for stuff that'll need ML, etc.
