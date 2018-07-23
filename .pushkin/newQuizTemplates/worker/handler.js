@@ -48,62 +48,59 @@ module.exports = class Handler {
 			// it allows us to have other functions without exposing them all to the api
 			switch (req.method) {
 
-			// user-specific endpoints
+			// methods called through API controller
 				case 'generateUser':
 					requireDataFields(['user_id', 'auth_id']);
 					const user = req.data.user_id;
 					const auth = req.data.auth;
-					this.createUser(user, auth).then(resolve).catch(reject);
+					return this.createUser(user, auth)
 					break;
 
 				case 'updateUser':
 					requireDataFields(['user_id', 'auth_id']);
 					const user = req.data.user_id;
 					const auth = req.data.auth;
-					this.updateUser(user, auth).then(resolve).catch(reject);
-					break;
-
-				case 'startExperiment':
-					// no data fields to require
-					resolve('no prep needed to start experiment, ready');
+					return this.updateUser(user, auth)
 					break;
 
 				case 'getAllStimuli':
 					// no data fields to require
-					this.getAllStimuli().then(resolve).catch(reject);
+					return this.getAllStimuli()
 					break;
 
 				case 'insertMetaResponse':
 					requireDataFields(['user_id', 'data_string']);
 					const user = req.data.user_id;
 					const dataString = req.data.dataString;
-					this.insertMetaResponse(user, dataString).then(resolve).catch(reject);
+					return this.insertMetaResponse(user, dataString);
 					break;
 
 				case 'insertStimulusResponse':
-					requireDataFields(['user_id', 'data_string']);
+					requireDataFields(['user_id', 'stimulus', 'data_string']);
 					const user = req.data.user_id;
+					const stimulus = req.data.stimulus;
 					const dataString = req.data.data_string;
-					this.deleteUser(user, dataString).then(resolve).catch(reject);
-					break;
-
-				case 'nextStimulus':
-					requireDataFields(['user_id']);
-					this.getNextStimulus(req.data.user_id).then(resolve).catch(reject);
-					break;
-
-				case 'getFeedback':
-					requireDataFields(['user_id']);
-					this.getFeedback(req.data.user_id).then(resolve).catch(reject);
+					return this.insertStimulusResponse(user, stimulus, dataString);
 					break;
 
 				case 'activateStimuli':
 					// no data fields to require
-					this.activateStimuli().then(resolve).catch(reject);
+					return this.activateStimuli();
 					break;
 
 				case 'health':
-					this.health().then(resolve).catch(reject);
+					return this.health();
+					break;
+
+			// methods used by other services (e.g. cron or task worker)
+				case 'getUserStimulusResponses':
+					requireDataFields(['user_id']);
+					return this.getUserStimulusResponses(req.data.user_id);
+					break;
+
+				case 'getDataForPrediction':
+					requireDataFields(['user_id']);
+					return this.getDataForPrediction(req.data.user_id);
 					break;
 
 				default:
@@ -112,45 +109,118 @@ module.exports = class Handler {
 			}
 		});
 	}
-	/*************** API METHODS ****************/
-// user-specific meta endpoints
-	createUser(user, auth) {
-		return new Promise( (resolve, reject) => {
-			this.pg_main('listener-quiz_users').count('*').where({ id: user })
-				.then(res => {
 
+	/*************** METHODS CALLED BY HANDLER & HELPER FUNCTIONS ****************/
+	userExists(user) {
+		return new Promise( (resolve, reject) => {
+			// better to resolve false than reject the promise because then actual
+			// errors with connection, etc. may be interpreted as the user not existing
+			this.pg_main('listener-quiz_users').count('*').where('id', user)
+				.then(res => resolve(res ? true : false))
+				.catch(reject);
+		});
+	}
+	async createUser(user, auth) {
+		return new Promise( (resolve, reject) => {
+			this.userExists(user)
+				.then(exists => {
+					if (exists) {
+						reject(`user ${user} already exists`);
+						return;
+					}
+
+					const insertData = {
+						id: user,
+						auth_id: auth,
+						created_at: new Date(),
+						updated_at: new Date()
+					};
+					this.pg_main('listener-quiz_users').insert(insertData)
+						.then(resolve)
+						.catch(reject);
 				})
 				.catch(reject);
 		});
 	}
 	updateUser(user, auth) {
-
-	}
-	deleteUser(user, auth) {
-
-	}
-// user-specific quiz endpoints
-	insertStimulusResponse(user, dataString) {
-
-	}
-	countUserResponses(user) { // user must be a number
 		return new Promise( (resolve, reject) => {
-			this.pg_main('listener-quiz_stimulusResponses').count('*').where({ user_id: user })
-				.then(resolve)
-				.catch(reject)
+			this.userExists(user)
+				.then(exists => {
+					if (exists) {
+						reject(`user ${user} already exists`);
+						return;
+					}
+
+					this.pg_main('listener-quiz_users')
+						.where('id', user)
+						.update({ auth_id: auth })
+						.then(resolve)
+						.catch(reject);
+				})
+				.catch(reject);
 		});
 	}
-// general endpoints
 	getAllStimuli() {
 		return new Promise( (resolve, reject) => {
-			this.pg_main.select('*').from('listener-quiz_stimuli')
+			this.pg_main.select().table('listener-quiz_stimuli')
 				.then(resolve)
 				.catch(reject);
+		});
+	}
+	insertMetaResponse(user, dataString) {
+		return new Promise( (resolve, reject) => {
+			const insertData = {
+				user_id: user,
+				data_string: dataString,
+				created_at: new Date(),
+				updated_at: new Date()
+			};
+			this.pg_main('listener-quiz_responses').insert(insertData)
+				.then(resolve)
+				.catch(reject);
+		});
+	}
+	insertStimulusResponse(user, stimulus, dataString) {
+		return new Promise( (resolve, reject) => {
+			const insertData = {
+				user_id: user,
+				stimulus: stimulus,
+				data_string: dataString,
+				created_at: new Date(),
+				updated_at: new Date()
+			};
+			this.pg_main('listener-quiz_stimulusResponses').insert(insertData)
+				.then(resolve)
+				.catch(reject);
+		});
+	}
+	getNextStimulus(user) {
+		return new Promise( (resolve, reject) => {
+			reject('getNextStimulus in handler not yet implemented. What exactly should it do?');
+		});
+	}
+	activateStimuli() {
+		return new Promise( (resolve, reject) => {
+			reject('activateStimuli in handler not yet implemented. Table structure not in place.');
 		});
 	}
 	health() {
 		return new Promise( (resolve, reject) => {
 			resolve({ message: 'healthy' });
+		});
+	}
+	getUserStimulusResponses(user) {
+		return new Promise( (resolve, reject) => {
+			this.pg_main('listener-quiz_stimulusResponses')
+				.where('id', user)
+				.select('*')
+				.then(resolve)
+				.catch(reject);
+		});
+	}
+	getDataForPrediction(user) {
+		return new Promise( (resolve, reject) => {
+			reject('getDataForPrediction: should this do the same as getUserStimulusResponses?');
 		});
 	}
 }
