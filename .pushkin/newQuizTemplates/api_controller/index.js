@@ -12,8 +12,10 @@ module.exports = (rpc, conn, dbWrite) => { // don't use dbWrite (deprecated)
 
 	// everything is just going to use POST as of 7/23/18's meeting
 	const stdPosts = [
-		{ path: '/createUser', method: 'generateUser', queue: db_write_queue,
-			data: req => ({ user_id: req.body.user_id, auth_id: req.query.auth_id }) },
+		{ path: '/createUserWithAuth', method: 'generateUserWithAuth', queue: db_write_queue,
+			data: req => ({ auth_id: req.query.auth_id }) },
+
+		{ path: '/createUser', method: 'generateUser', queue: db_write_queue, data: req => '' },
 
 		{ path: '/users/:auth_id', method: 'updateUser', queue: db_write_queue,
 			data: req => ({ user_id: req.body.user_id, auth_id: req.params.auth_id }) },

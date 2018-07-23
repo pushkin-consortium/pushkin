@@ -8,14 +8,13 @@
 module.exports = class Handler {
 	constructor() {
 		const MAIN_DB_URL = 'postgres://pushkin:jacob_password@pushkin-data-db.co4mo5lsfmqs.us-east-2.rds.amazonaws.com/pushkin_data_db';//process.env.DATABASE_URL;
-			const TRANS_DB_URL = 'postgres://pushkin:jacob_password@pushkin-transaction-db.co4mo5lsfmqs.us-east-2.rds.amazonaws.com/pushkin_transaction_db';//process.env.TRANSACTION_DATABASE_URL;
+		const TRANS_DB_URL = 'postgres://pushkin:jacob_password@pushkin-transaction-db.co4mo5lsfmqs.us-east-2.rds.amazonaws.com/pushkin_transaction_db';//process.env.TRANSACTION_DATABASE_URL;
 		const tables = {
 			users: 'testquiz_users',
 			meta: 'testquiz_metaResponses',
 			stimResp: 'testquiz_stimulusResponses',
 			stim: 'testquiz_stimuli'
 		};
-
 
 		this.pg_main = require('knex')({
 			client: 'pg',
