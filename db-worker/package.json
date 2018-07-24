@@ -7,6 +7,7 @@
     "docs": "jsdoc -c jsdoc.conf.json -t ./node_modules/ink-docstrap/template -R README.md -r worker.js",
     "migrations": "knex migrate:latest",
     "rollback": "knex migrate:rollback",
+		"seed": "knex seed:run",
     "start": "node index.js"
   },
   "keywords": [],

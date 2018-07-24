@@ -8,15 +8,15 @@ let rpc = require('./rpc');
 const printer = require('./printer');
 const logger = require('./logger.js');
 const CONFIG = require('./config.js');
-const dbWrite = require('./dbWrite');
 require('dotenv').config();
 
 const PORT = process.env.PORT;
+const AMQP_ADDRESS = process.env.AMQP_ADDRESS || 'amqp://localhost';
+
 app.use(bodyParser.json());
 app.use(cors());
 
-amqp.connect(process.env.AMQP_ADDRESS, function(err, conn) {
-
+amqp.connect(AMQP_ADDRESS, function(err, conn) {
   if (err) return logger.error(err);
 
   app.use((req, res, next) => {
@@ -38,11 +38,11 @@ amqp.connect(process.env.AMQP_ADDRESS, function(err, conn) {
 
 	// main routes/quiz independent
   if (CONFIG.forum) {
-    const forumController = require('./forum')(rpc, conn, dbWrite);
+    const forumController = require('./forum')(rpc, conn);
     app.use('/api', forumController);
   }
   if (CONFIG.auth) {
-    const authController = require('./auth')(rpc, conn, dbWrite);
+    const authController = require('./auth')(rpc, conn);
     app.use('/api', authController);
   }
 
