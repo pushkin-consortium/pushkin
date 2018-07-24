@@ -33,6 +33,7 @@ user_quizzes="${pushkin_user_quizzes}"
 
 fe_quizzes_dir="${pushkin_front_end_quizzes_dir}"
 fe_quizzes_list="${pushkin_front_end_quizzes_list}"
+fe_dist="${pushkin_front_end_dist}"
 
 server_html="${pushkin_server_html}"
 
@@ -120,6 +121,9 @@ for qPath in "${user_quizzes}"/*; do
 done
 
 wqf '};'
+
+# copy fe dist -> server html
+cp "${fe_dist}"/* "${server_html}"
 
 
 log "done"
