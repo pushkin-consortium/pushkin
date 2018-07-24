@@ -80,7 +80,7 @@ for qPath in "${user_quizzes}"/*; do
 	cp "${qPath}/db_models/"* "${db_models}/${qName}"
 
 	mkdir "${db_seeds}/${qName}"
-	cp -r "${qPath}/db_seeds/"* "${db_seeds}/${qName}"
+	cp -r "${qPath}/db_seeds/"* "${db_seeds}"
 
 	mkdir "${fe_quizzes_dir}/${qName}"
 	cp -r "${qPath}/quiz_page/"* "${fe_quizzes_dir}/${qName}"
