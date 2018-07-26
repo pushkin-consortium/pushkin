@@ -8,8 +8,7 @@ const logger = require('./logger');
 const jsonrpc = require('./rpc');
 logger.info(Object.keys(Worker));
 const uniq = require('lodash.uniq');
-const CONFIG = require('./config')
-
+const CONFIG = { forum: process.env.USE_FORUM };
 
 const quizzes = fs
   .readdirSync(path.resolve(__dirname, './models'))
