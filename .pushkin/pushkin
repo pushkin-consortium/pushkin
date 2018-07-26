@@ -28,7 +28,7 @@ checkPushkinNotCorrupt () {
 	done
 }
 showUsage () {
-	echo "usage: pushkin [make | prep | build | sync | compile | start] [sub-command args]"
+	echo "usage: pushkin [make | prep | build | sync | compile] [sub-command args]"
 }
 
 ##############################################
@@ -126,6 +126,9 @@ case "${sub_command}" in
 		;;
 	"compile")
 		.pushkin/bin/compileFrontEnd.sh "$@"
+		;;
+	"start")
+		docker-compose -f "${pushkin_docker_compose_noDep_file}" up
 		;;
 	*)
 		showUsage
