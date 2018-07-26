@@ -32,7 +32,11 @@ Define security groups
   The database security group should be open to all TCP traffic on ports 3306 (MySQL) and 5432 (Postgres).
 
   Instructions on creating an EC2-security-group_ can be found on AWS. * Note: Link for linux instances *
+<<<<<<< HEAD
+
+=======
   
+>>>>>>> c3e5433b7e0799acba0b27a06014ae3af1704178
   .. _EC2-security-group: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-network-security.html
 
 
@@ -105,13 +109,8 @@ Get AWS CLI Tools
 Set up IAM Users and Roles
 ---------------------------
 
-  In order to access AWS services in a secure manner, to modify or expand the capabilities of Pushkin, it will be necessary to create an IAM user, which acts as an identity conferring permissions to access your AWS resources. 
+  You will need some way of securely controlling access to AWS services and resources. This can be done by setting up IAM roles and users, which allows other developers and contributers to access your resources without needing to share access keys or passwords.
 
-  Instructions for getting started with IAM_ can be found on AWS's own documentation.
+  More information on IAM users can be found here_
 
-  .. _IAM: https://docs.aws.amazon.com/IAM/latest/UserGuide/getting-set-up.html
-
-.. todo::
-
-  Add in information regarding:
-    - notes on cloudfront invalidation (see `here <https://aws.amazon.com/blogs/aws/new-cloudfront-feature-invalidation/>`_)
+  .. _here: https://docs.aws.amazon.com/IAM/latest/UserGuide/introduction.html
