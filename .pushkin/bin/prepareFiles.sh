@@ -26,7 +26,6 @@ cron_scripts="${pushkin_cron_scripts}"
 cron_tab="${pushkin_cron_tab}"
 
 db_migrations="${pushkin_db_worker_migrations}"
-db_models="${pushkin_db_worker_models}"
 db_seeds="${pushkin_db_worker_seeds}"
 
 user_quizzes="${pushkin_user_quizzes}"
@@ -49,7 +48,6 @@ log "cleaning"
 rm -rf "${api_controllers}"/*
 rm -rf "${cron_scripts}"/*
 rm -rf "${db_migrations}"/*
-rm -rf "${db_models}"/*
 rm -rf "${db_seeds}"/*
 for qdir in "${fe_quizzes_dir}"/*; do
 	base=$(basename "${qdir}")
@@ -76,9 +74,6 @@ for qPath in "${user_quizzes}"/*; do
 	cat "${qPath}/cron_scripts/crontab.txt" >> "${cron_tab}"
 
 	cp -r "${qPath}/db_migrations/"* "${db_migrations}"
-
-	mkdir "${db_models}/${qName}"
-	cp "${qPath}/db_models/"* "${db_models}/${qName}"
 
 	mkdir "${db_seeds}/${qName}"
 	cp -r "${qPath}/db_seeds/"* "${db_seeds}"
