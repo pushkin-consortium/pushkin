@@ -5,7 +5,6 @@ isQuiz () {
 	local qPath="${1}"
 	if [ ! -d "${qPath}"/api_controller ]; then status+=" no api_controllers"; fi
 	if [ ! -d "${qPath}"/db_migrations ]; then status+=" no db_migrations"; fi
-	if [ ! -d "${qPath}"/db_models ]; then status+=" no db_models"; fi
 	if [ ! -d "${qPath}"/quiz_page ]; then status+=" no quiz_page"; fi
 # workers don't need to be copied
 #	if [ ! -d "${qPath}"/worker ]; then status+=" no worker"; fi
