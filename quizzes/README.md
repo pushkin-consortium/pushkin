@@ -4,9 +4,8 @@ This folder is the only location where users of the Pushkin platform need to put
 
 Each quiz should have its own folder inside the quizzes folder in this folder. Inside each quiz, there should be folders for:
 
-- API controller (`api_controllers`)
+- API controller (`api_controller`)
 - Cron scripts (`cron_scripts`)
-- DB Models (`db_models`)
 - DB Migrations (`db_migrations`)
 - DB Seeds (`db_seeds`)
 - Worker (db_workers)
