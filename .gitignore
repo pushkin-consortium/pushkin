@@ -7,7 +7,8 @@ docker-compose.production.noEnvDependency.yml
 server/html/*
 front-end/dist/*
 front-end/src/quizzes/quizzes.js
-quizzes/quizzes/*
+#working on example quiz, want synced
+#quizzes/quizzes/*
 db-worker/models/*
 db-worker/migrations/*
 db-worker/seeds/*
