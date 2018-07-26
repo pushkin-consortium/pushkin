@@ -11,14 +11,14 @@ Welcome to Pushkin's documentation!
    :caption: Contents:
 
    setup/getPushkin
+   cli/pushkin_cli
+   setup/setup_aws
+   deployment/setup_rancher
    quizzes/new_quiz
    quizzes/foundational_quiz_components
+   quizzes/frontend_quiz_components
    setup/local_deploy_pushkin
-   setup/setup_aws
-   deployment/initialDeployment
-   deployment/setup_rancher
    maintenance/maintenance
-   cli/pushkin_cli
    old/tutorial
 
 
