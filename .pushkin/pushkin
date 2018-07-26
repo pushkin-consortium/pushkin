@@ -28,7 +28,7 @@ checkPushkinNotCorrupt () {
 	done
 }
 showUsage () {
-	echo "usage: pushkin [make | prep | build | sync | compile] [sub-command args]"
+	echo "usage: pushkin [make | prep | build | sync | compile | start] [sub-command args]"
 }
 
 ##############################################

@@ -81,3 +81,8 @@ all
 ^^^^^^^^^
 
 Does all of the above steps.
+
+start
+----------
+
+A small convenience utility. Runs docker-compose up on ``pushkin_docker_compose_noDep_file``.
