@@ -12,81 +12,102 @@ import localAxios from './axiosConfigInitial';
 
 // jsPsych isn't actually a "module" like normal modules are in node/commonJS
 // it needs to be required globally and not assigned to a variable
-require('../libraries/jsPsych/jspsych.js');
-require('../libraries/jsPsych/plugins/jspsych-instructions.js');
+//require('../libraries/jsPsych/jspsych.js');
+//require('../libraries/jsPsych/plugins/jspsych-instructions.js');
 
 export default class MiniExample extends React.Component {
 
 	constructor(props) {
 		super(props);
-		browserHistory.listen(jsPsych.endExperiment);
+		this.state = { jsPsychLoaded: false };
 	};
 
 	componentDidMount() {
-		// load jsPsych stuff from CDNs
-		const jsPsychScripts = [
-			'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/plugins/jspsych-html-button-response.js',
-			'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/plugins/jspsych-instructions.js',
-			'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/jspsych.js',
-		];
-
-		const allLoaded = (() => {
-			let nLoaded = 0;
-			const total = jsPsychScripts.length;
-			return () => {
-				nLoaded++;
-				console.log(`loaded ${nLoaded}/${total} scripts for jsPsych`);
-				if (nLoaded >= total) this.startExperiment();
-			};
-		})();
-
-		jsPsychScripts.forEach(scriptSrc => {
-			const jsp = document.createElement('script');
-			jsp.onload = allLoaded;
-			jsp.src = scriptSrc;
-			document.body.appendChild(jsp);
-		});
+		this.loadJsPsych()
+			.then(_ => {
+				this.setState({ jsPsychLoaded: true });
+				this.startExperiment();
+			})
+			.catch(err => {
+				console.log(`failed to load jsPsych: ${err}`);
+			});
 	};
+
+	loadJsPsych() {
+		return new Promise( (resolve, reject) => {
+			setTimeout(() => reject('jsPsych loading timed out'), 2000);
+
+			// load jsPsych stuff from CDNs
+			// main script must load before the plugins do
+			const jsPsychMainScript = 'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/jspsych.js';
+			const jsPsychPlugins = [
+				'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/plugins/jspsych-html-button-response.js',
+				'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/plugins/jspsych-instructions.js',
+			];
+
+			const allLoaded = (() => {
+				let nLoaded = 0;
+				const total = jsPsychScripts.length;
+				return () => {
+					nLoaded++;
+					console.log(`loaded ${nLoaded}/${total} plugins for jsPsych`);
+					if (nLoaded >= total) resolve();
+				};
+			})();
+
+			const main = document.createElement('script');
+			main.onload = () => {
+				jsPsychScripts.forEach(scriptSrc => {
+					const jsp = document.createElement('script');
+					jsp.onload = allLoaded;
+					jsp.src = scriptSrc;
+					document.body.appendChild(jsp);
+				});
+			};
+			main.src = jsPsychMainScript;
+		});
+	}
+
 	async startExperiment() {
+		browserHistory.listen(jsPsych.endExperiment);
 		try {
 			console.log('getting user id');
-			const temp = await localAxios.post('/createUser');
-			console.log(temp);
-			const user_id = temp.data.resData;
+			const user_id = (await localAxios.post('/createUser')).data.resData;
 			console.log(`user id: ${user_id}`);
 			jsPsych.data.addProperties({ user_id });
-
-			const timeline = rawTimeline.map(trial => ({
-				...trial,
-				on_finish: data => {
-					const postData = {
-						user_id: data.user_id,
-						data_string: data
-					};
-					try {
-						localAxios.post('/response', postData);
-					} catch (e) {
-						console.log('Error posting to response API:');
-						console.log(e);
-					}
-				}
-			}));
-
-			jsPsych.init({
-				display_element: this.refs.jsPsychTarget,
-				timeline: timeline
-			});
-
 		} catch (e) {
 			alert('Could not start exeriment. Failed to create new user:');
 			console.log(e);
 		}
+		const timeline = rawTimeline.map(trial => ({
+			...trial,
+			on_finish: data => {
+				const postData = {
+					user_id: data.user_id,
+					data_string: data
+				};
+				try {
+					localAxios.post('/response', postData);
+				} catch (e) {
+					console.log('Error posting to response API:');
+					console.log(e);
+				}
+			}
+		}));
+
+		jsPsych.init({
+			display_element: this.refs.jsPsychTarget,
+			timeline: timeline
+		});
+
 	}
 
 	render() {
 		return (
 			<div id="jsPsychContainer"> 
-				<div ref="jsPsychTarget"></div>
+				{ this.state.jsPsychLoaded ?
+						(<div ref="jsPsychTarget"></div>) :
+						(<h1>Loading...</h1>) }
 			</div>
 		);
 	}
