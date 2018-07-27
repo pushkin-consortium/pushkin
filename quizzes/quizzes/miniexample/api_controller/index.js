@@ -11,32 +11,25 @@ module.exports = (rpc, conn) => {
 	const stdPosts = [
 		{ path: '/response', method: 'insertResponse', queue: db_write_queue },
 
-		{ path: '/createUserWithAuth', method: 'generateUserWithAuth', queue: db_write_queue,
-			data: req => ({ auth_id: req.query.auth_id }) },
+		{ path: '/createUserWithAuth', method: 'generateUserWithAuth', queue: db_write_queue }
 
-		{ path: '/createUser', method: 'generateUser', queue: db_write_queue, data: req => '' },
+		{ path: '/createUser', method: 'generateUser', queue: db_write_queue },
 
-		{ path: '/users/:auth_id', method: 'updateUser', queue: db_write_queue,
-			data: req => ({ user_id: req.body.user_id, auth_id: req.params.auth_id }) },
+		{ path: '/users/:auth_id', method: 'updateUser', queue: db_write_queue },
 
-		{ path: '/startExperiment', method: 'startExperiment', queue: task_queue, data: req => '' },
+		{ path: '/startExperiment', method: 'startExperiment', queue: task_queue },
 
-		{ path: '/getAllStimuli', method: 'getAllStimuli', queue: db_read_queue,
-			data: req => ({ user_id: req.body.user_id }) },
+		{ path: '/getAllStimuli', method: 'getAllStimuli', queue: db_read_queue },
 
-		{ path: '/metaResponse', method: 'insertMetaResponse', queue: db_write_queue, 
-			data: req => ({ user_id: req.body.user_id, data: req.body.data }) },
+		{ path: '/metaResponse', method: 'insertMetaResponse', queue: db_write_queue },
 
-		{ path: '/stimulusResponse', method: 'insertStimulusResponse', queue: db_write_queue,
-			data: req => ({ user_id: req.body.user_id, data_string: req.body.data_string }) },
+		{ path: '/stimulusResponse', method: 'insertStimulusResponse', queue: db_write_queue },
 
-		{ path: '/nextStimulus', method: 'nextStimulus', queue: task_queue,
-			data: req => ({ user_id: req.body.user_id }) },
+		{ path: '/nextStimulus', method: 'nextStimulus', queue: task_queue },
 
-		{ path: '/feedback', method: 'getFeedback', 
-			data: req => ({ user_id: req.query.user_id }), queue: task_queue },
+		{ path: '/feedback', method: 'getFeedback', queue: task_queue },
 
-		{ path: '/activateStimuli', method: 'activateStimuli', queue: task_queue, data: req => '' }
+		{ path: '/activateStimuli', method: 'activateStimuli', queue: task_queue }
 	];
 
 	stdPosts.forEach(point =>
