@@ -7,9 +7,12 @@
 
 module.exports = class Handler {
 	constructor() {
-		const MAIN_DB_URL = 'postgres://pushkin:Itnh2016!@pushkin-data-db.co4mo5lsfmqs.us-east-2.rds.amazonaws.com/pushkin_data_db';//process.env.DATABASE_URL;
-		const TRANS_DB_URL = 'postgres://pushkin:jacob_password@pushkin-transaction-db.co4mo5lsfmqs.us-east-2.rds.amazonaws.com/pushkin_transaction_db';//process.env.TRANSACTION_DATABASE_URL;
-		const tables = {
+		const MAIN_DB_URL = 
+			process.env.DATABASE_URL ||
+			'postgres://pushkin:Ithn2016!@pushkin-data-db.co4mo5lsfmqs.us-east-2.rds.amazonaws.com/pushkin_data_db';
+
+		//const TRANS_DB_URL = 'postgres://pushkin:jacob_password@pushkin-transaction-db.co4mo5lsfmqs.us-east-2.rds.amazonaws.com/pushkin_transaction_db';//process.env.TRANSACTION_DATABASE_URL;
+		this.tables = {
 			users: 'miniexample_users',
 			responses: 'miniexample_responses',
 		};
@@ -18,10 +21,12 @@ module.exports = class Handler {
 			client: 'pg',
 			connection: MAIN_DB_URL,
 		});
+		/*
 		this.pg_trans = require('knex')({
 			client: 'pg',
 			connection: TRANS_DB_URL,
 		});
+		*/
 	}
 
 	// returns a promise with the requested data (if any)
@@ -146,7 +151,7 @@ module.exports = class Handler {
 				updated_at: new Date()
 			};
 			this.pg_main(this.tables.users).insert(insertData).returning('id')
-				.then(resolve)
+				.then(d => resolve(d[0]))
 				.catch(reject);
 		});
 	}
