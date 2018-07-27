@@ -7,7 +7,7 @@ import { browserHistory } from 'react-router';
 
 import s from './styles.scss';
 import jsPsychStyles from '../libraries/jsPsych/css/jspsych.css';
-import rawTimeline from './jsPsychTimeline';
+import timeline from './jsPsychTimeline';
 import localAxios from './axiosConfigInitial';
 
 // jsPsych isn't actually a "module" like normal modules are in node/commonJS
@@ -35,7 +35,7 @@ export default class MiniExample extends React.Component {
 
 	loadJsPsych() {
 		return new Promise( (resolve, reject) => {
-			setTimeout(() => reject('jsPsych loading timed out'), 2000);
+			setTimeout(() => reject('jsPsych loading timed out'), 10000);
 
 			// load jsPsych stuff from CDNs
 			// main script must load before the plugins do
@@ -47,7 +47,7 @@ export default class MiniExample extends React.Component {
 
 			const allLoaded = (() => {
 				let nLoaded = 0;
-				const total = jsPsychScripts.length;
+				const total = jsPsychPlugins.length;
 				return () => {
 					nLoaded++;
 					console.log(`loaded ${nLoaded}/${total} plugins for jsPsych`);
@@ -57,7 +57,8 @@ export default class MiniExample extends React.Component {
 
 			const main = document.createElement('script');
 			main.onload = () => {
-				jsPsychScripts.forEach(scriptSrc => {
+				console.log('jsPsych core loaded');
+				jsPsychPlugins.forEach(scriptSrc => {
 					const jsp = document.createElement('script');
 					jsp.onload = allLoaded;
 					jsp.src = scriptSrc;
@@ -65,9 +66,11 @@ export default class MiniExample extends React.Component {
 				});
 			};
 			main.src = jsPsychMainScript;
+			document.body.appendChild(main);
 		});
 	}
 
+	
 	async startExperiment() {
 		browserHistory.listen(jsPsych.endExperiment);
 		try {
@@ -79,27 +82,11 @@ export default class MiniExample extends React.Component {
 			alert('Could not start exeriment. Failed to create new user:');
 			console.log(e);
 		}
-		const timeline = rawTimeline.map(trial => ({
-			...trial,
-			on_finish: data => {
-				const postData = {
-					user_id: data.user_id,
-					data_string: data
-				};
-				try {
-					localAxios.post('/response', postData);
-				} catch (e) {
-					console.log('Error posting to response API:');
-					console.log(e);
-				}
-			}
-		}));
-
+		
 		jsPsych.init({
 			display_element: this.refs.jsPsychTarget,
-			timeline: timeline
+			timeline: timeline.getTimeline()
 		});
-
 	}
 
 	render() {
