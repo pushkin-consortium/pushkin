@@ -25,9 +25,9 @@ export default class MiniExample extends React.Component {
 	componentDidMount() {
 		// load jsPsych stuff from CDNs
 		const jsPsychScripts = [
-			'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/jspsych.js',
 			'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/plugins/jspsych-html-button-response.js',
-			'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/plugins/jspsych-instructions.js'
+			'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/plugins/jspsych-instructions.js',
+			'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/jspsych.js',
 		];
 
 		const allLoaded = (() => {
@@ -35,11 +35,8 @@ export default class MiniExample extends React.Component {
 			const total = jsPsychScripts.length;
 			return () => {
 				nLoaded++;
-				console.log(`total: ${total}, nLoaded: ${nLoaded}`);
-				if (nLoaded >= total) {
-					console.log('jsPsych scripts loaded');
-					this.startExperiment();
-				}
+				console.log(`loaded ${nLoaded}/${total} scripts for jsPsych`);
+				if (nLoaded >= total) this.startExperiment();
 			};
 		})();
 
@@ -55,8 +52,8 @@ export default class MiniExample extends React.Component {
 			console.log('getting user id');
 			const temp = await localAxios.post('/createUser');
 			console.log(temp);
-			const user_id = temp.resData;
-			console.log(`got user id: ${user_id}`);
+			const user_id = temp.data.resData;
+			console.log(`user id: ${user_id}`);
 			jsPsych.data.addProperties({ user_id });
 
 			const timeline = rawTimeline.map(trial => ({
@@ -66,9 +63,12 @@ export default class MiniExample extends React.Component {
 						user_id: data.user_id,
 						data_string: data
 					};
-					localAxios.post('/response', postData)
-						.then(r => console.log('stimResp success'))
-						.catch(e => console.log(e));
+					try {
+						localAxios.post('/response', postData);
+					} catch (e) {
+						console.log('Error posting to response API:');
+						console.log(e);
+					}
 				}
 			}));
 
@@ -78,7 +78,7 @@ export default class MiniExample extends React.Component {
 			});
 
 		} catch (e) {
-			alert('Could not start exeriment. Failed to create new user.');
+			alert('Could not start exeriment. Failed to create new user:');
 			console.log(e);
 		}
 	}

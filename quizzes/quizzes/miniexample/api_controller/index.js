@@ -31,13 +31,13 @@ module.exports = (rpc, conn) => {
 			};
 			rpc(conn, point.queue, rpcParams)
 				.then(rpcRes => {
-					console.log(`got RPC res: ${rpcRes}`);
+					console.log(`sending RPC res for ${point.path}: ${rpcRes}`);
 					res.send({ resData: rpcRes });
 				})
 				.catch(rpcErr => {
-					res.send('ERROR');
-					console.log('Error in API getting RPC response');
-					console.log(e);
+					console.log('Error in API getting RPC response:');
+					console.log(rpcErr);
+					res.status(500).send(rpcError);
 				});
 		})
 	);
