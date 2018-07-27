@@ -1,4 +1,4 @@
-const AMQP_ADDRESS = 'amqp://localhost'; //process.env.AMQP_ADDRESS;
+const AMQP_ADDRESS = process.env.AMQP_ADDRESS || 'amqp://localhost';
 const READ_QUEUE = 'miniexample_quiz_dbread';
 const WRITE_QUEUE = 'miniexample_quiz_dbwrite';
 
@@ -27,12 +27,10 @@ amqp.connect(AMQP_ADDRESS, (err, conn) => {
 				.then(res => {
 					if (res) {
 						console.log(`responding ${JSON.stringify(res)}`);
-						/*
 						ch.sendToQueue(msg.properties.replyTo,
 							new Buffer.from(JSON.stringify(res)),
 							{correlationId: msg.properties.correlationId}
 						);
-						*/
 					}
 					else console.log('empty res');
 					ch.ack(msg);
@@ -40,12 +38,10 @@ amqp.connect(AMQP_ADDRESS, (err, conn) => {
 				.catch(err => {
 					console.log(err);
 					ch.ack(msg);
-					/*
 					ch.sendToQueue(msg.properties.replyTo,
 						new Buffer(JSON.stringify(err)),
 						{correlationId: msg.properties.correlationId}
 					);
-					*/
 				});
 		};
 		console.log(`consuming on ${READ_QUEUE}`);

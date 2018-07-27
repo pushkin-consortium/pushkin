@@ -23,21 +23,22 @@ module.exports = (rpc, conn) => {
 	];
 
 	stdPosts.forEach(point =>
-		router.post(point.path, async (req, res, next) => {
+		router.post(point.path, (req, res, next) => {
 			console.log(`${point.path} hit`);
 			const rpcParams = {
 				method: point.method,
 				data: req.body
 			};
-			try {
-				const rpcRes = await rpc(conn, point.queue, rpcParams);
-				console.log(`got RPC res: ${rpcRes}`);
-				res.send({ apiData: rpcRes });
-			} catch (e) {
-				res.send('ERROR');
-				console.log('Error in API getting RPC response');
-				console.log(e);
-			}
+			rpc(conn, point.queue, rpcParams)
+				.then(rpcRes => {
+					console.log(`got RPC res: ${rpcRes}`);
+					res.send({ resData: rpcRes });
+				})
+				.catch(rpcErr => {
+					res.send('ERROR');
+					console.log('Error in API getting RPC response');
+					console.log(e);
+				});
 		})
 	);
 

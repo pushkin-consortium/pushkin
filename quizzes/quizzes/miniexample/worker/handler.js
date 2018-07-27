@@ -46,7 +46,7 @@ module.exports = class Handler {
 						: fields
 					);
 				if (missing.length > 0)
-					throw new Error(`${req.method}'s data must have ${fields} as data. Missing ${missing}`);
+					throw new Error(`${req.method}'s req.data must have fields ${fields}. Missing ${missing}`);
 			};
 
 		// using a mapping like this is nicer than calling something like "this[req.method]" because

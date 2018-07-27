@@ -26,7 +26,8 @@ export default class MiniExample extends React.Component {
 		// load jsPsych stuff from CDNs
 		const jsPsychScripts = [
 			'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/jspsych.js',
-			'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/plugins/jspsych-html-button-response.js'
+			'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/plugins/jspsych-html-button-response.js',
+			'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/plugins/jspsych-instructions.js'
 		];
 
 		const allLoaded = (() => {
@@ -36,7 +37,7 @@ export default class MiniExample extends React.Component {
 				nLoaded++;
 				console.log(`total: ${total}, nLoaded: ${nLoaded}`);
 				if (nLoaded >= total) {
-					console.log('jsPsych all loaded, starting');
+					console.log('jsPsych scripts loaded');
 					this.startExperiment();
 				}
 			};
@@ -51,7 +52,11 @@ export default class MiniExample extends React.Component {
 	};
 	async startExperiment() {
 		try {
-			const user_id = await localAxios.post('/createUser');
+			console.log('getting user id');
+			const temp = await localAxios.post('/createUser');
+			console.log(temp);
+			const user_id = temp.resData;
+			console.log(`got user id: ${user_id}`);
 			jsPsych.data.addProperties({ user_id });
 
 			const timeline = rawTimeline.map(trial => ({
@@ -61,7 +66,7 @@ export default class MiniExample extends React.Component {
 						user_id: data.user_id,
 						data_string: data
 					};
-					localAxios.post('/stimulusResponse', postData)
+					localAxios.post('/response', postData)
 						.then(r => console.log('stimResp success'))
 						.catch(e => console.log(e));
 				}
