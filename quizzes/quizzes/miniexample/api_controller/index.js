@@ -31,7 +31,7 @@ module.exports = (rpc, conn) => {
 			};
 			rpc(conn, point.queue, rpcParams)
 				.then(rpcRes => {
-					console.log(`sending RPC res for ${point.path}: ${rpcRes}`);
+					console.log(`${point.path} response: ${rpcRes}`);
 					res.send({ resData: rpcRes });
 				})
 				.catch(rpcErr => {
