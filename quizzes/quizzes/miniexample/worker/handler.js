@@ -101,17 +101,15 @@ module.exports = class Handler {
 					break;
 
 				case 'insertMetaResponse':
+					// need to make Current User Quiz Questions table? Or make CUQS generic for both
+					throw new Error('meta responses not yet implemented using database');
 					requireDataFields(['user_id', 'data_string']);
 					return this.insertMetaResponse(req.data.user, req.data.data_string);
 					break;
 
 				case 'insertStimulusResponse':
-					requireDataFields(['user_id', 'stimulus', 'data_string']);
-					return this.insertStimulusResponse(
-						req.data.user,
-						req.data.stimulus,
-						req.data.data_string
-					);
+					requireDataFields(['user_id', 'data_string']);
+					return this.insertStimulusResponse(req.data.user, req.data.data_string);
 					break;
 
 				case 'activateStimuli':
@@ -281,23 +279,47 @@ module.exports = class Handler {
 	}
 
 
-	insertMetaResponse(user, dataString) {
-		return new Promise( (resolve, reject) => {
-			const insertData = {
-				user_id: user,
-				data_string: dataString,
-				created_at: new Date(),
-				updated_at: new Date()
-			};
-			this.pg_main(this.tables.metaResponses).insert(insertData)
-				.then(resolve)
-				.catch(reject);
-		});
+	insertMetaResponse(user, question, response) {
+		const insertData = {
+			user_id: user,
+			question: question,
+			response: response,
+			created_at: new Date(),
+			updated_at: new Date()
+		};
+		return this.pg_main(this.tables.metaResp).insert(insertData)
 	}
 
 
-	insertStimulusResponse(user, stimulus, dataString) {
+	insertStimulusResponse(user, responseJson) {
 		return new Promise( (resolve, reject) => {
+
+			this.pg_main(this.tables.CUQ).where('user_id', user).select('cur_position')
+				.then(poss => {
+					const pos = poss[0];
+					const stimGroup =
+						this.pg_main(this.tables.CUQ)
+						.where('user_id', user)
+						.select('stimuli_group');
+
+					this.pg_main(this.tables.CUQS)
+						.where({
+							group: stimGroup,
+							position: pos
+						})
+						.update({
+							response_json: responseJson,
+							answered_at: new Date()
+						})
+				})
+
+			this.pg_main(this.tables.CUQS)
+			.where({
+
+			this.pg_main(this.tables.CUQ)
+				.where('user_id', user)
+				.increment('cur_position', 1);
+
 			const insertData = {
 				user_id: user,
 				stimulus: stimulus,
