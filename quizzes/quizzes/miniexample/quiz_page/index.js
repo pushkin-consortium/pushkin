@@ -8,19 +8,15 @@ import { browserHistory } from 'react-router';
 import s from './styles.scss';
 import jsPsychStyles from '../libraries/jsPsych/css/jspsych.css';
 import { getTimeline } from './jspTimeline';
+import loadScript from './scriptLoader';
 import localAxios from './axiosConfigInitial';
-
-// jsPsych isn't actually a "module" like normal modules are in node/commonJS
-// it needs to be required globally and not assigned to a variable
-//require('../libraries/jsPsych/jspsych.js');
-//require('../libraries/jsPsych/plugins/jspsych-instructions.js');
 
 export default class MiniExample extends React.Component {
 
 	constructor(props) {
 		super(props);
 		this.state = {
-			JSPLoading: false,
+			JSPLoading: true,
 			showThanks: false
 		};
 	};
@@ -28,7 +24,8 @@ export default class MiniExample extends React.Component {
 	componentDidMount() {
 		this.loadJsPsych()
 			.then(_ => {
-				this.setState({ JSPLoading: true });
+				this.loadJsPsych();
+				this.setState({ JSPLoading: false });
 				this.startExperiment();
 			})
 			.catch(err => {
@@ -37,40 +34,30 @@ export default class MiniExample extends React.Component {
 	};
 
 	loadJsPsych() {
-		return new Promise( (resolve, reject) => {
-			setTimeout(() => reject('jsPsych loading timed out'), 10000);
+		console.log('loadJsPsych');
+		const jsPsychMainScript = 'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/jspsych.js';
+		const jsPsychPlugins = [
+			'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/plugins/jspsych-html-button-response.js',
+			'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/plugins/jspsych-instructions.js',
+		];
 
-			// load jsPsych stuff from CDNs
-			// main script must load before the plugins do
-			const jsPsychMainScript = 'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/jspsych.js';
-			const jsPsychPlugins = [
-				'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/plugins/jspsych-html-button-response.js',
-				'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/plugins/jspsych-instructions.js',
-			];
-
-			const allLoaded = (() => {
-				let nLoaded = 0;
-				const total = jsPsychPlugins.length;
-				return () => {
-					nLoaded++;
-					console.log(`loaded ${nLoaded}/${total} plugins for jsPsych`);
-					if (nLoaded >= total) resolve();
-				};
-			})();
-
-			const main = document.createElement('script');
-			main.onload = () => {
-				console.log('jsPsych core loaded');
-				jsPsychPlugins.forEach(scriptSrc => {
-					const jsp = document.createElement('script');
-					jsp.onload = allLoaded;
-					jsp.src = scriptSrc;
-					document.body.appendChild(jsp);
-				});
+		// just for logging purposes
+		const loadCounter = (total => {
+			let nLoaded = 0;
+			return () => {
+				nLoaded++;
+				console.log(`loaded ${nLoaded}/${total} plugins for jsPsych`);
 			};
-			main.src = jsPsychMainScript;
-			document.body.appendChild(main);
-		});
+		})(jsPsychPlugins.length);
+
+
+		// load jsPsych stuff from CDNs
+		// main script must load before the plugins do
+		return loadScript(jsPsychMainScript, () => console.log('jsPsych core loaded'))
+			.then(r => {
+				const pluginPromises = jsPsychPlugins.map(src => loadScript(src, loadCounter));
+				return Promise.all(pluginPromises);
+			});
 	}
 
 	
@@ -105,8 +92,8 @@ export default class MiniExample extends React.Component {
 		return (
 			<div id="jsPsychContainer"> 
 				{ this.state.JSPLoading ?
-						(<div ref="jsPsychTarget"></div>) :
-						(<h1>Loading...</h1>) }
+						(<h1>Loading...</h1>) :
+						(<div ref="jsPsychTarget"></div>) }
 				{ this.state.showThanks && thanks }
 			</div>
 		);
