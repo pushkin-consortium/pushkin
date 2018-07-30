@@ -4,6 +4,7 @@
  *	- put db urls back to process environment variables
  *	- uncomment sending responses in index.js (sendToQueue)
  ************/
+import crypto from 'crypto';
 
 module.exports = class Handler {
 	constructor() {
@@ -60,6 +61,10 @@ module.exports = class Handler {
 			switch (req.method) {
 
 			// methods called through API controller
+				case 'startExperiment':
+					requireDataFields(['user_id']);
+					return this.startExperiment(req.data.user_id);
+					break;
 				case 'insertResponse':
 					requireDataFields(['user_id', 'data_string']);
 					return this.insertResponse(req.data.user_id, req.data.data_string);
@@ -125,6 +130,57 @@ module.exports = class Handler {
 	}
 
 	/*************** METHODS CALLED BY HANDLER & HELPER FUNCTIONS ****************/
+	// all must return a promise
+
+	uniqueNumber() {
+		// first 3 bytes -> max 4 digit number, which is what's used in the database
+		return parseInt(crypto.randomBytes(13).toString('hex').substring(0, 3), 16);
+	}
+	async startExperiment(user) {
+		return new Promise( (resolve, reject) => {
+			const stimuli_group = this.uniqueNumber();
+
+			// create new Current User Quiz
+			try {
+				const cuqInsertData = {
+					user_id: user,
+					started_at: new Date(),
+					stimuli_group: stimuli_group,
+					cur_position: 0
+				};
+				// must wait because CUQS references CUQ
+				await this.pg_main(this.tables.CUQ).insert(cuqInsertData);
+			} catch (e) {
+				reject(`failed to create new Current User Quiz data: ${JSON.stringify(e)}`);
+				return;
+			}
+
+			// select stimuli and put in CUQS
+			let stimuli;
+			try {
+				stimuli =
+					await this.pg_main(this.tables.stimuli).select('id').orderByRaw('random()').limit(10);
+			} catch (e) {
+				reject(`failed to retrieve stimuli: ${JSON.stringify(e)}`);
+				return;
+			}
+
+			try {
+				let position = 0;
+				const cuqsInsertDatas = stimuli.map(stimRow => ({
+					group: stimuli_group,
+					stimulus: stimRow.id,
+					position: position++
+				}));
+				await this.pg_main(this.tables.CUQS).insert(cuqsInsertDatas)
+			} catch (e) {
+				reject(`failed to prepare Curent User	Quiz Stimuli: ${JSON.stringify(e)}`);
+				return;
+			}
+
+			resolve();
+		});
+	}
 
 	insertResponse(user, dataString) {
 		const insertData = {
