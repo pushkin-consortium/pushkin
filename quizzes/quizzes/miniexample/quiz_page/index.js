@@ -86,8 +86,8 @@ export default class MiniExample extends React.Component {
 		let stimuli;
 		let meta;
 		try {
-			meta = await localAxios.post('/getMetaQuestionsForUser', { user_id });
-			stimuli = await localAxios.post('/getStimuliForUser', { user_id });
+			meta = (await localAxios.post('/getMetaQuestionsForUser', { user_id })).data.resData;
+			stimuli = (await localAxios.post('/getStimuliForUser', { user_id })).data.resData;
 			const timeline = buildTimeline(meta, stimuli);
 
 			jsPsych.init({
