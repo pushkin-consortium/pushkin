@@ -7,6 +7,7 @@ const intro = {
 	button_label_next:'Continue',
 	saveData: false
 };
+/*
 const question1 = {
 	type: 'html-button-response',
 	stimulus: 'What\'s the better color to wear in the morning?',
@@ -19,33 +20,36 @@ const question2 = {
 	choices: ['orange', 'yellow', 'blue', 'red', 'black', 'white'],
 	saveData: true
 };
+*/
 
 const rawTimeline = [
 	intro, question1, question2
 ];
 
-const getTimeline = () => {
+const buildTimeline = (meta, stimuli) => {
 
-	const save = data => {
+	const save = type => data => {
+		const path = type == 'meta' ? '/metaResponse' : '/stimulusResponse';
 		const postData = {
 			user_id: data.user_id,
 			data_string: data
 		};
 		try {
-			localAxios.post('/response', postData);
+			localAxios.post(path, postData);
 		} catch (e) {
 			console.log('Error posting to response API:');
 			console.log(e);
 		}
 	};
 
-	const timeline = rawTimeline.map(trial => ({
-		...trial,
-		on_finish: trial.saveData ? save : null,
-	}));
+	const timeline =
+		meta.map(metaTrial => ({ ...metaTrial, on_finish: save('meta') }))
+		.concat(
+			stimuli.map(stimTrial => ({ ...stimTrial, on_finish: save('stimuli') }));
+		);
 
 	return timeline;
 }
 
 
-export { getTimeline };
+export { buildTimeline };
