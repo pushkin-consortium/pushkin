@@ -7,7 +7,7 @@ import { browserHistory } from 'react-router';
 
 import s from './styles.scss';
 import jsPsychStyles from '../libraries/jsPsych/css/jspsych.css';
-import { getTimeline } from './jspTimeline';
+import { buildTimeline } from './jspTimeline';
 import loadScript from './scriptLoader';
 import localAxios from './axiosConfigInitial';
 
@@ -24,7 +24,6 @@ export default class MiniExample extends React.Component {
 	componentDidMount() {
 		this.loadJsPsych()
 			.then(_ => {
-				this.loadJsPsych();
 				this.setState({ JSPLoading: false });
 				this.startExperiment();
 			})
@@ -63,22 +62,45 @@ export default class MiniExample extends React.Component {
 	
 	async startExperiment() {
 		browserHistory.listen(jsPsych.endExperiment);
+
+		// createUser (-> user_id)
+		let user_id;
 		try {
-			console.log('getting user id');
-			const user_id = (await localAxios.post('/createUser')).data.resData;
+			user_id = (await localAxios.post('/createUser')).data.resData;
+			this.setState({ user_id });
 			console.log(`user id: ${user_id}`);
 			jsPsych.data.addProperties({ user_id });
 
+		} catch (e) {
+			alert('Could not start exeriment. Failed to create new user:');
+			console.log(e);
+			return;
+		}
+
+		// startExperiment(user_id)
+		// (let worker prep the database)
+		try { await localAxios.post('/startExperiment', { user_id }); }
+		catch (e) { alert('failed to startExperiment'); console.log(e); return; }
+
+		// getStimuliForUser(user_id), create the timeline, and start
+		let stimuli;
+		let meta;
+		try {
+			meta = await localAxios.post('/getMetaForUser', { user_id });
+			stimuli = await localAxios.post('/getStimuliForUser', { user_id });
+			const timeline = buildTimeline(meta, stimuli);
+
 			jsPsych.init({
 				display_element: this.refs.jsPsychTarget,
-				timeline: getTimeline(),
+				timeline: timeline,
 				on_finish: data => {
 					this.endExperiment()
 				}
 			});
 		} catch (e) {
-			alert('Could not start exeriment. Failed to create new user:');
+			alert('failed to get timeline trial data');
 			console.log(e);
+			return;
 		}
 	}
 
