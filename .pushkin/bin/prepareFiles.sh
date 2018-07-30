@@ -117,8 +117,5 @@ done
 
 wqf '};'
 
-# copy fe dist -> server html
-cp "${fe_dist}"/* "${server_html}"
-
 
 log "done"
