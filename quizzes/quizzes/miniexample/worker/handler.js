@@ -71,10 +71,16 @@ module.exports = class Handler {
 					return this.getMetaQuestionsForUser(req.data.user_id);
 					break;
 
+				case 'getStimuliForUser':
+					requireDataFields(['user_id']);
+					return this.getStimuliForUser(req.data.user_id);
+					break;
+
 				case 'insertResponse':
 					requireDataFields(['user_id', 'data_string']);
 					return this.insertResponse(req.data.user_id, req.data.data_string);
 					break;
+
 				case 'generateUser':
 					// no data fields to require
 					return this.generateUser();
@@ -191,6 +197,19 @@ module.exports = class Handler {
 
 	getMetaQuestionsForUser(user) {
 		return this.pg_main(this.tables.metaQuestions).select('question_json');
+	}
+
+	getStimuliForUser(user) {
+		return this.pg_main(this.tables.stimuli).join(
+			this.tables.CUQS,
+			`${this.tables.CUQS}.stimulus`,
+			`${this.tables.stimuli}.stimulus`
+		).join(
+			`${this.tables.CUQ}`,
+			`${this.tables.CUQ}.stimuli_group`,
+			`${this.tables.CUQS}.group`
+		)
+		.select(`${this.tables.stimuli}.stimulus`);
 	}
 
 	insertResponse(user, dataString) {
