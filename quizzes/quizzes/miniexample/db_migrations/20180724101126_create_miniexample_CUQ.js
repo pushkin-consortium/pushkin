@@ -2,8 +2,7 @@
 
 exports.up = function(knex) {
   return knex.schema.createTable('miniexample_CUQ', table => {
-    table.increments('id').primary();
-    table.integer('user_id').references('id').inTable('miniexample_users');
+    table.integer('user_id').references('id').inTable('miniexample_users').primary();
     table.integer('stimuli_group').unique();
 		table.integer('cur_position');
     table.timestamp('started_at');
