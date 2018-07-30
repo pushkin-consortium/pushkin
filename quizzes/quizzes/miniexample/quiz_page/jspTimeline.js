@@ -12,13 +12,14 @@ const question1 = {
 	stimulus: 'What\'s the better color to wear in the morning?',
 	choices: ['orange', 'yellow', 'blue', 'red', 'black', 'white'],
 	saveData: true
-}
+};
 const question2 = {
 	type: 'html-button-response',
 	stimulus: 'What\'s the better color to wear in the evening?',
 	choices: ['orange', 'yellow', 'blue', 'red', 'black', 'white'],
 	saveData: true
-}
+};
+
 const rawTimeline = [
 	intro, question1, question2
 ];
@@ -39,13 +40,12 @@ const getTimeline = () => {
 	};
 
 	const timeline = rawTimeline.map(trial => ({
-			...trial,
-			on_finish: trial.saveData ? save : null;
-		}));
-		return timeline;
-	}
-	
+		...trial,
+		on_finish: trial.saveData ? save : null,
+	}));
 
-module.exports = {
-	getTimeline
-};
+	return timeline;
+}
+
+
+export { getTimeline };

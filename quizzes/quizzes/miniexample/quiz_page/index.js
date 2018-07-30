@@ -7,7 +7,7 @@ import { browserHistory } from 'react-router';
 
 import s from './styles.scss';
 import jsPsychStyles from '../libraries/jsPsych/css/jspsych.css';
-import timeline from './jsPsychTimeline';
+import { getTimeline } from './jspTimeline';
 import localAxios from './axiosConfigInitial';
 
 // jsPsych isn't actually a "module" like normal modules are in node/commonJS
@@ -19,13 +19,16 @@ export default class MiniExample extends React.Component {
 
 	constructor(props) {
 		super(props);
-		this.state = { jsPsychLoaded: false };
+		this.state = {
+			JSPLoading: false,
+			showThanks: false
+		};
 	};
 
 	componentDidMount() {
 		this.loadJsPsych()
 			.then(_ => {
-				this.setState({ jsPsychLoaded: true });
+				this.setState({ JSPLoading: true });
 				this.startExperiment();
 			})
 			.catch(err => {
@@ -78,23 +81,33 @@ export default class MiniExample extends React.Component {
 			const user_id = (await localAxios.post('/createUser')).data.resData;
 			console.log(`user id: ${user_id}`);
 			jsPsych.data.addProperties({ user_id });
+
+			jsPsych.init({
+				display_element: this.refs.jsPsychTarget,
+				timeline: getTimeline(),
+				on_finish: data => {
+					this.endExperiment()
+				}
+			});
 		} catch (e) {
 			alert('Could not start exeriment. Failed to create new user:');
 			console.log(e);
 		}
-		
-		jsPsych.init({
-			display_element: this.refs.jsPsychTarget,
-			timeline: timeline.getTimeline()
-		});
+	}
+
+	endExperiment() {
+		this.setState({ showThanks: true });
 	}
 
 	render() {
+		const thanks = (<h1>Thanks for participating</h1>);
+
 		return (
 			<div id="jsPsychContainer"> 
-				{ this.state.jsPsychLoaded ?
+				{ this.state.JSPLoading ?
 						(<div ref="jsPsychTarget"></div>) :
 						(<h1>Loading...</h1>) }
+				{ this.state.showThanks && thanks }
 			</div>
 		);
 	}
