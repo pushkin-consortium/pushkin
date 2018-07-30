@@ -65,6 +65,12 @@ module.exports = class Handler {
 					requireDataFields(['user_id']);
 					return this.startExperiment(req.data.user_id);
 					break;
+
+				case 'getMetaQuestionsForUser':
+					requireDataFields(['user_id']);
+					return this.getMetaQuestionsForUser(req.data.user_id);
+					break;
+
 				case 'insertResponse':
 					requireDataFields(['user_id', 'data_string']);
 					return this.insertResponse(req.data.user_id, req.data.data_string);
@@ -136,6 +142,7 @@ module.exports = class Handler {
 		// first 3 bytes -> max 4 digit number, which is what's used in the database
 		return parseInt(crypto.randomBytes(13).toString('hex').substring(0, 3), 16);
 	}
+
 	async startExperiment(user) {
 		return new Promise( (resolve, reject) => {
 			const stimuli_group = this.uniqueNumber();
@@ -180,6 +187,10 @@ module.exports = class Handler {
 
 			resolve();
 		});
+	}
+
+	getMetaQuestionsForUser(user) {
+		return this.pg_main(this.tables.metaQuestions).select('question_json');
 	}
 
 	insertResponse(user, dataString) {
