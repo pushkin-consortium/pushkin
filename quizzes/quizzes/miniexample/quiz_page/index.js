@@ -86,7 +86,7 @@ export default class MiniExample extends React.Component {
 		let stimuli;
 		let meta;
 		try {
-			meta = await localAxios.post('/getMetaForUser', { user_id });
+			meta = await localAxios.post('/getMetaQuestionsForUser', { user_id });
 			stimuli = await localAxios.post('/getStimuliForUser', { user_id });
 			const timeline = buildTimeline(meta, stimuli);
 
