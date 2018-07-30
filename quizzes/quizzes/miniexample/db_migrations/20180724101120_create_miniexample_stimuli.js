@@ -1,7 +1,7 @@
 exports.up = function(knex) {
   return knex.schema.createTable('miniexample_stimuli', table => {
     table.increments('id').primary();
-    table.json('stimulus').unique();
+    table.string('stimulus').unique();
   });
 };
 
