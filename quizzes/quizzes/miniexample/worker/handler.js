@@ -132,7 +132,7 @@ module.exports = class Handler {
 
 	// for ephemeral test-takers (a new one's made each time a quiz is taken)
 	// resolves to the new user id
-	async generateUser() {
+	generateUser() {
 		return new Promise( (resolve, reject) => {
 			const insertData = {
 				created_at: new Date(),
@@ -144,10 +144,10 @@ module.exports = class Handler {
 		});
 	}
 
-	async startExperiment(user) {
+	startExperiment(user) {
 		const maxStimuli = 10;
 
-		return new Promise( (resolve, reject) => {
+		return new Promise( async (resolve, reject) => {
 			// create a stimulus group (stimGroups) (for this experiment, we'll just
 			// make a new group for each quiz run rather than reusing them)
 			const stimGroupId = await this.pg_main(this.tables.stimGroups)
@@ -173,20 +173,23 @@ module.exports = class Handler {
 				started_at: new Date(),
 				cur_position: 0
 			});
+
+			resolve();
 		});
 	}
 
 	getStimuliForUser(user) {
-		return this.pg_main(this.tables.stimuli).join(
-			this.tables.CUQS,
-			`${this.tables.CUQS}.stimulus`,
-			`${this.tables.stimuli}.stimulus`
-		).join(
-			`${this.tables.CUQ}`,
-			`${this.tables.CUQ}.stimuli_group`,
-			`${this.tables.CUQS}.group`
-		)
-		.select(`${this.tables.stimuli}.stimulus`);
+		return new Promise( async (resolve, reject) => {
+			const stimGroupId = (await this.pg_main(this.tables.TUQ)
+				.where('user_id', user).select('stim_group'))[0];
+
+			this.pg_main(this.tables.stim).join(
+				this.tables.stimGroupStim,
+				`${this.tables.stim}.id`,
+				`${this.tables.stimGroupStim}.stimulus`
+			).where(`${this.tables.stimGroupStim}.group`, stimGroupId)
+				.select(`${this.tables.stim}.stimulus`);
+		});
 	}
 
 	insertMetaResponse(user, question, response) {
