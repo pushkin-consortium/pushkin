@@ -15,12 +15,12 @@ module.exports = class Handler {
 		//const TRANS_DB_URL = 'postgres://pushkin:jacob_password@pushkin-transaction-db.co4mo5lsfmqs.us-east-2.rds.amazonaws.com/pushkin_transaction_db';//process.env.TRANSACTION_DATABASE_URL;
 		this.tables = {
 			users: 'miniexample_users',
-			stimuli: 'miniexample_stimuli',
+			stim: 'miniexample_stimuli',
 			stimResp: 'miniexample_stimulusResponses',
-			metaResp: 'miniexample_metaResponses',
-			metaQuestions: 'miniexample_metaQuestions',
-			CUQ: 'miniexample_CUQ',
-			CUQS: 'miniexample_CUQS',
+			stimGroups: 'miniexample_stimulusGroups',
+			stimGroupStim: 'miniexample_stimulusGroupStimuli',
+			TUQ: 'miniexample_TUQ',
+			TUQSR: 'miniexample_TUQSR',
 		};
 
 		this.pg_main = require('knex')({
@@ -66,38 +66,14 @@ module.exports = class Handler {
 					return this.startExperiment(req.data.user_id);
 					break;
 
-				case 'getMetaQuestionsForUser':
-					requireDataFields(['user_id']);
-					return this.getMetaQuestionsForUser(req.data.user_id);
+				case 'generateUser':
+					// no data fields to require
+					return this.generateUser();
 					break;
 
 				case 'getStimuliForUser':
 					requireDataFields(['user_id']);
 					return this.getStimuliForUser(req.data.user_id);
-					break;
-
-				case 'insertResponse':
-					requireDataFields(['user_id', 'data_string']);
-					return this.insertResponse(req.data.user_id, req.data.data_string);
-					break;
-
-				case 'generateUser':
-					// no data fields to require
-					return this.generateUser();
-					break;
-				case 'generateUserWithAuth':
-					requireDataFields(['auth_id']);
-					return this.generateUserWithAuth(req.data.auth_id);
-					break;
-
-				case 'updateUser':
-					requireDataFields(['user_id', 'auth_id']);
-					return this.updateUser(req.data.user, req.data.auth);
-					break;
-
-				case 'getAllStimuli':
-					// no data fields to require
-					return this.getAllStimuli();
 					break;
 
 				case 'insertMetaResponse':
@@ -112,26 +88,51 @@ module.exports = class Handler {
 					return this.insertStimulusResponse(req.data.user, req.data.data_string);
 					break;
 
-				case 'activateStimuli':
-					// no data fields to require
-					return this.activateStimuli();
-					break;
+					//case 'getMetaQuestionsForUser':
+					//requireDataFields(['user_id']);
+					//return this.getMetaQuestionsForUser(req.data.user_id);
+					//break;
 
-				case 'health':
-					// no data fields to require
-					return this.health();
-					break;
+					//case 'insertResponse':
+					//requireDataFields(['user_id', 'data_string']);
+					//return this.insertResponse(req.data.user_id, req.data.data_string);
+					//break;
+
+					//case 'generateUserWithAuth':
+					//requireDataFields(['auth_id']);
+					//return this.generateUserWithAuth(req.data.auth_id);
+					//break;
+
+					//case 'updateUser':
+					//requireDataFields(['user_id', 'auth_id']);
+					//return this.updateUser(req.data.user, req.data.auth);
+					//break;
+
+					//case 'getAllStimuli':
+					//// no data fields to require
+					//return this.getAllStimuli();
+					//break;
+
+					//case 'activateStimuli':
+					//// no data fields to require
+					//return this.activateStimuli();
+					//break;
+
+					//case 'health':
+					//// no data fields to require
+					//return this.health();
+					//break;
 
 			// methods used by other services (e.g. cron or task worker)
-				case 'getUserStimulusResponses':
-					requireDataFields(['user_id']);
-					return this.getUserStimulusResponses(req.data.user_id);
-					break;
+					//case 'getUserStimulusResponses':
+					//requireDataFields(['user_id']);
+					//return this.getUserStimulusResponses(req.data.user_id);
+					//break;
 
-				case 'getDataForPrediction':
-					requireDataFields(['user_id']);
-					return this.getDataForPrediction(req.data.user_id);
-					break;
+					//case 'getDataForPrediction':
+					//requireDataFields(['user_id']);
+					//return this.getDataForPrediction(req.data.user_id);
+					//break;
 
 				default:
 					throw new Error(`method ${req.method} does not exist`);
