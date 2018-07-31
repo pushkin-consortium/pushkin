@@ -50,7 +50,7 @@ const buildTimeline = (meta, stimuli) =>
 	initialTimeline.concat(
 		meta.map(metaTrial => ({ ...metaTrial, on_finish: save('meta') }))
 	).concat(
-		stimuli.map(stimTrial => ({ ...stimTrial, on_finish: save('stimuli') }));
+		stimuli.map(stimTrial => ({ ...stimTrial, on_finish: save('stimuli') }))
 	);
 
 export { buildTimeline };

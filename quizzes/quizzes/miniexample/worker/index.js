@@ -41,7 +41,7 @@ amqp.connect(AMQP_ADDRESS, (err, conn) => {
 					console.log(err);
 					ch.ack(msg);
 					ch.sendToQueue(msg.properties.replyTo,
-						new Buffer(JSON.stringify(err)),
+						new Buffer.from(JSON.stringify(err)),
 						{correlationId: msg.properties.correlationId}
 					);
 				});
