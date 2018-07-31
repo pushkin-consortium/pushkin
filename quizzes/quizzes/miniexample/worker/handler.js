@@ -80,7 +80,7 @@ module.exports = class Handler {
 
 				case 'insertStimulusResponse':
 					requireDataFields(['user_id', 'data_string']);
-					return this.insertStimulusResponse(req.data.user, req.data.data_string);
+					return this.insertStimulusResponse(req.data.user_id, req.data.data_string);
 
 				case 'endExperiment':
 					requireDataFields(['user_id']);
@@ -182,9 +182,9 @@ module.exports = class Handler {
 			let position = 0;
 			await this.pg_main(this.tables.stimGroupStim).insert(
 				selectedStims.map(stim => ({
-					group: stimGroupId,
-					stimulus: stim,
-					position: position++
+						group: stimGroupId,
+						stimulus: stim.id,
+						position: position++
 				}))
 			);
 
@@ -234,7 +234,7 @@ module.exports = class Handler {
 			const stimulus = (await this.pg_main(this.tables.stimGroupStim)
 				.where({
 					group: TUQdata.stim_group,
-					curPosition: TUQdata.cur_position
+					cur_position: TUQdata.cur_position
 				}).select('stimulus'))[0];
 
 			await this.pg_main(this.tables.TUQSR).insert({
@@ -242,6 +242,8 @@ module.exports = class Handler {
 				stimulus: stimulus,
 				response: JSON.stringify(response)
 			});
+
+			await this.pg_main(this.tables.TUQ).where('user_id', user).increment('cur_position');
 
 			resolve();
 		});
@@ -253,7 +255,7 @@ module.exports = class Handler {
 				throw new Error(`endExperiment: user ${user} doesn't exist, aborting`);
 				return;
 			}
-		}).then(_ => {
+		}).then(async _ => {
 			// make sure the user has a TUQ record
 			if ((await this.pg_main(this.tables.TUQ).where('user_id', user).count('*'))[0].count == 0) {
 				throw new Error(`endExperiment: user ${user} doesn't have a TUQ record, aborting`);
