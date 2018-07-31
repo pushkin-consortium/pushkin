@@ -226,27 +226,29 @@ module.exports = class Handler {
 	}
 
 	insertStimulusResponse(user, response) {
-		return new Promise( async (resolve, reject) => {
+		console.log(`inserting response for user ${user}: \n\n\t${response}\n`);
 
-			const TUQdata = (await this.pg_main(this.tables.TUQ)
-				.where('user_id', user).select('stim_group', 'cur_position'))[0];
 
-			const stimulus = (await this.pg_main(this.tables.stimGroupStim)
-				.where({
-					group: TUQdata.stim_group,
-					cur_position: TUQdata.cur_position
-				}).select('stimulus'))[0];
+		// DO CHECKS (not past end, etc.)
 
-			await this.pg_main(this.tables.TUQSR).insert({
-				user_id: user,
-				stimulus: stimulus,
-				response: JSON.stringify(response)
-			});
-
-			await this.pg_main(this.tables.TUQ).where('user_id', user).increment('cur_position');
-
-			resolve();
-		});
+		return this.pg_main(this.tables.TUQ).where('user_id', user).select(
+			'stim_group', 'cur_position').then(TUQdata => {
+				const t = TUQdata[0];
+				return this.pg_main(this.tables.stimGroupStim)
+					.where({
+						group: t.stim_group,
+						position: t.cur_position
+					}).select('stimulus')
+			}).then(stimulus => {
+				return this.pg_main(this.tables.TUQSR).insert({
+					user_id: user,
+					stimulus: stimulus[0].stimulus,
+					response: JSON.stringify(response),
+					answered_at: new Date()
+				});
+			}).then(_ => {
+				return this.pg_main(this.tables.TUQ).where('user_id', user).increment('cur_position');
+			}).then(_ => ''); // returning useless info from last promise is confusing
 	}
 
 	endExperiment(user) {
@@ -270,9 +272,9 @@ module.exports = class Handler {
 				responses.map(r => ({
 					user_id: user,
 					stimulus: r.stimulus,
-					response: r.response,
+					response: JSON.stringify(r.response),
 					created_at: r.answered_at,
-					modified_at: r.modified_at
+					updated_at: r.modified_at
 				}))
 			)
 		}).then(_ => {
@@ -281,7 +283,7 @@ module.exports = class Handler {
 		}).then(_ => {
 			// delete TUQ record
 			return this.pg_main(this.tables.TUQ).where('user_id', user).del();
-		});
+		}).then(_ => ''); // returning useless info from last promise is confusing
 	}
 
 	/*************** helpers **************/
