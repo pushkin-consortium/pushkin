@@ -61,41 +61,30 @@ module.exports = class Handler {
 			switch (req.method) {
 
 			// methods called through API controller
-				case 'startExperiment':
-					requireDataFields(['user_id']);
-					return this.startExperiment(req.data.user_id);
-					break;
-
 				case 'generateUser':
 					// no data fields to require
 					return this.generateUser();
-					break;
+
+				case 'startExperiment':
+					requireDataFields(['user_id']);
+					return this.startExperiment(req.data.user_id);
 
 				case 'getStimuliForUser':
 					requireDataFields(['user_id']);
 					return this.getStimuliForUser(req.data.user_id);
-					break;
 
 				case 'insertMetaResponse':
-					// need to make Current User Quiz Questions table? Or make CUQS generic for both
 					throw new Error('meta responses not yet implemented using database');
 					requireDataFields(['user_id', 'data_string']);
 					return this.insertMetaResponse(req.data.user, req.data.data_string);
-					break;
 
 				case 'insertStimulusResponse':
 					requireDataFields(['user_id', 'data_string']);
 					return this.insertStimulusResponse(req.data.user, req.data.data_string);
-					break;
 
 					//case 'getMetaQuestionsForUser':
 					//requireDataFields(['user_id']);
 					//return this.getMetaQuestionsForUser(req.data.user_id);
-					//break;
-
-					//case 'insertResponse':
-					//requireDataFields(['user_id', 'data_string']);
-					//return this.insertResponse(req.data.user_id, req.data.data_string);
 					//break;
 
 					//case 'generateUserWithAuth':
@@ -137,15 +126,22 @@ module.exports = class Handler {
 				default:
 					throw new Error(`method ${req.method} does not exist`);
 			}
-		//});
 	}
 
-	/*************** METHODS CALLED BY HANDLER & HELPER FUNCTIONS ****************/
-	// all must return a promise
+	/*************** METHODS CALLED BY HANDLER & HELPER FUNCTIONS (all return promises) ****************/
 
-	uniqueNumber() {
-		// first 3 bytes -> max 4 digit number, which is what's used in the database
-		return parseInt(crypto.randomBytes(13).toString('hex').substring(0, 3), 16);
+	// for ephemeral test-takers (a new one's made each time a quiz is taken)
+	// resolves to the new user id
+	async generateUser() {
+		return new Promise( (resolve, reject) => {
+			const insertData = {
+				created_at: new Date(),
+				updated_at: new Date()
+			};
+			this.pg_main(this.tables.users).insert(insertData).returning('id')
+				.then(d => resolve(d[0]))
+				.catch(reject);
+		});
 	}
 
 	async startExperiment(user) {
@@ -194,10 +190,6 @@ module.exports = class Handler {
 		});
 	}
 
-	getMetaQuestionsForUser(user) {
-		return this.pg_main(this.tables.metaQuestions).select('question_json');
-	}
-
 	getStimuliForUser(user) {
 		return this.pg_main(this.tables.stimuli).join(
 			this.tables.CUQS,
@@ -211,75 +203,6 @@ module.exports = class Handler {
 		.select(`${this.tables.stimuli}.stimulus`);
 	}
 
-	insertResponse(user, dataString) {
-		const insertData = {
-			user_id: user,
-			data_string: dataString,
-			created_at: new Date(),
-			updated_at: new Date()
-		};
-		return this.pg_main(this.tables.responses).insert(insertData);
-	}
-
-	// resolves to true or false if the user exists respectively
-	userExists(user) {
-		return new Promise( (resolve, reject) => {
-			// better to resolve false than reject the promise because then actual
-			// errors with connection, etc. may be interpreted as the user not existing
-			this.pg_main(this.tables.users).count('*').where('id', user)
-				.then(res => resolve(res ? true : false))
-				.catch(reject);
-		});
-	}
-
-	// for ephemeral test-takers (a new one's made each time a quiz is taken)
-	// resolves to the new user id
-	async generateUser() {
-		return new Promise( (resolve, reject) => {
-			const insertData = {
-				created_at: new Date(),
-				updated_at: new Date()
-			};
-			this.pg_main(this.tables.users).insert(insertData).returning('id')
-				.then(d => resolve(d[0]))
-				.catch(reject);
-		});
-	}
-
-	// same as generateUser, but associates the new user id with the given auth id
-	async generateUserWithAuth(auth) {
-		return new Promise( (resolve, reject) => {
-			const insertData = {
-				auth0_id: auth,
-				created_at: new Date(),
-				updated_at: new Date()
-			};
-			this.pg_main(this.tables.users).insert(insertData).returning('id')
-				.then(resolve)
-				.catch(reject);
-		});
-	}
-
-	// associate a user in the users table with an auth0 id
-	updateUser(user, auth) {
-		return new Promise( (resolve, reject) => {
-			this.pg_main(this.tables.users)
-				.where('id', user)
-				.update('auth0_id', auth)
-				.then(resolve)
-				.catch(reject);
-		});
-	}
-
-	getAllStimuli() {
-		return new Promise( (resolve, reject) => {
-			this.pg_main.select().table(this.tables.stim)
-				.then(resolve)
-				.catch(reject);
-		});
-	}
-
-
 	insertMetaResponse(user, question, response) {
 		const insertData = {
 			user_id: user,
@@ -291,88 +214,107 @@ module.exports = class Handler {
 		return this.pg_main(this.tables.metaResp).insert(insertData)
 	}
 
-
 	insertStimulusResponse(user, responseJson) {
 		return new Promise( (resolve, reject) => {
 
-			this.pg_main(this.tables.CUQ).where('user_id', user).select('cur_position')
-				.then(poss => {
-					const pos = poss[0];
-					const stimGroup =
-						this.pg_main(this.tables.CUQ)
-						.where('user_id', user)
-						.select('stimuli_group');
-
-					this.pg_main(this.tables.CUQS)
-						.where({
-							group: stimGroup,
-							position: pos
-						})
-						.update({
-							response_json: responseJson,
-							answered_at: new Date()
-						})
-				})
-
-			this.pg_main(this.tables.CUQS)
-			.where({
-
-			this.pg_main(this.tables.CUQ)
-				.where('user_id', user)
-				.increment('cur_position', 1);
-
-			const insertData = {
-				user_id: user,
-				stimulus: stimulus,
-				data_string: dataString,
-				created_at: new Date(),
-				updated_at: new Date()
-			};
-			this.pg_main(this.tables.stimResp).insert(insertData)
-				.then(resolve)
-				.catch(reject);
 		});
 	}
 
-
-	getNextStimulus(user) {
-		return new Promise( (resolve, reject) => {
-			reject('getNextStimulus in handler not yet implemented. What exactly should it do?');
-		});
+	/*************** helpers **************/
+	uniqueNumber() {
+		// first 3 bytes -> max 4 digit number, which is what's used in the database
+		return parseInt(crypto.randomBytes(13).toString('hex').substring(0, 3), 16);
 	}
 
 
-	activateStimuli() {
-		return new Promise( (resolve, reject) => {
-			reject('activateStimuli in handler not yet implemented. Table structure not in place.');
-		});
-	}
+	//getMetaQuestionsForUser(user) {
+	//return this.pg_main(this.tables.metaQuestions).select('question_json');
+	//}
+
+	
+
+	// resolves to true or false if the user exists respectively
+	//userExists(user) {
+	//return new Promise( (resolve, reject) => {
+	//// better to resolve false than reject the promise because then actual
+	//// errors with connection, etc. may be interpreted as the user not existing
+	//this.pg_main(this.tables.users).count('*').where('id', user)
+	//.then(res => resolve(res ? true : false))
+	//.catch(reject);
+	//});
+	//}
 
 
-	health() {
-		return new Promise( (resolve, reject) => {
-			resolve({ message: 'healthy' });
-		});
-	}
+	// same as generateUser, but associates the new user id with the given auth id
+	//async generateUserWithAuth(auth) {
+	//return new Promise( (resolve, reject) => {
+	//const insertData = {
+	//auth0_id: auth,
+	//created_at: new Date(),
+	//updated_at: new Date()
+	//};
+	//this.pg_main(this.tables.users).insert(insertData).returning('id')
+	//.then(resolve)
+	//.catch(reject);
+	//});
+	//}
+
+	// associate a user in the users table with an auth0 id
+	//updateUser(user, auth) {
+	//return new Promise( (resolve, reject) => {
+	//this.pg_main(this.tables.users)
+	//.where('id', user)
+	//.update('auth0_id', auth)
+	//.then(resolve)
+	//.catch(reject);
+	//});
+	//}
+
+	//getAllStimuli() {
+	//return new Promise( (resolve, reject) => {
+	//this.pg_main.select().table(this.tables.stim)
+	//.then(resolve)
+	//.catch(reject);
+	//});
+	//}
+
+	//getNextStimulus(user) {
+	//return new Promise( (resolve, reject) => {
+	//reject('getNextStimulus in handler not yet implemented. What exactly should it do?');
+	//});
+	//}
+	//
+	//
+	//activateStimuli() {
+	//return new Promise( (resolve, reject) => {
+	//reject('activateStimuli in handler not yet implemented. Table structure not in place.');
+	//});
+	//}
+	//
+	//
+	//health() {
+	//return new Promise( (resolve, reject) => {
+	//resolve({ message: 'healthy' });
+	//});
+	//}
+	//
+	//
+	//getUserStimulusResponses(user) {
+	//return new Promise( (resolve, reject) => {
+	//this.pg_main(this.tables.stimResp)
+	//.where('id', user)
+	//.select('*')
+	//.then(resolve)
+	//.catch(reject);
+	//});
+	//}
 
 
-	getUserStimulusResponses(user) {
-		return new Promise( (resolve, reject) => {
-			this.pg_main(this.tables.stimResp)
-				.where('id', user)
-				.select('*')
-				.then(resolve)
-				.catch(reject);
-		});
-	}
-
-
-	getDataForPrediction(user) {
-		return new Promise( (resolve, reject) => {
-			reject('getDataForPrediction: should this do the same as getUserStimulusResponses?');
-		});
-	}
-
+	//getDataForPrediction(user) {
+	//return new Promise( (resolve, reject) => {
+	//reject('getDataForPrediction: should this do the same as getUserStimulusResponses?');
+	//});
+	//}
 }
 
 
