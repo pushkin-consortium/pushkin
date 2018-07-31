@@ -4,7 +4,7 @@
  *	- put db urls back to process environment variables
  *	- uncomment sending responses in index.js (sendToQueue)
  ************/
-import crypto from 'crypto';
+const crypto = require('crypto');
 
 module.exports = class Handler {
 	constructor() {
@@ -145,16 +145,34 @@ module.exports = class Handler {
 	}
 
 	startExperiment(user) {
-		const maxStimuli = 10;
 
 		return new Promise( async (resolve, reject) => {
+			if (!(await this.userExists(user))) {
+				reject(`user ${user} doesn't exist, aborting`);
+				return;
+			}
+
+			// check if the user already has a TUQ record
+			if ((await this.pg_main(this.tables.TUQ).where('user_id', user).count('*'))[0].count > 0) {
+				reject(`user ${user} already has a TUQ record, aborting`);
+				return;
+			}
+
+
+			const maxStimuli = 10;
+			console.log(`starting experiment for user ${user} with ${maxStimuli} max stimuli`);
+
 			// create a stimulus group (stimGroups) (for this experiment, we'll just
 			// make a new group for each quiz run rather than reusing them)
-			const stimGroupId = await this.pg_main(this.tables.stimGroups)
-				.insert({ created_at: new Date() }).returning('id');
+			const stimGroupId = (await this.pg_main(this.tables.stimGroups)
+				.insert({ created_at: new Date() }).returning('id'))[0];
+
+			console.log(`assigned user ${user} stimulus group ${stimGroupId}`);
 			
 			const selectedStims = await this.pg_main(this.tables.stim)
 				.select('id').orderByRaw('random()').limit(maxStimuli);
+
+			console.log(`selected ${selectedStims.length} stimuli for group ${stimGroupId}`);
 
 			// add stimuli to the group (stimGroupStim)
 			let position = 0;
@@ -166,6 +184,8 @@ module.exports = class Handler {
 				}))
 			);
 
+			console.log(`added ${selectedStims.length} stimuli to group ${stimGroupId}`);
+
 			// initialize This User Quiz (TUQ)
 			await this.pg_main(this.tables.TUQ).insert({
 				user_id: user,
@@ -173,6 +193,9 @@ module.exports = class Handler {
 				started_at: new Date(),
 				cur_position: 0
 			});
+
+			console.log(`created new TUQ record for user ${user}`);
+			console.log(`done starting experiment for user ${user}`);
 
 			resolve();
 		});
@@ -199,7 +222,7 @@ module.exports = class Handler {
 	}
 
 	insertStimulusResponse(user, response) {
-		return new Promise( (resolve, reject) => {
+		return new Promise( async (resolve, reject) => {
 
 			const TUQdata = (await this.pg_main(this.tables.TUQ)
 				.where('user_id', user).select('stim_group', 'cur_position'))[0];
@@ -223,7 +246,13 @@ module.exports = class Handler {
 	/*************** helpers **************/
 	uniqueNumber() {
 		// first 3 bytes -> max 4 digit number, which is what's used in the database
-		return parseInt(crypto.randomBytes(13).toString('hex').substring(0, 3), 16);
+		return parseInt(randomBytes(13).toString('hex').substring(0, 3), 16);
+	}
+
+	async userExists(user) {
+		const count =
+			(await this.pg_main(this.tables.users).count('id').where('id', user));
+		return count[0].count > 0;
 	}
 
 
