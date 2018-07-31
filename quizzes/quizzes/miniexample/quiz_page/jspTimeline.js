@@ -30,7 +30,8 @@ const demographics = {
 	on_finish: save('meta')
 };
 /*
-const question1 = {
+const question1 = 
+{
 	type: 'html-button-response',
 	stimulus: 'What\'s the better color to wear in the morning?',
 	choices: ['orange', 'yellow', 'blue', 'red', 'black', 'white'],

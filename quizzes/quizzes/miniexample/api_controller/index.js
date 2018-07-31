@@ -16,6 +16,7 @@ module.exports = (rpc, conn) => {
 		{ path: '/getStimuliForUser', method: 'getStimuliForUser', queue: db_read_queue },
 		{ path: '/metaResponse', method: 'insertMetaResponse', queue: db_write_queue },
 		{ path: '/stimulusResponse', method: 'insertStimulusResponse', queue: db_write_queue },
+		{ path: '/endExperiment', method: 'endExperiment', queue: task_queue },
 
 		// currently unused
 		//{ path: '/getAllStimuli', method: 'getAllStimuli', queue: db_read_queue },
