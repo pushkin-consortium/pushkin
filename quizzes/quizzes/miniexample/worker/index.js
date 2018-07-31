@@ -24,7 +24,7 @@ amqp.connect(AMQP_ADDRESS, (err, conn) => {
 			console.log(`got message: ${msg.content.toString()}`);
 			Promise.resolve(msg.content.toString())
 				.then(JSON.parse)
-				// javascript is ridiculous
+				// nobody should ever have to do this
 				.then(Handler.handle.bind(Handler))
 				.then(res => {
 					if (res) {
