@@ -156,9 +156,9 @@ module.exports = class Handler {
 			const selectedStims = await this.pg_main(this.tables.stim)
 				.select('id').orderByRaw('random()').limit(maxStimuli);
 
-			// add stimuli to the group (stimGroupsStim)
+			// add stimuli to the group (stimGroupStim)
 			let position = 0;
-			await this.pg_main(this.tables.stimGroupsStim).insert(
+			await this.pg_main(this.tables.stimGroupStim).insert(
 				selectedStims.map(stim => ({
 					group: stimGroupId,
 					stimulus: stim,
@@ -183,29 +183,40 @@ module.exports = class Handler {
 			const stimGroupId = (await this.pg_main(this.tables.TUQ)
 				.where('user_id', user).select('stim_group'))[0];
 
-			this.pg_main(this.tables.stim).join(
+			const stims = await this.pg_main(this.tables.stim).join(
 				this.tables.stimGroupStim,
 				`${this.tables.stim}.id`,
 				`${this.tables.stimGroupStim}.stimulus`
 			).where(`${this.tables.stimGroupStim}.group`, stimGroupId)
 				.select(`${this.tables.stim}.stimulus`);
+
+			resolve(stims);
 		});
 	}
 
-	insertMetaResponse(user, question, response) {
-		const insertData = {
-			user_id: user,
-			question: question,
-			response: response,
-			created_at: new Date(),
-			updated_at: new Date()
-		};
-		return this.pg_main(this.tables.metaResp).insert(insertData)
+	insertMetaResponse(user, type, response) {
+
 	}
 
-	insertStimulusResponse(user, responseJson) {
+	insertStimulusResponse(user, response) {
 		return new Promise( (resolve, reject) => {
 
+			const TUQdata = (await this.pg_main(this.tables.TUQ)
+				.where('user_id', user).select('stim_group', 'cur_position'))[0];
+
+			const stimulus = (await this.pg_main(this.tables.stimGroupStim)
+				.where({
+					group: TUQdata.stim_group,
+					curPosition: TUQdata.cur_position
+				}).select('stimulus'))[0];
+
+			await this.pg_main(this.tables.TUQSR).insert({
+				user_id: user,
+				stimulus: stimulus,
+				response: JSON.stringify(response)
+			});
+
+			resolve();
 		});
 	}
 
