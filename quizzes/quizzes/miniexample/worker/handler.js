@@ -133,6 +133,8 @@ module.exports = class Handler {
 	}
 
 	/*************** METHODS CALLED BY HANDLER & HELPER FUNCTIONS (all return promises) ****************/
+	/*** methods that don't return anything meaningful should return 0 as a status code 
+	 *	 because axios wants a response in the front end ***/
 
 	// for ephemeral test-takers (a new one's made each time a quiz is taken)
 	// resolves to the new user id
@@ -201,24 +203,31 @@ module.exports = class Handler {
 			console.log(`created new TUQ record for user ${user}`);
 			console.log(`done starting experiment for user ${user}`);
 
-			resolve();
+			resolve(0);
 		});
 	}
 
 	getStimuliForUser(user) {
-		return new Promise( async (resolve, reject) => {
-			const stimGroupId = (await this.pg_main(this.tables.TUQ)
-				.where('user_id', user).select('stim_group'))[0];
+		return this.pg_main(this.tables.TUQ).where('user_id', user).select('stim_group')
+			.then(g => {
+				if (g.length < 1) {
+					throw new Error(`getStimuliForUser: user ${user} doesn't have a TUQ record, aborting`);
+					return;
+				}
+				if (g.length > 1) {
+					throw new Error(`getStimuliForUser: the ${this.tables.TUQ} table appears to be corrupt, aborting`);
+					return;
+				}
+				const stimGroupId = g[0].stim_group;
+				console.log(`getStimuliForUser: stimGroup ${stimGroupId}`);
 
-			const stims = await this.pg_main(this.tables.stim).join(
-				this.tables.stimGroupStim,
-				`${this.tables.stim}.id`,
-				`${this.tables.stimGroupStim}.stimulus`
-			).where(`${this.tables.stimGroupStim}.group`, stimGroupId)
-				.select(`${this.tables.stim}.stimulus`);
-
-			resolve(stims);
-		});
+				return this.pg_main(this.tables.stim).join(
+					this.tables.stimGroupStim,
+					`${this.tables.stim}.id`,
+					`${this.tables.stimGroupStim}.stimulus`
+				).where(`${this.tables.stimGroupStim}.group`, stimGroupId)
+					.select(`${this.tables.stim}.stimulus`);
+			})
 	}
 
 	insertMetaResponse(user, type, response) {
@@ -226,7 +235,7 @@ module.exports = class Handler {
 	}
 
 	insertStimulusResponse(user, response) {
-		console.log(`inserting response for user ${user}: \n\n\t${response}\n`);
+		console.log(`inserting response for user ${user}: \n\n\t${JSON.stringify(response)}\n`);
 
 
 		// DO CHECKS (not past end, etc.)
@@ -248,7 +257,7 @@ module.exports = class Handler {
 				});
 			}).then(_ => {
 				return this.pg_main(this.tables.TUQ).where('user_id', user).increment('cur_position');
-			}).then(_ => ''); // returning useless info from last promise is confusing
+			}).then(_ => 0);
 	}
 
 	endExperiment(user) {
@@ -264,26 +273,31 @@ module.exports = class Handler {
 				return;
 			}
 		}).then(_ => { // good to go
+			console.log(`ending experiment for user ${user}`);
 			// get TUQSRs
+			console.log(this.pg_main(this.tables.TUQSR).where('user_id', user).select('*').toSQL().toNative());
 			return this.pg_main(this.tables.TUQSR).where('user_id', user).select('*');
 		}).then(responses => {
+			console.log(`solidifying user ${user}'s responses`);
+			const res = responses.map(r => ({
+				user_id: user,
+				stimulus: r.stimulus,
+				response: JSON.stringify(r.response),
+				created_at: r.answered_at,
+				updated_at: r.modified_at
+			}));
 			// put TUQSRs in stimResp
-			return this.pg_main(this.tables.stimResp).insert(
-				responses.map(r => ({
-					user_id: user,
-					stimulus: r.stimulus,
-					response: JSON.stringify(r.response),
-					created_at: r.answered_at,
-					updated_at: r.modified_at
-				}))
-			)
-		}).then(_ => {
+			return this.pg_main(this.tables.stimResp).insert(res);
+		})/*.then(_ => {
 			// delete TUQSRs
+			console.log(`deleting user ${user}'s temp responses`);
 			return this.pg_main(this.tables.TUQSR).where('user_id', user).del();
 		}).then(_ => {
 			// delete TUQ record
+			console.log(`removing user ${user}'s TUQ record`);
 			return this.pg_main(this.tables.TUQ).where('user_id', user).del();
-		}).then(_ => ''); // returning useless info from last promise is confusing
+		}).then(_ => 0);
+		*/
 	}
 
 	/*************** helpers **************/

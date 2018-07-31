@@ -27,7 +27,7 @@ amqp.connect(AMQP_ADDRESS, (err, conn) => {
 				// nobody should ever have to do this
 				.then(Handler.handle.bind(Handler))
 				.then(res => {
-					if (res) {
+					if (res || res == 0) { // 0 is used for success by "void" methods
 						console.log(`responding ${JSON.stringify(res)}`);
 						ch.sendToQueue(msg.properties.replyTo,
 							new Buffer.from(JSON.stringify(res)),

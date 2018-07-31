@@ -35,6 +35,7 @@ export default class MiniExample extends React.Component {
 	loadJsPsych() {
 		console.log('loadJsPsych');
 		const jsPsychMainScript = 'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/jspsych.js';
+		// these are all required by something in either jspTimeline or meta/stim stuff sent from the api
 		const jsPsychPlugins = [
 			'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/plugins/jspsych-html-button-response.js',
 			'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/plugins/jspsych-instructions.js',
@@ -73,7 +74,7 @@ export default class MiniExample extends React.Component {
 			jsPsych.data.addProperties({ user_id });
 
 		} catch (e) {
-			alert('Could not start exeriment. Failed to create new user:');
+			console.log('Could not start exeriment. Failed to create new user:');
 			console.log(e);
 			return;
 		}
@@ -81,7 +82,7 @@ export default class MiniExample extends React.Component {
 		// startExperiment(user_id)
 		// (let worker prep the database)
 		try { await localAxios.post('/startExperiment', { user_id }); }
-		catch (e) { alert('failed to startExperiment'); console.log(e); return; }
+		catch (e) { console.log('failed to startExperiment'); console.log(e); return; }
 
 		// getStimuliForUser(user_id), create the timeline, and start
 		let stimuli;
@@ -90,24 +91,36 @@ export default class MiniExample extends React.Component {
 			// meta Qs not yet done via database (just hardcoded in jspTimeline)
 			meta = []; // (await localAxios.post('/getMetaQuestionsForUser', { user_id })).data.resData;
 			stimuli = (await localAxios.post('/getStimuliForUser', { user_id })).data.resData;
-			const timeline = buildTimeline(meta, stimuli);
-
-			jsPsych.init({
-				display_element: this.refs.jsPsychTarget,
-				timeline: timeline,
-				on_finish: data => {
-					this.endExperiment()
-				}
-			});
+			console.log('got raw stimuli');
+			console.log(stimuli);
 		} catch (e) {
-			alert('failed to get timeline trial data');
+			console.log('failed to get timeline trial data');
 			console.log(e);
 			return;
 		}
+
+		try {
+			stimuli = stimuli.map(stim => JSON.parse(stim.stimulus));
+		} catch (e) {
+			console.log('failed to parse stimuli');
+			console.log(e);
+			return;
+		}
+
+		const timeline = buildTimeline(meta, stimuli);
+
+		jsPsych.init({
+			display_element: this.refs.jsPsychTarget,
+			timeline: timeline,
+			on_finish: data => {
+				this.endExperiment()
+			}
+		});
 	}
 
 	endExperiment() {
 		this.setState({ showThanks: true });
+		localAxios.post('/endExperiment', { user_id: this.state.user_id });
 	}
 
 	render() {
