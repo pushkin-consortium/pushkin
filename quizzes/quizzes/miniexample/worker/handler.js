@@ -82,6 +82,10 @@ module.exports = class Handler {
 					requireDataFields(['user_id', 'data_string']);
 					return this.insertStimulusResponse(req.data.user, req.data.data_string);
 
+				case 'endExperiment':
+					requireDataFields(['user_id']);
+					return this.endExperiment(req.data.user_id);
+
 					//case 'getMetaQuestionsForUser':
 					//requireDataFields(['user_id']);
 					//return this.getMetaQuestionsForUser(req.data.user_id);
@@ -158,7 +162,7 @@ module.exports = class Handler {
 				return;
 			}
 
-
+			// good to go
 			const maxStimuli = 10;
 			console.log(`starting experiment for user ${user} with ${maxStimuli} max stimuli`);
 
@@ -240,6 +244,41 @@ module.exports = class Handler {
 			});
 
 			resolve();
+		});
+	}
+
+	endExperiment(user) {
+		return this.userExists(user).then(exists => {
+			if (!exists) {
+				throw new Error(`endExperiment: user ${user} doesn't exist, aborting`);
+				return;
+			}
+		}).then(_ => {
+			// make sure the user has a TUQ record
+			if ((await this.pg_main(this.tables.TUQ).where('user_id', user).count('*'))[0].count == 0) {
+				throw new Error(`endExperiment: user ${user} doesn't have a TUQ record, aborting`);
+				return;
+			}
+		}).then(_ => { // good to go
+			// get TUQSRs
+			return this.pg_main(this.tables.TUQSR).where('user_id', user).select('*');
+		}).then(responses => {
+			// put TUQSRs in stimResp
+			return this.pg_main(this.tables.stimResp).insert(
+				responses.map(r => ({
+					user_id: user,
+					stimulus: r.stimulus,
+					response: r.response,
+					created_at: r.answered_at,
+					modified_at: r.modified_at
+				}))
+			)
+		}).then(_ => {
+			// delete TUQSRs
+			return this.pg_main(this.tables.TUQSR).where('user_id', user).del();
+		}).then(_ => {
+			// delete TUQ record
+			return this.pg_main(this.tables.TUQ).where('user_id', user).del();
 		});
 	}
 
