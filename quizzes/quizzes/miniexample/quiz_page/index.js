@@ -38,6 +38,7 @@ export default class MiniExample extends React.Component {
 		const jsPsychPlugins = [
 			'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/plugins/jspsych-html-button-response.js',
 			'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/plugins/jspsych-instructions.js',
+			'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/plugins/jspsych-survey-text.js'
 		];
 
 		// just for logging purposes
@@ -86,7 +87,8 @@ export default class MiniExample extends React.Component {
 		let stimuli;
 		let meta;
 		try {
-			meta = (await localAxios.post('/getMetaQuestionsForUser', { user_id })).data.resData;
+			// meta Qs not yet done via database (just hardcoded in jspTimeline)
+			meta = []; // (await localAxios.post('/getMetaQuestionsForUser', { user_id })).data.resData;
 			stimuli = (await localAxios.post('/getStimuliForUser', { user_id })).data.resData;
 			const timeline = buildTimeline(meta, stimuli);
 
