@@ -145,48 +145,34 @@ module.exports = class Handler {
 	}
 
 	async startExperiment(user) {
+		const maxStimuli = 10;
+
 		return new Promise( (resolve, reject) => {
-			const stimuli_group = this.uniqueNumber();
+			// create a stimulus group (stimGroups) (for this experiment, we'll just
+			// make a new group for each quiz run rather than reusing them)
+			const stimGroupId = await this.pg_main(this.tables.stimGroups)
+				.insert({ created_at: new Date() }).returning('id');
+			
+			const selectedStims = await this.pg_main(this.tables.stim)
+				.select('id').orderByRaw('random()').limit(maxStimuli);
 
-			// create new Current User Quiz
-			try {
-				const cuqInsertData = {
-					user_id: user,
-					started_at: new Date(),
-					stimuli_group: stimuli_group,
-					cur_position: 0
-				};
-				// must wait because CUQS references CUQ
-				await this.pg_main(this.tables.CUQ).insert(cuqInsertData);
-			} catch (e) {
-				reject(`failed to create new Current User Quiz data: ${JSON.stringify(e)}`);
-				return;
-			}
-
-			// select stimuli and put in CUQS
-			let stimuli;
-			try {
-				stimuli =
-					await this.pg_main(this.tables.stimuli).select('id').orderByRaw('random()').limit(10);
-			} catch (e) {
-				reject(`failed to retrieve stimuli: ${JSON.stringify(e)}`);
-				return;
-			}
-
-			try {
-				let position = 0;
-				const cuqsInsertDatas = stimuli.map(stimRow => ({
-					group: stimuli_group,
-					stimulus: stimRow.id,
+			// add stimuli to the group (stimGroupsStim)
+			let position = 0;
+			await this.pg_main(this.tables.stimGroupsStim).insert(
+				selectedStims.map(stim => ({
+					group: stimGroupId,
+					stimulus: stim,
 					position: position++
-				}));
-				await this.pg_main(this.tables.CUQS).insert(cuqsInsertDatas)
-			} catch (e) {
-				reject(`failed to prepare Curent User	Quiz Stimuli: ${JSON.stringify(e)}`);
-				return;
-			}
+				}))
+			);
 
-			resolve();
+			// initialize This User Quiz (TUQ)
+			await this.pg_main(this.tables.TUQ).insert({
+				user_id: user,
+				stim_group: stimGroupId,
+				started_at: new Date(),
+				cur_position: 0
+			});
 		});
 	}
 
