@@ -1,11 +1,15 @@
 import localAxios from './axiosConfigInitial';
 
-const save = type => data => {
+const save = (type, mType) => data => {
 	const path = type == 'meta' ? '/metaResponse' : '/stimulusResponse';
-	const postData = {
-		user_id: data.user_id,
-		data_string: data
-	};
+
+	const postData = type == 'meta' ?
+		{ user_id: data.user_id,
+			type: mType, // mType should match a column in the users table
+			response: JSON.parse(data.responses).Q0 } :
+		{ user_id: data.user_id,
+			data_string: data };
+
 	try {
 		localAxios.post(path, postData);
 	} catch (e) {
@@ -22,36 +26,23 @@ const intro = {
 	show_clickable_nav: true,
 	button_label_next:'Continue'
 };
-const demographics = {
-	type: 'survey-text',
-	questions: [{ prompt: 'Date of birth:' }, { prompt: 'Native language:' }],
-	preamble: 'Please fill out some basic information before starting',
-	button_label: 'Continue',
-	on_finish: save('meta')
-};
-/*
-const question1 = 
-{
-	type: 'html-button-response',
-	stimulus: 'What\'s the better color to wear in the morning?',
-	choices: ['orange', 'yellow', 'blue', 'red', 'black', 'white'],
-	saveData: true
-};
-const question2 = {
-	type: 'html-button-response',
-	stimulus: 'What\'s the better color to wear in the evening?',
-	choices: ['orange', 'yellow', 'blue', 'red', 'black', 'white'],
-	saveData: true
-};
-*/
+const demographics = [
+	{ type: 'survey-text',
+		questions: [{ prompt: 'Date of birth:' }],
+		button_label: 'Continue',
+		on_finish: save('meta', 'dob') },
+	{ type: 'survey-text',
+		questions: [{ prompt: 'Native language:' }],
+		button_label: 'Continue',
+		on_finish: save('meta', 'native_language') }
+];
 
-const initialTimeline = [ intro, demographics ];
 
-const buildTimeline = (meta, stimuli) => 
-	initialTimeline.concat(
-		meta.map(metaTrial => ({ ...metaTrial, on_finish: save('meta') }))
-	).concat(
-		stimuli.map(stimTrial => ({ ...stimTrial, on_finish: save('stimuli') }))
-	);
+const initialTimeline = [ intro, ...demographics ];
+
+const buildTimeline = stimuli => [
+	...initialTimeline,
+	...stimuli.map(stimTrial => ({ ...stimTrial, on_finish: save('stimuli') }))
+];
 
 export { buildTimeline };

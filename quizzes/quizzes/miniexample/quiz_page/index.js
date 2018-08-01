@@ -8,7 +8,7 @@ import { browserHistory } from 'react-router';
 import s from './styles.scss';
 import jsPsychStyles from '../libraries/jsPsych/css/jspsych.css';
 import { buildTimeline } from './jspTimeline';
-import loadScript from './scriptLoader';
+import { loadScript } from './scriptLoader';
 import localAxios from './axiosConfigInitial';
 
 export default class MiniExample extends React.Component {
@@ -89,7 +89,6 @@ export default class MiniExample extends React.Component {
 		let meta;
 		try {
 			// meta Qs not yet done via database (just hardcoded in jspTimeline)
-			meta = []; // (await localAxios.post('/getMetaQuestionsForUser', { user_id })).data.resData;
 			stimuli = (await localAxios.post('/getStimuliForUser', { user_id })).data.resData;
 			console.log('got raw stimuli');
 			console.log(stimuli);
@@ -107,7 +106,7 @@ export default class MiniExample extends React.Component {
 			return;
 		}
 
-		const timeline = buildTimeline(meta, stimuli);
+		const timeline = buildTimeline(stimuli);
 
 		jsPsych.init({
 			display_element: this.refs.jsPsychTarget,

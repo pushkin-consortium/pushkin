@@ -74,9 +74,9 @@ module.exports = class Handler {
 					return this.getStimuliForUser(req.data.user_id);
 
 				case 'insertMetaResponse':
-					throw new Error('meta responses not yet implemented using database');
-					requireDataFields(['user_id', 'data_string']);
-					return this.insertMetaResponse(req.data.user, req.data.data_string);
+					// 'type' must match a column in the database's user table
+					requireDataFields(['user_id', 'type', 'response']);
+					return this.insertMetaResponse(req.data.user_id, req.data.type, req.data.response);
 
 				case 'insertStimulusResponse':
 					requireDataFields(['user_id', 'data_string']);
@@ -231,7 +231,18 @@ module.exports = class Handler {
 	}
 
 	insertMetaResponse(user, type, response) {
-
+		return this.userExists(user).then(exists => {
+			if (!exists) {
+				throw new Error(`insertMetaResponse: user ${user} doesn't exist, aborting`);
+				return;
+			}
+		}).then(_ => {
+			return this.pg_main(this.tables.users).where('id', user).first(type);
+		}).then(hasTypeData => {
+			const e = hasTypeData[type];
+			console.log(`${e ? 'changing' : 'setting'} user ${user}'s ${type} to "${response}"`);
+			return this.pg_main(this.tables.users).where('id', user).update(type, response);
+		}).then(_ => 0);
 	}
 
 	insertStimulusResponse(user, response) {
