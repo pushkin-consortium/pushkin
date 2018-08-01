@@ -231,7 +231,15 @@ module.exports = class Handler {
 	}
 
 	insertMetaResponse(user, type, response) {
-		return this.userExists(user).then(exists => {
+		Promise.resolve().then(_ => {
+			const validMetaColumns = [ 'dob', 'native_language' ];
+			if (validMetaColumns.indexOf(type) <= -1) {
+				throw new Error(`insertMetaResponse: user ${user} attempted to save meta to an invalid column "${type}"`);
+				return;
+			}
+		}).then(_ => {
+			return this.userExists(user)
+		}).then(exists => {
 			if (!exists) {
 				throw new Error(`insertMetaResponse: user ${user} doesn't exist, aborting`);
 				return;
