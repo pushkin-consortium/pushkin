@@ -8,7 +8,7 @@ import { browserHistory } from 'react-router';
 import s from './styles.scss';
 import jsPsychStyles from '../libraries/jsPsych/css/jspsych.css';
 import { buildTimeline } from './jspTimeline';
-import { loadScript } from './scriptLoader';
+import { loadScript, loadScripts } from './scriptLoader';
 import localAxios from './axiosConfigInitial';
 
 export default class MiniExample extends React.Component {
@@ -16,7 +16,7 @@ export default class MiniExample extends React.Component {
 	constructor(props) {
 		super(props);
 		this.state = {
-			JSPLoading: true,
+			loading: true,
 			showThanks: false
 		};
 	};
@@ -24,7 +24,6 @@ export default class MiniExample extends React.Component {
 	componentDidMount() {
 		this.loadJsPsych()
 			.then(_ => {
-				this.setState({ JSPLoading: false });
 				this.startExperiment();
 			})
 			.catch(err => {
@@ -55,9 +54,14 @@ export default class MiniExample extends React.Component {
 		// load jsPsych stuff from CDNs
 		// main script must load before the plugins do
 		return loadScript(jsPsychMainScript, () => console.log('jsPsych core loaded'))
-			.then(r => {
-				const pluginPromises = jsPsychPlugins.map(src => loadScript(src, loadCounter));
-				return Promise.all(pluginPromises);
+			.then(_ => {
+				console.log('asdfasdfads');
+				const srcsAndOnloads = jsPsychPlugins.map(p => ({
+					src: p,
+					onload: () => {console.log("my onload!")}
+				}));
+				console.log(srcsAndOnloads);
+				loadScripts(srcsAndOnloads);
 			});
 	}
 
@@ -106,6 +110,8 @@ export default class MiniExample extends React.Component {
 			return;
 		}
 
+		this.setState({ loading: false });
+
 		const timeline = buildTimeline(stimuli);
 
 		jsPsych.init({
@@ -127,9 +133,8 @@ export default class MiniExample extends React.Component {
 
 		return (
 			<div id="jsPsychContainer"> 
-				{ this.state.JSPLoading ?
-						(<h1>Loading...</h1>) :
-						(<div ref="jsPsychTarget"></div>) }
+				{ this.state.loading && (<h1>Loading...</h1>)}
+				<div ref="jsPsychTarget" style={{ display: this.state.loading ? 'none' : 'block' }}></div>
 				{ this.state.showThanks && thanks }
 			</div>
 		);
