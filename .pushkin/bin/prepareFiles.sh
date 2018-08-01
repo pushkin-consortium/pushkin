@@ -75,7 +75,6 @@ for qPath in "${user_quizzes}"/*; do
 
 	cp -r "${qPath}/db_migrations/"* "${db_migrations}"
 
-	mkdir "${db_seeds}/${qName}"
 	cp -r "${qPath}/db_seeds/"* "${db_seeds}"
 
 	mkdir "${fe_quizzes_dir}/${qName}"
