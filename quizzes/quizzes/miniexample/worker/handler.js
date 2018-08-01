@@ -165,7 +165,7 @@ module.exports = class Handler {
 			}
 
 			// good to go
-			const maxStimuli = 10;
+			const maxStimuli = 4;
 			console.log(`starting experiment for user ${user} with ${maxStimuli} max stimuli`);
 
 			// create a stimulus group (stimGroups) (for this experiment, we'll just
@@ -231,15 +231,11 @@ module.exports = class Handler {
 	}
 
 	insertMetaResponse(user, type, response) {
-		Promise.resolve().then(_ => {
-			const validMetaColumns = [ 'dob', 'native_language' ];
-			if (validMetaColumns.indexOf(type) <= -1) {
-				throw new Error(`insertMetaResponse: user ${user} attempted to save meta to an invalid column "${type}"`);
-				return;
-			}
-		}).then(_ => {
-			return this.userExists(user)
-		}).then(exists => {
+		const validMetaColumns = [ 'dob', 'native_language' ];
+		if (validMetaColumns.indexOf(type) <= -1)
+			return Promise.reject(`insertMetaResponse: user ${user} attempted to save meta to an invalid column "${type}"`);
+
+		return this.userExists(user).then(exists => {
 			if (!exists) {
 				throw new Error(`insertMetaResponse: user ${user} doesn't exist, aborting`);
 				return;
