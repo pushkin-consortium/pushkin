@@ -20,7 +20,10 @@ exports.seed = function(knex, Promise) {
 				{ p: 'Hmm... guess again.', a: 'robin egg blue' },
 			];
 
-			const insertData = [ ...tests, ...trickyQuestions ].map(q => ({
+			// Set removes duplicates, which the db won't ensure (in case we switch stimulus to JSON type)
+			const insertData = [ new Set(
+				[ ...tests, ...trickyQuestions ]
+			)].map(q => ({
 				stimulus: {
 					type: 'html-button-response',
 					stimulus: q.p,
@@ -28,6 +31,7 @@ exports.seed = function(knex, Promise) {
 				},
 				correct: q.a
 			}));
+
 			return knex('miniexample_stimuli').insert(insertData);
 		});
 };
