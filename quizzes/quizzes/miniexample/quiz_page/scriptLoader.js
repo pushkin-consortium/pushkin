@@ -1,4 +1,4 @@
-export default (srcUrl, onLoad) => {
+const load = (srcUrl, onLoad) => {
 	return new Promise( (resolve, reject) => {
 		setTimeout(e => reject(`Loading timed out for ${srcUrl}`), 10000);
 
@@ -18,3 +18,16 @@ export default (srcUrl, onLoad) => {
 		document.body.appendChild(script);
 	});
 }
+
+const removeJsPsychCore = () => {
+	const jsPsychRX = new RegExp("jspsych\.js$");
+	const scripts = document.getElementsByTagName('script');
+	for (let i=0; i<scripts.length; i++) {
+		if (jsPsychRX.test(scripts[i].src)) {
+			scripts[i].parentNode.removeChild(scripts[i]);
+			delete window.jsPsych;
+		}
+	}
+}
+
+export { loadScript, removeJsPsychCore }
