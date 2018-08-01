@@ -275,7 +275,7 @@ module.exports = class Handler {
 		}).then(_ => { // good to go
 			console.log(`ending experiment for user ${user}`);
 			// get TUQSRs
-			console.log(this.pg_main(this.tables.TUQSR).where('user_id', user).select('*').toSQL().toNative());
+			//console.log(this.pg_main(this.tables.TUQSR).where('user_id', user).select('*').toSQL().toNative());
 			return this.pg_main(this.tables.TUQSR).where('user_id', user).select('*');
 		}).then(responses => {
 			console.log(`solidifying user ${user}'s responses`);
@@ -288,7 +288,7 @@ module.exports = class Handler {
 			}));
 			// put TUQSRs in stimResp
 			return this.pg_main(this.tables.stimResp).insert(res);
-		})/*.then(_ => {
+		}).then(_ => {
 			// delete TUQSRs
 			console.log(`deleting user ${user}'s temp responses`);
 			return this.pg_main(this.tables.TUQSR).where('user_id', user).del();
@@ -297,7 +297,6 @@ module.exports = class Handler {
 			console.log(`removing user ${user}'s TUQ record`);
 			return this.pg_main(this.tables.TUQ).where('user_id', user).del();
 		}).then(_ => 0);
-		*/
 	}
 
 	/*************** helpers **************/
