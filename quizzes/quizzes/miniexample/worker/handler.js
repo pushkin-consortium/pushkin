@@ -139,15 +139,10 @@ module.exports = class Handler {
 	// for ephemeral test-takers (a new one's made each time a quiz is taken)
 	// resolves to the new user id
 	generateUser() {
-		return new Promise( (resolve, reject) => {
-			const insertData = {
-				created_at: new Date(),
-				updated_at: new Date()
-			};
-			this.pg_main(this.tables.users).insert(insertData).returning('id')
-				.then(d => resolve(d[0]))
-				.catch(reject);
-		});
+		return this.pg_main(this.tables.users).insert({
+			created_at: new Date(),
+			updated_at: new Date()
+		}).returning('id').then(d => d[0]);
 	}
 
 	startExperiment(user) {
@@ -219,7 +214,7 @@ module.exports = class Handler {
 					return;
 				}
 				const stimGroupId = g[0].stim_group;
-				console.log(`getStimuliForUser: stimGroup ${stimGroupId}`);
+				console.log(`getStimuliForUser: getting user ${user} stimuli from group ${stimGroupId}`);
 
 				return this.pg_main(this.tables.stim).join(
 					this.tables.stimGroupStim,
@@ -252,12 +247,10 @@ module.exports = class Handler {
 	insertStimulusResponse(user, response) {
 		console.log(`inserting response for user ${user}: \n\n\t${JSON.stringify(response)}\n`);
 
-
 		// DO CHECKS (not past end, etc.)
 
-		return this.pg_main(this.tables.TUQ).where('user_id', user).select(
-			'stim_group', 'cur_position').then(TUQdata => {
-				const t = TUQdata[0];
+		return this.pg_main(this.tables.TUQ).where('user_id', user).first('stim_group', 'cur_position')
+			.then(t => {
 				return this.pg_main(this.tables.stimGroupStim)
 					.where({
 						group: t.stim_group,
@@ -271,6 +264,7 @@ module.exports = class Handler {
 					answered_at: new Date()
 				});
 			}).then(_ => {
+				console.log(`incrementing user ${user}'s cur_position`);
 				return this.pg_main(this.tables.TUQ).where('user_id', user).increment('cur_position');
 			}).then(_ => 0);
 	}
