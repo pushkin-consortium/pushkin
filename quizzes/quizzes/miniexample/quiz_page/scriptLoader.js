@@ -1,4 +1,4 @@
-const load = (srcUrl, onLoad) => {
+const loadScript = (srcUrl, onLoad) => {
 	return new Promise( (resolve, reject) => {
 		setTimeout(e => reject(`Loading timed out for ${srcUrl}`), 10000);
 
