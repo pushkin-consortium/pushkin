@@ -12,7 +12,6 @@ module.exports = (rpc, conn) => {
 		// currently in use
 		{ path: '/createUser', method: 'generateUser', queue: db_write_queue },
 		{ path: '/startExperiment', method: 'startExperiment', queue: task_queue },
-		//{ path: '/getMetaQuestionsForUser', method: 'getMetaQuestionsForUser', queue: db_read_queue },
 		{ path: '/getStimuliForUser', method: 'getStimuliForUser', queue: db_read_queue },
 		{ path: '/metaResponse', method: 'insertMetaResponse', queue: db_write_queue },
 		{ path: '/stimulusResponse', method: 'insertStimulusResponse', queue: db_write_queue },
@@ -20,6 +19,7 @@ module.exports = (rpc, conn) => {
 
 		// currently unused
 		//{ path: '/getAllStimuli', method: 'getAllStimuli', queue: db_read_queue },
+		//{ path: '/getMetaQuestionsForUser', method: 'getMetaQuestionsForUser', queue: db_read_queue },
 		//{ path: '/nextStimulus', method: 'nextStimulus', queue: task_queue },
 		//{ path: '/feedback', method: 'getFeedback', queue: task_queue },
 		//{ path: '/activateStimuli', method: 'activateStimuli', queue: task_queue }
