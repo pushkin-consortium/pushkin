@@ -34,7 +34,7 @@ amqp.connect(AMQP_ADDRESS, (err, conn) => {
 							{correlationId: msg.properties.correlationId}
 						);
 					}
-					else console.log('empty res');
+					else throw new Error('Empty response from Handler.handle; send 0 if nothing else meaninful (and truthy) to send');
 					ch.ack(msg);
 				})
 				.catch(err => {
