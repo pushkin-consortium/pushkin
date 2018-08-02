@@ -41,27 +41,25 @@ export default class MiniExample extends React.Component {
 			'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/plugins/jspsych-survey-text.js'
 		];
 
-		// just for logging purposes
-		const loadCounter = (total => {
-			let nLoaded = 0;
-			return () => {
-				nLoaded++;
-				console.log(`loaded ${nLoaded}/${total} plugins for jsPsych`);
-			};
-		})(jsPsychPlugins.length);
-
-
 		// load jsPsych stuff from CDNs
 		// main script must load before the plugins do
 		return loadScript(jsPsychMainScript, () => console.log('jsPsych core loaded'))
 			.then(_ => {
-				console.log('asdfasdfads');
+
+				const message = (total => {
+					let nLoaded = 0;
+					return () => {
+						nLoaded++;
+						console.log(`loaded ${nLoaded}/${total} plugins for jsPsych`);
+					}
+				})(jsPsychPlugins.length);
+
 				const srcsAndOnloads = jsPsychPlugins.map(p => ({
 					src: p,
-					onload: () => {console.log("my onload!")}
+					onload: message
 				}));
-				console.log(srcsAndOnloads);
-				loadScripts(srcsAndOnloads);
+
+				return loadScripts(srcsAndOnloads);
 			});
 	}
 

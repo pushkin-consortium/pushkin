@@ -20,26 +20,10 @@ const loadScript = (srcUrl, onLoad) => {
 }
 
 // array of { src, onload }
-const loadScripts = srcsAndOnloads => {
-	console.log('loading scripts');
-	console.log(srcsAndOnloads);
-
-	const message = (total => {
-		let nLoaded = 0;
-		return () => {
-			nLoaded++;
-			console.log(`${nLoaded}/${total} loaded`);
-		}
-	})(srcsAndOnloads.length);
-
-	return Promise.all(srcsAndOnloads.map(sAndO => {
-		const onloadAppend = () => {
-			message();
-			sAndO.onload();
-		};
-		return loadScript(sAndO.src, onloadAppend);
-	}));
-}
+const loadScripts = srcsAndOnloads =>
+	Promise.all(srcsAndOnloads.map(sAndO =>
+		loadScript(sAndO.src, sAndO.onload)
+	));
 
 const removeJsPsychCore = () => {
 	const jsPsychRX = new RegExp("jspsych\.js$");
@@ -52,4 +36,4 @@ const removeJsPsychCore = () => {
 	}
 }
 
-export { loadScript, removeJsPsychCore }
+export { loadScript, loadScripts, removeJsPsychCore }
