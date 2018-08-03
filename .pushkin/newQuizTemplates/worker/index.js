@@ -1,7 +1,7 @@
 const AMQP_ADDRESS = process.env.AMQP_ADDRESS || 'amqp://localhost';
-const READ_QUEUE = 'miniexample_quiz_dbread';
-const WRITE_QUEUE = 'miniexample_quiz_dbwrite';
-const TASK_QUEUE = 'miniexample_quiz_taskworker'; // eventually this should be moved to a separate thing
+const READ_QUEUE = '${QUIZ_NAME}_quiz_dbread';
+const WRITE_QUEUE = '${QUIZ_NAME}_quiz_dbwrite';
+const TASK_QUEUE = '${QUIZ_NAME}_quiz_taskworker'; // eventually this should be moved to a separate thing
 
 const amqp = require('amqplib/callback_api');
 const Handler = new (require('./handler'))();

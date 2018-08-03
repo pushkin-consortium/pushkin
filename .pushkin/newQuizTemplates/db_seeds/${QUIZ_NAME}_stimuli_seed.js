@@ -1,7 +1,7 @@
 
 exports.seed = function(knex, Promise) {
 	// Deletes ALL existing entries
-	return knex('miniexample_stimuli').del()
+	return knex('${QUIZ_NAME}_stimuli').del()
 		.then(function () {
 			// Inserts seed entries
 
@@ -32,6 +32,6 @@ exports.seed = function(knex, Promise) {
 				correct: q.a
 			}));
 
-			return knex('miniexample_stimuli').insert(insertData);
+			return knex('${QUIZ_NAME}_stimuli').insert(insertData);
 		});
 };

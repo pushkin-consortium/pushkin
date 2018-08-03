@@ -3,8 +3,8 @@
 # variables defined in pushkin_config_vars.sh will be substituted on creation of the quiz
 # along with QUIZ_NAME
 
-  miniexample${pushkin_user_quizzes_docker_suffix}:
-    image: '${image_prefix}/miniexample${pushkin_user_quizzes_docker_suffix}:${image_tag}'
+  ${QUIZ_NAME}${pushkin_user_quizzes_docker_suffix}:
+    image: '${image_prefix}/${QUIZ_NAME}${pushkin_user_quizzes_docker_suffix}:${image_tag}'
     command: 'bash start.sh'
     depends_on:
       - "message-queue"
