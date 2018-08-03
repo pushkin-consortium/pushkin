@@ -55,28 +55,16 @@ recurseReplace () {
 	for thing in "${cur}"/*; do
 		local base=$(basename "${thing}")
 		if [ -f "${thing}" ]; then
-			replaceQuizName "${thing}" "${quizName}" > "${outRoot}/${base}"
+			local newBase=$(echo "${base}" | sed -e "s/\${QUIZ_NAME}/${quizName}/g")
+			replaceQuizName "${thing}" "${quizName}" > "${outRoot}/${newBase}"
+
 		elif [ -d "${thing}" ]; then
+
 			# for testing purposes only
 			# once the worker works we should remove node modules entirely
 			# and use prepareFiles to install the dependencies in the front-end
 			# package or wherever else they're needed
 			if [ "${base}" == "node_modules" ]; then continue; fi # special case
-
-			# workers don't need to be anywhere else
-			if [ "${base}" == "worker" ]; then continue; fi # special case
-
-			# db migration files have special file names with timestamps for knex
-			if [ "${base}" == "db_migrations" ]; then
-				mkdir "${outRoot}/db_migrations"
-				timestamp () { date +"%Y%m%d%H%M%S"; sleep 1; }
-				for migration in "${thing}"/*; do
-					local migBase=$(basename "${migration}")
-					local newBase=$(echo "${migBase}" | sed -e "s/TIMESTAMP/$(timestamp)/g" -e "s/QUIZNAME/${quizName}/g")
-					replaceQuizName "${migration}" "${quizName}" > "${outRoot}/db_migrations/${newBase}"
-				done
-				continue
-			fi # special case
 
 			# normal case/otherwise:
 			mkdir "${outRoot}/${base}"

@@ -1,0 +1,16 @@
+# indentation must match main compose file
+# image prefix and tag are variables stored in main .env file
+# variables defined in pushkin_config_vars.sh will be substituted on creation of the quiz
+# along with QUIZ_NAME
+
+  miniexample${pushkin_user_quizzes_docker_suffix}:
+    image: '${image_prefix}/miniexample${pushkin_user_quizzes_docker_suffix}:${image_tag}'
+    command: 'bash start.sh'
+    depends_on:
+      - "message-queue"
+    links:
+      - message-queue
+    environment:
+      - "AMQP_ADDRESS=amqp://message-queue:5672"
+      - "DATABASE_URL=postgres://${main_db_user}:${main_db_pass}@${main_db_url}/${main_db_name}"
+      - "TRANSACTION_DATABASE_URL=postgres://${transaction_db_user}:${transaction_db_pass}@${transaction_db_url}/${transaction_db_name}"

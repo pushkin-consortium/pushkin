@@ -4,7 +4,7 @@ volumes:
   message_queue_datavolume: 
 services:
   api:
-    image: "${image_prefix}/api:${image_tag}"
+    image: "${image_prefix}/pushkin_api:${image_tag}"
     environment:
       - 'AMQP_ADDRESS=amqp://message-queue:5672'
       - 'NODE_ENV=production'
@@ -20,7 +20,7 @@ services:
       io.rancher.scheduler.global: 'true'
 
   cron:
-    image: '${image_prefix}/cron:${image_tag}'
+    image: '${image_prefix}/pushkin_cron:${image_tag}'
     environment:
       - "API_ADDRESS=http://api:${api_port}/api"
       - 'AMQP_ADDRESS=amqp://message-queue:5672'
@@ -33,9 +33,10 @@ services:
       io.rancher.scheduler.global: 'true'
 
   db-worker:
-    image: '${image_prefix}/db-worker:${image_tag}'
+    image: '${image_prefix}/pushkin_db_worker:${image_tag}'
     environment:
       - 'NODE_ENV=production'
+      - "USE_FORUM=${use_forum}"
       - 'AMQP_ADDRESS=amqp://message-queue:5672'
       - "DATABASE_URL=postgres://${main_db_user}:${main_db_pass}@${main_db_url}/${main_db_name}"
       - "TRANSACTION_DATABASE_URL=postgres://${transaction_db_user}:${transaction_db_pass}@${transaction_db_url}/${transaction_db_name}"
@@ -68,7 +69,7 @@ services:
       io.rancher.scheduler.global: 'true'
 
   server:
-    image: '${image_prefix}/server:${image_tag}'
+    image: '${image_prefix}/pushkin_server:${image_tag}'
     labels:
       io.rancher.scheduler.global: 'true'
     environment:
@@ -77,7 +78,7 @@ services:
       - '80'
       - '443'
     ports:
-      - '80'
+      - 80:80
       - '433'
     links:
       - api

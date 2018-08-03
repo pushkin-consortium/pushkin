@@ -18,7 +18,6 @@ pushkin_cron_tab="${pushkin_cron}/crontab"
 pushkin_db_worker='db-worker'
 pushkin_db_worker_docker_name='pushkin_db_worker'
 pushkin_db_worker_migrations="${pushkin_db_worker}/migrations"
-pushkin_db_worker_models="${pushkin_db_worker}/models"
 pushkin_db_worker_seeds="${pushkin_db_worker}/seeds"
 
 pushkin_front_end='front-end'

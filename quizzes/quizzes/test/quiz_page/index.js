@@ -1,98 +1,140 @@
-// At build time, this (and everything else in this folder) is moved to
+// Before compile time (prep time), this (and everything else in this folder) is moved to
 // ${pushkin_front_end_quizzes_dir}, so all paths to modules located outside of this
 // folder are relative to that root
-const jsPsych = require("../../libraries/jsPsych/jspsych.js")
 
-import React from 'react'
-import s from './styles.scss'
-
+import React from 'react';
 import { browserHistory } from 'react-router';
-import axios from '../../actions/axiosConfigInitial';
-import baseUrl from '../../core/baseUrl';
 
+import s from './styles.scss';
+import jsPsychStyles from '../libraries/jsPsych/css/jspsych.css';
+import { buildTimeline } from './jspTimeline';
+import { loadScript, loadScripts } from './scriptLoader';
+import localAxios from './axiosConfigInitial';
 
 export default class test extends React.Component {
 
 	constructor(props) {
 		super(props);
-		this.state = { loading: true };
-		this.hideLoading = this.hideLoading.bind(this);
-		browserHistory.listen(() => {
-		  jsPsych.endExperiment();
-		});
+		this.state = {
+			loading: true,
+			showThanks: false
+		};
 	};
 
 	componentDidMount() {
-    
-		const _this = this;
-	  
-		var explain_study = {
-			type: "instructions",
-			pages:["<p align='left'> This vocabulary test was designed by researchers at Boston College. </p><p align='left'> When you finish, you will see how well you did compared to other people of a similar age and educational background. </p><p align='left'> We are studying how people's vocabularies are affected by things like age, birth order, and when you started learning English. </p><p align='left'> We also hope the quiz is fun and informative. Thank you for your participation! </p>"],
-			show_clickable_nav: true,
-			button_label_next:'Continue',
-		};
-
-		var consent = {
-			type: 'instructions',
-		   pages: ["<p align='left'> This experiment is being conducted by researchers at Boston College. Please read this consent statement carefully before deciding whether to participate.</p><p align='left'> <strong>About the research:</strong> This experiment examines people's knowledge of English vocabulary. We are interested in how this is affected by demographic variables like age, birth order, and the age at which you began learning English. </p><p align='left'><strong> Risks and Benefits:</strong> This research has no known risks. We will explain the purpose of the experiment at the end of the experiment, along with any potential implications of the research. To receive copies of journal articles or research summaries, email gameswithwords@gmail.com. </p><p align='left'> <strong>Confidentiality:</strong> Study participation is anonymous and confidential. We do not ask or store your identity. </p><p align='left'> <strong>Participation and Withdrawal:</strong> Your participation in this study is completely voluntary, and you may quit at any time without penalty.</p><p align='left'> <strong>Review:</strong> This study has been approved by the Massachusetts Institute of Technology institutional review board. </p><p align='left'><strong> Agreement: </strong>By pressing any key to continue, I indicate that this research have been sufficiently explained and I agree to participate in this study. </p>"],
-			show_clickable_nav: true,
-			button_label_next:'Continue'
-		};
-	  
-	  
-		  
-		var intro = {
-			type: 'instructions',
-		   pages: [" <p align='left'> Are you interested in how your experience affects your language? So are we! </p><p align='left'> Please answer the following questions about yourself. </p><p align='left'> We will use the answers to show you your score compared to others like you and also for our research into language learning. </p><p align='left'> All answers are anonymous and confidential. </p>"],
-			show_clickable_nav: true,
-			button_label_next:'Continue'
-		};
-	  
-
-		var timeline = [];
-
-		timeline.push(explain_study)
-		timeline.push(consent)
-		timeline.push(intro)
-		.then(() => {
-						jsPsych.init({
-							display_element: this.refs.jsPsychTarget,
-							timeline: timeline
-						});
-					})
+		this.loadJsPsych()
+			.then(_ => {
+				this.startExperiment();
+			})
+			.catch(err => {
+				console.log(`failed to load jsPsych: ${err}`);
+			});
 	};
 
+	loadJsPsych() {
+		console.log('loadJsPsych');
+		const jsPsychMainScript = 'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/jspsych.js';
+		// these are all required by something in either jspTimeline or meta/stim stuff sent from the api
+		const jsPsychPlugins = [
+			'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/plugins/jspsych-html-button-response.js',
+			'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/plugins/jspsych-instructions.js',
+			'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/plugins/jspsych-survey-text.js'
+		];
+
+		// load jsPsych stuff from CDNs
+		// main script must load before the plugins do
+		return loadScript(jsPsychMainScript, () => console.log('jsPsych core loaded'))
+			.then(_ => {
+
+				const message = (total => {
+					let nLoaded = 0;
+					return () => {
+						nLoaded++;
+						console.log(`loaded ${nLoaded}/${total} plugins for jsPsych`);
+					}
+				})(jsPsychPlugins.length);
+
+				const srcsAndOnloads = jsPsychPlugins.map(p => ({
+					src: p,
+					onload: message
+				}));
+
+				return loadScripts(srcsAndOnloads);
+			});
+	}
+
+	
+	async startExperiment() {
+		browserHistory.listen(jsPsych.endExperiment);
+
+		// createUser (-> user_id)
+		let user_id;
+		try {
+			user_id = (await localAxios.post('/createUser')).data.resData;
+			this.setState({ user_id });
+			console.log(`user id: ${user_id}`);
+			jsPsych.data.addProperties({ user_id });
+
+		} catch (e) {
+			console.log('Could not start exeriment. Failed to create new user:');
+			console.log(e);
+			return;
+		}
+
+		// startExperiment(user_id)
+		// (let worker prep the database)
+		try { await localAxios.post('/startExperiment', { user_id }); }
+		catch (e) { console.log('failed to startExperiment'); console.log(e); return; }
+
+		// getStimuliForUser(user_id), create the timeline, and start
+		let stimuli;
+		let meta;
+		try {
+			// meta Qs not yet done via database (just hardcoded in jspTimeline)
+			stimuli = (await localAxios.post('/getStimuliForUser', { user_id })).data.resData;
+			console.log('got raw stimuli');
+			console.log(stimuli);
+		} catch (e) {
+			console.log('failed to get timeline trial data');
+			console.log(e);
+			return;
+		}
+
+		try {
+			stimuli = stimuli.map(stim => JSON.parse(stim.stimulus));
+		} catch (e) {
+			console.log('failed to parse stimuli');
+			console.log(e);
+			return;
+		}
+
+		this.setState({ loading: false });
+
+		const timeline = buildTimeline(stimuli);
+
+		jsPsych.init({
+			display_element: this.refs.jsPsychTarget,
+			timeline: timeline,
+			on_finish: data => {
+				this.endExperiment()
+			}
+		});
+	}
+
+	endExperiment() {
+		this.setState({ showThanks: true });
+		localAxios.post('/endExperiment', { user_id: this.state.user_id });
+	}
 
 	render() {
-		const loading = this.state.loading;
-		if (!this.props.children) {
-		  return (
-			<div>
-			  <div id="jsPsychContainer"> 
-				<link
-				  rel="stylesheet"
-				  type="text/css"
-				  href={`${baseUrl}/css/jspsych.css`}
-				/>
-				<div ref="preamble" id="preamble">
-				  <div style={{ display: loading ? '' : 'none' }}>
-					<p className={s.loading}>
-					  <b>Loading...</b>
-					</p>
-				  </div>
-	
-				  <div style={{ display: loading ? 'none' : '' }}>
-					<p className={s.title}>test</p>
-					<hr className={s.divider} />
-				  </div>
-				</div>
-	
-				<div ref="jsPsychTarget" id="jsPsychTarget" />
-			  </div>
+		const thanks = (<h1>Thanks for participating</h1>);
+
+		return (
+			<div id="jsPsychContainer"> 
+				{ this.state.loading && (<h1>Loading...</h1>)}
+				<div ref="jsPsychTarget" style={{ display: this.state.loading ? 'none' : 'block' }}></div>
+				{ this.state.showThanks && thanks }
 			</div>
-		  );
-		}
-		return this.props.children;
-	  }
+		);
 	}
+}
