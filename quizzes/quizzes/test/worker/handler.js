@@ -104,10 +104,10 @@ module.exports = class Handler {
 					//return this.activateStimuli();
 					//break;
 
-					//case 'health':
-					//// no data fields to require
-					//return this.health();
-					//break;
+					case 'health':
+					// no data fields to require
+					return this.health();
+					break;
 
 			// methods used by other services (e.g. cron or task worker)
 					//case 'getUserStimulusResponses':
