@@ -8,14 +8,7 @@ const logger = require('./logger');
 const jsonrpc = require('./rpc');
 logger.info(Object.keys(Worker));
 const uniq = require('lodash.uniq');
-const CONFIG = require('./config')
-
-
-const quizzes = fs
-  .readdirSync(path.resolve(__dirname, './models'))
-  .filter(folder =>
-    fs.lstatSync(path.resolve(__dirname, './models', folder)).isDirectory()
-  );
+const CONFIG = { forum: process.env.USE_FORUM };
 
 // create the connection
 amqp
@@ -26,9 +19,7 @@ amqp
     return conn.createChannel().then(ch => {
       logger.info('channel created');
       // on SIGINT ensure the channel is closed
-      process.once('SIGINT', function () {
-        conn.close();
-      });
+			process.once('SIGINT', () => conn.close() );
 
       //  create a rpc listener on both quizzed
       return Promise.all(

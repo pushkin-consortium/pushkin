@@ -1,63 +1,49 @@
 const express = require('express');
-const path = require('path');
-const fs = require('fs');
-const RPCParams = require('./RPCParams');
 
-module.exports = (rpc, conn, dbWrite) => { // don't use dbWrite (deprecated)
+module.exports = (rpc, conn) => {
 	const router = new express.Router();
 
 	const task_queue = '${QUIZ_NAME}_quiz_taskworker'; // for stuff that'll need ML, etc.
 	const db_read_queue = '${QUIZ_NAME}_quiz_dbread'; // simple endpoints
 	const db_write_queue = '${QUIZ_NAME}_quiz_dbwrite'; // simple endpoints
 
-	const stdGets = [
-		// user-specific endpoints
-		{ path: '/nextQuestion', method: 'nextQuestion', // get the next question for user in this quiz
-			data: req => ({user_id: req.query.user_id}), queue: db_read_queue },
-		{ path: '/questionsAnswered', method: 'questionsAnswered', // questions answered by this user so far
-			data: req => ({ user_id: req.query.user_id }), queue: db_read_queue },
-		{ path: '/feedback', method: 'getFeedback', // called when quiz has ended, make a prediction based on user responses
-			data: req => ({ user_id: req.query.user_id }), queue: task_queue },
-
-		// general quiz endpoints
-		{ path: '/health', method: 'health', data: req => '', queue: db_read_queue }, // test if server is responsive
-		{ path: '/random', method: 'random', data: req => '', queue: db_read_queue }, // get a random question
-		{ path: '/questions', method: 'getAllQuestions', data: req => '', queue: db_read_queue }, // get all questions in this quiz
-		{ path: '/totalQuestions', method: 'totalQuestions', data: req => '', queue: db_read_queue } // total questions answered by all users
-	];
-
+	// everything is just going to use POST as of 7/23/18's meeting
 	const stdPosts = [
-		{ path: '/respond', method: 'createResponse', queue: db_write_queue, // create a response for this user in the database
-			data: req => ({ user_id: req.body.user_id, data_string: req.body.data_string }) }
+		// currently in use
+		{ path: '/createUser', method: 'generateUser', queue: db_write_queue },
+		{ path: '/startExperiment', method: 'startExperiment', queue: task_queue },
+		{ path: '/getStimuliForUser', method: 'getStimuliForUser', queue: db_read_queue },
+		{ path: '/metaResponse', method: 'insertMetaResponse', queue: db_write_queue },
+		{ path: '/stimulusResponse', method: 'insertStimulusResponse', queue: db_write_queue },
+		{ path: '/endExperiment', method: 'endExperiment', queue: task_queue },
+
+		// currently unused
+		//{ path: '/getAllStimuli', method: 'getAllStimuli', queue: db_read_queue },
+		//{ path: '/getMetaQuestionsForUser', method: 'getMetaQuestionsForUser', queue: db_read_queue },
+		//{ path: '/nextStimulus', method: 'nextStimulus', queue: task_queue },
+		//{ path: '/feedback', method: 'getFeedback', queue: task_queue },
+		//{ path: '/activateStimuli', method: 'activateStimuli', queue: task_queue }
+		//{ path: '/users/:auth_id', method: 'updateUser', queue: db_write_queue },
+		//{ path: '/createUserWithAuth', method: 'generateUserWithAuth', queue: db_write_queue },
 	];
-
-	const stdPuts = [];
-
-	stdGets.forEach(point =>
-		router.get(point.path, (req, res, next) => {
-			const params = new RPCParams(point.method, point.data(req));
-			console.log(`API SENT RPC ON QUEUE ${point.queue}`);
-			return rpc(conn, point.queue, params.getParams())
-				.then(data => res.send(data))
-				.catch(err => res.send(err));
-		})
-	);
 
 	stdPosts.forEach(point =>
 		router.post(point.path, (req, res, next) => {
-			const params = new RPCParams(point.method, point.data(req));
-			return rpc(conn, point.queue, params.getParams())
-				.then(data => res.send(data))
-				.catch(err => res.send(err));
-		})
-	);
-
-	stdPuts.forEach(point =>
-		router.put(point.path, (req, res, next) => {
-			const params = new RPCParams(point.method, point.data(req));
-			return rpc(conn, point.queue, params.getParams())
-				.then(data => res.send(data))
-				.catch(err => res.send(err));
+			console.log(`${point.path} hit`);
+			const rpcParams = {
+				method: point.method,
+				data: req.body
+			};
+			rpc(conn, point.queue, rpcParams)
+				.then(rpcRes => {
+					console.log(`${point.path} response: ${rpcRes}`);
+					res.send({ resData: rpcRes });
+				})
+				.catch(rpcErr => {
+					console.log('Error in API getting RPC response:');
+					console.log(rpcErr);
+					res.status(500).send(rpcError);
+				});
 		})
 	);
 

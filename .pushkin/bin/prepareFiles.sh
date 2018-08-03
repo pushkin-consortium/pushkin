@@ -26,13 +26,13 @@ cron_scripts="${pushkin_cron_scripts}"
 cron_tab="${pushkin_cron_tab}"
 
 db_migrations="${pushkin_db_worker_migrations}"
-db_models="${pushkin_db_worker_models}"
 db_seeds="${pushkin_db_worker_seeds}"
 
 user_quizzes="${pushkin_user_quizzes}"
 
 fe_quizzes_dir="${pushkin_front_end_quizzes_dir}"
 fe_quizzes_list="${pushkin_front_end_quizzes_list}"
+fe_dist="${pushkin_front_end_dist}"
 
 server_html="${pushkin_server_html}"
 
@@ -48,9 +48,12 @@ log "cleaning"
 rm -rf "${api_controllers}"/*
 rm -rf "${cron_scripts}"/*
 rm -rf "${db_migrations}"/*
-rm -rf "${db_models}"/*
 rm -rf "${db_seeds}"/*
-rm -rf "${fe_quizzes_dir}"/*
+for qdir in "${fe_quizzes_dir}"/*; do
+	base=$(basename "${qdir}")
+	if [ "${base}" == "libraries" ]; then continue; fi
+	rm -rf "${qdir}"
+done
 rm -rf "${server_html}"/*
 echo "# This file created automatically" > "${cron_tab}"
 echo "# Do not edit directly (your changes will be overwritten)" >> "${cron_tab}"
@@ -72,11 +75,7 @@ for qPath in "${user_quizzes}"/*; do
 
 	cp -r "${qPath}/db_migrations/"* "${db_migrations}"
 
-	mkdir "${db_models}/${qName}"
-	cp "${qPath}/db_models/"* "${db_models}/${qName}"
-
-	mkdir "${db_seeds}/${qName}"
-	cp -r "${qPath}/db_seeds/"* "${db_seeds}/${qName}"
+	cp -r "${qPath}/db_seeds/"* "${db_seeds}"
 
 	mkdir "${fe_quizzes_dir}/${qName}"
 	cp -r "${qPath}/quiz_page/"* "${fe_quizzes_dir}/${qName}"
