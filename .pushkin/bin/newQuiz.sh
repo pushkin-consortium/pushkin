@@ -55,7 +55,7 @@ recurseReplace () {
 	for thing in "${cur}"/*; do
 		local base=$(basename "${thing}")
 		if [ -f "${thing}" ]; then
-			local newBase=$(echo "${base}" | sed -e "s/QUIZNAME/${quizName}/g")
+			local newBase=$(echo "${base}" | sed -e "s/\${QUIZ_NAME}/${quizName}/g")
 			replaceQuizName "${thing}" "${quizName}" > "${outRoot}/${newBase}"
 
 		elif [ -d "${thing}" ]; then
