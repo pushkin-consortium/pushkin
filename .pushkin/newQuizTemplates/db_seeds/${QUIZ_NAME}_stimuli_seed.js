@@ -21,7 +21,7 @@ exports.seed = function(knex, Promise) {
 			];
 
 			// Set removes duplicates, which the db won't ensure (in case we switch stimulus to JSON type)
-			const insertData = [ new Set(
+			const insertData = [ ...new Set(
 				[ ...tests, ...trickyQuestions ]
 			)].map(q => ({
 				stimulus: {
