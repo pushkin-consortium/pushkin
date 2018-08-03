@@ -48,81 +48,25 @@ checkPushkinNotCorrupt $PWD
 # setup good enough to function (not an exhaustive check)
 source '.pushkin/pushkin_config_vars.sh'
 source '.pushkin/bin/core.sh'
+source "${pushkin_env_file}"
 
 log () { echo "${boldFont}pushkin:${normalFont} ${1}"; }
-makeRouter () {
-	sub_sub="${1}"
-	shift
-	case "${sub_sub}" in
-		"quiz")
-			.pushkin/bin/newQuiz.sh "$@"
-			;;
-		"compose")
-			.pushkin/bin/makeDockerCompose.sh "$@"
-			;;
-		*)
-			die "can make 'quiz' or 'compose'"
-			;;
-	esac
-}
-buildRouter () {
-	sub_sub="${1}"
-	shift
-	case "${sub_sub}" in
-		"core")
-			.pushkin/bin/buildCoreDockers.sh "$@"
-			;;
-		"quizzes")
-			.pushkin/bin/buildQuizzes.sh "$@"
-			;;
-		"all")
-			buildRouter core "$@"
-			buildRouter quizzes "$@"
-			;;
-		*)
-			die "build can build 'core', 'quizzes', or 'all'"
-			;;
-	esac
-}
-syncRouter () {
-	sub_sub="${1}"
-	shift
-	case "${sub_sub}" in
-		"coreDockers")
-			.pushkin/bin/syncCoreDockers.sh "$@"
-			;;
-		"quizDockers")
-			.pushkin/bin/syncQuizzes.sh "$@"
-			;;
-		"website")
-			.pushkin/bin/syncWebsite.sh "$@"
-			;;
-		"all")
-			syncRouter coreDockers "$@"
-			syncRouter quizDockers "$@"
-			syncRouter website "$@"
-			;;
-		*)
-			die "sync can sync 'coreDockers', 'quizDockers', 'website', or 'all'"
-			;;
-	esac
-}
 
 # route commands
 sub_command="${1}"
 shift
 case "${sub_command}" in
 	"make")
-		makeRouter "$@"
+		.pushkin/bin/make.sh "$@"
 		;;
 	"prep")
 		.pushkin/bin/prepareFiles.sh "$@"
 		;;
 	"build")
-		buildRouter "$@"
+		.pushkin/bin/build.sh "$@"
 		;;
 	"sync")
-		syncRouter "$@"
+		.pushkin/bin/sync.sh "$@"
 		;;
 	"compile")
 		.pushkin/bin/compileFrontEnd.sh "$@"

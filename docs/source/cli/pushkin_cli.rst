@@ -3,7 +3,7 @@
 Pushkin CLI
 =============
 
-Pushkin CLI comes packaged in the repo. Setup instructions can be found in :ref:`get-pushkin`.
+The Pushkin CLI comes packaged in the repo. Setup instructions can be found in :ref:`get-pushkin`.
 
 Variables relating to file structure and naming practices can be found in '.pushkin/pushkin_config_vars.sh'.
 
@@ -14,12 +14,10 @@ make
 
 quiz
 ^^^^^^
-
 Creates a new quiz with all the required basic components. Pass the quiz name as an argument as follows: ``pushkin make quiz [quiz name]``. Spaces and other special characters should be avoid. Note that the name seen by end users of the website can be changed to have special characters if needed by modifying the quizzes page in the front end. Generated quizzes are stored in ``pushkin_user_quizzes``, 'quizzes/quizzes' by default.
 
 compose
 ^^^^^^^^
-
 Creates the file specified by ``pushkin_docker_compose_noDep_file``, replacing all docker variables set in ``.env`` as well as appending quiz compose files from the quizzes directory. Uses ``pushkin_docker_compose_file`` for the original compose file.
 
 
@@ -40,14 +38,16 @@ Moves the compiled files from ``pushkin_front_end_dist`` to ``pushkin_server_htm
 build
 --------
 
+[core container]
+^^^^^^^^^^^^^^^^^
+Builds the docker container specified by [core container] where [core container] is one of "api", "cron", "dbworker", or "server".
+
 core
 ^^^^^^
-
-Builds the api, cron, server, and db worker containers.
+Builds all the core docker containers.
 
 quizzes
 ^^^^^^^^
-
 Builds each quiz's worker by looping through the ``pushkin_user_quizzes`` folder, each folder name being used as the quiz name. The tags given each quiz are templated as follows::
 
   [image_prefix]/[quiz name][pushkin_user_quizzes_docker_suffix]:[image_tag]
@@ -56,7 +56,6 @@ where image_prefix and image_tag are specified in the docker '.env' file, ``push
 
 all
 ^^^^^^
-
 Does both of the above steps.
 
 sync
@@ -64,22 +63,18 @@ sync
 
 coreDockers
 ^^^^^^^^^^^^
-
 Pushes the api, cron, server, and db worker containers to docker hub.
 
 quizDockers
 ^^^^^^^^^^^^^
-
 Loops through the ``pushkin_user_quizzes`` folder and uses the same templating as in the ``pushkin build quizzes`` to push each image to docker hub.
 
 website
 ^^^^^^^^^^^^
-
 Uses the AWS CLI to sync ``pushkin_front_end_dist`` with ``s3_bucket_name``. Note that this means you must have installed and set up the AWS CLI.
 
 all
 ^^^^^^^^^
-
 Does all of the above steps.
 
 start
