@@ -1,6 +1,7 @@
-const AMQP_ADDRESS = 'amqp://localhost'; //process.env.AMQP_ADDRESS;
-const READ_QUEUE = '${QUIZ_NAME}_quiz_dbread';
-const WRITE_QUEUE = '${QUIZ_NAME}_quiz_dbwrite';
+const AMQP_ADDRESS = process.env.AMQP_ADDRESS || 'amqp://localhost';
+const READ_QUEUE = 'miniexample_quiz_dbread';
+const WRITE_QUEUE = 'miniexample_quiz_dbwrite';
+const TASK_QUEUE = 'miniexample_quiz_taskworker'; // eventually this should be moved to a separate thing
 
 const amqp = require('amqplib/callback_api');
 const Handler = new (require('./handler'))();
@@ -17,41 +18,40 @@ amqp.connect(AMQP_ADDRESS, (err, conn) => {
 		}
 		ch.assertQueue(READ_QUEUE, {durable: false});
 		ch.assertQueue(WRITE_QUEUE, {durable: true});
+		ch.assertQueue(TASK_QUEUE, {durable: false});
 		ch.prefetch(1);
 		const consumeCallback = msg => {
 			console.log(`got message: ${msg.content.toString()}`);
 			Promise.resolve(msg.content.toString())
 				.then(JSON.parse)
-				// javascript is ridiculous
+				// nobody should ever have to do this
 				.then(Handler.handle.bind(Handler))
 				.then(res => {
-					if (res) {
-						console.log(`responding ${JSON.stringify(res)}`);
-						/*
+					if (res || res == 0) { // 0 is used for success by "void" methods
+						console.log(`responding ${JSON.stringify(res)} ${res==0?'(success)':''}`);
 						ch.sendToQueue(msg.properties.replyTo,
 							new Buffer.from(JSON.stringify(res)),
 							{correlationId: msg.properties.correlationId}
 						);
-						*/
 					}
-					else console.log('empty res');
+					else throw new Error('Empty response from Handler.handle; send 0 if nothing else meaninful (and truthy) to send');
 					ch.ack(msg);
 				})
 				.catch(err => {
 					console.log(err);
 					ch.ack(msg);
-					/*
 					ch.sendToQueue(msg.properties.replyTo,
-						new Buffer(JSON.stringify(err)),
+						new Buffer.from(JSON.stringify(err)),
 						{correlationId: msg.properties.correlationId}
 					);
-					*/
 				});
 		};
 		console.log(`consuming on ${READ_QUEUE}`);
 		ch.consume(READ_QUEUE, consumeCallback);
 		console.log(`consuming on ${WRITE_QUEUE}`);
 		ch.consume(WRITE_QUEUE, consumeCallback);
+		console.log(`consuming on ${TASK_QUEUE}`);
+		ch.consume(TASK_QUEUE, consumeCallback);
 	});
 });
 

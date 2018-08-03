@@ -1,5 +1,5 @@
 #!/bin/bash
-echo "${QUIZ_NAME} db worker container loaded, waiting for rabbitmq"
+echo "miniexample db worker container loaded, waiting for rabbitmq"
 while ! nc -z message-queue 5672; do sleep 3; done
 echo "Rabbitmq loaded"
 npm start
