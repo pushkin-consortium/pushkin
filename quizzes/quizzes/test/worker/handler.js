@@ -379,11 +379,9 @@ module.exports = class Handler {
 	//}
 	//
 	//
-	//health() {
-	//return new Promise( (resolve, reject) => {
-	//resolve({ message: 'healthy' });
-	//});
-	//}
+	health() {
+		return Promise.resolve({ message: 'healthy' });
+	}
 	//
 	//
 	//getUserStimulusResponses(user) {

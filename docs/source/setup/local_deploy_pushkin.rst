@@ -22,7 +22,7 @@ Deploying Pushkin Locally
 
 Once you've gone through the process of creating and compiling a quiz, you can proceed to locally deploy Pushkin, in order to freely develop and test quizzes and other site features. 
 
-First, run ``docker-compose -f docker-compose.production.noEnvDependency.yml up`` to start Pushkin locally, replacing the name of your compose file with whatever it's called if it was changed from the default. 
+First, run ``pushkin start`` to start Pushkin locally.
 
 Now, we need to seed the database for any quizzes which we wish to test or develop. Run ``docker ps`` and find the name of the DB worker container, which is 'db-worker_1' by default.
 
@@ -32,7 +32,9 @@ Now, we need to seed the database for any quizzes which we wish to test or devel
 
     be3c744c9a81        pushkin_db-worker   "bash start.debug.sh"  23 hours ago    Up 23 hours                      pushkin_db-worker_1
 
-Now, copy that container ID in full, then run ``docker exec -it [container ID] bash`` to get a shell inside the DB worker Docker container. Type ``npm run migrations`` to run the migrations, then node seeder.js [Name of your quizzes] and ``exit`` to return to your normal shell once seeding is finished.
+Now, copy that container name and run ``docker exec -it [name] bash`` to get a shell inside the DB worker Docker container. Type ``npm run migrations`` to run the migrations, then ``npm run seed`` to populate the database with your seeds. Type ``exit`` to return to your normal shell.
+
+.. caution:: If you have multiple quizzes and have added data to a table in the database that a seed file corresponds to, be aware that seeding removes all data in the table before beginning. Make sure to first delete the files inside the seeds folder of the db-worker container that you don't want to run.
 
 We're almost done. The last step is to find your server container. Run ``docker ps`` again, and this time look for the server container.
 
