@@ -1,26 +1,19 @@
-/*******
- * To make ready for template:
- *	- update tables record in constructor to have miniexample
- *	- put db urls back to process environment variables
- *	- uncomment sending responses in index.js (sendToQueue)
- ************/
 const crypto = require('crypto');
 
 module.exports = class Handler {
 	constructor() {
 		const MAIN_DB_URL = 
-			process.env.DATABASE_URL ||
-			'postgres://pushkin:Ithn2016!@pushkin-data-db.co4mo5lsfmqs.us-east-2.rds.amazonaws.com/pushkin_data_db';
+			process.env.DATABASE_URL;
 
 		//const TRANS_DB_URL = 'postgres://pushkin:jacob_password@pushkin-transaction-db.co4mo5lsfmqs.us-east-2.rds.amazonaws.com/pushkin_transaction_db';//process.env.TRANSACTION_DATABASE_URL;
 		this.tables = {
-			users: 'miniexample_users',
-			stim: 'miniexample_stimuli',
-			stimResp: 'miniexample_stimulusResponses',
-			stimGroups: 'miniexample_stimulusGroups',
-			stimGroupStim: 'miniexample_stimulusGroupStimuli',
-			TUQ: 'miniexample_TUQ',
-			TUQSR: 'miniexample_TUQSR',
+			users: '${QUIZ_NAME}_users',
+			stim: '${QUIZ_NAME}_stimuli',
+			stimResp: '${QUIZ_NAME}_stimulusResponses',
+			stimGroups: '${QUIZ_NAME}_stimulusGroups',
+			stimGroupStim: '${QUIZ_NAME}_stimulusGroupStimuli',
+			TUQ: '${QUIZ_NAME}_TUQ',
+			TUQSR: '${QUIZ_NAME}_TUQSR',
 		};
 
 		this.pg_main = require('knex')({

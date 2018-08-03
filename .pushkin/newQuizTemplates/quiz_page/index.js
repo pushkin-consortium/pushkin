@@ -11,7 +11,7 @@ import { buildTimeline } from './jspTimeline';
 import { loadScript, loadScripts } from './scriptLoader';
 import localAxios from './axiosConfigInitial';
 
-export default class MiniExample extends React.Component {
+export default class ${QUIZ_NAME} extends React.Component {
 
 	constructor(props) {
 		super(props);
