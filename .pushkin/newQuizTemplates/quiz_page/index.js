@@ -7,35 +7,133 @@ import { browserHistory } from 'react-router';
 
 import s from './styles.scss';
 import jsPsychStyles from '../libraries/jsPsych/css/jspsych.css';
-import jsPsychTimeline from './quiz_files/jsPsychTimeline';
-// jsPsych isn't actually a "module" like normal modules are in node/commonJS
-// it needs to be required globally and not assigned to a variable
-require('../libraries/jsPsych/jspsych.js');
-require('../libraries/jsPsych/plugins/jspsych-instructions.js');
+import { buildTimeline } from './jspTimeline';
+import { loadScript, loadScripts } from './scriptLoader';
+import localAxios from './axiosConfigInitial';
 
-export default class QUIZ_NAME extends React.Component {
+export default class MiniExample extends React.Component {
 
 	constructor(props) {
 		super(props);
-		this.state = { loading: true };
-		browserHistory.listen(() => {
-		  jsPsych.endExperiment();
-		});
+		this.state = {
+			loading: true,
+			showThanks: false
+		};
 	};
 
 	componentDidMount() {
-		jsPsych.init({
-			display_element: this.refs.jsPsychTarget,
-			timeline: jsPsychTimeline
-		});
+		this.loadJsPsych()
+			.then(_ => {
+				this.startExperiment();
+			})
+			.catch(err => {
+				console.log(`failed to load jsPsych: ${err}`);
+			});
 	};
 
+	loadJsPsych() {
+		console.log('loadJsPsych');
+		const jsPsychMainScript = 'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/jspsych.js';
+		// these are all required by something in either jspTimeline or meta/stim stuff sent from the api
+		const jsPsychPlugins = [
+			'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/plugins/jspsych-html-button-response.js',
+			'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/plugins/jspsych-instructions.js',
+			'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/plugins/jspsych-survey-text.js'
+		];
+
+		// load jsPsych stuff from CDNs
+		// main script must load before the plugins do
+		return loadScript(jsPsychMainScript, () => console.log('jsPsych core loaded'))
+			.then(_ => {
+
+				const message = (total => {
+					let nLoaded = 0;
+					return () => {
+						nLoaded++;
+						console.log(`loaded ${nLoaded}/${total} plugins for jsPsych`);
+					}
+				})(jsPsychPlugins.length);
+
+				const srcsAndOnloads = jsPsychPlugins.map(p => ({
+					src: p,
+					onload: message
+				}));
+
+				return loadScripts(srcsAndOnloads);
+			});
+	}
+
+	
+	async startExperiment() {
+		browserHistory.listen(jsPsych.endExperiment);
+
+		// createUser (-> user_id)
+		let user_id;
+		try {
+			user_id = (await localAxios.post('/createUser')).data.resData;
+			this.setState({ user_id });
+			console.log(`user id: ${user_id}`);
+			jsPsych.data.addProperties({ user_id });
+
+		} catch (e) {
+			console.log('Could not start exeriment. Failed to create new user:');
+			console.log(e);
+			return;
+		}
+
+		// startExperiment(user_id)
+		// (let worker prep the database)
+		try { await localAxios.post('/startExperiment', { user_id }); }
+		catch (e) { console.log('failed to startExperiment'); console.log(e); return; }
+
+		// getStimuliForUser(user_id), create the timeline, and start
+		let stimuli;
+		let meta;
+		try {
+			// meta Qs not yet done via database (just hardcoded in jspTimeline)
+			stimuli = (await localAxios.post('/getStimuliForUser', { user_id })).data.resData;
+			console.log('got raw stimuli');
+			console.log(stimuli);
+		} catch (e) {
+			console.log('failed to get timeline trial data');
+			console.log(e);
+			return;
+		}
+
+		try {
+			stimuli = stimuli.map(stim => JSON.parse(stim.stimulus));
+		} catch (e) {
+			console.log('failed to parse stimuli');
+			console.log(e);
+			return;
+		}
+
+		this.setState({ loading: false });
+
+		const timeline = buildTimeline(stimuli);
+
+		jsPsych.init({
+			display_element: this.refs.jsPsychTarget,
+			timeline: timeline,
+			on_finish: data => {
+				this.endExperiment()
+			}
+		});
+	}
+
+	endExperiment() {
+		this.setState({ showThanks: true });
+		localAxios.post('/endExperiment', { user_id: this.state.user_id });
+	}
+
 	render() {
+		const thanks = (<h1>Thanks for participating</h1>);
 
 		return (
 			<div id="jsPsychContainer"> 
-				<script type='text/javascript' src={jsPsych}></script>
-				<div ref="jsPsychTarget"></div>
+				{ this.state.loading && (<h1>Loading...</h1>)}
+				<div ref="jsPsychTarget" style={{ display: this.state.loading ? 'none' : 'block' }}></div>
+				{ this.state.showThanks && thanks }
 			</div>
 		);
 	}
