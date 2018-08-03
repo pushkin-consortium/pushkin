@@ -5,39 +5,17 @@ Foundational Quiz Components
 
 Front-end Page
 ---------------
-
-  Under the folder 'quiz_page', this houses the React component(s) of a Pushkin quiz. When a user visits the quiz page of the website and clicks a link to a quiz, the default export from index.js is loaded and served on a blank canvas to give over full control of the page.
+Under the folder 'quiz_page' is housed the React component(s) of a Pushkin quiz. When a user visits the quiz page of the website and clicks a link to a quiz, the default export from index.js is loaded and served on a blank canvas to give over full control of the page.
 
 Database Preparation Process
 ------------------------------
-
-  Before a quiz can be run, and data recorded and stored, the database must contain the appropriate tables, and be seeded with an array of stimuli to present to quiz-takers. This task is handled by files contained in the db-worker folder within root. The first step in the process lies in db-worker/migrations.  
+Before a quiz can be run, and data recorded and stored, the database must contain the appropriate tables, and be seeded with an array of stimuli to present to quiz-takers. This task is handled by files contained in the root db-worker folder.
 
 Database Migrations
----------------------
+^^^^^^^^^^^^^^^^^^^^^^^
+Under the migrations folder, you will find several timestamped files for each Pushkin quiz. Each migration file serves to define and create the columns of a database table, by specifying the names and valid data types of each column. Each database table deals with a different aspect of quiz data. Take a look at each of them to see how the database is laid out. Here's the code for the default users table. You might like to add columns to keep track of more demographics
 
-  Under the migrations folder, you will find four timestamped files for each Pushkin quiz. Each migration file serves to define and create the columns of a database table, by specifying the names and valid data types of each column. Each database table deals with a different aspect of quiz data, and does so by returning a knex schema. These are:
-
-* Quiz Stimuli - Lists all of the available questions for a Pushkin quiz.
-
-  Each stimulus entry consists of an ID number, the name of the quiz, the stimulus, answer options, a count of responses to     that stimulus, and the category of question.
-
-.. code:: python
-
-   exports.up = function(knex) {
-    return knex.schema.createTable('bloodmagic_stimuli', table => {
-      table.increments('id').primary();
-      table.string('task');
-      table.string('stimulus').unique();
-      table.string('options');
-      table.integer('num_responses');
-      table.string('question_category');
-    });
-  };
-  
-* Quiz Users - Lists all of the users who have contributed to that quiz.
-
-.. code:: python
+.. code:: javascript
 
  exports.up = function(knex) {
    return knex.schema.createTable('bloodmagic_users', table => {
@@ -45,54 +23,21 @@ Database Migrations
      table.string('auth0_id');
      table.timestamp('created_at');
      table.timestamp('updated_at');
-   });
- };
-
-
-* Stimulus Responses - Lists all responses given, with stimulus prompt included.
-
-.. code:: python
-
- exports.up = function(knex) {
-   return knex.schema.createTable('bloodmagic_stimulusResponses', table => {
-     table.increments('id').primary();
-     table.integer('user_id').references('id').inTable('bloodmagic_users');
-     table.string('stimulus').references('stimulus').inTable('bloodmagic_stimuli');
-     table.json('data_string');
-     table.timestamp('created_at');
-     table.timestamp('updated_at');
-   });
- };
-
-* Responses - Lists all responses given, without stimulus prompt. 
-
-.. code:: python
-
- exports.up = function(knex) {
-   return knex.schema.createTable('bloodmagic_responses', table => {
-     table.increments('id').primary();
-     table.integer('user_id').references('id').inTable('bloodmagic_users');
-     table.json('data_string');
-     table.timestamp('created_at');
-     table.timestamp('updated_at');
+     table.date('dob');
+     table.string('native_language');
    });
  };
 
 
 Database Seeds
----------------
+^^^^^^^^^^^^^^^
+The next step is to seed the database, which means adding the initial data. In most cases, this will simply mean adding stimuli to the stimulus table. You should edit this file to add your own stimuli to the database. The quiz's front-end page expects to receive stimuli in JSON format that can be added to its JsPsych timeline.
 
- The next step is a seeder script, which uses a dataset of questions in .csv format to populate the stimuli table for each quiz. The seeder script is identical across quizzes, but care should be taken to ensure that the columns defined in the seed csv match those defined by the appropriate migrations, as in the sample presented below.
-
-Sample .csv for use in seeding:
-
-.. image:: seeds.png
-
+.. note:: Make sure to edit the quiz files inside your quiz folder under the root 'quizzes' directory. Otherwise it may get overwritten by ``pushkin prep``, which expects quiz files to be inside the quizzes directory.
 
 Cron Scripts
 ---------------
-
-  Cron is a language-agnostic (Meaning that code execution is not limited to a subset of programming languages) service for running programming scripts on a scheduled, periodic basis. In the context of Pushkin, Cron occupies its own docker container, with its own dependencies, and is composed of two main components:
+Cron is a language-agnostic (meaning that code execution is not limited to a subset of programming languages) service for running programming scripts on a scheduled, periodic basis. In the context of Pushkin, cron occupies its own docker container, with its own dependencies, and is composed of two main components:
 
 * Crontab
 
@@ -100,15 +45,15 @@ Cron Scripts
 
   These sample tasks are executing python scripts, and saving their output (If any) to .txt files. 
   
-  .. code:: python
+  .. code:: bash
 
      # Execute every 5 minutes.
      
-       5 * * * * root echo "test" >> /scripts/test.txt 
+       5 * * * * root echo "test" >> /scripts/log.txt 
 
      # Execute at time 00:00 (midnight) every day.
      
-       0 0 * * * root /usr/bin/python2.7  /scripts/test.py >> /scripts/test2.txt 
+       0 0 * * * root /usr/bin/python2.7  /scripts/test.py >> /scripts/log.txt 
 
      # Execute at 10:00 on the first day of every month.
      
@@ -120,13 +65,15 @@ Cron Scripts
 
   This system of scheduling is powerful and easy-to-use. 
   
-  *Note that asterisks are wildcard symbols which can assume any number*
+.. note:: Asterisks are wildcard symbols that default to the max value of that field. For more information and to easily generate your own crontab from a friendly interface, see the `crontab guru <https://crontab.guru>`.
     
 .. image:: crontime.png
 
 * Scripts
 
-  The jobs themselves can be written in any programming language, and can perform any required task on schedule. 
+  The jobs themselves can be written in any programming language, and can perform any required task on schedule. Cron's Dockerfile is set by default to load everything in the scripts directory.
+
+  These scripts may be useful for periodically organizing or analyzing data. Docker provides this container access to your database via an enviroment variable called 'DATABASE_URL', which encodes the username and password as set in the '.env' file as well.
 
 
 * DockerFile
@@ -137,57 +84,24 @@ Cron Scripts
     * RUN curl --silent --show-error --retry 5 https://bootstrap.pypa.io/get-pip.py | python
     * RUN pip install boto3
 
----------------
-
-These scripts are optional but may be useful for periodically organizing or analyzing data. Docker provides this container access to your database via an enviroment variable called 'DATABASE_URL', which encodes the username and password as set in the '.env' file as well.
-
 API Controller
 ---------------
 
-The API controller is a script which establishes communication endpoints between the front-end, represented by the quiz and user interface, and the back-end, which consists of the database and associated workers. Each endpoint serves as an interface which allows the frontend to make HTTP requests to the main Pushkin API. These requests pertain to writing or reading data - The path of the request, the name of the method, and the data which is associated with the request, are all defined in the quiz-specific API controller. 
+The API controller establishes communication endpoints between the front-end, represented by the quiz and user interface, and the back-end, which consists of the database and associated workers. Each endpoint serves as an interface which allows the frontend to make HTTP requests to the core of Pushkin.
 
-You may wish to add additional methods for reading and writing from the database. To do so, you will have to define an endpoint in API controller, and include the information which you wish to send to the backend. The controller is added to the API and placed into a queue. The quiz-specific db-worker contains a script called handleResponse.js. This script listens for HTTP requests sent from the API, and uses the controller to select the appropriate database query, which you will have to define. 
+A POST endpoint from a quiz controller::
 
-A GET endpoint from a quiz controller:
+  { path: '/health', method: 'health', queue: db_read_queue },
 
-  .. code:: javascript
+And the corresponding switch and method in the quiz worker's handlers::
 
-  { path: '/questionsAnswered', method: 'questionsAnswered', data: req => ({ user_id: req.query.user_id })},
+  case 'health':
+  // no data fields to require
+  return this.health();
+  break;
+  .......
+  health() {
+    return Promise.resolve({ message: 'healthy' });
+  }
 
-------
-
-The corresponding method in handleResponse.js (db-worker):
-
-.. code:: python
-
-  # Executes whatever SQL query it is given, using psycopg2 for python. 
-
-  def queryDbMain(sql):
-      conn = None
-      try:
-          conn = dbConnData()
-          cur = conn.cursor()
-          cur.execute(sql)
-          result = cur.fetchall()
-          cur.close()
-          return result
-
-      except (Exception, psycopg2.DatabaseError) as err:
-          print(err)
-          return { 'message': 'query error: {}'.format(err) }
-
-      finally:
-          if conn is not None:
-              conn.close()
-
-  # The SQL query for a method, making use of the data passed by a controller endpoint. 
-
-  def userQuestionResponses(data):
-      sql = 'SELECT COUNT(*) FROM "quizName_stimulusResponses" WHERE user_id = {}'.format(data.user_id)
-      return queryDbMain(sql)
-
-  # An object which calls the appropriate query for a given method. 
-
-  methods = {
-          "questionsAnswered": userQuestionResponses,
-          }
+Should you want to add your own custom endpoints, simply add a path in your quiz's API controller, a corresponding case in the worker's handler, and whatever functions that method will need.
