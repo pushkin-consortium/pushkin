@@ -73,8 +73,10 @@ for qPath in "${user_quizzes}"/*; do
 	cp -r "${qPath}/cron_scripts/scripts/"*/* "${cron_scripts}/${qName}"
 	cat "${qPath}/cron_scripts/crontab.txt" >> "${cron_tab}"
 
+	mkdir -p "${db_migrations}"
 	cp -r "${qPath}/db_migrations/"* "${db_migrations}"
 
+	mkdir -p "${db_seeds}"
 	cp -r "${qPath}/db_seeds/"* "${db_seeds}"
 
 	mkdir -p "${fe_quizzes_dir}/${qName}"
