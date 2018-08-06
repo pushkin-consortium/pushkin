@@ -34,33 +34,39 @@ shift
 case "${toBuild}" in
 	"api")
 		log "building api as '${pushkin_api_docker_name}'"
-		docker build -t "${image_prefix}/${pushkin_api_docker_name}${image_tag}" "${pushkin_api}"
+		docker build -t "${image_prefix}/${pushkin_api_docker_name}:${image_tag}" "${pushkin_api}"
 		log "done"
 		;;
 	"cron")
 		log "building cron as '${pushkin_cron_docker_name}'"
-		docker build -t "${image_prefix}/${pushkin_cron_docker_name}${image_tag}" "${pushkin_cron}"
+		docker build -t "${image_prefix}/${pushkin_cron_docker_name}:${image_tag}" "${pushkin_cron}"
 		log "done"
 		;;
 	"dbworker")
 		log "building db_worker as '${pushkin_db_worker_docker_name}'"
-		docker build -t "${image_prefix}/${pushkin_db_worker_docker_name}${image_tag}" "${pushkin_db_worker}"
+		docker build -t "${image_prefix}/${pushkin_db_worker_docker_name}:${image_tag}" "${pushkin_db_worker}"
 		log "done"
 		;;
 	"server")
 		log "building server as '${pushkin_server_docker_name}'"
-		docker build -t "${image_prefix}/${pushkin_server_docker_name}${image_tag}" "${pushkin_server}"
+		docker build -t "${image_prefix}/${pushkin_server_docker_name}:${image_tag}" "${pushkin_server}"
 		log "done"
 		;;
 	"core")
-		.pushkin/bin/buildCoreDockers.sh "$@"
+		.pushkin/pushkin build api
+		.pushkin/pushkin build cron
+		.pushkin/pushkin build dbworker
+		.pushkin/pushkin build server
 		;;
 	"quizzes")
 		.pushkin/bin/buildQuizzes.sh "$@"
 		;;
 	"all")
-		buildRouter core "$@"
-		buildRouter quizzes "$@"
+		.pushkin/pushkin build api
+		.pushkin/pushkin build cron
+		.pushkin/pushkin build dbworker
+		.pushkin/pushkin build server
+		.pushkin/pushkin build quizzes
 		;;
 	*)
 		die "build can build 'api', 'cron', 'dbworker', 'server', 'core', 'quizzes', or 'all'"
