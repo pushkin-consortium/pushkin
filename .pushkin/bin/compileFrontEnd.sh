@@ -44,6 +44,7 @@ fi
 cd "$old_pwd"
 
 log "moving compiled files (${dist} -> ${server_html})"
+mkdir -p ${server_html}
 cp -r ${dist}/* ${server_html}
 
 log "done"
