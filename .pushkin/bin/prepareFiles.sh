@@ -66,18 +66,20 @@ for qPath in "${user_quizzes}"/*; do
 	qName=$(basename ${qPath})
 	log "moving files for ${qName}"
 
-	mkdir "${api_controllers}/${qName}"
+	mkdir -p "${api_controllers}/${qName}"
 	cp -r "${qPath}/api_controller"/* "${api_controllers}/${qName}"
 
-	mkdir "${cron_scripts}/${qName}"
+	mkdir -p "${cron_scripts}/${qName}"
 	cp -r "${qPath}/cron_scripts/scripts/"*/* "${cron_scripts}/${qName}"
 	cat "${qPath}/cron_scripts/crontab.txt" >> "${cron_tab}"
 
+	mkdir -p "${db_migrations}"
 	cp -r "${qPath}/db_migrations/"* "${db_migrations}"
 
+	mkdir -p "${db_seeds}"
 	cp -r "${qPath}/db_seeds/"* "${db_seeds}"
 
-	mkdir "${fe_quizzes_dir}/${qName}"
+	mkdir -p "${fe_quizzes_dir}/${qName}"
 	cp -r "${qPath}/quiz_page/"* "${fe_quizzes_dir}/${qName}"
 
 	# quizzes/quizzes/[quiz]/worker does not need to be moved
