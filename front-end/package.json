@@ -10,6 +10,7 @@
     "axios": "^0.15.3",
     "classnames": "^2.2.5",
     "command-line-args": "^5.0.2",
+    "express-sessions": "^1.0.6",
     "fastclick": "^1.0.6",
     "fs": "0.0.1-security",
     "history": "^3.0.0",
@@ -37,6 +38,7 @@
     "redux-logger": "^2.7.4",
     "redux-thunk": "^2.1.0",
     "script-loader": "^0.7.2",
+    "uuid": "^3.3.2",
     "whatwg-fetch": "^1.0.0"
   },
   "devDependencies": {
