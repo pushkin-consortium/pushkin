@@ -47,17 +47,18 @@ module.exports = class Handler {
 			// all its required fields are present
 			const requireDataFields = fields => {
 				const missing =
-					(typeof req.data == 'object' ?
-						fields.reduce( (acc, field) => ((field in req.data) ? acc : [...acc, field]), [])
+					(typeof req.data.body == 'object' ?
+						fields.reduce( (acc, field) => ((field in req.data.body) ? acc : [...acc, field]), [])
 						: fields
 					);
 				if (missing.length > 0)
-					throw new Error(`${req.method}'s req.data must have fields ${fields}. Missing ${missing}`);
+					throw new Error(`${req.method}'s req.data.body must have fields ${fields}. Missing ${missing}`);
 			};
 
 		// using a mapping like this is nicer than calling something like "this[req.method]" because
 		// it allows us to have other functions without exposing them all to the api
 		// as well as require the pertinent fields
+			console.log(`sessionId: ${req.sessionId}`);
 			switch (req.method) {
 
 			// methods called through API controller
@@ -67,38 +68,38 @@ module.exports = class Handler {
 
 				case 'startExperiment':
 					requireDataFields(['user_id']);
-					return this.startExperiment(req.data.user_id);
+					return this.startExperiment(req.data.body.user_id);
 
 				case 'getStimuliForUser':
 					requireDataFields(['user_id']);
-					return this.getStimuliForUser(req.data.user_id);
+					return this.getStimuliForUser(req.data.body.user_id);
 
 				case 'insertMetaResponse':
 					// 'type' must match a column in the database's user table
 					requireDataFields(['user_id', 'type', 'response']);
-					return this.insertMetaResponse(req.data.user_id, req.data.type, req.data.response);
+					return this.insertMetaResponse(req.data.body.user_id, req.data.body.type, req.data.body.response);
 
 				case 'insertStimulusResponse':
 					requireDataFields(['user_id', 'data_string']);
-					return this.insertStimulusResponse(req.data.user_id, req.data.data_string);
+					return this.insertStimulusResponse(req.data.body.user_id, req.data.body.data_string);
 
 				case 'endExperiment':
 					requireDataFields(['user_id']);
-					return this.endExperiment(req.data.user_id);
+					return this.endExperiment(req.data.body.user_id);
 
 					//case 'getMetaQuestionsForUser':
 					//requireDataFields(['user_id']);
-					//return this.getMetaQuestionsForUser(req.data.user_id);
+					//return this.getMetaQuestionsForUser(req.data.body.user_id);
 					//break;
 
 					//case 'generateUserWithAuth':
 					//requireDataFields(['auth_id']);
-					//return this.generateUserWithAuth(req.data.auth_id);
+					//return this.generateUserWithAuth(req.data.body.auth_id);
 					//break;
 
 					//case 'updateUser':
 					//requireDataFields(['user_id', 'auth_id']);
-					//return this.updateUser(req.data.user, req.data.auth);
+					//return this.updateUser(req.data.body.user, req.data.body.auth);
 					//break;
 
 					//case 'getAllStimuli':
@@ -119,12 +120,12 @@ module.exports = class Handler {
 			// methods used by other services (e.g. cron or task worker)
 					//case 'getUserStimulusResponses':
 					//requireDataFields(['user_id']);
-					//return this.getUserStimulusResponses(req.data.user_id);
+					//return this.getUserStimulusResponses(req.data.body.user_id);
 					//break;
 
 					//case 'getDataForPrediction':
 					//requireDataFields(['user_id']);
-					//return this.getDataForPrediction(req.data.user_id);
+					//return this.getDataForPrediction(req.data.body.user_id);
 					//break;
 
 				default:

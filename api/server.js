@@ -9,9 +9,23 @@ const printer = require('./printer');
 const logger = require('./logger.js');
 const CONFIG = require('./config.js');
 require('dotenv').config();
+const uuid = require('uuid/v4');
+const cookieSession = require('cookie-session');
 
 const PORT = process.env.PORT;
 const AMQP_ADDRESS = process.env.AMQP_ADDRESS || 'amqp://localhost';
+
+// cookies
+app.set('trust-proxy', 1);
+app.use(cookieSession({
+  name: 'session',
+	maxAge: 24 * 60 * 60 * 1000,
+  keys: ['oursupersecrectkeyforpreventingcookietampering']
+}));
+app.use( (req, res, next) => {
+	console.log(`COOKIE?: ${JSON.stringify(req.session)}`);
+	next();
+});
 
 app.use(bodyParser.json());
 app.use(cors());
