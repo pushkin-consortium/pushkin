@@ -2,6 +2,7 @@ exports.up = function(knex) {
   return knex.schema.createTable('${QUIZ_NAME}_users', table => {
     table.increments('id').primary();
     table.string('auth0_id');
+		table.string('session_id').unique();
     table.timestamp('created_at').notNullable();
     table.timestamp('updated_at');
 		table.date('dob');
