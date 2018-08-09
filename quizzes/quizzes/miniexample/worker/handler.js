@@ -40,92 +40,59 @@ module.exports = class Handler {
 	handle(req) {
 			// some methods send '' as the data string when none is needed
 			// so check for undefined rather than truthyness
-			if (!req || !req.method || req.data === undefined)
+			if (!req || !req.method || req.data.body === undefined)
 				throw new Error('invalid request. Requests must have a method and data field');
 
 			// each method in the switch statement below should use this function to ensure
 			// all its required fields are present
 			const requireDataFields = fields => {
 				const missing =
-					(typeof req.data == 'object' ?
-						fields.reduce( (acc, field) => ((field in req.data) ? acc : [...acc, field]), [])
+					(typeof req.data.body == 'object' ?
+						fields.reduce( (acc, field) => ((field in req.data.body) ? acc : [...acc, field]), [])
 						: fields
 					);
 				if (missing.length > 0)
-					throw new Error(`${req.method}'s req.data must have fields ${fields}. Missing ${missing}`);
+					throw new Error(`${req.method}'s req.data.body must have fields ${fields}. Missing ${missing}`);
 			};
 
 		// using a mapping like this is nicer than calling something like "this[req.method]" because
 		// it allows us to have other functions without exposing them all to the api
 		// as well as require the pertinent fields
+			const sessId = req.data.sessionId;
 			switch (req.method) {
 
 			// methods called through API controller
 				case 'generateUser':
 					// no data fields to require
-					return this.generateUser();
+					return this.generateUser(sessId);
 
-				case 'startExperiment':
-					requireDataFields(['user_id']);
-					return this.startExperiment(req.data.user_id);
+				case 'startExperiment': {
+					const user = this.getUserIdFromSessionId(sessId);
+					return this.startExperiment(user);
+				}
 
-				case 'getStimuliForUser':
-					requireDataFields(['user_id']);
-					return this.getStimuliForUser(req.data.user_id);
+				case 'getStimuliForUser': {
+				    const user = this.getUserIdFromSessionId(sessId);
+				    return this.getStimuliForUser(user);
+				}
 
-				case 'insertMetaResponse':
+				case 'insertMetaResponse': {
 					// 'type' must match a column in the database's user table
-					requireDataFields(['user_id', 'type', 'response']);
-					return this.insertMetaResponse(req.data.user_id, req.data.type, req.data.response);
+					requireDataFields(['type', 'response']);
+					const user = this.getUserIdFromSessionId(sessId);
+					return this.insertMetaResponse(user, req.data.body.type, req.data.body.response);
+			       }
 
-				case 'insertStimulusResponse':
-					requireDataFields(['user_id', 'data_string']);
-					return this.insertStimulusResponse(req.data.user_id, req.data.data_string);
+				case 'insertStimulusResponse': {
+					requireDataFields(['data_string']);
+					const user = this.getUserIdFromSessionId(sessId);
+					return this.insertStimulusResponse(user, req.data.body.data_string);
+			       }
 
-				case 'endExperiment':
-					requireDataFields(['user_id']);
-					return this.endExperiment(req.data.user_id);
-
-					//case 'getMetaQuestionsForUser':
-					//requireDataFields(['user_id']);
-					//return this.getMetaQuestionsForUser(req.data.user_id);
-					//break;
-
-					//case 'generateUserWithAuth':
-					//requireDataFields(['auth_id']);
-					//return this.generateUserWithAuth(req.data.auth_id);
-					//break;
-
-					//case 'updateUser':
-					//requireDataFields(['user_id', 'auth_id']);
-					//return this.updateUser(req.data.user, req.data.auth);
-					//break;
-
-					//case 'getAllStimuli':
-					//// no data fields to require
-					//return this.getAllStimuli();
-					//break;
-
-					//case 'activateStimuli':
-					//// no data fields to require
-					//return this.activateStimuli();
-					//break;
-
-					//case 'health':
-					//// no data fields to require
-					//return this.health();
-					//break;
-
-			// methods used by other services (e.g. cron or task worker)
-					//case 'getUserStimulusResponses':
-					//requireDataFields(['user_id']);
-					//return this.getUserStimulusResponses(req.data.user_id);
-					//break;
-
-					//case 'getDataForPrediction':
-					//requireDataFields(['user_id']);
-					//return this.getDataForPrediction(req.data.user_id);
-					//break;
+				case 'endExperiment': {
+					const user = this.getUserIdFromSessionId(sessId);
+					return this.endExperiment(user);
+			      	}
 
 				default:
 					throw new Error(`method ${req.method} does not exist`);
@@ -136,9 +103,14 @@ module.exports = class Handler {
 	/*** methods that don't return anything meaningful should return 0 as a status code 
 	 *	 because axios wants a response in the front end ***/
 
+	async getUserIdFromSessionId(sessId) {
+	    return (await 
+		    this.pg_main(this.tables.users).where('session_id', sessId)
+		    .andWhere('updated_at', '
+	}
 	// for ephemeral test-takers (a new one's made each time a quiz is taken)
 	// resolves to the new user id
-	generateUser() {
+	generateUser(sessId) {
 		return this.pg_main(this.tables.users).insert({
 			created_at: new Date(),
 			updated_at: new Date()
