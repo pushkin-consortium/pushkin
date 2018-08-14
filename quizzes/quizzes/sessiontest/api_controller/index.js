@@ -8,9 +8,8 @@ module.exports = (rpc, conn) => {
 	const db_write_queue = 'sessiontest_quiz_dbwrite'; // simple endpoints
 
 	const stdPosts = [
-		{ path: '/createUser', method: 'generateUser', queue: db_write_queue },
 		{ path: '/startExperiment', method: 'startExperiment', queue: task_queue },
-		{ path: '/getStimuliForUser', method: 'getStimuliForUser', queue: db_read_queue },
+		{ path: '/getStimuli', method: 'getStimuliForUser', queue: db_read_queue },
 		{ path: '/metaResponse', method: 'insertMetaResponse', queue: db_write_queue },
 		{ path: '/stimulusResponse', method: 'insertStimulusResponse', queue: db_write_queue },
 		{ path: '/endExperiment', method: 'endExperiment', queue: task_queue },
