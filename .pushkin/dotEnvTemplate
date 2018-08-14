@@ -1,0 +1,35 @@
+# dockerhub name to use
+image_prefix=
+# tag to give images
+image_tag=latest
+
+api_port=3000
+
+# Postgres database to use for main data
+# Ex.
+	# main_db_url=pushkin-data-db.cohm354sfmrs.us-east-2.rds.amazonaws.com
+	# main_db_user=myusername
+	# main_db_pass=mysecretpassword
+	# main_db_name=myMainDBname
+
+main_db_url=
+main_db_user=
+main_db_pass=
+main_db_name=
+
+# Postgres database to use for query logging (not yet implemented)
+transaction_db_url=
+transaction_db_user=
+transaction_db_pass=
+transaction_db_name=
+
+rabbitmq_hostname=localhost
+
+# destination of root of files (see implementation as this is passed to webpack config in front end)
+cloudfront_url=http://d37qss551jj3rp.cloudfront.net
+google_analytics_site_id=UA-2371563-1
+
+isdebug=false
+
+s3_bucket_name=
+
