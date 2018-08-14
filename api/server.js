@@ -9,8 +9,6 @@ const printer = require('./printer');
 const logger = require('./logger.js');
 const CONFIG = require('./config.js');
 require('dotenv').config();
-const uuid = require('uuid/v4');
-const cookieSession = require('cookie-session');
 
 const uuid = require('uuid/v4');
 const cookieSession = require('cookie-session');
@@ -32,16 +30,6 @@ app.use( (req, res, next) => {
 
 app.use(bodyParser.json());
 app.use(cors());
-
-app.use(cookieSession({
-    name: 'session',
-    keys: ['oursuperscecretkeysocookiesarentfaked'],
-    maxAge: 24 * 60 * 60 * 1000
-}));
-app.use( (req, res, next) => {
-    req.session.id = req.session.id || uuid();
-    next();
-});
 
 amqp.connect(AMQP_ADDRESS, function(err, conn) {
   if (err) return logger.error(err);

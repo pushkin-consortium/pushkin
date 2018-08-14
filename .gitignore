@@ -4,11 +4,12 @@
 docker-compose.production.noEnvDependency.yml
 
 # make lots of irrelevant changes when testing new quizzes
+# when making new test branch, make sure to SYNC quizzes/quizzes,
+# but don't merge that stuff into the master branch
 server/html/*
 front-end/dist/*
 front-end/src/quizzes/quizzes.js
-#working on example quiz, want synced
-#quizzes/quizzes/*
+quizzes/quizzes/*
 db-worker/migrations/*
 db-worker/seeds/*
 cron/scripts/*
