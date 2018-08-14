@@ -242,15 +242,16 @@ module.exports = class Handler {
 	/*************** helpers **************/
 
 	async getOrMakeUser(sessId) {
-		console.log(`generating user for session ${sessId}`);
 		const withSessId =
 			(await this.pg_main(this.tables.users).where('session_id', sessId).count('id')).count;
 
 		if (withSessId > 0) {
-			return (await this.pg_main(this.tables.users).where('session_id', sessId).first('id')).id;
+			const userId = (await this.pg_main(this.tables.users).where('session_id', sessId).first('id')).id;
+			console.log(`session id ${sessId} is already associated with user ${userId}, returning that`);
+			return userId;
 		}
 
-		this.pg_main(this.tables.users).insert({
+		return this.pg_main(this.tables.users).insert({
 			created_at: new Date(),
 			updated_at: new Date(),
 			session_id: sessId
