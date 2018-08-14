@@ -159,36 +159,37 @@ module.exports = class Handler {
 
 		const userId = await this.getOrMakeUser(sessId);
 
-		return this.pg_main(this.tables.users).where('id', user).first(type)
+		return this.pg_main(this.tables.users).where('id', userId).first(type)
 			.then(maybeTypeData => {
 				const e = maybeTypeData[type];
-				console.log(`${e ? 'changing' : 'setting'} user ${user}'s ${type} to "${response}"`);
-				return this.pg_main(this.tables.users).where('id', user).update(type, response);
+				console.log(`${e ? 'changing' : 'setting'} user ${userId}'s ${type} to "${response}"`);
+				return this.pg_main(this.tables.users).where('id', userId).update(type, response);
 			}).then(_ => 0);
 	}
 
-	insertStimulusResponse(user, response) {
-		console.log(`inserting response for user ${user}: \n\n\t${JSON.stringify(response)}\n`);
+	insertStimulusResponse(sessId, response) {
+		const userId = await this.getOrMakeUser(sessId);
+		console.log(`inserting response for user ${userId}: \n\n\t${JSON.stringify(response)}\n`);
 
-		// DO CHECKS (not past end, etc.)
+		// DO CHECKS (not past end of experiment, etc.)
 
-		return this.pg_main(this.tables.TUQ).where('user_id', user).first('stim_group', 'cur_position')
+		return this.pg_main(this.tables.TUQ).where('user_id', userId).first('stim_group', 'cur_position')
 			.then(t => {
 				return this.pg_main(this.tables.stimGroupStim)
 					.where({
 						group: t.stim_group,
 						position: t.cur_position
-					}).select('stimulus')
-			}).then(stimulus => {
+					}).first('stimulus')
+			}).then(stimRes => {
 				return this.pg_main(this.tables.TUQSR).insert({
-					user_id: user,
-					stimulus: stimulus[0].stimulus,
+					user_id: userId,
+					stimulus: stimRes.stimulus,
 					response: JSON.stringify(response),
 					answered_at: new Date()
 				});
 			}).then(_ => {
-				console.log(`incrementing user ${user}'s cur_position`);
-				return this.pg_main(this.tables.TUQ).where('user_id', user).increment('cur_position');
+				console.log(`incrementing user ${userId}'s cur_position`);
+				return this.pg_main(this.tables.TUQ).where('user_id', userId).increment('cur_position');
 			}).then(_ => 0);
 	}
 
