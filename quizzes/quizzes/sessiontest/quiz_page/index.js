@@ -67,31 +67,17 @@ export default class sessiontest extends React.Component {
 	async startExperiment() {
 		browserHistory.listen(jsPsych.endExperiment);
 
-		// createUser (-> user_id)
-		let user_id;
-		try {
-			user_id = (await localAxios.post('/createUser')).data.resData;
-			this.setState({ user_id });
-			console.log(`user id: ${user_id}`);
-			jsPsych.data.addProperties({ user_id });
 
-		} catch (e) {
-			console.log('Could not start exeriment. Failed to create new user:');
-			console.log(e);
-			return;
-		}
-
-		// startExperiment(user_id)
-		// (let worker prep the database)
-		try { await localAxios.post('/startExperiment', { user_id }); }
+		// startExperiment (let worker prep database)
+		try { await localAxios.post('/startExperiment'); }
 		catch (e) { console.log('failed to startExperiment'); console.log(e); return; }
 
-		// getStimuliForUser(user_id), create the timeline, and start
+		// getStimuli, create the timeline, and start
 		let stimuli;
-		let meta;
+		//let meta;
 		try {
 			// meta Qs not yet done via database (just hardcoded in jspTimeline)
-			stimuli = (await localAxios.post('/getStimuliForUser', { user_id })).data.resData;
+			stimuli = (await localAxios.post('/getStimuli')).data.resData;
 			console.log('got raw stimuli');
 			console.log(stimuli);
 		} catch (e) {
@@ -123,7 +109,7 @@ export default class sessiontest extends React.Component {
 
 	endExperiment() {
 		this.setState({ showThanks: true });
-		localAxios.post('/endExperiment', { user_id: this.state.user_id });
+		localAxios.post('/endExperiment');
 	}
 
 	render() {
