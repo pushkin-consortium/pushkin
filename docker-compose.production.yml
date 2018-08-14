@@ -32,21 +32,21 @@ services:
     labels:
       io.rancher.scheduler.global: 'true'
 
-  db-worker:
-    image: '${image_prefix}/pushkin_db_worker:${image_tag}'
-    environment:
-      - 'NODE_ENV=production'
-      - "USE_FORUM=${use_forum}"
-      - 'AMQP_ADDRESS=amqp://message-queue:5672'
-      - "DATABASE_URL=postgres://${main_db_user}:${main_db_pass}@${main_db_url}/${main_db_name}"
-      - "TRANSACTION_DATABASE_URL=postgres://${transaction_db_user}:${transaction_db_pass}@${transaction_db_url}/${transaction_db_name}"
-    links:
-      - message-queue
-    command:
-      - bash
-      - start.sh
-    labels:
-      io.rancher.scheduler.global: 'true'
+      #  db-worker:
+      #    image: '${image_prefix}/pushkin_db_worker:${image_tag}'
+      #    environment:
+      #      - 'NODE_ENV=production'
+      #      - "USE_FORUM=${use_forum}"
+      #      - 'AMQP_ADDRESS=amqp://message-queue:5672'
+      #      - "DATABASE_URL=postgres://${main_db_user}:${main_db_pass}@${main_db_url}/${main_db_name}"
+      #      - "TRANSACTION_DATABASE_URL=postgres://${transaction_db_user}:${transaction_db_pass}@${transaction_db_url}/${transaction_db_name}"
+      #    links:
+      #      - message-queue
+      #    command:
+      #      - bash
+      #      - start.sh
+      #    labels:
+      #      io.rancher.scheduler.global: 'true'
 
   message-queue:
     image: 'rabbitmq:3.6-management'
