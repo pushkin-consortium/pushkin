@@ -6,10 +6,8 @@ const loadScript = (srcUrl, onLoad) => {
 		// can't use array stuff because getElements doesn't return an array
 		const scripts = document.getElementsByTagName('script');
 		for (let i=0; i<scripts.length; i++) {
-			if (scripts[i].src == srcUrl) {
-				resolve(`already loaded ${srcUrl}`);
-				return;
-			}
+			if (scripts[i].src == srcUrl)
+				scripts[i].parentNode.removeChild(scripts[i]);
 		}
 
 		const script = document.createElement('script');
