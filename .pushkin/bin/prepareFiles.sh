@@ -67,20 +67,30 @@ for qPath in "${user_quizzes}"/*; do
 	log "moving files for ${qName}"
 
 	mkdir -p "${api_controllers}/${qName}"
-	cp -r "${qPath}/api_controller"/* "${api_controllers}/${qName}"
+	for i in "${qPath}/api_controller"/*; do
+		[ -e "$i" ] && cp -r "$i" "${api_controllers}/${qName}"
+	done
 
 	mkdir -p "${cron_scripts}/${qName}"
-	cp -r "${qPath}/cron_scripts/scripts/"*/* "${cron_scripts}/${qName}"
+	for i in "${qPath}/cron_scripts/scripts/"*; do
+		[ -e "$i" ] && cp -r "$i" "${cron_scripts}/${qName}"
+	done
 	cat "${qPath}/cron_scripts/crontab.txt" >> "${cron_tab}"
 
 	mkdir -p "${db_migrations}"
-	cp -r "${qPath}/db_migrations/"* "${db_migrations}"
+	for i in "${qPath}/db_migrations/"*; do
+		[ -e "$i" ] && cp -r "$i" "${db_migrations}"
+	done
 
 	mkdir -p "${db_seeds}"
-	cp -r "${qPath}/db_seeds/"* "${db_seeds}"
+	for i in "${qPath}/db_seeds/"*; do
+		[ -e "$i" ] && cp -r "$i" "${db_seeds}"
+	done
 
 	mkdir -p "${fe_quizzes_dir}/${qName}"
-	cp -r "${qPath}/quiz_page/"* "${fe_quizzes_dir}/${qName}"
+	for i in "${qPath}/quiz_page/"*; do
+		[ -e "$i" ] && cp -r "$i" "${fe_quizzes_dir}/${qName}"
+	done
 
 	# quizzes/quizzes/[quiz]/worker does not need to be moved
 	# because it's just docker and not physically referenced by anything
