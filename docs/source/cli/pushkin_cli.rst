@@ -35,6 +35,16 @@ Compiles the front end using the command specified by ``pushkin_front_end_compil
 
 Moves the compiled files from ``pushkin_front_end_dist`` to ``pushkin_server_html``.
 
+migrate
+---------
+
+Connects to the main database specified in ``pushkin_env_file`` and runs knex migrations from the db-worker's directory.
+
+seed
+--------
+
+Connects to the main database specified in ``pushkin_env_file`` and runs knex seeds from the db-worker's directory.
+
 build
 --------
 
