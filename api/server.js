@@ -23,6 +23,7 @@ app.use(cookieSession({
   keys: ['oursupersecrectkeyforpreventingcookietampering']
 }));
 app.use( (req, res, next) => {
+	req.session.id = req.session.id || uuid();
 	console.log(`COOKIE?: ${JSON.stringify(req.session)}`);
 	next();
 });
