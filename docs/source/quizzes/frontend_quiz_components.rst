@@ -30,6 +30,8 @@ Trials are defined and located in ``quiz_files/jsPsychTimeline.js``. This file e
 
 Below is a sample trial. It is helpful to reference the source code of the plugin which you wish to use, in the jsPsych folder, in order to understand the requirements of the trial. In general, each can be described as an object with defined parameters, typically provided with strings of HTML/CSS for formatting, and arrays of strings, images, and audiofiles to serve as stimuli/answer options for that trial. 
 
+.. note:: This is not correct. I don't have time to write it all out, but, as I've (Jacob) shown Mariela, stimuli for trials are stored in the database and then retrieved through calls to the API. Axios posts to /startExperiment, then /getStimuli and sends the retrieved info to the "buildTimeline" function in jspTimeline.js. I don't know why Han wrote this this way.
+
 .. code:: javascript
 
     # A relatively simple trial which serves only to display instructions. 

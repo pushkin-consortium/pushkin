@@ -81,3 +81,8 @@ start
 ----------
 
 A small convenience utility. Runs docker-compose up on ``pushkin_docker_compose_noDep_file``.
+
+init
+-----------
+
+Runs ``npm install`` in the api, front-end, and db-worker directories as specified by their variable names in ``pushkin_config_vars.sh``.

@@ -98,10 +98,9 @@ And the corresponding switch and method in the quiz worker's handlers::
   case 'health':
   // no data fields to require
   return this.health();
-  break;
   .......
   health() {
     return Promise.resolve({ message: 'healthy' });
   }
 
-Should you want to add your own custom endpoints, simply add a path in your quiz's API controller, a corresponding case in the worker's handler, and whatever functions that method will need.
+Should you need to add your own custom endpoints, simply add a path in your quiz's API controller, a corresponding case in the worker's handler, and whatever functions that method will need.
