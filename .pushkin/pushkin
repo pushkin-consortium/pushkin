@@ -28,7 +28,7 @@ checkPushkinNotCorrupt () {
 	done
 }
 showUsage () {
-	echo "usage: pushkin [make | prep | build | sync | compile | start | init] [sub-command args]"
+	echo "usage: pushkin [make | prep | migrate | seed | build | sync | compile | start | init] [sub-command args]"
 }
 
 ##############################################
@@ -61,6 +61,12 @@ case "${sub_command}" in
 		;;
 	"prep")
 		.pushkin/bin/prepareFiles.sh "$@"
+		;;
+	"migrate")
+		.pushkin/bin/migrate.sh "$@"
+		;;
+	"seed")
+		.pushkin/bin/seed.sh "$@"
 		;;
 	"build")
 		.pushkin/bin/build.sh "$@"
