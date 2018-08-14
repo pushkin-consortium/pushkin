@@ -90,18 +90,18 @@ module.exports = class Handler {
 		// check if the user already has a TUQ record
 		const tuqCount = (await this.pg_main(this.tables.TUQ).where('user_id', userId).count('*'))[0].count;
 		if (tuqCount > 0)
-			throw new Error(`user ${user} already has a TUQ record, aborting`);
+			throw new Error(`user ${userId} already has a TUQ record, aborting`);
 
 		// good to go
 		const maxStimuli = 4;
-		console.log(`starting experiment for user ${user} with ${maxStimuli} max stimuli`);
+		console.log(`starting experiment for user ${userId} with ${maxStimuli} max stimuli`);
 
 		// create a stimulus group (stimGroups) (for this experiment, we'll just
 		// make a new group for each quiz run rather than reusing them)
 		const stimGroupId = (await this.pg_main(this.tables.stimGroups)
 			.insert({ created_at: new Date() }).returning('id'))[0];
 
-		console.log(`assigned user ${user} stimulus group ${stimGroupId}`);
+		console.log(`assigned user ${userId} stimulus group ${stimGroupId}`);
 
 		const selectedStims = await this.pg_main(this.tables.stim)
 			.select('id').orderByRaw('random()').limit(maxStimuli);
@@ -122,25 +122,25 @@ module.exports = class Handler {
 
 		// initialize This User Quiz (TUQ)
 		await this.pg_main(this.tables.TUQ).insert({
-			user_id: user,
+			user_id: userId,
 			stim_group: stimGroupId,
 			started_at: new Date(),
 			cur_position: 0
 		});
 
-		console.log(`created new TUQ record for user ${user}`);
-		console.log(`done starting experiment for user ${user}`);
+		console.log(`created new TUQ record for user ${userId}`);
+		console.log(`done starting experiment for user ${userId}`);
 	}
 
 	getStimuli(sessId) {
 		return this.getOrMakeUser(sessId)
-			.then(userId => this.pg_main(this.tables.TUQ).where('user_id', user).select('stim_group'))
+			.then(userId => this.pg_main(this.tables.TUQ).where('user_id', userId).select('stim_group'))
 			.then(g => {
 				if (g.length < 1)
-					throw new Error(`getStimuli: user ${user} doesn't have a TUQ record, aborting`);
+					throw new Error(`getStimuli: user ${userId} doesn't have a TUQ record, aborting`);
 
 				const stimGroupId = g[0].stim_group;
-				console.log(`getStimuli: getting user ${user} stimuli from group ${stimGroupId}`);
+				console.log(`getStimuli: getting user ${userId} stimuli from group ${stimGroupId}`);
 
 				return this.pg_main(this.tables.stim).join(
 					this.tables.stimGroupStim,
@@ -155,7 +155,7 @@ module.exports = class Handler {
 		// these should match columns in the users table that contain meta info
 		const validMetaColumns = [ 'dob', 'native_language' ];
 		if (validMetaColumns.indexOf(type) <= -1)
-			throw new Error(`insertMetaResponse: user ${user} attempted to save meta to an invalid column "${type}"`);
+			throw new Error(`insertMetaResponse: user ${userId} attempted to save meta to an invalid column "${type}"`);
 
 		const userId = await this.getOrMakeUser(sessId);
 
@@ -167,7 +167,7 @@ module.exports = class Handler {
 			}).then(_ => 0);
 	}
 
-	insertStimulusResponse(sessId, response) {
+	async insertStimulusResponse(sessId, response) {
 		const userId = await this.getOrMakeUser(sessId);
 		console.log(`inserting response for user ${userId}: \n\n\t${JSON.stringify(response)}\n`);
 
@@ -193,43 +193,38 @@ module.exports = class Handler {
 			}).then(_ => 0);
 	}
 
-	endExperiment(user) {
-		return this.userExists(user).then(exists => {
-			if (!exists) {
-				throw new Error(`endExperiment: user ${user} doesn't exist, aborting`);
-				return;
-			}
-		}).then(async _ => {
-			// make sure the user has a TUQ record
-			if ((await this.pg_main(this.tables.TUQ).where('user_id', user).count('*'))[0].count == 0) {
-				throw new Error(`endExperiment: user ${user} doesn't have a TUQ record, aborting`);
-				return;
-			}
-		}).then(_ => { // good to go
-			console.log(`ending experiment for user ${user}`);
-			// get TUQSRs
-			//console.log(this.pg_main(this.tables.TUQSR).where('user_id', user).select('*').toSQL().toNative());
-			return this.pg_main(this.tables.TUQSR).where('user_id', user).select('*');
-		}).then(responses => {
-			console.log(`solidifying user ${user}'s responses`);
-			const res = responses.map(r => ({
-				user_id: user,
-				stimulus: r.stimulus,
-				response: JSON.stringify(r.response),
-				created_at: r.answered_at,
-				updated_at: r.modified_at
-			}));
-			// put TUQSRs in stimResp
-			return this.pg_main(this.tables.stimResp).insert(res);
-		}).then(_ => {
-			// delete TUQSRs
-			console.log(`deleting user ${user}'s temp responses`);
-			return this.pg_main(this.tables.TUQSR).where('user_id', user).del();
-		}).then(_ => {
-			// delete TUQ record
-			console.log(`removing user ${user}'s TUQ record`);
-			return this.pg_main(this.tables.TUQ).where('user_id', user).del();
-		}).then(_ => 0);
+	endExperiment(sessId) {
+		const userId = await this.getOrMakeUser(sessId);
+
+		// make sure the user has a TUQ record
+		const tuqCount = (await this.pg_main(this.tables.TUQ).where('user_id', userId).count('*'))[0].count;
+		if (tuqCount == 0)
+			throw new Error(`endExperiment: user ${userId} doesn't have a TUQ record, aborting`);
+
+		console.log(`ending experiment for user ${userId}`);
+
+		// get TUQSRs
+		return this.pg_main(this.tables.TUQSR).where('user_id', user).select('*')
+			.then(responses => {
+				console.log(`solidifying user ${userId}'s responses`);
+				const res = responses.map(r => ({
+					user_id: userId,
+					stimulus: r.stimulus,
+					response: JSON.stringify(r.response),
+					created_at: r.answered_at,
+					updated_at: r.modified_at
+				}));
+				// put TUQSRs in stimResp
+				return this.pg_main(this.tables.stimResp).insert(res);
+			}).then(_ => {
+				// delete TUQSRs
+				console.log(`deleting user ${userId}'s temp responses`);
+				return this.pg_main(this.tables.TUQSR).where('user_id', userId).del();
+			}).then(_ => {
+				// delete TUQ record
+				console.log(`removing user ${userId}'s TUQ record`);
+				return this.pg_main(this.tables.TUQ).where('user_id', userId).del();
+			}).then(_ => 0);
 	}
 
 	/*************** helpers **************/
