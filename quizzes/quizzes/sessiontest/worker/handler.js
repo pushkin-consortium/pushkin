@@ -55,38 +55,29 @@ module.exports = class Handler {
 			switch (req.method) {
 
 			// methods called through API controller
+				/* no need to do directly
 				case 'generateUser':
 					// no data fields to require
 					return this.generateUser(req.sessionId);
+					*/
 
-				case 'startExperiment': {
-					const user = await this.findUserFromSessionId(req.sessionId);
-					console.log(`starting experiment, user ${user}`);
-					return this.startExperiment(user);
-				}
+				case 'startExperiment':
+					return this.startExperiment(req.sessionId);
 
-				case 'getStimuliForUser': {
-					const user = await this.findUserFromSessionId(req.sessionId);
-					return this.getStimuliForUser(user);
-				}
+				case 'getStimuli':
+					return this.getStimuli(req.sessionId);
 
-				case 'insertMetaResponse': {
+				case 'insertMetaResponse':
 					// 'type' must match a column in the database's user table
 					requireDataFields(['type', 'response']);
-					const user = await this.findUserFromSessionId(req.sessionId);
-					return this.insertMetaResponse(user, req.data.body.type, req.data.body.response);
-				}
+					return this.insertMetaResponse(req.sessionId, req.data.body.type, req.data.body.response);
 
-				case 'insertStimulusResponse': {
+				case 'insertStimulusResponse':
 					requireDataFields(['data_string']);
-					const user = await this.findUserFromSessionId(req.sessionId);
-					return this.insertStimulusResponse(user, req.data.body.data_string);
-				}
+					return this.insertStimulusResponse(req.sessionId, req.data.body.data_string);
 
-				case 'endExperiment': {
-					const user = await this.findUserFromSessionId(req.sessionId);
-					return this.endExperiment(user);
-				}
+				case 'endExperiment':
+					return this.endExperiment(req.sessionId);
 
 				default:
 					throw new Error(`method ${req.method} does not exist`);
@@ -105,12 +96,14 @@ module.exports = class Handler {
 	}
 
 	// if a user with this session id already exists, just use the same user
-	generateOrGetUser(sessId) {
+	async getOrMakeUser(sessId) {
 		console.log(`generating user for session ${sessId}`);
 		const withSessId =
 			(await this.pg_main(this.tables.users).where('session_id', sessId).count('id')).count;
 
-		if (withSessId)
+		if (withSessId > 0) {
+			return (await this.pg_main(this.tables.users).where('session_id', sessId).first('id')).id;
+		}
 
 		this.pg_main(this.tables.users).insert({
 			created_at: new Date(),
@@ -119,61 +112,52 @@ module.exports = class Handler {
 		}).returning('id').then(d => d[0]);
 	}
 
-	startExperiment(user) {
+	async startExperiment(sessId) {
+		const userId = await this.getOrMakeUser(sessId);
 
-		return new Promise( async (resolve, reject) => {
-			if (!(await this.userExists(user))) {
-				reject(`user ${user} doesn't exist, aborting`);
-				return;
-			}
+		// check if the user already has a TUQ record
+		const tuqCount = (await this.pg_main(this.tables.TUQ).where('user_id', userId).count('*'))[0].count;
+		if (tuqCount > 0)
+			throw new Error(`user ${user} already has a TUQ record, aborting`);
 
-			// check if the user already has a TUQ record
-			if ((await this.pg_main(this.tables.TUQ).where('user_id', user).count('*'))[0].count > 0) {
-				reject(`user ${user} already has a TUQ record, aborting`);
-				return;
-			}
+		// good to go
+		const maxStimuli = 4;
+		console.log(`starting experiment for user ${user} with ${maxStimuli} max stimuli`);
 
-			// good to go
-			const maxStimuli = 4;
-			console.log(`starting experiment for user ${user} with ${maxStimuli} max stimuli`);
+		// create a stimulus group (stimGroups) (for this experiment, we'll just
+		// make a new group for each quiz run rather than reusing them)
+		const stimGroupId = (await this.pg_main(this.tables.stimGroups)
+			.insert({ created_at: new Date() }).returning('id'))[0];
 
-			// create a stimulus group (stimGroups) (for this experiment, we'll just
-			// make a new group for each quiz run rather than reusing them)
-			const stimGroupId = (await this.pg_main(this.tables.stimGroups)
-				.insert({ created_at: new Date() }).returning('id'))[0];
+		console.log(`assigned user ${user} stimulus group ${stimGroupId}`);
 
-			console.log(`assigned user ${user} stimulus group ${stimGroupId}`);
-			
-			const selectedStims = await this.pg_main(this.tables.stim)
-				.select('id').orderByRaw('random()').limit(maxStimuli);
+		const selectedStims = await this.pg_main(this.tables.stim)
+			.select('id').orderByRaw('random()').limit(maxStimuli);
 
-			console.log(`selected ${selectedStims.length} stimuli for group ${stimGroupId}`);
+		console.log(`selected ${selectedStims.length} stimuli for group ${stimGroupId}`);
 
-			// add stimuli to the group (stimGroupStim)
-			let position = 0;
-			await this.pg_main(this.tables.stimGroupStim).insert(
-				selectedStims.map(stim => ({
-						group: stimGroupId,
-						stimulus: stim.id,
-						position: position++
-				}))
-			);
+		// add stimuli to the group (stimGroupStim)
+		let position = 0;
+		await this.pg_main(this.tables.stimGroupStim).insert(
+			selectedStims.map(stim => ({
+				group: stimGroupId,
+				stimulus: stim.id,
+				position: position++
+			}))
+		);
 
-			console.log(`added ${selectedStims.length} stimuli to group ${stimGroupId}`);
+		console.log(`added ${selectedStims.length} stimuli to group ${stimGroupId}`);
 
-			// initialize This User Quiz (TUQ)
-			await this.pg_main(this.tables.TUQ).insert({
-				user_id: user,
-				stim_group: stimGroupId,
-				started_at: new Date(),
-				cur_position: 0
-			});
-
-			console.log(`created new TUQ record for user ${user}`);
-			console.log(`done starting experiment for user ${user}`);
-
-			resolve(0);
+		// initialize This User Quiz (TUQ)
+		await this.pg_main(this.tables.TUQ).insert({
+			user_id: user,
+			stim_group: stimGroupId,
+			started_at: new Date(),
+			cur_position: 0
 		});
+
+		console.log(`created new TUQ record for user ${user}`);
+		console.log(`done starting experiment for user ${user}`);
 	}
 
 	getStimuliForUser(user) {
