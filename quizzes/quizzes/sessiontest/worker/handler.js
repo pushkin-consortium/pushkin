@@ -65,11 +65,11 @@ module.exports = class Handler {
 				case 'insertMetaResponse':
 					// 'type' must match a column in the database's user table
 					requireDataFields(['type', 'response']);
-					return this.insertMetaResponse(req.sessionId, req.data.body.type, req.data.body.response);
+					return this.insertMetaResponse(req.sessionId, req.data.type, req.data.response);
 
 				case 'insertStimulusResponse':
 					requireDataFields(['data_string']);
-					return this.insertStimulusResponse(req.sessionId, req.data.body.data_string);
+					return this.insertStimulusResponse(req.sessionId, req.data.data_string);
 
 				case 'endExperiment':
 					return this.endExperiment(req.sessionId);
@@ -130,11 +130,13 @@ module.exports = class Handler {
 
 		console.log(`created new TUQ record for user ${userId}`);
 		console.log(`done starting experiment for user ${userId}`);
+
+		return 0; // success
 	}
 
-	getStimuli(sessId) {
-		return this.getOrMakeUser(sessId)
-			.then(userId => this.pg_main(this.tables.TUQ).where('user_id', userId).select('stim_group'))
+	async getStimuli(sessId) {
+		const userId = await this.getOrMakeUser(sessId);
+		return this.pg_main(this.tables.TUQ).where('user_id', userId).select('stim_group')
 			.then(g => {
 				if (g.length < 1)
 					throw new Error(`getStimuli: user ${userId} doesn't have a TUQ record, aborting`);
@@ -193,7 +195,7 @@ module.exports = class Handler {
 			}).then(_ => 0);
 	}
 
-	endExperiment(sessId) {
+	async endExperiment(sessId) {
 		const userId = await this.getOrMakeUser(sessId);
 
 		// make sure the user has a TUQ record
@@ -204,7 +206,7 @@ module.exports = class Handler {
 		console.log(`ending experiment for user ${userId}`);
 
 		// get TUQSRs
-		return this.pg_main(this.tables.TUQSR).where('user_id', user).select('*')
+		return this.pg_main(this.tables.TUQSR).where('user_id', userId).select('*')
 			.then(responses => {
 				console.log(`solidifying user ${userId}'s responses`);
 				const res = responses.map(r => ({
@@ -230,20 +232,23 @@ module.exports = class Handler {
 	/*************** helpers **************/
 
 	async getOrMakeUser(sessId) {
-		const withSessId =
-			(await this.pg_main(this.tables.users).where('session_id', sessId).count('id')).count;
+		const maybeUserId =
+			(await this.pg_main(this.tables.users).where('session_id', sessId).first('id'));
 
-		if (withSessId > 0) {
-			const userId = (await this.pg_main(this.tables.users).where('session_id', sessId).first('id')).id;
-			console.log(`session id ${sessId} is already associated with user ${userId}, returning that`);
-			return userId;
+		if (maybeUserId) {
+			console.log(`session id ${sessId} -> (already existing) user ${maybeUserId.id}`);
+			return maybeUserId.id;
 		}
 
+		// make new user
 		return this.pg_main(this.tables.users).insert({
 			created_at: new Date(),
 			updated_at: new Date(),
 			session_id: sessId
-		}).returning('id').then(d => d[0]);
+		}).returning('id').then(d => {
+			console.log(`session id ${sessId} -> (new) user ${d[0]}`);
+			return d[0];
+		});
 	}
 
 }
