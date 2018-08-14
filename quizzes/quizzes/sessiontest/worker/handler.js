@@ -88,29 +88,6 @@ module.exports = class Handler {
 	/*** methods that don't return anything meaningful should return 0 as a status code 
 	 *	 because axios wants a response in the front end ***/
 
-	// for ephemeral test-takers (a new one's made each time a quiz is taken)
-	// resolves to the new user id
-
-	async findUserFromSessionId(sessId) {
-		return (await this.pg_main(this.tables.users).where('session_id', sessId).first('id')).id;
-	}
-
-	// if a user with this session id already exists, just use the same user
-	async getOrMakeUser(sessId) {
-		console.log(`generating user for session ${sessId}`);
-		const withSessId =
-			(await this.pg_main(this.tables.users).where('session_id', sessId).count('id')).count;
-
-		if (withSessId > 0) {
-			return (await this.pg_main(this.tables.users).where('session_id', sessId).first('id')).id;
-		}
-
-		this.pg_main(this.tables.users).insert({
-			created_at: new Date(),
-			updated_at: new Date(),
-			session_id: sessId
-		}).returning('id').then(d => d[0]);
-	}
 
 	async startExperiment(sessId) {
 		const userId = await this.getOrMakeUser(sessId);
@@ -165,10 +142,10 @@ module.exports = class Handler {
 			.then(userId => this.pg_main(this.tables.TUQ).where('user_id', user).select('stim_group'))
 			.then(g => {
 				if (g.length < 1)
-					throw new Error(`getStimuliForUser: user ${user} doesn't have a TUQ record, aborting`);
+					throw new Error(`getStimuli: user ${user} doesn't have a TUQ record, aborting`);
 
 				const stimGroupId = g[0].stim_group;
-				console.log(`getStimuliForUser: getting user ${user} stimuli from group ${stimGroupId}`);
+				console.log(`getStimuli: getting user ${user} stimuli from group ${stimGroupId}`);
 
 				return this.pg_main(this.tables.stim).join(
 					this.tables.stimGroupStim,
@@ -263,16 +240,23 @@ module.exports = class Handler {
 	}
 
 	/*************** helpers **************/
-	uniqueNumber() {
-		// first 3 bytes -> max 4 digit number, which is what's used in the database
-		return parseInt(randomBytes(13).toString('hex').substring(0, 3), 16);
+
+	async getOrMakeUser(sessId) {
+		console.log(`generating user for session ${sessId}`);
+		const withSessId =
+			(await this.pg_main(this.tables.users).where('session_id', sessId).count('id')).count;
+
+		if (withSessId > 0) {
+			return (await this.pg_main(this.tables.users).where('session_id', sessId).first('id')).id;
+		}
+
+		this.pg_main(this.tables.users).insert({
+			created_at: new Date(),
+			updated_at: new Date(),
+			session_id: sessId
+		}).returning('id').then(d => d[0]);
 	}
 
-	async userExists(user) {
-		const count =
-			(await this.pg_main(this.tables.users).count('id').where('id', user));
-		return count[0].count > 0;
-	}
 }
 
 
