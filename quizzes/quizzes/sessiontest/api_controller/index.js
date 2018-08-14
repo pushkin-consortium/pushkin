@@ -27,7 +27,8 @@ module.exports = (rpc, conn) => {
 
 			rpc(conn, point.queue, rpcParams)
 				.then(rpcRes => {
-					console.log(`${point.path} response: ${rpcRes}`);
+					try { console.log(`${point.path} response: ${JSON.stringify(rpcRes)}`); }
+					catch (e) { console.log(`${point.path} response (failed to JSON.stringify): ${rpcRes}`); }
 					res.send({ resData: rpcRes });
 				})
 				.catch(rpcErr => {
