@@ -9,7 +9,7 @@ module.exports = (rpc, conn) => {
 
 	const stdPosts = [
 		{ path: '/startExperiment', method: 'startExperiment', queue: task_queue },
-		{ path: '/getStimuli', method: 'getStimuliForUser', queue: db_read_queue },
+		{ path: '/getStimuli', method: 'getStimuli', queue: db_read_queue },
 		{ path: '/metaResponse', method: 'insertMetaResponse', queue: db_write_queue },
 		{ path: '/stimulusResponse', method: 'insertStimulusResponse', queue: db_write_queue },
 		{ path: '/endExperiment', method: 'endExperiment', queue: task_queue },
