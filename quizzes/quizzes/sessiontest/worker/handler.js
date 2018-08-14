@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const trim = require('./trim').trim;
 
 module.exports = class Handler {
 	constructor() {
@@ -164,14 +165,14 @@ module.exports = class Handler {
 		return this.pg_main(this.tables.users).where('id', userId).first(type)
 			.then(maybeTypeData => {
 				const e = maybeTypeData[type];
-				console.log(`${e ? 'changing' : 'setting'} user ${userId}'s ${type} to "${response}"`);
+				console.log(`${e ? 'changing' : 'setting'} user ${userId}'s ${type} to "${trim(response, 30)}"`);
 				return this.pg_main(this.tables.users).where('id', userId).update(type, response);
 			}).then(_ => 0);
 	}
 
 	async insertStimulusResponse(sessId, response) {
 		const userId = await this.getOrMakeUser(sessId);
-		console.log(`inserting response for user ${userId}: \n\n\t${JSON.stringify(response)}\n`);
+		console.log(`inserting response for user ${userId}: ${trim(JSON.stringify(response), 100)}`);
 
 		// DO CHECKS (not past end of experiment, etc.)
 
