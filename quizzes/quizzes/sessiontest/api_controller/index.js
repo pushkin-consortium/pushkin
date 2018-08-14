@@ -1,4 +1,5 @@
 const express = require('express');
+const trim = require('./trim').trim;
 
 module.exports = (rpc, conn) => {
 	const router = new express.Router();
@@ -27,8 +28,8 @@ module.exports = (rpc, conn) => {
 
 			rpc(conn, point.queue, rpcParams)
 				.then(rpcRes => {
-					try { console.log(`${point.path} response: ${JSON.stringify(rpcRes)}`); }
-					catch (e) { console.log(`${point.path} response (failed to JSON.stringify): ${rpcRes}`); }
+					try { console.log(`${point.path} response: ${trim(JSON.stringify(rpcRes), 100)}`); }
+					catch (e) { console.log(`${point.path} response (failed to JSON.stringify): ${trim(rpcRes, 100)}`); }
 					res.send({ resData: rpcRes });
 				})
 				.catch(rpcErr => {
