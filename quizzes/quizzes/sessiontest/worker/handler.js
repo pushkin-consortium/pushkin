@@ -55,11 +55,6 @@ module.exports = class Handler {
 			switch (req.method) {
 
 			// methods called through API controller
-				/* no need to do directly
-				case 'generateUser':
-					// no data fields to require
-					return this.generateUser(req.sessionId);
-					*/
 
 				case 'startExperiment':
 					return this.startExperiment(req.sessionId);
@@ -156,23 +151,20 @@ module.exports = class Handler {
 			});
 	}
 
-	insertMetaResponse(user, type, response) {
+	async insertMetaResponse(sessId, type, response) {
+		// these should match columns in the users table that contain meta info
 		const validMetaColumns = [ 'dob', 'native_language' ];
 		if (validMetaColumns.indexOf(type) <= -1)
-			return Promise.reject(`insertMetaResponse: user ${user} attempted to save meta to an invalid column "${type}"`);
+			throw new Error(`insertMetaResponse: user ${user} attempted to save meta to an invalid column "${type}"`);
 
-		return this.userExists(user).then(exists => {
-			if (!exists) {
-				throw new Error(`insertMetaResponse: user ${user} doesn't exist, aborting`);
-				return;
-			}
-		}).then(_ => {
-			return this.pg_main(this.tables.users).where('id', user).first(type);
-		}).then(hasTypeData => {
-			const e = hasTypeData[type];
-			console.log(`${e ? 'changing' : 'setting'} user ${user}'s ${type} to "${response}"`);
-			return this.pg_main(this.tables.users).where('id', user).update(type, response);
-		}).then(_ => 0);
+		const userId = await this.getOrMakeUser(sessId);
+
+		return this.pg_main(this.tables.users).where('id', user).first(type)
+			.then(maybeTypeData => {
+				const e = maybeTypeData[type];
+				console.log(`${e ? 'changing' : 'setting'} user ${user}'s ${type} to "${response}"`);
+				return this.pg_main(this.tables.users).where('id', user).update(type, response);
+			}).then(_ => 0);
 	}
 
 	insertStimulusResponse(user, response) {
