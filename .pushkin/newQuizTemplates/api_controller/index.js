@@ -1,4 +1,5 @@
 const express = require('express');
+const trim = require('./trim').trim;
 
 module.exports = (rpc, conn) => {
 	const router = new express.Router();
@@ -8,9 +9,8 @@ module.exports = (rpc, conn) => {
 	const db_write_queue = '${QUIZ_NAME}_quiz_dbwrite'; // simple endpoints
 
 	const stdPosts = [
-		{ path: '/createUser', method: 'generateUser', queue: db_write_queue },
 		{ path: '/startExperiment', method: 'startExperiment', queue: task_queue },
-		{ path: '/getStimuliForUser', method: 'getStimuliForUser', queue: db_read_queue },
+		{ path: '/getStimuli', method: 'getStimuli', queue: db_read_queue },
 		{ path: '/metaResponse', method: 'insertMetaResponse', queue: db_write_queue },
 		{ path: '/stimulusResponse', method: 'insertStimulusResponse', queue: db_write_queue },
 		{ path: '/endExperiment', method: 'endExperiment', queue: task_queue },
@@ -28,7 +28,8 @@ module.exports = (rpc, conn) => {
 
 			rpc(conn, point.queue, rpcParams)
 				.then(rpcRes => {
-					console.log(`${point.path} response: ${rpcRes}`);
+					try { console.log(`${point.path} response: ${trim(JSON.stringify(rpcRes), 100)}`); }
+					catch (e) { console.log(`${point.path} response (failed to JSON.stringify): ${trim(rpcRes, 100)}`); }
 					res.send({ resData: rpcRes });
 				})
 				.catch(rpcErr => {
