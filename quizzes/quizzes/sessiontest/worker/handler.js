@@ -160,17 +160,13 @@ module.exports = class Handler {
 		console.log(`done starting experiment for user ${user}`);
 	}
 
-	getStimuliForUser(user) {
-		return this.pg_main(this.tables.TUQ).where('user_id', user).select('stim_group')
+	getStimuli(sessId) {
+		return this.getOrMakeUser(sessId)
+			.then(userId => this.pg_main(this.tables.TUQ).where('user_id', user).select('stim_group'))
 			.then(g => {
-				if (g.length < 1) {
+				if (g.length < 1)
 					throw new Error(`getStimuliForUser: user ${user} doesn't have a TUQ record, aborting`);
-					return;
-				}
-				if (g.length > 1) {
-					throw new Error(`getStimuliForUser: the ${this.tables.TUQ} table appears to be corrupt, aborting`);
-					return;
-				}
+
 				const stimGroupId = g[0].stim_group;
 				console.log(`getStimuliForUser: getting user ${user} stimuli from group ${stimGroupId}`);
 
@@ -180,7 +176,7 @@ module.exports = class Handler {
 					`${this.tables.stimGroupStim}.stimulus`
 				).where(`${this.tables.stimGroupStim}.group`, stimGroupId)
 					.select(`${this.tables.stim}.stimulus`);
-			})
+			});
 	}
 
 	insertMetaResponse(user, type, response) {
