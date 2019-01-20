@@ -1,0 +1,33 @@
+#!/bin/bash
+
+log () { echo "${boldFont}pushkin:${normalFont} ${1}"; }
+showUsage () {
+        echo "usage: pushkin [release] [sub-command args]"
+}
+
+# route commands
+sub_command="${1}"
+shift
+case "${sub_command}" in
+	"release")
+		.tools/bin/release.sh "$@"
+		;;
+	*)
+		showUsage
+		die "command ${sub_command} does not exist"
+		;;
+esac
+
+
+
+
+
+
+
+
+
+
+
+
+
+
