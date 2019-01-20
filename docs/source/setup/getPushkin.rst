@@ -3,17 +3,24 @@
 Get Pushkin
 =========================
 
-Clone the latest version of Pushkin from GitHub::
+To install Pushkin, you will need `wget`, which is easily installed using Homebrew or another package manager.
+
+If you simply want to use Pushkin, you should visit https://github.com/pushkin-consortium/pushkin_quickinstall and follow the instructions. This will download everything you need and set up the Command Line Tools (CLT).
+
+If you are planning on contributing to pushkin, clone (or better yet, fork) the version from GitHub::
 
   git clone https://github.com/l3atbc-datadog/pushkin.git
 
-To make Pushkin's CLT as easy to use as it can be, we recommend adding an alias to your bash profile. Simply run the following command from your Pushkin project folder root to do this::
+You will then need to set up the CLT. To do that, after you have cloned pushkin, move to pushkin's root directory and run:
 
-  echo "alias pushkin=\"$PWD\"/.pushkin/pushkin" >> ~/.bash_profile
+```
+$ chmod +x pushkin_installCLT.sh
+$ ./pushkin_installCLT.sh
+```
 
-If you know what you're doing, you can optionally add the same location to your ``$PATH`` as well, thus allowing other scripts to run pushkin commands.
+This will also install the pushkin developer tools.
 
-.. note:: These docs assume that at least one of the above steps have been taken and the command 'pushkin' points to the CLT. If you choose not to do this, be aware that most of the docs will not work.
+.. note:: These docs assume that the  command 'pushkin' points to the CLT. If you choose not to do this, be aware that most of the docs will not work.
 
 Pushkin relies on the following programs, which can easily be installed with Homebrew - if you're on a Mac - or another package manager:
 - node
