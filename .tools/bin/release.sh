@@ -15,7 +15,7 @@ gothub release \
     --repo pushkin \
     --tag $version \
     --name $version \
-    -d $description
+    -d "$description"
 
 gothub upload \
     --user pushkin-consortium \
