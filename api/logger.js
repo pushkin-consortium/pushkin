@@ -22,6 +22,9 @@ if (process.env.LOGGLY_TOKEN) {
   transports.push(transport);
 } else {
   transport = new winston.transports.File({
+    maxsize: 100 * 1024, // 10 MB
+    maxFiles: 3,
+    tailable: true,
     filename: `${logDir}/results.log`,
     timestamp: tsFormat
   });
