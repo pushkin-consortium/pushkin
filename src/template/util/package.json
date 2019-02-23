@@ -1,0 +1,18 @@
+{
+  "name": "pushkin-setup-utils",
+  "version": "1.0.0",
+  "description": "Some general utility tools to faciliate setting up and working with a Pushkin stack",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+		"knex": "knex",
+		"migrate": "knex migrate:latest",
+		"seed": "knex seed:run"
+  },
+  "author": "L3",
+  "license": "MIT",
+  "dependencies": {
+    "knex": "^0.16.3",
+    "pg": "^7.8.0"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "name": "my-pushkin-api",
+  "version": "1.0.0",
+  "description": "An API for Pushkin",
+  "main": "build/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "babel src -d build",
+    "start": "node build/index.js"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "pushkin-api": "0.0.16"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.2.3",
+    "@babel/core": "^7.2.2",
+    "@babel/preset-env": "^7.3.1"
+  }
+}

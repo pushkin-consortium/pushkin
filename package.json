@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "rm -rf build/* && babel src -d build && cp src/template.zip build"
+    "build": "rm -rf build/* && babel src -d build --ignore '**/template' && zip -r build/template.zip src/template/"
   },
   "keywords": [
     "pushkin",
