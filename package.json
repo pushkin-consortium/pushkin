@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "rm -rf build/* && babel src -d build --ignore '**/template' && zip -r build/template.zip src/template/"
+    "build": "rm -rf build/* && babel src -d build --ignore '**/template' && tar -czf build/template.tar.gz src/template/"
   },
   "keywords": [
     "pushkin",
@@ -24,6 +24,7 @@
     "eslint": "^5.14.0"
   },
   "dependencies": {
-    "command-line-args": "^5.0.2"
+    "command-line-args": "^5.0.2",
+    "tar": "^4.4.8"
   }
 }

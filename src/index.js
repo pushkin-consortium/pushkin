@@ -16,21 +16,23 @@ const inputGetter = () => {
 };
 const nextArg = inputGetter();
 
-switch (nextArg()) {
-	case 'init': {
-		init();
-		break;
-	}
-	case 'generate': {
-		switch (nextArg()) {
-			case 'template': {
-				template();
-				break;
+(() => {
+	switch (nextArg()) {
+		case 'init': {
+			init();
+			return;
+		}
+		case 'generate': {
+			switch (nextArg()) {
+				case 'template': {
+					template();
+					return;
+				}
 			}
 		}
+		default: {
+			const usage = 'blah blah blah';
+			console.error(usage);
+		}
 	}
-	default: {
-		const usage = 'blah blah blah';
-		console.error(usage);
-	}
-}
+})();
