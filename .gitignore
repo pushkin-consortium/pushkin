@@ -1,6 +1,9 @@
 # Build files
 build/
 
+# Swap files
+*.swp
+
 # Logs
 logs
 *.log

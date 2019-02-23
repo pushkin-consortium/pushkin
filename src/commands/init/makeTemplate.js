@@ -5,7 +5,7 @@ import tar from 'tar';
 
 export default () => {
 	try {
-		const zipFile = path.join(__dirname, '../template.tar.gz');
+		const zipFile = path.join(__dirname, '../../template.tar.gz');
 		const zipOutput = path.join(process.cwd(), 'template');
 
 		const contentStream = fs.createReadStream(zipFile);

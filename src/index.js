@@ -1,6 +1,5 @@
 import commandLineArgs from 'command-line-args';
-import init from './commands/init.js';
-import template from './commands/template.js';
+import init from './commands/init/index.js';
 
 const inputGetter = () => {
 	let remainingArgs = process.argv;
@@ -19,16 +18,8 @@ const nextArg = inputGetter();
 (() => {
 	switch (nextArg()) {
 		case 'init': {
-			init();
+			init(nextArg() == 'template');
 			return;
-		}
-		case 'generate': {
-			switch (nextArg()) {
-				case 'template': {
-					template();
-					return;
-				}
-			}
 		}
 		default: {
 			const usage = 'blah blah blah';
