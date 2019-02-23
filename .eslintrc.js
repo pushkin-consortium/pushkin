@@ -27,6 +27,7 @@ module.exports = {
 			"always"
 		],
 		"no-console": "off",
-		"no-unused-vars": "warn"
+		"no-unused-vars": "warn",
+		"no-fallthrough": "off"
 	}
 };

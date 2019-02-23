@@ -1,0 +1,58 @@
+version: '3.1'
+
+volumes:
+  message_queue_volume: 
+  test_db_volume:
+
+services:
+  api:
+    build: ./api
+    environment:
+      - "AMQP_ADDRESS=amqp://message-queue:5672"
+      - "PORT=${api_port}"
+    expose:
+      - "${api_port}"
+    links:
+      - message-queue
+
+  message-queue:
+    image: 'rabbitmq:3.6-management'
+    expose:
+      - 5672
+      - 15672
+    ports:
+      - 15672
+    environment:
+      CONFD_ARGS: '--interval 5'
+      RABBITMQ_CLUSTER_PARTITION_HANDLING: autoheal
+      RABBITMQ_NET_TICKTIME: '60'
+      RABBITMQ_ERLANG_COOKIE: 'message-queue-cookie'
+      RABBITMQ_NODENAME: "rabbitmqnode@localhost"
+    volumes:
+      - message_queue_volume:/var/lib/rabbitmq 
+
+  server:
+    build: ./front-end
+    environment:
+      API_PORT: "${api_port}"
+    ports:
+      - 80:80
+      - 433:433
+    links:
+      - api
+
+  test_db:
+    image: "postgres:11"
+    ports:
+      - "5432:5432"
+    volumes:
+      - test_db_volume:/var/lib/postgresql/data
+
+  template_exp_worker:
+    build: ./workers/templateWorker
+    links:
+      - message-queue
+      - test_db
+    environment:
+      - "AMQP_ADDRESS=amqp://message-queue:5672"
+      - "DATABASE_URL=postgres://postgres:@test_db/test_db"
