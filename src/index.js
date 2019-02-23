@@ -62,4 +62,14 @@ export default class Pushkin {
 	}
 
 	endExperiment() { return this.con.post('/endExperiment'); }
+
+	customApiCall(path, data) {
+		return this.con.post(path, data);
+	}
 }
+
+
+
+
+
+
