@@ -2,13 +2,13 @@
   "name": "pushkin-cli",
   "version": "0.0.1",
   "description": "A CLI for automating basic Pushkin tasks",
-  "main": "index.js",
-	"files": [
-			"build/*"
-	],
+  "main": "build/index.js",
+  "files": [
+    "build/*"
+  ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-		"build": "babel src -d build"
+    "build": "babel src -d build"
   },
   "keywords": [
     "pushkin",
@@ -22,5 +22,8 @@
     "@babel/preset-env": "^7.3.1",
     "babel-eslint": "^10.0.1",
     "eslint": "^5.14.0"
+  },
+  "dependencies": {
+    "command-line-args": "^5.0.2"
   }
 }
