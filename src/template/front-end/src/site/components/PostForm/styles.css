@@ -1,0 +1,13 @@
+.post-form input {
+  width: 100%;
+}
+.post-form textarea {
+  width: 100%;
+  height: 300px;
+}
+.post-form .button-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  font: bold;
+}
