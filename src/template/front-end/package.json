@@ -1,5 +1,5 @@
 {
-  "name": "My Pushkin Site",
+  "name": "my-pushkin-site",
   "version": "0.1.0",
   "private": false,
   "engines": {
@@ -204,7 +204,7 @@
     "test": "mocha --compilers js:babel-register",
     "test:watch": "mocha --compilers js:babel-register --reporter min --watch",
     "clean": "node run clean",
-    "build": "node run build",
+    "build": "node compile.js",
     "build:debug": "node run build --debug",
     "publish": "node run publish",
     "publish:debug": "node run publish --debug",

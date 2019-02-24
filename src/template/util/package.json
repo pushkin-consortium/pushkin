@@ -5,9 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-		"knex": "knex",
-		"migrate": "knex migrate:latest",
-		"seed": "knex seed:run"
+		"knex": "knex"
   },
   "author": "L3",
   "license": "MIT",

@@ -55,4 +55,4 @@ services:
       - test_db
     environment:
       - "AMQP_ADDRESS=amqp://message-queue:5672"
-      - "DATABASE_URL=postgres://postgres:@test_db/test_db"
+      - "DATABASE_URL=postgres://${db_user}:${db_pass}@${db_url}/${db_name}"

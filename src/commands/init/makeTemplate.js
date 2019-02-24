@@ -21,20 +21,27 @@ export default () => {
 				.then(() => {
 					const templateDirsForNPMInstall = ['api', 'front-end', 'util', 'workers/templateWorker'];
 					templateDirsForNPMInstall.forEach(dir => {
-						console.log('installing npm dependencies for ${dir}');
+						console.log(`installing npm dependencies for ${dir}`);
 						childProcess.exec(
 							'npm install',
 							{ cwd: path.join(process.cwd(), dir) },
-							err => { if (err) throw err; }
+							err => {
+								if (err) throw err;
+								if (dir == 'front-end' || dir == 'api') {
+									console.log(`building ${dir}`);
+									childProcess.exec(
+										'npm run build',
+										{ cwd: path.join(process.cwd(), dir) },
+										err => { 
+											if (err) {
+												console.error(`failed building ${dir}`);
+												throw err;
+											}
+										}
+									);
+								}
+							}
 						);
-						if (dir != 'util' && dir != 'workers/templateWorker') {
-							console.log('building ${dir}');
-							childProcess.exec(
-								'npm run build',
-								{ cwd: path.join(process.cwd(), dir) },
-								err => { if (err) throw err; }
-							);
-						}
 					});
 				})
 				.catch(err => { console.error(err); });
