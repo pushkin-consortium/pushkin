@@ -1,5 +1,6 @@
 import '@babel/polyfill';
 import amqp from 'amqplib';
+import defaultHandlers from './defaultHandlers.js';
 
 export default class Worker {
 	constructor(options) {
@@ -27,6 +28,11 @@ export default class Worker {
 	}
 	handle(method, handler) {
 		this.handlers.set(method, handler);
+	}
+	useDefaultHandles() {
+		defaultHandlers.forEach(h => {
+			this.handle(h.method, h.handler);
+		});
 	}
 	start() {
 		this.conn.createChannel()
