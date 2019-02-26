@@ -29,9 +29,13 @@ export default class Worker {
 	handle(method, handler) {
 		this.handlers.set(method, handler);
 	}
-	useDefaultHandles() {
+	// RegEx match -> 
+	useHandler(methods, handler) {
+
+	}
+	useDefaultHandles(dbUrl) {
 		defaultHandlers.forEach(h => {
-			this.handle(h.method, h.handler);
+			this.handle(h.method, h.handler(dbUrl));
 		});
 	}
 	start() {
@@ -49,9 +53,10 @@ export default class Worker {
 							if (!req || !req.method || req.data === undefined)
 								throw new Error('requests must have a method and data field');
 							// try to call a handler
-							if (!this.handlers.has(req.method))
-								throw new Error(`no handler found to handle method ${req.method}`);
-							return this.handlers.get(req.method)(req.data);
+							if (this.handlers.has(req.method))
+								return this.handlers.get(req.method)(req.data);
+							if 
+							throw new Error(`no handler found to handle method ${req.method}`);
 						})
 						.then(res => {
 							console.log(`responding ${res}`);
