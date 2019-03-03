@@ -1,6 +1,6 @@
 import '@babel/polyfill';
 import amqp from 'amqplib';
-import defaultHandlers from './defaultHandlers.js';
+import { defaultHandler, defaultMethods }from './defaultHandler.js';
 
 export default class Worker {
 	constructor(options) {
@@ -27,11 +27,13 @@ export default class Worker {
 		});
 	}
 	handle(method, handler) {
+		console.log(`handling ${method} with ${handler}`);
 		this.handlers.set(method, handler);
 	}
-	useDefaultHandles() {
-		defaultHandlers.forEach(h => {
-			this.handle(h.method, h.handler);
+	useDefaultHandles(dbUrl, dbTablePrefix) {
+		const handler = new defaultHandler(dbUrl, dbTablePrefix);
+		defaultMethods.forEach(h => {
+			this.handle(h, handler[h].bind(handler));
 		});
 	}
 	start() {
@@ -51,7 +53,10 @@ export default class Worker {
 							// try to call a handler
 							if (!this.handlers.has(req.method))
 								throw new Error(`no handler found to handle method ${req.method}`);
-							return this.handlers.get(req.method)(req.data);
+							console.log(req);
+							console.log(`sessionID: ${req.sessionId}`);
+							const sessId = req.sessionId;
+							return this.handlers.get(req.method)(sessId);
 						})
 						.then(res => {
 							console.log(`responding ${res}`);
