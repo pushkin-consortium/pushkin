@@ -1,0 +1,13 @@
+.post-comment {
+  font-size: 14px;
+  margin: 0px 0px 10px;
+}
+.comment-details {
+  display: flex;
+  font-size: 10px;
+  width: 50%;
+}
+.comment-details div {
+  margin-right: 10px;
+  width: fit-content;
+}

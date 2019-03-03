@@ -1,0 +1,30 @@
+{
+  "name": "pushkin-cli",
+  "version": "0.0.1",
+  "description": "A CLI for automating basic Pushkin tasks",
+  "main": "build/index.js",
+  "files": [
+    "build/*"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "rm -rf build/* && babel src -d build --ignore '**/template' && tar -czf build/template.tar.gz src/template/"
+  },
+  "keywords": [
+    "pushkin",
+    "cli"
+  ],
+  "author": "L3",
+  "license": "MIT",
+  "devDependencies": {
+    "@babel/cli": "^7.2.3",
+    "@babel/core": "^7.3.3",
+    "@babel/preset-env": "^7.3.1",
+    "babel-eslint": "^10.0.1",
+    "eslint": "^5.14.0"
+  },
+  "dependencies": {
+    "command-line-args": "^5.0.2",
+    "tar": "^4.4.8"
+  }
+}

@@ -1,0 +1,20 @@
+.nickname {
+  height: 30px;
+  outline: none;
+  text-indent: 5px;
+  /* margin-left: 10px; */
+  width: 100%;
+}
+.imageupload {
+  display: flex;
+}
+/* .editview form div {
+  height: 65px;
+}
+.editview form div label {
+  height: 50px;
+} */
+.imagepreview {
+  max-height: 200px;
+  max-width: 200px;
+}
