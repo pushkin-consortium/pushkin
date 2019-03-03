@@ -1,4 +1,3 @@
-const crypto = require('crypto');
 const trim = require('./trim').trim;
 
 module.exports = class Handler {
@@ -32,52 +31,52 @@ module.exports = class Handler {
 	// returns a promise with the requested data (if any)
 	// throws an error if the method doesn't exist
 	async handle(req) {
-			// some methods send '' as the data string when none is needed
-			// so check for undefined rather than truthyness
-			if (!req || !req.method || req.data === undefined)
-				throw new Error('invalid request. Requests must have a method and data field');
+		// some methods send '' as the data string when none is needed
+		// so check for undefined rather than truthyness
+		if (!req || !req.method || req.data === undefined)
+			throw new Error('invalid request. Requests must have a method and data field');
 
-			// each method in the switch statement below should use this function to ensure
-			// all its required fields are present
-			const requireDataFields = fields => {
-				const missing =
-					(typeof req.data == 'object' ?
-						fields.reduce( (acc, field) => ((field in req.data) ? acc : [...acc, field]), [])
-						: fields
-					);
-				if (missing.length > 0)
-					throw new Error(`${req.method}'s req.data must have fields ${fields}. Missing ${missing}`);
-			};
+		// each method in the switch statement below should use this function to ensure
+		// all its required fields are present
+		const requireDataFields = fields => {
+			const missing =
+				(typeof req.data == 'object' ?
+					fields.reduce( (acc, field) => ((field in req.data) ? acc : [...acc, field]), [])
+					: fields
+				);
+			if (missing.length > 0)
+				throw new Error(`${req.method}'s req.data must have fields ${fields}. Missing ${missing}`);
+		};
 
 		// using a mapping like this is nicer than calling something like "this[req.method]" because
 		// it allows us to have other functions without exposing them all to the api
 		// as well as require the pertinent fields
-		
-			switch (req.method) {
+
+		switch (req.method) {
 
 			// methods called through API controller
 
-				case 'startExperiment':
-					return this.startExperiment(req.sessionId);
+			case 'startExperiment':
+				return this.startExperiment(req.sessionId);
 
-				case 'getStimuli':
-					return this.getStimuli(req.sessionId);
+			case 'getStimuli':
+				return this.getStimuli(req.sessionId);
 
-				case 'insertMetaResponse':
-					// 'type' must match a column in the database's user table
-					requireDataFields(['type', 'response']);
-					return this.insertMetaResponse(req.sessionId, req.data.type, req.data.response);
+			case 'insertMetaResponse':
+				// 'type' must match a column in the database's user table
+				requireDataFields(['type', 'response']);
+				return this.insertMetaResponse(req.sessionId, req.data.type, req.data.response);
 
-				case 'insertStimulusResponse':
-					requireDataFields(['data_string']);
-					return this.insertStimulusResponse(req.sessionId, req.data.data_string);
+			case 'insertStimulusResponse':
+				requireDataFields(['data_string']);
+				return this.insertStimulusResponse(req.sessionId, req.data.data_string);
 
-				case 'endExperiment':
-					return this.endExperiment(req.sessionId);
+			case 'endExperiment':
+				return this.endExperiment(req.sessionId);
 
-				default:
-					throw new Error(`method ${req.method} does not exist`);
-			}
+			default:
+				throw new Error(`method ${req.method} does not exist`);
+		}
 	}
 
 	/*************** METHODS CALLED BY HANDLER & HELPER FUNCTIONS (all return promises) ****************/
@@ -167,7 +166,7 @@ module.exports = class Handler {
 				const e = maybeTypeData[type];
 				console.log(`${e ? 'changing' : 'setting'} user ${userId}'s ${type} to "${trim(response, 30)}"`);
 				return this.pg_main(this.tables.users).where('id', userId).update(type, response);
-			}).then(_ => 0);
+			}).then(() => 0);
 	}
 
 	async insertStimulusResponse(sessId, response) {
@@ -182,7 +181,7 @@ module.exports = class Handler {
 					.where({
 						group: t.stim_group,
 						position: t.cur_position
-					}).first('stimulus')
+					}).first('stimulus');
 			}).then(stimRes => {
 				return this.pg_main(this.tables.TUQSR).insert({
 					user_id: userId,
@@ -190,10 +189,10 @@ module.exports = class Handler {
 					response: JSON.stringify(response),
 					answered_at: new Date()
 				});
-			}).then(_ => {
+			}).then(() => {
 				console.log(`incrementing user ${userId}'s cur_position`);
 				return this.pg_main(this.tables.TUQ).where('user_id', userId).increment('cur_position');
-			}).then(_ => 0);
+			}).then(() => 0);
 	}
 
 	async endExperiment(sessId) {
@@ -219,15 +218,15 @@ module.exports = class Handler {
 				}));
 				// put TUQSRs in stimResp
 				return this.pg_main(this.tables.stimResp).insert(res);
-			}).then(_ => {
+			}).then(() => {
 				// delete TUQSRs
 				console.log(`deleting user ${userId}'s temp responses`);
 				return this.pg_main(this.tables.TUQSR).where('user_id', userId).del();
-			}).then(_ => {
+			}).then(() => {
 				// delete TUQ record
 				console.log(`removing user ${userId}'s TUQ record`);
 				return this.pg_main(this.tables.TUQ).where('user_id', userId).del();
-			}).then(_ => 0);
+			}).then(() => 0);
 	}
 
 	/*************** helpers **************/
@@ -252,7 +251,7 @@ module.exports = class Handler {
 		});
 	}
 
-}
+};
 
 
 
