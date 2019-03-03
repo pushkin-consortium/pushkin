@@ -30,8 +30,8 @@ export default class Worker {
 		console.log(`handling ${method} with ${handler}`);
 		this.handlers.set(method, handler);
 	}
-	useDefaultHandles(dbUrl) {
-		const handler = new defaultHandler(dbUrl);
+	useDefaultHandles(dbUrl, dbTablePrefix) {
+		const handler = new defaultHandler(dbUrl, dbTablePrefix);
 		defaultMethods.forEach(h => {
 			this.handle(h, handler[h].bind(handler));
 		});

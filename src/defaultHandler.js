@@ -2,15 +2,15 @@ import knex from 'knex';
 const trim = (s, len) => s.length > len ? s.substring(0, len) : s;
 
 class DefaultHandler {
-	constructor(db_url) {
+	constructor(db_url, dbTablePrefix) {
 		this.tables = {
-			users: 'template_users',
-			stim: 'template_stimuli',
-			stimResp: 'template_stimulusResponses',
-			stimGroups: 'template_stimulusGroups',
-			stimGroupStim: 'template_stimulusGroupStimuli',
-			TUQ: 'template_TUQ',
-			TUQSR: 'template_TUQSR',
+			users: `${dbTablePrefix}_users`,
+			stim: `${dbTablePrefix}_stimuli`,
+			stimResp: `${dbTablePrefix}_stimulusResponses`,
+			stimGroups: `${dbTablePrefix}_stimulusGroups`,
+			stimGroupStim: `${dbTablePrefix}_stimulusGroupStimuli`,
+			TUQ: `${dbTablePrefix}_TUQ`,
+			TUQSR: `${dbTablePrefix}_TUQSR`,
 		};
 		this.pg_main = knex({ client: 'pg', connection: db_url, });
 	}
