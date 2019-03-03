@@ -1,32 +1,8 @@
-const tables = {
-	users: 'template_users',
-	stim: 'template_stimuli',
-	stimResp: 'template_stimulusResponses',
-	stimGroups: 'template_stimulusGroups',
-	stimGroupStim: 'template_stimulusGroupStimuli',
-	TUQ: 'template_TUQ',
-	TUQSR: 'template_TUQSR',
-};
+import knex from 'knex';
+const trim = (s, len) => s.length > len ? s.substring(0, len) : s;
 
-const pg_main = require('knex')({
-	client: 'pg',
-	connection: MAIN_DB_URL,
-});
-
-
-
-export default [
-	{ method: 'startExperiment',
-		handler: () => null
-	}
-];
-
-class Handler {
-	constructor() {
-		const MAIN_DB_URL = 
-			process.env.DATABASE_URL;
-
-		//const TRANS_DB_URL = 'postgres://pushkin:jacob_password@pushkin-transaction-db.co4mo5lsfmqs.us-east-2.rds.amazonaws.com/pushkin_transaction_db';//process.env.TRANSACTION_DATABASE_URL;
+class DefaultHandler {
+	constructor(db_url) {
 		this.tables = {
 			users: 'template_users',
 			stim: 'template_stimuli',
@@ -36,79 +12,16 @@ class Handler {
 			TUQ: 'template_TUQ',
 			TUQSR: 'template_TUQSR',
 		};
-
-		this.pg_main = require('knex')({
-			client: 'pg',
-			connection: MAIN_DB_URL,
-		});
-		/*
-		this.pg_trans = require('knex')({
-			client: 'pg',
-			connection: TRANS_DB_URL,
-		});
-		*/
+		this.pg_main = knex({ client: 'pg', connection: db_url, });
 	}
-
-	// returns a promise with the requested data (if any)
-	// throws an error if the method doesn't exist
-	async handle(req) {
-		// some methods send '' as the data string when none is needed
-		// so check for undefined rather than truthyness
-		if (!req || !req.method || req.data === undefined)
-			throw new Error('invalid request. Requests must have a method and data field');
-
-		// each method in the switch statement below should use this function to ensure
-		// all its required fields are present
-		const requireDataFields = fields => {
-			const missing =
-				(typeof req.data == 'object' ?
-					fields.reduce( (acc, field) => ((field in req.data) ? acc : [...acc, field]), [])
-					: fields
-				);
-			if (missing.length > 0)
-				throw new Error(`${req.method}'s req.data must have fields ${fields}. Missing ${missing}`);
-		};
-
-		// using a mapping like this is nicer than calling something like "this[req.method]" because
-		// it allows us to have other functions without exposing them all to the api
-		// as well as require the pertinent fields
-
-		switch (req.method) {
-
-			// methods called through API controller
-
-			case 'startExperiment':
-				return this.startExperiment(req.sessionId);
-
-			case 'getStimuli':
-				return this.getStimuli(req.sessionId);
-
-			case 'insertMetaResponse':
-				// 'type' must match a column in the database's user table
-				requireDataFields(['type', 'response']);
-				return this.insertMetaResponse(req.sessionId, req.data.type, req.data.response);
-
-			case 'insertStimulusResponse':
-				requireDataFields(['data_string']);
-				return this.insertStimulusResponse(req.sessionId, req.data.data_string);
-
-			case 'endExperiment':
-				return this.endExperiment(req.sessionId);
-
-			default:
-				throw new Error(`method ${req.method} does not exist`);
-		}
-	}
-
-	/*************** METHODS CALLED BY HANDLER & HELPER FUNCTIONS (all return promises) ****************/
-	/*** methods that don't return anything meaningful should return 0 as a status code 
-	 *	 because axios wants a response in the front end ***/
-
 
 	async startExperiment(sessId) {
+		if (!sessId)
+			throw new Error('startExperiment got invalid session id');
+
 		const userId = await this.getOrMakeUser(sessId);
 
-		// check if the user already has a TUQ record
+		// check if the user already has a TUQ record (i.e. is already taking the quiz)
 		const tuqCount = (await this.pg_main(this.tables.TUQ).where('user_id', userId).count('*'))[0].count;
 		if (tuqCount > 0)
 			throw new Error(`user ${userId} already has a TUQ record, aborting`);
@@ -117,8 +30,9 @@ class Handler {
 		const maxStimuli = 4;
 		console.log(`starting experiment for user ${userId} with ${maxStimuli} max stimuli`);
 
+		// the stimuli selected can be adjusted here
 		// create a stimulus group (stimGroups) (for this experiment, we'll just
-		// make a new group for each quiz run rather than reusing them)
+		// make a new group for each quiz run)
 		const stimGroupId = (await this.pg_main(this.tables.stimGroups)
 			.insert({ created_at: new Date() }).returning('id'))[0];
 
@@ -152,10 +66,13 @@ class Handler {
 		console.log(`created new TUQ record for user ${userId}`);
 		console.log(`done starting experiment for user ${userId}`);
 
-		return 0; // success
+		return true;
 	}
 
 	async getStimuli(sessId) {
+		if (!sessId)
+			throw new Error('getStimuli got invalid session id');
+
 		const userId = await this.getOrMakeUser(sessId);
 		return this.pg_main(this.tables.TUQ).where('user_id', userId).select('stim_group')
 			.then(g => {
@@ -174,7 +91,16 @@ class Handler {
 			});
 	}
 
-	async insertMetaResponse(sessId, type, response) {
+	async insertMetaResponse(sessId, data) {
+		if (!sessId)
+			throw new Error('insertMetaResponse got invalid session id');
+		if (!data.type)
+			throw new Error('insertMetaResponse got invalid response type');
+		if (!data.response)
+			throw new Error('insertMetaResponse got invalid response data');
+		const type = data.type;
+		const response = data.response;
+
 		// these should match columns in the users table that contain meta info
 		const validMetaColumns = [ 'dob', 'native_language' ];
 		if (validMetaColumns.indexOf(type) <= -1)
@@ -190,7 +116,13 @@ class Handler {
 			}).then(() => 0);
 	}
 
-	async insertStimulusResponse(sessId, response) {
+	async insertStimulusResponse(sessId, data) {
+		if (!sessId)
+			throw new Error('insertStimulusResponse got invalid session id');
+		if (!data.data_string)
+			throw new Error('insertStimulusResponse got invalid response data string');
+		const response = data.data_string;
+
 		const userId = await this.getOrMakeUser(sessId);
 		console.log(`inserting response for user ${userId}: ${trim(JSON.stringify(response), 100)}`);
 
@@ -217,6 +149,9 @@ class Handler {
 	}
 
 	async endExperiment(sessId) {
+		if (!sessId)
+			throw new Error('endExperiment got invalid session id');
+
 		const userId = await this.getOrMakeUser(sessId);
 
 		// make sure the user has a TUQ record
@@ -250,9 +185,10 @@ class Handler {
 			}).then(() => 0);
 	}
 
-	/*************** helpers **************/
-
 	async getOrMakeUser(sessId) {
+		if (!sessId)
+			throw new Error('getOrMakeUser got invalid session id');
+
 		const maybeUserId =
 			(await this.pg_main(this.tables.users).where('session_id', sessId).first('id'));
 
@@ -272,9 +208,18 @@ class Handler {
 		});
 	}
 
+}
+
+module.exports = {
+	defaultHandler: DefaultHandler,
+	defaultMethods: [
+		'startExperiment',
+		'getStimuli',
+		'insertMetaResponse',
+		'insertStimulusResponse',
+		'endExperiment'
+	]
 };
-
-
 
 
 
