@@ -16,6 +16,8 @@ class DefaultHandler {
 	}
 
 	async startExperiment(sessId) {
+		console.log(`sessId: ${sessId}`);
+		console.log(arguments);
 		if (!sessId)
 			throw new Error('startExperiment got invalid session id');
 

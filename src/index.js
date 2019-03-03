@@ -27,6 +27,7 @@ export default class Worker {
 		});
 	}
 	handle(method, handler) {
+		console.log(`handling ${method} with ${handler}`);
 		this.handlers.set(method, handler);
 	}
 	useDefaultHandles(dbUrl) {
@@ -52,7 +53,10 @@ export default class Worker {
 							// try to call a handler
 							if (!this.handlers.has(req.method))
 								throw new Error(`no handler found to handle method ${req.method}`);
-							return this.handlers.get(req.method)(req.sessiondId, req.data);
+							console.log(req);
+							console.log(`sessionID: ${req.sessionId}`);
+							const sessId = req.sessionId;
+							return this.handlers.get(req.method)(sessId);
 						})
 						.then(res => {
 							console.log(`responding ${res}`);
