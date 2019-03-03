@@ -1,20 +1,14 @@
 {
-  "name": "worker",
+  "name": "testworker",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.js"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
   "license": "ISC",
-  "devDependencies": {
-    "eslint": "^5.1.0"
-  },
   "dependencies": {
-    "amqplib": "^0.5.2",
-    "knex": "^0.15.2",
-    "pg": "^7.4.3"
+    "pushkin-worker": "0.0.4"
   }
 }
