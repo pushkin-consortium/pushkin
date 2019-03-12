@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "rm -rf build/* && babel src -d build --ignore '**/template' && tar -czf build/template.tar.gz src/template/"
+    "build": "rm -rf build/* && babel src -d build --ignore 'src/commands/init/initFiles/pushkin' && mkdir build/commands/init/initFiles && tar -czf build/commands/init/initFiles/pushkin.tar.gz src/commands/init/initFiles/pushkin && cp src/commands/init/initFiles/pushkin.yaml build/commands/init/initFiles"
   },
   "keywords": [
     "pushkin",

@@ -37,7 +37,7 @@ const nextArg = inputGetter();
 (() => {
 	switch (nextArg()) {
 		case 'init': {
-			init(nextArg() == 'template');
+			init(process.cwd());
 			return;
 		}
 		case 'prep': {
