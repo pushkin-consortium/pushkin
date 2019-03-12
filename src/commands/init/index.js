@@ -45,6 +45,9 @@ export default initDir => {
 			console.log('Untarring core files');
 			exec(`tar -xf ${zipOutput} --strip-components=4`, err => {
 				if (err) throw new Error(`Failed to extract tarball: ${err}`);
+				fs.unlink(zipOutput, err => {
+					if (err) console.error(`Failed to delete tarball: ${err}`);
+				});
 				['api', 'front-end', 'util'].forEach(dir => {
 					console.log(`Installing npm dependencies for ${dir}`);
 					exec('npm install', { cwd: path.join(process.cwd(), 'pushkin', dir) }, err => {
