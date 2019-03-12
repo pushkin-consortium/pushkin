@@ -1,8 +1,10 @@
 import commandLineArgs from 'command-line-args';
-import init from './commands/init/index.js';
 import jsYaml from 'js-yaml';
 import fs from 'fs';
 import path from 'path';
+// subcommands
+import generate from './commands/generate/index.js';
+import init from './commands/init/index.js';
 import prep from './commands/prep/index.js';
 
 const moveToProjectRoot = () => {
@@ -39,6 +41,11 @@ const nextArg = inputGetter();
 		case 'init': {
 			init(process.cwd());
 			return;
+		}
+		case 'generate': {
+			moveToProjectRoot();
+			const config = loadConfig();
+			generate(path.join(process.cwd(), config.experimentsDir), nextArg());
 		}
 		case 'prep': {
 			moveToProjectRoot();
