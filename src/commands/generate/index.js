@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import zlib from 'zlib';
 import { exec } from 'child_process';
+import replace from 'replace-in-file';
 
 export default (experimentsDir, newExpName) => {
 	console.log(`${experimentsDir}, name: ${newExpName}`);
@@ -32,9 +33,22 @@ export default (experimentsDir, newExpName) => {
 				});
 
 				// change all occurrences of "template" in filenames and contents to exp name
+				const updateName = dir => {
+					fs.readdirSync(dir).forEach(el => {
+						el = path.join(dir, el);
+						if (fs.lstatSync(el).isDirectory()) {
+							updateName(el);
+							return;
+						}
+						const newBase = path.basename(el).replace(/template/g, newExpName);
+						const newName = path.join(path.dirname(el), newBase);
+						fs.renameSync(el, newName);
 
+						try { replace.sync({ files: path.join(dir, '/*'), from: /template/i, to: newExpName }); }
+						catch (e) { console.error(e); }
+					});
+				};
+				updateName(newDir);
 			});
 		});
-
-	// 3. replace "template" with the quiz name
 };
