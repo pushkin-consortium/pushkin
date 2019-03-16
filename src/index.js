@@ -45,7 +45,8 @@ const nextArg = inputGetter();
 		case 'generate': {
 			moveToProjectRoot();
 			const config = loadConfig();
-			generate(path.join(process.cwd(), config.experimentsDir), nextArg());
+			const name = nextArg();
+			generate(path.join(process.cwd(), config.experimentsDir), name);
 		}
 		case 'prep': {
 			moveToProjectRoot();
