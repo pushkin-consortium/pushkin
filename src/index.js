@@ -10,14 +10,14 @@ import prep from './commands/prep/index.js';
 const moveToProjectRoot = () => {
 	// better checking to make sure this is indeed a pushkin project would be good
 	while (process.cwd() != path.parse(process.cwd()).root) {
-		if (fs.existsSync(path.join(process.cwd(), '.pushkin/'))) return;
+		if (fs.existsSync(path.join(process.cwd(), 'pushkin.yaml'))) return;
 		process.chdir('..');
 	}
 	throw new Error('No pushkin project found here or in any above directories');
 };
 const loadConfig = () => {
 	// could add some validation to make sure everything expected in the config is there
-	try { return jsYaml.safeLoad(fs.readFileSync('.pushkin/config.yaml', 'utf8')); }
+	try { return jsYaml.safeLoad(fs.readFileSync('pushkin.yaml', 'utf8')); }
 	catch (e) { console.error(`Pushkin config file missing, error: ${e}`); process.exit(); }
 };
 
@@ -47,15 +47,18 @@ const nextArg = inputGetter();
 			const config = loadConfig();
 			const name = nextArg();
 			generate(path.join(process.cwd(), config.experimentsDir), name);
+			return;
 		}
 		case 'prep': {
 			moveToProjectRoot();
 			const config = loadConfig();
 			prep(path.join(process.cwd(), config.experimentsDir), path.join(process.cwd(), config.coreDir));
+			return;
 		}
 		default: {
 			const usage = 'blah blah blah';
 			console.error(usage);
+			return;
 		}
 	}
 })();

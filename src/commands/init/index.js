@@ -29,7 +29,7 @@ export default initDir => {
 	});
 	const config = path.join(__dirname, 'initFiles/pushkin.yaml');
 
-	fs.copyFileSync(config, path.join(initDir, '.pushkin/config.yaml'));
+	fs.copyFileSync(config, path.join(initDir, 'pushkin.yaml'));
 
 	// unzip/untar core files and run npm install where appropriate
 	const coreBundle = path.join(__dirname, 'initFiles/pushkin.tar.gz');
