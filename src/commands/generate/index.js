@@ -49,6 +49,13 @@ export default (experimentsDir, newExpName) => {
 					});
 				};
 				updateName(newDir);
+				['api controllers', 'web page', 'worker'].forEach(dir => {
+					console.log(`Installing npm dependencies for ${dir}`);
+					exec('npm install', { cwd: path.join(newDir, dir) }, err => {
+						if (err)
+							console.error(`Failed to install npm dependencies for ${dir}: ${err}`);
+					});
+				});
 			});
 		});
 };
