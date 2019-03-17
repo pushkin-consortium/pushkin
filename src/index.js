@@ -52,7 +52,11 @@ const nextArg = inputGetter();
 		case 'prep': {
 			moveToProjectRoot();
 			const config = loadConfig();
-			prep(path.join(process.cwd(), config.experimentsDir), path.join(process.cwd(), config.coreDir));
+			prep(
+				path.join(process.cwd(), config.experimentsDir),
+				path.join(process.cwd(), config.coreDir),
+				() => { console.log('finished prepping'); }
+			);
 			return;
 		}
 		default: {
