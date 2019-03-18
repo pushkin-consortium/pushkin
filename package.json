@@ -26,6 +26,7 @@
   "dependencies": {
     "command-line-args": "^5.0.2",
     "replace-in-file": "^3.4.4",
-    "tar": "^4.4.8"
+    "tar": "^4.4.8",
+    "uuid": "^3.3.2"
   }
 }
