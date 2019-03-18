@@ -1,12 +1,13 @@
-experimentName: 'Template Experiment' &fullName
-shortName: 'template' &shortName
+experimentName: &fullName 'goosekaboosej Experiment'
+shortName: &shortName 'goosekaboosej'
 apiControllers: # The default export from each of these locations will be attached to a pushkin API
-  - mountPath: &shortName
+  - mountPath: *shortName
     location: 'api controllers'
+    name: 'mycontroller'
 worker:
   location: 'worker'
 webPage:
-  mountPath: &shortName
+  mountPath: *shortName
   location: 'web page'
 migrations:
   location: 'migrations'
