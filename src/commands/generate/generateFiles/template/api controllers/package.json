@@ -1,14 +1,4 @@
-{
-  "name": "template-controller",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "L3",
-  "license": "MIT",
-  "dependencies": {
-    "pushkin-api": "0.0.17"
-  }
-}
+{"name":"pushkinController-90b0dc70-4bd9-4586-bbe9-25da927f8f79","version":"1.0.0","description":"","main":"build/index.js","files":["build/*"],"scripts":{"test":"echo \"Error: no test specified\" && exit 1","build":"babel src -d build"},
+"author":"L3",
+"license":"MIT",
+"dependencies":{"pushkin-api":"0.0.17"},"devDependencies":{"@babel/cli":"^7.2.3","@babel/core":"^7.2.2","@babel/preset-env":"^7.3.1"}}
