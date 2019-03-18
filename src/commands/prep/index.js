@@ -2,8 +2,9 @@ import path from 'path';
 import fs from 'fs';
 import jsYaml from 'js-yaml';
 import { execSync, exec } from 'child_process';
-import zlib from 'zlib';
+import uuid from 'uuid/v4';
 
+/* can use this in init/generate commands
 const unzipAndUntar = (file, strips, callback) => {
 	const inStream = fs.createReadStream(file);
 	const outFile = path.join(path.dirname(file), `${path.basename(file)}.tempTar`);
@@ -22,6 +23,7 @@ const unzipAndUntar = (file, strips, callback) => {
 			});
 		});
 };
+*/
 
 export default (experimentsDir, coreDir, callback) => {
 	const processes = [];
@@ -40,37 +42,50 @@ export default (experimentsDir, coreDir, callback) => {
 			console.log(expConfig);
 
 			// api controllers
+			// remove previous controllers.json list
+			fs.writeFileSync(path.join(coreDir, 'api/src/controllers.json'), JSON.stringify([]));
 			const controllers = expConfig.apiControllers;
 			controllers.forEach(controller => {
 				console.log(`Loading controller ${controller}`);
 				const fullContrLoc = path.join(expDir, controller.location);
 				console.log(`Location ${fullContrLoc}`);
+
+				// give the package a unique name (avoid imports with the same name)
+				const packageJsonPath = path.join(fullContrLoc, 'package.json');
+				const packageJsonBackup = path.join(fullContrLoc, 'package.json.bak');
+				fs.copyFileSync(packageJsonPath, packageJsonBackup);
+				const packageJson = JSON.parse(fs.readFileSync(packageJsonPath));
+				const uniqueContrName = `pushkinController-${uuid()}`;
+				packageJson.name = uniqueContrName;
+				fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson));
+
+				// package it up
 				const packedFile = execSync('npm pack', { cwd: fullContrLoc }).toString().trim();
 				const packedTGZ = path.join(fullContrLoc, packedFile);
 				console.log(`Packed file ${packedFile}`);
-				const mainContrDir = path.join(coreDir, 'api/src/controllers');
-				const newContrDir = path.join(mainContrDir, expConfig.shortName, controller.name);
-				fs.mkdirSync(newContrDir, { recursive: true });
-				const newContrPackage = path.join(newContrDir, 'pack.tgz');
-				fs.copyFileSync(packedTGZ, newContrPackage);
+				fs.renameSync(packedTGZ, path.join(coreDir, 'api', packedFile));
 
+				// restore original package.json
+				fs.unlinkSync(packageJsonPath);
+				fs.renameSync(packageJsonBackup, packageJsonPath);
+
+				// install packaged controller to core api dependencies
 				processes.push(true);
-				unzipAndUntar(newContrPackage, 1, err => {
+				exec(`npm install "${packedFile}"`, { cwd: path.join(coreDir, 'api') }, err => {
 					if (err) {
-						console.error(`Failed to unpackage controller package: ${err}`);
+						console.error(`Failed to install ${path.join(coreDir, 'api', packedFile)}: ${err}`);
 						finishIfPossible();
 						return;
 					}
-					fs.unlinkSync(newContrPackage);
-					fs.unlinkSync(path.join(fullContrLoc, packedFile));
-					processes.push(true);
-					exec('npm install', { cwd: newContrDir }, (err, stdout, stderr) => {
-						if (err)
-							console.error(`Failed on npm install of ${newContrDir}: ${stderr}`);
-						finishIfPossible();
-					});
+					fs.unlinkSync(path.join(coreDir, 'api', packedFile));
 					finishIfPossible();
 				});
+
+				// add this controller to the main api's list of controllers to attach
+				const attachListFile = path.join(coreDir, 'api/src/controllers.json');
+				const attachList = JSON.parse(fs.readFileSync(attachListFile));
+				attachList.push({ name: uniqueContrName, mountPath: controller.mountPath });
+				fs.writeFileSync(attachListFile, JSON.stringify(attachList));
 			});
 		} catch (e) {
 			console.error(`Failed to load experiment in ${expDir}: ${e}`);
