@@ -87,6 +87,12 @@ export default (experimentsDir, coreDir, callback) => {
 				attachList.push({ name: uniqueContrName, mountPath: controller.mountPath });
 				fs.writeFileSync(attachListFile, JSON.stringify(attachList));
 			});
+
+
+			// web page
+			// write src/experiments.json [{ mountPath, name }]
+			// install each package to front-end/src
+
 		} catch (e) {
 			console.error(`Failed to load experiment in ${expDir}: ${e}`);
 		}
