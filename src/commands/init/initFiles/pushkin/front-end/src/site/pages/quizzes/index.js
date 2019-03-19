@@ -1,13 +1,3 @@
-/**
- * React Static Boilerplate
- * https://github.com/kriasoft/react-static-boilerplate
- *
- * Copyright © 2015-present Kriasoft, LLC. All rights reserved.
- *
- * This source code is licensed under the MIT license found in the
- * LICENSE.txt file in the root directory of this source tree.
- */
-
 import React from 'react';
 import { Route, Link } from 'react-router-dom';
 import Container from '../containers/container';
@@ -18,7 +8,14 @@ import Container from '../containers/container';
  * they want on their experiment page.
 */
 import TakeQuiz from './TakeQuiz.js';
-import experiments from '../../../experiments/myExperiments.js';
+import fs from 'fs';
+const experimentsFile = '../../../experiments.json';
+let experiments;
+try {
+	experiments = JSON.parse(fs.readFileSync(experimentsFile));
+} catch (e) {
+	console.error(`Failed to read experiments list: ${e}`);
+}
 
 export default class QuizPage extends React.Component {
 	render() {
@@ -28,19 +25,15 @@ export default class QuizPage extends React.Component {
 			<Container {...this.props}>
 				<div>
 					<p>Quizzes</p>
-					<ul>
-						{
-							Object.keys(experiments).map( q =>
-								(
-									<li key={q}>
-										<Link to={`${match.url}/${q}`}>{q.split('/')[0]}</Link>
-									</li>
-								)
-							)
-						}
-					</ul>
-				</div>
-			</Container>
+						<ul>
+							{ experiments.map(e =>
+								(<li key={e}>
+									<Link to={`${match.url}/${e.mountPath}`}>{e.name}</Link>
+								</li>)
+							) }
+							</ul>
+							</div>
+						</Container>
 		);
 
 		return (
