@@ -2,14 +2,21 @@
   "name": "quiz_page",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "build/index.js",
+	"files":["build/*"],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+		"build":"babel src -d build"}
   },
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "pushkin-client": "0.0.4",
-    "pushkin-jspsych": "0.0.1"
-  }
+		"pushkin-jspsych": "0.0.1"
+	},
+	"devDependencies":{
+		"@babel/cli":"^7.2.3",
+		"@babel/core":"^7.2.2",
+		"@babel/preset-env":"^7.3.1"
+	}
 }
