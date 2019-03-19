@@ -55,7 +55,12 @@ const nextArg = inputGetter();
 			prep(
 				path.join(process.cwd(), config.experimentsDir),
 				path.join(process.cwd(), config.coreDir),
-				() => { console.log('finished prepping'); }
+				err => {
+					if (err)
+						console.error(`Error prepping: ${err}`);
+					else
+						console.log('finished prepping');
+				}
 			);
 			return;
 		}

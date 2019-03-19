@@ -25,14 +25,16 @@ const packAndInstall = (packDir, installDir, callback) => {
 
 	// backup the package json
 	const packageJsonPath = path.join(packDir, 'package.json');
-	const packageJsonBackup = path.join(packageJsonPath, 'package.json.bak');
+	const packageJsonBackup = path.join(packDir, 'package.json.bak');
 	try { fs.copyFileSync(packageJsonPath, packageJsonBackup); }
 	catch (e) { return fail('Failed to backup package.json', e); }
 
 	// give package a unique name to avoid module conflicts
 	startTask();
 	fs.readFile(packageJsonPath, 'utf8', (err, data) => {
-		const packageJson = JSON.parse(data);
+		let packageJson;
+		try { packageJson = JSON.parse(data); }
+		catch (e) { return fail('Failed to parse package.json', e); }
 		const uniqueName = `pushkinComponent-${uuid()}`;
 		packageJson.name = uniqueName;
 		startTask();
@@ -133,7 +135,9 @@ export default (experimentsDir, coreDir, callback) => {
 			fs.readFile(controllersJsonFile, 'utf8', (err, data) => {
 				if (err)
 					return fail('Failed to read old controllers.json for api', err);
-				const oldContrList = JSON.parse(data);
+				let oldContrList;
+				try { oldContrList = JSON.parse(data); }
+				catch (e) { return fail('Failed to parse controllers.json', e); }
 				oldContrList.forEach(contr => {
 					const moduleName = contr.name;
 					startTask();
@@ -145,7 +149,7 @@ export default (experimentsDir, coreDir, callback) => {
 				});
 
 				// overwrite the old list of controllers
-				fs.writeFileSync(controllersJsonFile, JSON.stringify([]));
+				fs.writeFileSync(controllersJsonFile, JSON.stringify([]), 'utf8');
 
 				// install the new controller in the core api
 				const controllers = expConfig.apiControllers;
@@ -158,9 +162,11 @@ export default (experimentsDir, coreDir, callback) => {
 							return fail(`Failed on prepping api controller ${fullContrLoc}:`, err);
 
 						// add this controller to the main api's list of controllers to attach
-						const attachList = JSON.parse(fs.readFileSync(controllersJsonFile));
+						let attachList;
+						try { attachList = JSON.parse(fs.readFileSync(controllersJsonFile)); }
+						catch (e) { return fail('Failed to parse controllers.json', e); }
 						attachList.push({ name: moduleName, mountPath: controller.mountPath });
-						fs.writeFileSync(controllersJsonFile, JSON.stringify(attachList));
+						fs.writeFileSync(controllersJsonFile, JSON.stringify(attachList), 'utf8');
 						finishTask(); // packing and installing controller
 					});
 				});
@@ -169,12 +175,14 @@ export default (experimentsDir, coreDir, callback) => {
 
 
 			// web page
-			const webPageLoc = path.join(experimentsDir, expConfig.webPage.location);
+			const webPageLoc = path.join(expDir, expConfig.webPage.location);
 			// uninstall old web page experiments
-			const webPageAttachListFile = path.join(coreDir, 'front-end', 'experiments.json');
+			const webPageAttachListFile = path.join(coreDir, 'front-end/src/experiments.json');
 			startTask();
 			fs.readFile(webPageAttachListFile, 'utf8', (err, data) => {
-				const oldPages = JSON.parse(data);
+				let oldPages;
+				try { oldPages = JSON.parse(data); }
+				catch (e) { return fail('Failed to parse experiments.json', e); }
 				oldPages.forEach(page => {
 					const moduleName = page.name;
 					startTask();
@@ -186,7 +194,7 @@ export default (experimentsDir, coreDir, callback) => {
 				});
 
 				// overwrite the old list of pages
-				fs.writeFileSync(webPageAttachListFile, 'utf8', JSON.stringify([]));
+				fs.writeFileSync(webPageAttachListFile, JSON.stringify([]), 'utf8');
 
 				// install the experiment web page to main site's modules
 				startTask();
@@ -195,9 +203,11 @@ export default (experimentsDir, coreDir, callback) => {
 						return fail('Failed on prepping web page', err);
 
 					// add this web page to the main list of pages to include
-					const attachList = JSON.parse(fs.readFileSync(webPageAttachListFile));
+					let attachList;
+					try { attachList = JSON.parse(fs.readFileSync(webPageAttachListFile)); }
+					catch (e) { return fail('Failed to parse experiments.json', e); }
 					attachList.push({ name: moduleName, mountPath: expConfig.webPage.name });
-					fs.writeFileSync(controllersJsonFile, JSON.stringify(attachList));
+					fs.writeFileSync(webPageAttachListFile, JSON.stringify(attachList), 'utf8');
 					finishTask(); // packing and installing web page
 				});
 				finishTask(); // reading in old web page list
