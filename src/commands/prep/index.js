@@ -35,7 +35,7 @@ const packAndInstall = (packDir, installDir, callback) => {
 		let packageJson;
 		try { packageJson = JSON.parse(data); }
 		catch (e) { return fail('Failed to parse package.json', e); }
-		const uniqueName = `pushkinComponent-${uuid()}`;
+		const uniqueName = `pushkinComponent${uuid().split('-').join('')}`;
 		packageJson.name = uniqueName;
 		startTask();
 		fs.writeFile(packageJsonPath, JSON.stringify(packageJson), 'utf8', err => {
@@ -89,7 +89,7 @@ const packAndInstall = (packDir, installDir, callback) => {
 
 
 // two sketchy methods to handle writing pure js for static imports
-const getModuleList = file => {
+const getModuleList = file => { // eslint-disable-line
 	const moduleNames = [];
 	const data = fs.readFileSync(file, 'utf8').trim();
 	data.split('\n').forEach(line => {
@@ -105,7 +105,7 @@ const includeInModuleList = (importName, listAppendix, file) => {
 	const newData =
 `import ${importName} from '${importName}';
 ${allButEnd.join('\n')}
-	${JSON.stringify(listAppendix)},
+	${listAppendix},
 ];`;
 	fs.writeFileSync(file, newData, 'utf8');
 };
@@ -137,6 +137,7 @@ export default (experimentsDir, coreDir, callback) => {
 			// api controllers
 			// remove old controller names and uninstall from api's dependencies
 			const controllersJsonFile = path.join(coreDir, 'api/src/controllers.json');
+			/* Overwriting can't be done on a loop for each experiment, otherwise you can only have one
 			startTask();
 			fs.readFile(controllersJsonFile, 'utf8', (err, data) => {
 				if (err)
@@ -147,7 +148,7 @@ export default (experimentsDir, coreDir, callback) => {
 				oldContrList.forEach(contr => {
 					const moduleName = contr.name;
 					startTask();
-					exec(`npm uninstall ${moduleName}`, err => {
+					exec(`npm uninstall ${moduleName}`, { cwd: path.join(coreDir, 'api') }, err => {
 						if (err)
 							return fail(`Failed to uninstall old controller ${moduleName}`, err);
 						finishTask(); // uninstalling old module
@@ -156,67 +157,66 @@ export default (experimentsDir, coreDir, callback) => {
 
 				// overwrite the old list of controllers
 				fs.writeFileSync(controllersJsonFile, JSON.stringify([]), 'utf8');
+				*/
 
-				// install the new controller in the core api
-				const controllers = expConfig.apiControllers;
-				controllers.forEach(controller => {
-					const fullContrLoc = path.join(expDir, controller.location);
-					console.log(`Loading controller in ${fullContrLoc}`);
-					startTask();
-					packAndInstall(fullContrLoc, path.join(coreDir, 'api'), (err, moduleName) => {
-						if (err)
-							return fail(`Failed on prepping api controller ${fullContrLoc}:`, err);
+			// install the new controller in the core api
+			const controllers = expConfig.apiControllers;
+			controllers.forEach(controller => {
+				const fullContrLoc = path.join(expDir, controller.location);
+				console.log(`Loading controller in ${fullContrLoc}`);
+				startTask();
+				packAndInstall(fullContrLoc, path.join(coreDir, 'api'), (err, moduleName) => {
+					if (err)
+						return fail(`Failed on prepping api controller ${fullContrLoc}:`, err);
 
-						// add this controller to the main api's list of controllers to attach
-						let attachList;
-						try { attachList = JSON.parse(fs.readFileSync(controllersJsonFile)); }
-						catch (e) { return fail('Failed to parse controllers.json', e); }
-						attachList.push({ name: moduleName, mountPath: controller.mountPath });
-						fs.writeFileSync(controllersJsonFile, JSON.stringify(attachList), 'utf8');
-						finishTask(); // packing and installing controller
-					});
+					// add this controller to the main api's list of controllers to attach
+					let attachList;
+					try { attachList = JSON.parse(fs.readFileSync(controllersJsonFile)); }
+					catch (e) { return fail('Failed to parse controllers.json', e); }
+					attachList.push({ name: moduleName, mountPath: controller.mountPath });
+					fs.writeFileSync(controllersJsonFile, JSON.stringify(attachList), 'utf8');
+					finishTask(); // packing and installing controller
 				});
-				finishTask(); // reading old json controller's file
 			});
+			/*	finishTask(); // reading old json controller's file
+			});*/
 
 
 			// web page
 			const webPageLoc = path.join(expDir, expConfig.webPage.location);
+			const webPageAttachListFile = path.join(coreDir, 'front-end/src/experiments.js');
+
+			/* Overwriting can't be done on a loop for each experiment, otherwise you can only have one
 			// uninstall old web page experiments
-			const webPageAttachListFile = path.join(coreDir, 'front-end/src/experiments.json');
-			startTask();
-			fs.readFile(webPageAttachListFile, 'utf8', (err, data) => {
-				let oldPages;
-				try { oldPages = JSON.parse(data); }
-				catch (e) { return fail('Failed to parse experiments.json', e); }
-				oldPages.forEach(page => {
-					const moduleName = page.name;
-					startTask();
-					exec(`npm uninstall ${moduleName}`, err => {
-						if (err)
-							return fail(`Failed to uninstall old controller ${moduleName}`, err);
-						finishTask(); // uninstalling old module
-					});
-				});
-
-				// overwrite the old list of pages
-				fs.writeFileSync(webPageAttachListFile, JSON.stringify([]), 'utf8');
-
-				// install the experiment web page to main site's modules
+			let oldPages;
+			try { oldPages = getModuleList(webPageAttachListFile); }
+			catch (e) { return fail('Failed to read web page attachment list', e); }
+			oldPages.forEach(page => {
+				const moduleName = page.name;
 				startTask();
-				packAndInstall(webPageLoc, path.join(coreDir, 'front-end'), (err, moduleName) => {
+				exec(`npm uninstall ${moduleName}`, {cwd: path.join(coreDir, 'front-end') }, err => {
 					if (err)
-						return fail('Failed on prepping web page', err);
-
-					// add this web page to the main list of pages to include
-					let attachList;
-					try { attachList = JSON.parse(fs.readFileSync(webPageAttachListFile)); }
-					catch (e) { return fail('Failed to parse experiments.json', e); }
-					attachList.push({ name: moduleName, mountPath: expConfig.webPage.name });
-					fs.writeFileSync(webPageAttachListFile, JSON.stringify(attachList), 'utf8');
-					finishTask(); // packing and installing web page
+						return fail(`Failed to uninstall old controller ${moduleName}`, err);
+					finishTask(); // uninstalling old module
 				});
-				finishTask(); // reading in old web page list
+			});
+
+			// overwrite the old list of attachment files
+			fs.writeFileSync(webPageAttachListFile, 'export default [\n];', 'utf8');
+			*/
+
+			// install the experiment web page to main site's modules
+			startTask();
+			packAndInstall(webPageLoc, path.join(coreDir, 'front-end'), (err, moduleName) => {
+				if (err)
+					return fail('Failed on prepping web page', err);
+
+				// add this web page to the main list of pages to include
+				// this must be one line
+				const modListAppendix = `{ name: '${moduleName}', mountPath: '${expConfig.webPage.mountPath}',  module: ${moduleName} }`;
+				try { includeInModuleList(moduleName, modListAppendix, webPageAttachListFile); }
+				catch (e) { return fail('Failed to include web page module in list', e); }
+				finishTask(); // packing and installing web page
 			});
 		} catch (e) {
 			console.error(`Failed to load experiment in ${expDir}: ${e}`);
