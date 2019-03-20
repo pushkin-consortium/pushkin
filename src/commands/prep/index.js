@@ -218,6 +218,9 @@ export default (experimentsDir, coreDir, callback) => {
 				catch (e) { return fail('Failed to include web page module in list', e); }
 				finishTask(); // packing and installing web page
 			});
+
+			// worker
+			const workerService = expConfig.
 		} catch (e) {
 			console.error(`Failed to load experiment in ${expDir}: ${e}`);
 		}
