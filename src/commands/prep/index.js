@@ -213,7 +213,7 @@ export default (experimentsDir, coreDir, callback) => {
 
 				// add this web page to the main list of pages to include
 				// this must be one line
-				const modListAppendix = `{ name: '${moduleName}', mountPath: '${expConfig.webPage.mountPath}',  module: ${moduleName} }`;
+				const modListAppendix = `{ fullName: '${expConfig.experimentName}', shortName: '${expConfig.shortName}', module: ${moduleName} }`;
 				try { includeInModuleList(moduleName, modListAppendix, webPageAttachListFile); }
 				catch (e) { return fail('Failed to include web page module in list', e); }
 				finishTask(); // packing and installing web page

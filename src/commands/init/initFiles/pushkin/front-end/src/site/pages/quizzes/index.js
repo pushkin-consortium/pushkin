@@ -16,7 +16,7 @@ export default class QuizPage extends React.Component {
 						<ul>
 							{ experiments.map(e =>
 								(<li key={e}>
-									<Link to={`${match.url}/${e.mountPath}`}>{e.name}</Link>
+									<Link to={`${match.url}/${e.shortName}`}>{e.fullName}</Link>
 								</li>)
 							) }
 							</ul>

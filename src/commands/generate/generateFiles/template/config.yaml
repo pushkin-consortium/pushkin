@@ -7,7 +7,6 @@ apiControllers: # The default export from each of these locations will be attach
 worker:
   location: 'worker'
 webPage:
-  mountPath: *shortName
   location: 'web page'
 migrations:
   location: 'migrations'

@@ -4,7 +4,7 @@ import path from 'path';
 import experiments from '../../../experiments.js';
 const expObject = {};
 experiments.forEach(exp => {
-	expObject[exp.name] = exp.module;
+	expObject[exp.shortName] = exp.module;
 });
 
 export default class TakeQuiz extends React.Component {
