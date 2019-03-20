@@ -92,20 +92,21 @@ const packAndInstall = (packDir, installDir, callback) => {
 const getModuleList = file => {
 	const moduleNames = [];
 	const data = fs.readFileSync(file, 'utf8').trim();
-	for (line in data.split('\n')) {
+	data.split('\n').forEach(line => {
 		const spaces = line.split(' ');
-		if (spaces[0] == 'import') {
-			moduleNames.push(spaces[1]);
-		}
-	}
+		if (spaces[0] == 'import') moduleNames.push(spaces[1]);
+	});
 	return moduleNames;
 };
-const inludeInModuleList = (importName, listAppendix, file) => {
-	const data = fs.readFileSync(file, 'utf8');
+const includeInModuleList = (importName, listAppendix, file) => {
+	const data = fs.readFileSync(file, 'utf8').trim();
 	const lineSplit = data.split('\n');
-	const allButEnd = lineSplit.splice(0, lineSplit.length - 1);
+	const allButEnd = lineSplit.slice(0, lineSplit.length - 1);
 	const newData =
-		`import ${importName} from '${importName}'\n${allButEnd.join('\n')},\n${JSON.stringify(listAppendix)}];`;
+`import ${importName} from '${importName}';
+${allButEnd.join('\n')}
+	${JSON.stringify(listAppendix)},
+];`;
 	fs.writeFileSync(file, newData, 'utf8');
 };
 
