@@ -11,8 +11,8 @@
 	"author": "",
 	"license": "MIT",
 	"dependencies": {
-		"pushkin-client": "0.0.4",
-		"pushkin-jspsych": "0.0.1"
+		"pushkin-client": "^0.0.4",
+		"pushkin-jspsych": "^1.0.1"
 	},
 	"devDependencies":{
 		"@babel/cli":"^7.2.3",
