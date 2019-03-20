@@ -86,26 +86,31 @@ const packAndInstall = (packDir, installDir, callback) => {
 		finishTask(); // read package file
 	});
 };
-/* can use this in init/generate commands
-const unzipAndUntar = (file, strips, callback) => {
-	const inStream = fs.createReadStream(file);
-	const outFile = path.join(path.dirname(file), `${path.basename(file)}.tempTar`);
-	const outStream = fs.createWriteStream(outFile);
-	inStream
-		.pipe(zlib.createGunzip())
-		.pipe(outStream)
-		.on('finish', err => {
-			if (err) return callback(new Error(`Failed to unzip file: ${err}`));
-			exec(`tar -xf ${outFile} --strip-components=${strips}`, { cwd: path.dirname(file) }, err => {
-				if (err) callback(new Error(`Failed to extract tarball: ${err}`));
-				fs.unlink(outFile, err => {
-					if (err) callback(new Error(`Failed to delete tarball: ${err}`));
-					callback();
-				});
-			});
-		});
+
+
+// two sketchy methods to handle writing pure js for static imports
+const getModuleList = file => {
+	const moduleNames = [];
+	const data = fs.readFileSync(file, 'utf8').trim();
+	for (line in data.split('\n')) {
+		const spaces = line.split(' ');
+		if (spaces[0] == 'import') {
+			moduleNames.push(spaces[1]);
+		}
+	}
+	return moduleNames;
 };
-*/
+const inludeInModuleList = (importName, listAppendix, file) => {
+	const data = fs.readFileSync(file, 'utf8');
+	const lineSplit = data.split('\n');
+	const allButEnd = lineSplit.splice(0, lineSplit.length - 1);
+	const newData =
+		`import ${importName} from '${importName}'\n${allButEnd.join('\n')},\n${JSON.stringify(listAppendix)}];`;
+	fs.writeFileSync(file, newData, 'utf8');
+};
+
+
+
 
 export default (experimentsDir, coreDir, callback) => {
 	// task management
@@ -217,3 +222,25 @@ export default (experimentsDir, coreDir, callback) => {
 		}
 	});
 };
+
+/* can use this in init/generate commands
+const unzipAndUntar = (file, strips, callback) => {
+	const inStream = fs.createReadStream(file);
+	const outFile = path.join(path.dirname(file), `${path.basename(file)}.tempTar`);
+	const outStream = fs.createWriteStream(outFile);
+	inStream
+		.pipe(zlib.createGunzip())
+		.pipe(outStream)
+		.on('finish', err => {
+			if (err) return callback(new Error(`Failed to unzip file: ${err}`));
+			exec(`tar -xf ${outFile} --strip-components=${strips}`, { cwd: path.dirname(file) }, err => {
+				if (err) callback(new Error(`Failed to extract tarball: ${err}`));
+				fs.unlink(outFile, err => {
+					if (err) callback(new Error(`Failed to delete tarball: ${err}`));
+					callback();
+				});
+			});
+		});
+};
+*/
+
