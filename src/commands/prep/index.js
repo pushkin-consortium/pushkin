@@ -8,6 +8,7 @@ import uuid from 'uuid/v4';
 const packAndInstall = (packDir, installDir, callback) => {
 	// task management
 	const fail = (reason, err) => {
+		console.log(`packAndInstall:\n\tpackDir: ${packDir}\n\tinstallDir: ${installDir}\n`);
 		callback(new Error(`${reason} (${packDir}, ${installDir}): ${err}`));
 	};
 	const tasks = [];
@@ -55,7 +56,7 @@ const packAndInstall = (packDir, installDir, callback) => {
 				startTask();
 				fs.rename(packedFile, movedPack, err => {
 					if (err)
-						return fail(`Failed to move packaged file (${packedFileName} => ${movedPack})`, err);
+						return fail(`Failed to move packaged file (${packedFile} => ${movedPack})`, err);
 
 					// restore the unmodified package.json
 					startTask();
@@ -98,7 +99,7 @@ const getModuleList = file => { // eslint-disable-line
 	});
 	return moduleNames;
 };
-const includeInModuleList = (importName, listAppendix, file) => {
+const includeInModuleList = (importName, listAppendix, file) => { // eslint-disable-line
 	const data = fs.readFileSync(file, 'utf8').trim();
 	const lineSplit = data.split('\n');
 	const allButEnd = lineSplit.slice(0, lineSplit.length - 1);
@@ -149,6 +150,7 @@ const cleanUp = (coreDir, callback) => {
 
 
 	// reset web page dependencies
+	const webPageAttachListFile = path.join(coreDir, 'front-end/src/experiments.js');
 	let oldPages;
 	try { oldPages = getModuleList(webPageAttachListFile); }
 	catch (e) { return fail('Failed to read web page attachment list', e); }
@@ -162,7 +164,6 @@ const cleanUp = (coreDir, callback) => {
 		});
 	});
 	// overwrite the old list of attachment files
-	const webPageAttachListFile = path.join(coreDir, 'front-end/src/experiments.js');
 	fs.writeFile(webPageAttachListFile, 'export default [\n];', 'utf8', err => {
 		if (err)
 			return fail('Failed to uninstall old experiment web pages from front end', err);
@@ -237,7 +238,7 @@ const prepWeb = (expDir, expConfig, coreDir, callback) => {
 // prepare a single experiment's worker
 const prepWorker = (expDir, workerConfig, callback) => {
 	const workerService = workerConfig.service;
-	const workerName = `pushkinWorker${uuid().split('-').join('')}`;
+	const workerName = `pushkinworker${uuid().split('-').join('')}`;
 	const workerLoc = path.join(expDir, workerConfig.location);
 	exec(`docker build ${workerLoc} -t ${workerName}`, err => {
 		if (err) {
@@ -263,7 +264,9 @@ export default (experimentsDir, coreDir, callback) => {
 	const finishTask = () => {
 		tasks.pop();
 		if (tasks.length == 0) {
-
+			console.log('PREPPED, skipping includes');
+			console.log(newApiControllers, newWebPageIncludes, newWorkerServices);
+			/*
 			// write out api includes
 			const controllersJsonFile = path.join(coreDir, 'api/src/controllers.json');
 			try { fs.writeFileSync(controllersJsonFile, JSON.stringify(newApiControllers), 'utf8'); }
@@ -291,7 +294,7 @@ export default (experimentsDir, coreDir, callback) => {
 			catch (e) { return fail('Failed to create new compose file without old workers', e); }
 			try { fs.writeFileSync(composeFileLoc, newCompData, 'utf8'); }
 			catch (e) { return fail('Failed to write new compose file without old workers', e); }
-
+			*/
 			callback();
 		}
 	};
