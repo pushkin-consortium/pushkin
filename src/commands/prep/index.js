@@ -111,9 +111,8 @@ ${allButEnd.join('\n')}
 };
 
 
-
-
-export default (experimentsDir, coreDir, callback) => {
+// reset controllers, web pages, workers to be included in main build
+const cleanUp = (coreDir, callback) => {
 	// task management
 	const fail = (reason, err) => { callback(new Error(`${reason}: ${err}`)); };
 	const tasks = [];
@@ -123,128 +122,223 @@ export default (experimentsDir, coreDir, callback) => {
 		if (tasks.length == 0) callback();
 	};
 
-	// for each experiment...
-	const expDirs = fs.readdirSync(experimentsDir);
-	expDirs.forEach(expDir => {
-		expDir = path.join(experimentsDir, expDir);
-		if (!fs.lstatSync(expDir).isDirectory()) return;
-		try {
-			console.log(`Loading experiment in ${expDir}`);
-			const expConfigPath = path.join(expDir, 'config.yaml');
-			const expConfig = jsYaml.safeLoad(fs.readFileSync(expConfigPath), 'utf8');
-			console.log(expConfig);
 
-			// api controllers
-			// remove old controller names and uninstall from api's dependencies
-			const controllersJsonFile = path.join(coreDir, 'api/src/controllers.json');
-			/* Overwriting can't be done on a loop for each experiment, otherwise you can only have one
+	// reset api controllers
+	const controllersJsonFile = path.join(coreDir, 'api/src/controllers.json');
+	startTask();
+	fs.readFile(controllersJsonFile, 'utf8', (err, data) => {
+		let oldContrList;
+		try { oldContrList = JSON.parse(data); }
+		catch (e) { return fail('Failed to parse controllers.json', e); }
+		oldContrList.forEach(contr => {
+			const moduleName = contr.name;
 			startTask();
-			fs.readFile(controllersJsonFile, 'utf8', (err, data) => {
+			exec(`npm uninstall ${moduleName}`, { cwd: path.join(coreDir, 'api') }, err => {
 				if (err)
-					return fail('Failed to read old controllers.json for api', err);
-				let oldContrList;
-				try { oldContrList = JSON.parse(data); }
-				catch (e) { return fail('Failed to parse controllers.json', e); }
-				oldContrList.forEach(contr => {
-					const moduleName = contr.name;
-					startTask();
-					exec(`npm uninstall ${moduleName}`, { cwd: path.join(coreDir, 'api') }, err => {
-						if (err)
-							return fail(`Failed to uninstall old controller ${moduleName}`, err);
-						finishTask(); // uninstalling old module
-					});
-				});
-
-				// overwrite the old list of controllers
-				fs.writeFileSync(controllersJsonFile, JSON.stringify([]), 'utf8');
-				*/
-
-			// install the new controller in the core api
-			const controllers = expConfig.apiControllers;
-			controllers.forEach(controller => {
-				const fullContrLoc = path.join(expDir, controller.location);
-				console.log(`Loading controller in ${fullContrLoc}`);
-				startTask();
-				packAndInstall(fullContrLoc, path.join(coreDir, 'api'), (err, moduleName) => {
-					if (err)
-						return fail(`Failed on prepping api controller ${fullContrLoc}:`, err);
-
-					// add this controller to the main api's list of controllers to attach
-					let attachList;
-					try { attachList = JSON.parse(fs.readFileSync(controllersJsonFile)); }
-					catch (e) { return fail('Failed to parse controllers.json', e); }
-					attachList.push({ name: moduleName, mountPath: controller.mountPath });
-					fs.writeFileSync(controllersJsonFile, JSON.stringify(attachList), 'utf8');
-					finishTask(); // packing and installing controller
-				});
+					return fail(`Failed to uninstall old controller ${moduleName}`, err);
+				finishTask(); // uninstalling old module
 			});
-			/*	finishTask(); // reading old json controller's file
-			});*/
+		});
+		fs.writeFile(controllersJsonFile, JSON.stringify([]), 'utf8', err => {
+			if (err)
+				return fail('Failed to clear controllers.json', err); 
+			finishTask(); // overwriting controllers json file (making blank)
+		});
+		finishTask(); // reading old controllers json file
+	});
 
 
-			// web page
-			const webPageLoc = path.join(expDir, expConfig.webPage.location);
-			const webPageAttachListFile = path.join(coreDir, 'front-end/src/experiments.js');
+	// reset web page dependencies
+	let oldPages;
+	try { oldPages = getModuleList(webPageAttachListFile); }
+	catch (e) { return fail('Failed to read web page attachment list', e); }
+	oldPages.forEach(page => {
+		const moduleName = page.name;
+		startTask();
+		exec(`npm uninstall ${moduleName}`, {cwd: path.join(coreDir, 'front-end') }, err => {
+			if (err)
+				return fail(`Failed to uninstall old controller ${moduleName}`, err);
+			finishTask(); // uninstalling old module
+		});
+	});
+	// overwrite the old list of attachment files
+	const webPageAttachListFile = path.join(coreDir, 'front-end/src/experiments.js');
+	fs.writeFile(webPageAttachListFile, 'export default [\n];', 'utf8', err => {
+		if (err)
+			return fail('Failed to uninstall old experiment web pages from front end', err);
+		finishTask();
+	});
 
-			/* Overwriting can't be done on a loop for each experiment, otherwise you can only have one
-			// uninstall old web page experiments
-			let oldPages;
-			try { oldPages = getModuleList(webPageAttachListFile); }
-			catch (e) { return fail('Failed to read web page attachment list', e); }
-			oldPages.forEach(page => {
-				const moduleName = page.name;
-				startTask();
-				exec(`npm uninstall ${moduleName}`, {cwd: path.join(coreDir, 'front-end') }, err => {
-					if (err)
-						return fail(`Failed to uninstall old controller ${moduleName}`, err);
-					finishTask(); // uninstalling old module
-				});
-			});
 
-			// overwrite the old list of attachment files
-			fs.writeFileSync(webPageAttachListFile, 'export default [\n];', 'utf8');
-			*/
-
-			// install the experiment web page to main site's modules
-			startTask();
-			packAndInstall(webPageLoc, path.join(coreDir, 'front-end'), (err, moduleName) => {
-				if (err)
-					return fail('Failed on prepping web page', err);
-
-				// add this web page to the main list of pages to include
-				// this must be one line
-				const modListAppendix = `{ fullName: '${expConfig.experimentName}', shortName: '${expConfig.shortName}', module: ${moduleName} }`;
-				try { includeInModuleList(moduleName, modListAppendix, webPageAttachListFile); }
-				catch (e) { return fail('Failed to include web page module in list', e); }
-				finishTask(); // packing and installing web page
-			});
-
-			// worker
-			const workerService = expConfig.
-		} catch (e) {
-			console.error(`Failed to load experiment in ${expDir}: ${e}`);
-		}
+	// remove workers from main docker compose file
+	const composeFileLoc = path.join(coreDir, 'docker-compose.dev.yml');
+	let compFile;
+	try { compFile = jsYaml.safeLoad(fs.readFileSync(composeFileLoc), 'utf8'); }
+	catch (e) { return fail('Failed to load main docker compose file', e); }
+	Object.keys(compFile.services).forEach(service => {
+		service = compFile.services[service];
+		if (service.labels && service.labels.isPushkinWorker)
+			delete compFile.services[service];
+	});
+	let newCompData;
+	try { newCompData = jsYaml.safeDump(compFile); }
+	catch (e) { return fail('Failed to create new compose file without old workers', e); }
+	startTask();
+	fs.writeFile(composeFileLoc, newCompData, 'utf8', err => {
+		if (err)
+			return fail('Failed to write new compose file without old workers', err);
+		finishTask();
 	});
 };
 
-/* can use this in init/generate commands
-const unzipAndUntar = (file, strips, callback) => {
-	const inStream = fs.createReadStream(file);
-	const outFile = path.join(path.dirname(file), `${path.basename(file)}.tempTar`);
-	const outStream = fs.createWriteStream(outFile);
-	inStream
-		.pipe(zlib.createGunzip())
-		.pipe(outStream)
-		.on('finish', err => {
-			if (err) return callback(new Error(`Failed to unzip file: ${err}`));
-			exec(`tar -xf ${outFile} --strip-components=${strips}`, { cwd: path.dirname(file) }, err => {
-				if (err) callback(new Error(`Failed to extract tarball: ${err}`));
-				fs.unlink(outFile, err => {
-					if (err) callback(new Error(`Failed to delete tarball: ${err}`));
-					callback();
+
+// prepare a single experiment's api controllers
+const prepApi = (expDir, controllerConfigs, coreDir, callback) => {
+	// task management
+	const fail = (reason, err) => { callback(new Error(`${reason}: ${err}`)); };
+	const tasks = [];
+	const startTask = () => { tasks.push(true); };
+	const contrListAppendix = [];
+	const finishTask = () => {
+		tasks.pop();
+		if (tasks.length == 0) {
+			callback(undefined, contrListAppendix);
+		}
+	};
+
+	controllerConfigs.forEach(controller => {
+		const fullContrLoc = path.join(expDir, controller.location);
+		console.log(`Loading controller in ${fullContrLoc}`);
+		startTask();
+		packAndInstall(fullContrLoc, path.join(coreDir, 'api'), (err, moduleName) => {
+			if (err)
+				return fail(`Failed on prepping api controller ${fullContrLoc}:`, err);
+			contrListAppendix.push({ name: moduleName, mountPath: controller.mountPath });
+			finishTask(); // packing and installing controller
+		});
+	});
+};
+
+// prepare a single experiment's web page
+const prepWeb = (expDir, expConfig, coreDir, callback) => {
+	const webPageLoc = path.join(expDir, expConfig.webPage.location);
+	packAndInstall(webPageLoc, path.join(coreDir, 'front-end'), (err, moduleName) => {
+		if (err) {
+			callback(`Failed on prepping web page: ${err}`);
+			return;
+		}
+
+		// this must be one line
+		const modListAppendix = `{ fullName: '${expConfig.experimentName}', shortName: '${expConfig.shortName}', module: ${moduleName} }`;
+		callback(undefined, modListAppendix);
+	});
+};
+
+// prepare a single experiment's worker
+const prepWorker = (expDir, workerConfig, callback) => {
+	const workerService = workerConfig.service;
+	const workerName = `pushkinWorker${uuid().split('-').join('')}`;
+	const workerLoc = path.join(expDir, workerConfig.location);
+	exec(`docker build ${workerLoc} -t ${workerName}`, err => {
+		if (err) {
+			callback(new Error(`Failed to build worker: ${err}`));
+			return;
+		}
+		callback(undefined, { serviceName: workerName, serviceContent: workerService });
+	});
+};
+
+
+
+// the main prep function for prepping all experiments
+export default (experimentsDir, coreDir, callback) => {
+	// task management
+	const fail = (reason, err) => { callback(new Error(`${reason}: ${err}`)); };
+	const tasks = [];
+	const startTask = () => { tasks.push(true); };
+	// keep track of stuff to write out
+	const newApiControllers = []; // { name (module name), mountPath } list
+	const newWebPageIncludes = []; // { moduleName:string, listAppendix:string } list
+	const newWorkerServices = []; // to add to main compose file (tag with label of isPushkinWorker) { serviceName, serviceContent } list
+	const finishTask = () => {
+		tasks.pop();
+		if (tasks.length == 0) {
+
+			// write out api includes
+			const controllersJsonFile = path.join(coreDir, 'api/src/controllers.json');
+			try { fs.writeFileSync(controllersJsonFile, JSON.stringify(newApiControllers), 'utf8'); }
+			catch (e) { return fail('Failed to write api controllers list', e); }
+
+			// write out web page includes
+			try { 
+				const webPageAttachListFile = path.join(coreDir, 'front-end/src/experiments.js');
+				newWebPageIncludes.forEach(include => {
+					includeInModuleList(include.moduleName, include.listAppendix, webPageAttachListFile);
 				});
+			}
+			catch (e) { return fail('Failed to include web pages in front end', e); }
+
+			// write out new compose file with worker services
+			const composeFileLoc = path.join(coreDir, 'docker-compose.dev.yml');
+			let compFile;
+			try { compFile = jsYaml.safeLoad(fs.readFileSync(composeFileLoc), 'utf8'); }
+			catch (e) { return fail('Failed to load main docker compose file', e); }
+			newWorkerServices.forEach(workService => {
+				compFile.services[workService.serviceName] = workService.serviceContent;
+			});
+			let newCompData;
+			try { newCompData = jsYaml.safeDump(compFile); }
+			catch (e) { return fail('Failed to create new compose file without old workers', e); }
+			try { fs.writeFileSync(composeFileLoc, newCompData, 'utf8'); }
+			catch (e) { return fail('Failed to write new compose file without old workers', e); }
+
+			callback();
+		}
+	};
+
+
+
+	/******************************* begin *******************************/
+	// clean up old experiment stuff
+	cleanUp(coreDir, err => {
+		if (err)
+			return fail('Failed to clean up old experiments from core', err);
+		const expDirs = fs.readdirSync(experimentsDir);
+
+		expDirs.forEach(expDir => {
+			// load the config file
+			expDir = path.join(experimentsDir, expDir);
+			const expConfigPath = path.join(expDir, 'config.yaml');
+			let expConfig;
+			try { expConfig = jsYaml.safeLoad(fs.readFileSync(expConfigPath), 'utf8'); }
+			catch (e) { return fail(`Failed to load config file for ${expDir}`, e); }
+
+			// api
+			startTask();
+			prepApi(expDir, expConfig.apiControllers, coreDir, (err, contrListAppendix) => {
+				if (err)
+					return fail(`Failed to prep api for ${expDir}`, err);
+				newApiControllers.push(contrListAppendix);
+				finishTask();
+			});
+
+			// web page
+			startTask();
+			prepWeb(expDir, expConfig, coreDir, (err, webListAppendix) => {
+				if (err)
+					return fail(`Failed to prep web page for ${expDir}`, err);
+				newWebPageIncludes.push(webListAppendix);
+				finishTask();
+			});
+
+			// worker
+			startTask();
+			prepWorker(expDir, expConfig.worker, (err, workerAppendix) => {
+				if (err)
+					return fail(`Failed to prep worker for ${expDir}`, err);
+				newWorkerServices.push(workerAppendix);
+				finishTask();
 			});
 		});
+	});
 };
-*/
-
