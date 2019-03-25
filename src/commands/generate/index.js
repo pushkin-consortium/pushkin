@@ -59,3 +59,27 @@ export default (experimentsDir, newExpName) => {
 			});
 		});
 };
+
+
+
+/* can use this in init/generate commands
+const unzipAndUntar = (file, strips, callback) => {
+	const inStream = fs.createReadStream(file);
+	const outFile = path.join(path.dirname(file), `${path.basename(file)}.tempTar`);
+	const outStream = fs.createWriteStream(outFile);
+	inStream
+		.pipe(zlib.createGunzip())
+		.pipe(outStream)
+		.on('finish', err => {
+			if (err) return callback(new Error(`Failed to unzip file: ${err}`));
+			exec(`tar -xf ${outFile} --strip-components=${strips}`, { cwd: path.dirname(file) }, err => {
+				if (err) callback(new Error(`Failed to extract tarball: ${err}`));
+				fs.unlink(outFile, err => {
+					if (err) callback(new Error(`Failed to delete tarball: ${err}`));
+					callback();
+				});
+			});
+		});
+};
+*/
+
