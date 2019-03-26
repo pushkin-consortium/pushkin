@@ -245,15 +245,17 @@ const prepWeb = (expDir, expConfig, coreDir, callback) => {
 
 // prepare a single experiment's worker
 const prepWorker = (expDir, workerConfig, callback) => {
+	console.log(`prepWorker:\n\t${expDir}\n\t${JSON.stringify(workerConfig)}\n\t[callback]`);
 	const workerService = workerConfig.service;
 	const workerName = `pushkinworker${uuid().split('-').join('')}`;
 	const workerLoc = path.join(expDir, workerConfig.location);
+	console.log(`docker build ${workerLoc} -t ${workerName}`);
 	exec(`docker build ${workerLoc} -t ${workerName}`, err => {
 		if (err) {
 			callback(new Error(`Failed to build worker: ${err}`));
 			return;
 		}
-		callback(undefined, { serviceName: workerName, serviceContent: workerService });
+		callback(undefined, { serviceName: workerName, serviceContent: { ...workerService, image: workerName } });
 	});
 };
 
@@ -272,14 +274,14 @@ export default (experimentsDir, coreDir, callback) => {
 	const finishTask = () => {
 		tasks.pop();
 		if (tasks.length == 0) {
-			console.log('PREPPED, skipping non-web includes');
+			console.log('PREPPED, skipping non-worker includes');
 			console.log(newApiControllers, newWebPageIncludes, newWorkerServices);
 			/*
 			// write out api includes
 			const controllersJsonFile = path.join(coreDir, 'api/src/controllers.json');
 			try { fs.writeFileSync(controllersJsonFile, JSON.stringify(newApiControllers), 'utf8'); }
 			catch (e) { return fail('Failed to write api controllers list', e); }
-			*/
+			
 
 			// write out web page includes
 			try { 
@@ -289,6 +291,7 @@ export default (experimentsDir, coreDir, callback) => {
 				});
 			}
 			catch (e) { return fail('Failed to include web pages in front end', e); }
+			*/
 
 			/*
 			// write out new compose file with worker services
@@ -304,8 +307,8 @@ export default (experimentsDir, coreDir, callback) => {
 			catch (e) { return fail('Failed to create new compose file without old workers', e); }
 			try { fs.writeFileSync(composeFileLoc, newCompData, 'utf8'); }
 			catch (e) { return fail('Failed to write new compose file without old workers', e); }
-			*/
 			callback();
+			*/
 		}
 	};
 
@@ -340,7 +343,6 @@ export default (experimentsDir, coreDir, callback) => {
 				contrListAppendix.forEach(a => { newApiControllers.push(a); });
 				finishTask();
 			});
-			*/
 			// web page
 			startTask();
 			prepWeb(expDir, expConfig, coreDir, (err, webListAppendix) => {
@@ -350,17 +352,17 @@ export default (experimentsDir, coreDir, callback) => {
 				newWebPageIncludes.push(webListAppendix);
 				finishTask();
 			});
+			*/
 
 			// worker
-			/*
 			startTask();
 			prepWorker(expDir, expConfig.worker, (err, workerAppendix) => {
 				if (err)
 					return fail(`Failed to prep worker for ${expDir}`, err);
+				console.log(`Successfully prepp worker for ${expDir}. List appendix: ${JSON.stringify(workerAppendix)}`);
 				newWorkerServices.push(workerAppendix);
 				finishTask();
 			});
-			*/
 		});
 	});
 };
