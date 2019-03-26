@@ -255,7 +255,9 @@ const prepWorker = (expDir, workerConfig, callback) => {
 			callback(new Error(`Failed to build worker: ${err}`));
 			return;
 		}
-		callback(undefined, { serviceName: workerName, serviceContent: { ...workerService, image: workerName } });
+		const serviceContent = { ...workerService, image: workerName };
+		serviceContent.labels = { ...(serviceContent.labels || {}), isPushkinworker: true };
+		callback(undefined, { serviceName: workerName, serviceContent: serviceContent });
 	});
 };
 
@@ -275,7 +277,7 @@ export default (experimentsDir, coreDir, callback) => {
 		tasks.pop();
 		if (tasks.length == 0) {
 			console.log('PREPPED, skipping non-worker includes');
-			console.log(newApiControllers, newWebPageIncludes, newWorkerServices);
+			console.log(newApiControllers, newWebPageIncludes, JSON.stringify(newWorkerServices));
 			/*
 			// write out api includes
 			const controllersJsonFile = path.join(coreDir, 'api/src/controllers.json');
@@ -293,7 +295,6 @@ export default (experimentsDir, coreDir, callback) => {
 			catch (e) { return fail('Failed to include web pages in front end', e); }
 			*/
 
-			/*
 			// write out new compose file with worker services
 			const composeFileLoc = path.join(coreDir, 'docker-compose.dev.yml');
 			let compFile;
@@ -308,7 +309,6 @@ export default (experimentsDir, coreDir, callback) => {
 			try { fs.writeFileSync(composeFileLoc, newCompData, 'utf8'); }
 			catch (e) { return fail('Failed to write new compose file without old workers', e); }
 			callback();
-			*/
 		}
 	};
 
