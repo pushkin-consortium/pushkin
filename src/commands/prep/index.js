@@ -113,8 +113,15 @@ ${allButEnd.join('\n')}
 
 
 // reset controllers, web pages, workers to be included in main build
-const cleanUp = (coreDir, callback) => {
+const cleanUp = (coreDir, callb) => {
 	// task management
+	const callback = (() => {
+		let called = false;
+		return (err, data) => {
+			if (!called) callb(err, data);
+			called = true;
+		};
+	})();
 	const fail = (reason, err) => { callback(new Error(`${reason}: ${err}`)); };
 	const tasks = [];
 	const startTask = () => { tasks.push(true); };
@@ -122,7 +129,6 @@ const cleanUp = (coreDir, callback) => {
 		tasks.pop();
 		if (tasks.length == 0) callback();
 	};
-
 
 	// reset api controllers
 	const controllersJsonFile = path.join(coreDir, 'api/src/controllers.json');
@@ -195,6 +201,7 @@ const cleanUp = (coreDir, callback) => {
 
 // prepare a single experiment's api controllers
 const prepApi = (expDir, controllerConfigs, coreDir, callback) => {
+	console.log(`prepApi:\n\t${expDir}\n\t${JSON.stringify(controllerConfigs)}\n\t${coreDir}\n\t[callback]`);
 	// task management
 	const fail = (reason, err) => { callback(new Error(`${reason}: ${err}`)); };
 	const tasks = [];
@@ -222,6 +229,7 @@ const prepApi = (expDir, controllerConfigs, coreDir, callback) => {
 
 // prepare a single experiment's web page
 const prepWeb = (expDir, expConfig, coreDir, callback) => {
+	console.log(`prepWeb:\n\t${expDir}\n\t${JSON.stringify(expConfig)}\n\t${coreDir}\n\t[callback]`);
 	const webPageLoc = path.join(expDir, expConfig.webPage.location);
 	packAndInstall(webPageLoc, path.join(coreDir, 'front-end'), (err, moduleName) => {
 		if (err) {
@@ -231,7 +239,7 @@ const prepWeb = (expDir, expConfig, coreDir, callback) => {
 
 		// this must be one line
 		const modListAppendix = `{ fullName: '${expConfig.experimentName}', shortName: '${expConfig.shortName}', module: ${moduleName} }`;
-		callback(undefined, modListAppendix);
+		callback(undefined, { moduleName: moduleName, listAppendix: modListAppendix });
 	});
 };
 
@@ -264,13 +272,14 @@ export default (experimentsDir, coreDir, callback) => {
 	const finishTask = () => {
 		tasks.pop();
 		if (tasks.length == 0) {
-			console.log('PREPPED, skipping includes');
+			console.log('PREPPED, skipping non-web includes');
 			console.log(newApiControllers, newWebPageIncludes, newWorkerServices);
 			/*
 			// write out api includes
 			const controllersJsonFile = path.join(coreDir, 'api/src/controllers.json');
 			try { fs.writeFileSync(controllersJsonFile, JSON.stringify(newApiControllers), 'utf8'); }
 			catch (e) { return fail('Failed to write api controllers list', e); }
+			*/
 
 			// write out web page includes
 			try { 
@@ -281,6 +290,7 @@ export default (experimentsDir, coreDir, callback) => {
 			}
 			catch (e) { return fail('Failed to include web pages in front end', e); }
 
+			/*
 			// write out new compose file with worker services
 			const composeFileLoc = path.join(coreDir, 'docker-compose.dev.yml');
 			let compFile;
@@ -303,38 +313,46 @@ export default (experimentsDir, coreDir, callback) => {
 
 	/******************************* begin *******************************/
 	// clean up old experiment stuff
+	console.log('Cleaning up old experiments');
 	cleanUp(coreDir, err => {
 		if (err)
 			return fail('Failed to clean up old experiments from core', err);
+		console.log('Cleaned up old experiments successfully');
 		const expDirs = fs.readdirSync(experimentsDir);
 
 		expDirs.forEach(expDir => {
-			// load the config file
 			expDir = path.join(experimentsDir, expDir);
+			if (!fs.lstatSync(expDir).isDirectory()) return;
+			console.log(`Prepping experiment in ${expDir}`);
+			// load the config file
 			const expConfigPath = path.join(expDir, 'config.yaml');
 			let expConfig;
 			try { expConfig = jsYaml.safeLoad(fs.readFileSync(expConfigPath), 'utf8'); }
 			catch (e) { return fail(`Failed to load config file for ${expDir}`, e); }
 
+			/*
 			// api
 			startTask();
 			prepApi(expDir, expConfig.apiControllers, coreDir, (err, contrListAppendix) => {
 				if (err)
 					return fail(`Failed to prep api for ${expDir}`, err);
-				newApiControllers.push(contrListAppendix);
+				console.log(`Successfully prepped api for ${expDir}. List appendix: ${JSON.stringify(contrListAppendix)}`);
+				contrListAppendix.forEach(a => { newApiControllers.push(a); });
 				finishTask();
 			});
-
+			*/
 			// web page
 			startTask();
 			prepWeb(expDir, expConfig, coreDir, (err, webListAppendix) => {
 				if (err)
 					return fail(`Failed to prep web page for ${expDir}`, err);
+				console.log(`Successfully prepped web page for ${expDir}. List appendix: ${JSON.stringify(webListAppendix)}`);
 				newWebPageIncludes.push(webListAppendix);
 				finishTask();
 			});
 
 			// worker
+			/*
 			startTask();
 			prepWorker(expDir, expConfig.worker, (err, workerAppendix) => {
 				if (err)
@@ -342,6 +360,7 @@ export default (experimentsDir, coreDir, callback) => {
 				newWorkerServices.push(workerAppendix);
 				finishTask();
 			});
+			*/
 		});
 	});
 };

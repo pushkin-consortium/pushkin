@@ -56,16 +56,13 @@ const nextArg = inputGetter();
 				path.join(process.cwd(), config.experimentsDir),
 				path.join(process.cwd(), config.coreDir),
 				err => {
-					if (err)
-						console.error(`Error prepping: ${err}`);
-					else
-						console.log('finished prepping');
+					if (err) console.error(`Error prepping: ${err}`);
 				}
 			);
 			return;
 		}
 		default: {
-			const usage = 'blah blah blah';
+			const usage = 'blah blah blah usage';
 			console.error(usage);
 			return;
 		}
