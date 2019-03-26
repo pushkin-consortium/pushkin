@@ -9,9 +9,9 @@ services:
     build: ./api
     environment:
       - "AMQP_ADDRESS=amqp://message-queue:5672"
-      - "PORT=${api_port}"
+      - "PORT=3000"
     expose:
-      - "${api_port}"
+      - "3000"
     links:
       - message-queue
 
@@ -34,7 +34,7 @@ services:
   server:
     build: ./front-end
     environment:
-      API_PORT: "${api_port}"
+      API_PORT: "3000"
     ports:
       - 80:80
       - 433:433
@@ -47,12 +47,3 @@ services:
       - "5432:5432"
     volumes:
       - test_db_volume:/var/lib/postgresql/data
-
-  template_exp_worker:
-    build: ./workers/templateWorker
-    links:
-      - message-queue
-      - test_db
-    environment:
-      - "AMQP_ADDRESS=amqp://message-queue:5672"
-      - "DATABASE_URL=postgres://${db_user}:${db_pass}@${db_url}/${db_name}"
