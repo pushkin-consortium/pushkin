@@ -41,6 +41,7 @@ export default (experimentsDir, newExpName) => {
 
 				// change all occurrences of "template" in filenames and contents to exp name
 				const updateName = dir => {
+					console.log(`NAME UPDATE ${dir}`);
 					fs.readdirSync(dir).forEach(el => {
 						el = path.join(dir, el);
 						if (fs.lstatSync(el).isDirectory()) {
@@ -51,7 +52,7 @@ export default (experimentsDir, newExpName) => {
 						const newName = path.join(path.dirname(el), newBase);
 						fs.renameSync(el, newName);
 
-						try { replace.sync({ files: path.join(dir, '/*'), from: /template/i, to: newExpName }); }
+						try { replace.sync({ files: path.join(dir, '*'), from: /template/g, to: newExpName }); }
 						catch (e) { console.error(e); }
 					});
 				};

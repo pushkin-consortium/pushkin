@@ -188,8 +188,10 @@ const cleanUp = (coreDir, callb) => {
 	catch (e) { return fail('Failed to load main docker compose file', e); }
 	Object.keys(compFile.services).forEach(service => {
 		service = compFile.services[service];
-		if (service.labels && service.labels.isPushkinWorker)
+		if (service.labels && service.labels.isPushkinWorker) {
+			console.log(`Removing worker service from compose file ${service}`);
 			delete compFile.services[service];
+		}
 	});
 	let newCompData;
 	try { newCompData = jsYaml.safeDump(compFile); }
