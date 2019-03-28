@@ -186,10 +186,10 @@ const cleanUp = (coreDir, callb) => {
 	let compFile;
 	try { compFile = jsYaml.safeLoad(fs.readFileSync(composeFileLoc), 'utf8'); }
 	catch (e) { return fail('Failed to load main docker compose file', e); }
+	console.log(compFile);
 	Object.keys(compFile.services).forEach(service => {
-		service = compFile.services[service];
-		if (service.labels && service.labels.isPushkinWorker) {
-			console.log(`Removing worker service from compose file ${service}`);
+		const serviceContent = compFile.services[service];
+		if (serviceContent.labels && serviceContent.labels.isPushkinWorker) {
 			delete compFile.services[service];
 		}
 	});
@@ -262,7 +262,7 @@ const prepWorker = (expDir, workerConfig, callback) => {
 			return;
 		}
 		const serviceContent = { ...workerService, image: workerName };
-		serviceContent.labels = { ...(serviceContent.labels || {}), isPushkinworker: true };
+		serviceContent.labels = { ...(serviceContent.labels || {}), isPushkinWorker: true };
 		callback(undefined, { serviceName: workerName, serviceContent: serviceContent });
 	});
 };
