@@ -235,7 +235,7 @@ const prepApi = (expDir, controllerConfigs, coreDir, callback) => {
 const prepWeb = (expDir, expConfig, coreDir, callback) => {
 	console.log(`prepWeb:\n\t${expDir}\n\t${JSON.stringify(expConfig)}\n\t${coreDir}\n\t[callback]`);
 	const webPageLoc = path.join(expDir, expConfig.webPage.location);
-	packAndInstall(webPageLoc, path.join(coreDir, 'front-end'), (err, moduleName) => {
+	packAndInstall(webPageLoc, path.join(coreDir, 'front-end/tempPackages'), (err, moduleName) => {
 		if (err) {
 			callback(`Failed on prepping web page: ${err}`);
 			return;
