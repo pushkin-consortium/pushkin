@@ -110,98 +110,45 @@ ${allButEnd.join('\n')}
 
 
 // reset controllers, web pages, workers to be included in main build
-const cleanUp = (coreDir, callb) => {
-	// task management
-	const callback = (() => {
-		let called = false;
-		return (err, data) => {
-			if (!called) callb(err, data);
-			called = true;
-		};
-	})();
-	const fail = (reason, err) => { callback(new Error(`${reason}: ${err}`)); };
-	const tasks = [];
-	const startTask = () => { tasks.push(true); };
-	const finishTask = () => {
-		tasks.pop();
-		if (tasks.length == 0) callback();
-	};
+const cleanUpSync = (coreDir, callb) => {
 
 	// reset api controllers
 	const controllersJsonFile = path.join(coreDir, 'api/src/controllers.json');
-	startTask();
-	fs.readFile(controllersJsonFile, 'utf8', (err, data) => {
-		let oldContrList;
-		try { oldContrList = JSON.parse(data); }
-		catch (e) { return fail('Failed to parse controllers.json', e); }
-		oldContrList.forEach(contr => {
-			const moduleName = contr.name;
-			startTask();
-			exec(`npm uninstall ${moduleName}`, { cwd: path.join(coreDir, 'api') }, err => {
-				if (err)
-					return fail(`Failed to uninstall old controller ${moduleName}`, err);
-				finishTask(); // uninstalling old module
-			});
-		});
-		fs.writeFile(controllersJsonFile, JSON.stringify([]), 'utf8', err => {
-			if (err)
-				return fail('Failed to clear controllers.json', err); 
-			finishTask(); // overwriting controllers json file (making blank)
-		});
-		try {
-			fs.readdirSync(path.join(coreDir, 'api/tempPackages')).forEach(tempPackage => {
-				const maybeFile = path.join(coreDir, 'api/tempPackages', tempPackage);
-				if (fs.lstatSync(maybeFile).isFile())
-					fs.unlinkSync(maybeFile);
-			});
-		} catch (e) { return fail('Failed to remove old temporary packages', e); }
-		finishTask(); // reading old controllers json file
+	const oldContrList = JSON.parse(fs.readFileSync(controllersJsonFile, 'utf8'));
+	oldContrList.forEach(contr => {
+		const moduleName = contr.name;
+		console.log(`Uninstalling API controller ${contr.mountPath} (${moduleName})`);
+		execSync(`npm uninstall ${moduleName}`, { cwd: path.join(coreDir, 'api') });
 	});
-
+	fs.writeFileSync(controllersJsonFile, JSON.stringify([]), 'utf8');
+	console.log('Deleting temporary files');
+	fs.readdirSync(path.join(coreDir, 'api/tempPackages')).forEach(tempPackage => {
+		const maybeFile = path.join(coreDir, 'api/tempPackages', tempPackage);
+		if (fs.lstatSync(maybeFile).isFile())
+			fs.unlinkSync(maybeFile);
+	});
 
 	// reset web page dependencies
 	const webPageAttachListFile = path.join(coreDir, 'front-end/src/experiments.js');
-	let oldPages;
-	try { oldPages = getModuleList(webPageAttachListFile); }
-	catch (e) { return fail('Failed to read web page attachment list', e); }
+	const oldPages = getModuleList(webPageAttachListFile);
 	oldPages.forEach(page => {
 		const moduleName = page.name;
-		startTask();
-		exec(`npm uninstall ${moduleName}`, {cwd: path.join(coreDir, 'front-end') }, err => {
-			if (err)
-				return fail(`Failed to uninstall old controller ${moduleName}`, err);
-			finishTask(); // uninstalling old module
-		});
+		console.log(`Uninstalling web page ${page.fullName} (${moduleName})`);
+		execSync(`npm uninstall ${moduleName}`, {cwd: path.join(coreDir, 'front-end') });
 	});
-	// overwrite the old list of attachment files
-	fs.writeFile(webPageAttachListFile, 'export default [\n];', 'utf8', err => {
-		if (err)
-			return fail('Failed to uninstall old experiment web pages from front end', err);
-		finishTask();
-	});
-
+	fs.writeFileSync(webPageAttachListFile, 'export default [\n];', 'utf8');
 
 	// remove workers from main docker compose file
 	const composeFileLoc = path.join(coreDir, 'docker-compose.dev.yml');
-	let compFile;
-	try { compFile = jsYaml.safeLoad(fs.readFileSync(composeFileLoc), 'utf8'); }
-	catch (e) { return fail('Failed to load main docker compose file', e); }
-	console.log(compFile);
+	const compFile = jsYaml.safeLoad(fs.readFileSync(composeFileLoc), 'utf8');
+	console.log('Uninstalling workers');
 	Object.keys(compFile.services).forEach(service => {
 		const serviceContent = compFile.services[service];
-		if (serviceContent.labels && serviceContent.labels.isPushkinWorker) {
+		if (serviceContent.labels && serviceContent.labels.isPushkinWorker)
 			delete compFile.services[service];
-		}
 	});
-	let newCompData;
-	try { newCompData = jsYaml.safeDump(compFile); }
-	catch (e) { return fail('Failed to create new compose file without old workers', e); }
-	startTask();
-	fs.writeFile(composeFileLoc, newCompData, 'utf8', err => {
-		if (err)
-			return fail('Failed to write new compose file without old workers', err);
-		finishTask();
-	});
+	const newCompData = jsYaml.safeDump(compFile);
+	fs.writeFileSync(composeFileLoc, newCompData, 'utf8');
 };
 
 
@@ -321,7 +268,7 @@ export default (experimentsDir, coreDir, callback) => {
 	/******************************* begin *******************************/
 	// clean up old experiment stuff
 	console.log('Cleaning up old experiments');
-	cleanUp(coreDir, err => {
+	cleanUpSync(coreDir, err => {
 		if (err)
 			return fail('Failed to clean up old experiments from core', err);
 		console.log('Cleaned up old experiments successfully');
