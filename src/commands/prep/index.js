@@ -73,9 +73,6 @@ const packAndInstall = (packDir, installDir, callback) => {
 					exec(`npm install "${packedFileName}"`, { cwd: installDir }, err => {
 						if (err)
 							return fail(`Failed to run npm install ${packedFileName}`, err);
-						// delete the package file
-						try { fs.unlinkSync(path.join(installDir, packedFileName)); }
-						catch (e) { return fail('Failed to delete packaged file in installDir', e); }
 						finishTask(uniqueName); // npm install [package bundle] in installDir
 					});
 					finishTask(); // moving package to installDir
@@ -151,6 +148,13 @@ const cleanUp = (coreDir, callb) => {
 				return fail('Failed to clear controllers.json', err); 
 			finishTask(); // overwriting controllers json file (making blank)
 		});
+		try {
+			fs.readdirSync(path.join(coreDir, 'api/tempPackages')).forEach(tempPackage => {
+				const maybeFile = path.join(coreDir, 'api/tempPackages', tempPackage);
+				if (fs.lstatSync(maybeFile).isFile())
+					fs.unlinkSync(maybeFile);
+			});
+		} catch (e) { return fail('Failed to remove old temporary packages', e); }
 		finishTask(); // reading old controllers json file
 	});
 
@@ -218,7 +222,7 @@ const prepApi = (expDir, controllerConfigs, coreDir, callback) => {
 		const fullContrLoc = path.join(expDir, controller.location);
 		console.log(`Loading controller in ${fullContrLoc}`);
 		startTask();
-		packAndInstall(fullContrLoc, path.join(coreDir, 'api'), (err, moduleName) => {
+		packAndInstall(fullContrLoc, path.join(coreDir, 'api/tempPackages'), (err, moduleName) => {
 			if (err)
 				return fail(`Failed on prepping api controller ${fullContrLoc}:`, err);
 			contrListAppendix.push({ name: moduleName, mountPath: controller.mountPath });
@@ -278,7 +282,6 @@ export default (experimentsDir, coreDir, callback) => {
 		if (tasks.length == 0) {
 			console.log('PREPPED, skipping non-worker includes');
 			console.log(newApiControllers, newWebPageIncludes, JSON.stringify(newWorkerServices));
-			/*
 			// write out api includes
 			const controllersJsonFile = path.join(coreDir, 'api/src/controllers.json');
 			try { fs.writeFileSync(controllersJsonFile, JSON.stringify(newApiControllers), 'utf8'); }
@@ -293,7 +296,6 @@ export default (experimentsDir, coreDir, callback) => {
 				});
 			}
 			catch (e) { return fail('Failed to include web pages in front end', e); }
-			*/
 
 			// write out new compose file with worker services
 			const composeFileLoc = path.join(coreDir, 'docker-compose.dev.yml');
@@ -333,7 +335,6 @@ export default (experimentsDir, coreDir, callback) => {
 			try { expConfig = jsYaml.safeLoad(fs.readFileSync(expConfigPath), 'utf8'); }
 			catch (e) { return fail(`Failed to load config file for ${expDir}`, e); }
 
-			/*
 			// api
 			startTask();
 			prepApi(expDir, expConfig.apiControllers, coreDir, (err, contrListAppendix) => {
@@ -343,6 +344,7 @@ export default (experimentsDir, coreDir, callback) => {
 				contrListAppendix.forEach(a => { newApiControllers.push(a); });
 				finishTask();
 			});
+
 			// web page
 			startTask();
 			prepWeb(expDir, expConfig, coreDir, (err, webListAppendix) => {
@@ -352,7 +354,6 @@ export default (experimentsDir, coreDir, callback) => {
 				newWebPageIncludes.push(webListAppendix);
 				finishTask();
 			});
-			*/
 
 			// worker
 			startTask();
