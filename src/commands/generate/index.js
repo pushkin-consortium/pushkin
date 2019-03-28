@@ -4,7 +4,14 @@ import zlib from 'zlib';
 import { exec } from 'child_process';
 import replace from 'replace-in-file';
 
+// This may be overly restrictive in some cases
+const isValidExpName = name => (/^([a-zA-Z])([a-zA-Z0-9_])*$/.test(name));
+
 export default (experimentsDir, newExpName) => {
+	if (!isValidExpName(newExpName)) {
+		console.error(`'${newExpName}' is not a valid name. Names must start with a letter and can only contain alphanumeric characters.`);
+		return;
+	}
 	console.log(`${experimentsDir}, name: ${newExpName}`);
 	const newDir = path.join(experimentsDir, newExpName);
 	console.log(`newDir ${newDir}`);
