@@ -1,11 +1,14 @@
 {
   "name": "pushkin-cli",
-  "version": "0.0.1",
+  "version": "0.0.4",
   "description": "A CLI for automating basic Pushkin tasks",
   "main": "build/index.js",
   "files": [
     "build/*"
   ],
+	"bin": {
+		"pushkin": "build/index.js"
+	},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "rm -rf build/* && babel src -d build --ignore src/commands/init/initFiles/pushkin,src/commands/generate/generateFiles && mkdir build/commands/init/initFiles && tar -czf build/commands/init/initFiles/pushkin.tar.gz src/commands/init/initFiles/pushkin && cp src/commands/init/initFiles/pushkin.yaml build/commands/init/initFiles && mkdir build/commands/generate/generateFiles && tar -czf build/commands/generate/generateFiles/template.tar.gz src/commands/generate/generateFiles/template"
@@ -25,6 +28,7 @@
   },
   "dependencies": {
     "command-line-args": "^5.0.2",
+    "js-yaml": "^3.13.0",
     "knex": "^0.16.3",
     "pg": "^7.9.0",
     "replace-in-file": "^3.4.4",

@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import commandLineArgs from 'command-line-args';
 import jsYaml from 'js-yaml';
 import fs from 'fs';
