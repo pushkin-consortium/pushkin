@@ -1,0 +1,33 @@
+experimentName: &fullName 'template Experiment'
+shortName: &shortName 'template' # This should be unique as its used for urls, etc.
+apiControllers: # The default export from each of these locations will be attached to a pushkin API
+  - mountPath: *shortName
+    location: 'api controllers'
+    name: 'mycontroller'
+worker:
+  location: 'worker'
+  service: # what to add as a service in main compose file
+    image: *shortName
+    links:
+      - message-queue
+      - test_db
+    environment:
+      - "AMQP_ADDRESS=amqp://message-queue:5672"
+      - "DB_USER=postgres"
+      - "DB_PASS="
+      - "DB_URL=test_db"
+      - "DB_NAME=test_db"
+webPage:
+  location: 'web page'
+migrations:
+  location: 'migrations'
+seeds:
+  location: 'seeds'
+# Used for migration and seed commands via main CLI
+# Note that these might be different than those given to the worker,
+# Since it's running inside a linked docker container
+db:
+  user: 'postgres'
+  pass: ''
+  url: 'localhost'
+  name: 'test_db'

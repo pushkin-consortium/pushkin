@@ -1,0 +1,3 @@
+# main directories relative to project root ('..')
+experimentsDir: 'experiments'
+coreDir: 'pushkin'

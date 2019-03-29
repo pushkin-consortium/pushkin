@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "rm -rf build/* && babel src -d build --ignore '**/template' && tar -czf build/template.tar.gz src/template/"
+    "build": "rm -rf build/* && babel src -d build --ignore src/commands/init/initFiles/pushkin,src/commands/generate/generateFiles && mkdir build/commands/init/initFiles && tar -czf build/commands/init/initFiles/pushkin.tar.gz src/commands/init/initFiles/pushkin && cp src/commands/init/initFiles/pushkin.yaml build/commands/init/initFiles && mkdir build/commands/generate/generateFiles && tar -czf build/commands/generate/generateFiles/template.tar.gz src/commands/generate/generateFiles/template"
   },
   "keywords": [
     "pushkin",
@@ -25,6 +25,10 @@
   },
   "dependencies": {
     "command-line-args": "^5.0.2",
-    "tar": "^4.4.8"
+    "knex": "^0.16.3",
+    "pg": "^7.9.0",
+    "replace-in-file": "^3.4.4",
+    "tar": "^4.4.8",
+    "uuid": "^3.3.2"
   }
 }

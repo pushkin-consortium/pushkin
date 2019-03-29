@@ -1,16 +1,71 @@
 import fs from 'fs';
 import path from 'path';
-import makeTemplate from './makeTemplate.js';
+import zlib from 'zlib';
+import { exec} from 'child_process';
 
-export default (withTemplate) => {
-	const cwd = process.cwd();
-	const pushLocation = path.join(cwd, '.pushkin');
-	if (fs.existsSync(pushLocation) && fs.lstatSync(pushLocation).isDirectory()) {
-		console.error('A .pushkin folder was already found in this directory. Aborting.');
-		return;
-	}
+export default initDir => {
+	process.chdir(initDir);
 
-	fs.mkdirSync('.pushkin');
+	const newDirs = ['.pushkin', 'pushkin', 'experiments'];
+	const newFiles = ['pushkin.yaml'];
 
-	if (withTemplate) makeTemplate();
+	// make sure nothing to be created already exists
+	newDirs.forEach(d => {
+		const dir = path.join(initDir, d);
+		if (fs.existsSync(dir) && fs.lstatSync(dir).isDirectory())
+			throw new Error(`Failed to initialize pushkin project: directory ${dir} already exists`);
+	});
+	newFiles.forEach(f => {
+		const file = path.join(initDir, f);
+		if (fs.existsSync(file) && !fs.lstatSync(file).isDirectory())
+			throw new Error(`Failed to initialize pushkin project: file ${file} already exists`);
+	});
+
+	// go ahead and initialize
+	newDirs.forEach(d => {
+		if (d == 'pushkin') return; // let tar extract to this
+		const dir = path.join(initDir, d);
+		fs.mkdirSync(dir);
+	});
+	const config = path.join(__dirname, 'initFiles/pushkin.yaml');
+
+	fs.copyFileSync(config, path.join(initDir, 'pushkin.yaml'));
+
+	// unzip/untar core files and run npm install where appropriate
+	const coreBundle = path.join(__dirname, 'initFiles/pushkin.tar.gz');
+	const zipOutput = path.join(process.cwd(), 'pushkin.tar');
+	const contentStream = fs.createReadStream(coreBundle);
+	const writeStream = fs.createWriteStream(zipOutput);
+	console.log('Unzipping core files');
+	contentStream
+		.pipe(zlib.createGunzip())
+		.pipe(writeStream)
+		.on('finish', err => {
+			if (err) throw new Error(`Failed to unzip core files: ${err}`);
+			console.log('Untarring core files');
+			exec(`tar -xf ${zipOutput} --strip-components=4`, err => {
+				if (err) throw new Error(`Failed to extract tarball: ${err}`);
+				fs.unlink(zipOutput, err => {
+					if (err) console.error(`Failed to delete tarball: ${err}`);
+				});
+				['api', 'front-end', 'util'].forEach(dir => {
+					console.log(`Installing npm dependencies for ${dir}`);
+					exec('npm install', { cwd: path.join(process.cwd(), 'pushkin', dir) }, err => {
+						if (err) throw new Error(`Failed to install npm dependencies for ${dir}: ${err}`);
+						if (dir != 'api' && dir != 'front-end') return;
+						console.log(`Building ${dir}`);
+						exec('npm run build', { cwd: path.join(process.cwd(), 'pushkin', dir) }, err => {
+							if (err) throw new Error(`Failed to build ${dir}: ${err}`);
+						});
+					});
+				});
+			});
+		});
 };
+
+
+
+
+
+
+
