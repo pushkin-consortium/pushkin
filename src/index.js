@@ -6,6 +6,7 @@ import path from 'path';
 import generate from './commands/generate/index.js';
 import init from './commands/init/index.js';
 import prep from './commands/prep/index.js';
+import migrate from './commands/migrate/index.js';
 
 const moveToProjectRoot = () => {
 	// better checking to make sure this is indeed a pushkin project would be good
@@ -59,6 +60,13 @@ const nextArg = inputGetter();
 					if (err) console.error(`Error prepping: ${err}`);
 				}
 			);
+			return;
+		}
+		case 'migrate': {
+			moveToProjectRoot();
+			const config = loadConfig();
+			const exp = nextArg();
+			migrate(path.join(process.cwd(), config.experimentsDir, exp));
 			return;
 		}
 		default: {
