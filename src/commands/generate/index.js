@@ -12,9 +12,8 @@ export default (experimentsDir, newExpName) => {
 		console.error(`'${newExpName}' is not a valid name. Names must start with a letter and can only contain alphanumeric characters.`);
 		return;
 	}
-	console.log(`${experimentsDir}, name: ${newExpName}`);
+	console.log(`Making ${newExpName} in ${experimentsDir}`);
 	const newDir = path.join(experimentsDir, newExpName);
-	console.log(`newDir ${newDir}`);
 	if (fs.existsSync(newDir) && fs.lstatSync(newDir).isDirectory())
 		throw new Error(`A directory in the experiments folder already exists with this name (${newExpName})`);
 
@@ -23,14 +22,14 @@ export default (experimentsDir, newExpName) => {
 	const zipOutput = path.join(newDir, 'template.tar');
 	const contentStream = fs.createReadStream(template);
 	const writeStream = fs.createWriteStream(zipOutput);
-	console.log('Unzipping template files');
+	console.log('Unzipping files');
 	contentStream
 		.pipe(zlib.createGunzip())
 		.pipe(writeStream)
 		.on('finish', err => {
 			if (err)
 				throw new Error(`Failed to unzip core files: ${err}`);
-			console.log('Untarring template files');
+			console.log('Untarring files');
 			/*******/ process.chdir(newDir); /********/
 			exec(`tar -xf ${zipOutput} --strip-components=5`, err => {
 				if (err)
@@ -41,7 +40,6 @@ export default (experimentsDir, newExpName) => {
 
 				// change all occurrences of "template" in filenames and contents to exp name
 				const updateName = dir => {
-					console.log(`NAME UPDATE ${dir}`);
 					fs.readdirSync(dir).forEach(el => {
 						el = path.join(dir, el);
 						if (fs.lstatSync(el).isDirectory()) {
@@ -57,11 +55,19 @@ export default (experimentsDir, newExpName) => {
 					});
 				};
 				updateName(newDir);
+
+				// specific to this experiment (some might not need a build phase, for example)
 				['api controllers', 'web page', 'worker'].forEach(dir => {
 					console.log(`Installing npm dependencies for ${dir}`);
 					exec('npm install', { cwd: path.join(newDir, dir) }, err => {
 						if (err)
 							console.error(`Failed to install npm dependencies for ${dir}: ${err}`);
+						if (dir == 'worker') return;
+						console.log(`Building ${dir}`);
+						exec('npm run build', { cwd: path.join(newDir, dir) }, err => {
+							if (err)
+								console.error(`Failed to build ${dir}:\n\t${err}`);
+						});
 					});
 				});
 			});

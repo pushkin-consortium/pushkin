@@ -8,8 +8,7 @@ import uuid from 'uuid/v4';
 const packAndInstall = (packDir, installDir, callback) => {
 	// task management
 	const fail = (reason, err) => {
-		console.log(`packAndInstall:\n\tpackDir: ${packDir}\n\tinstallDir: ${installDir}\n`);
-		callback(new Error(`${reason} (${packDir}, ${installDir}): ${err}`));
+		callback(new Error(`${reason}\n\t(${packDir}, ${installDir}):\n\t\t${err}`));
 	};
 	const tasks = [];
 	const startTask = () => { tasks.push(true); };
@@ -118,7 +117,7 @@ const cleanUpSync = coreDir => {
 	oldContrList.forEach(contr => {
 		const moduleName = contr.name;
 		console.log(`Cleaning API controller ${contr.mountPath} (${moduleName})`);
-		execSync(`npm uninstall ${moduleName}`, { cwd: path.join(coreDir, 'api') });
+		execSync(`npm uninstall ${moduleName} --save`, { cwd: path.join(coreDir, 'api') });
 	});
 	fs.writeFileSync(controllersJsonFile, JSON.stringify([]), 'utf8');
 	console.log('Cleaning temporary files');
@@ -127,14 +126,19 @@ const cleanUpSync = coreDir => {
 		if (fs.lstatSync(maybeFile).isFile())
 			fs.unlinkSync(maybeFile);
 	});
+	fs.readdirSync(path.join(coreDir, 'front-end/tempPackages')).forEach(tempPackage => {
+		const maybeFile = path.join(coreDir, 'front-end/tempPackages', tempPackage);
+		if (fs.lstatSync(maybeFile).isFile())
+			fs.unlinkSync(maybeFile);
+	});
+
 
 	// reset web page dependencies
 	const webPageAttachListFile = path.join(coreDir, 'front-end/src/experiments.js');
 	const oldPages = getModuleList(webPageAttachListFile);
-	console.log(oldPages);
 	oldPages.forEach(pageModule => {
 		console.log(`Cleaning web page (${pageModule})`);
-		execSync(`npm uninstall ${pageModule}`, {cwd: path.join(coreDir, 'front-end') });
+		execSync(`npm uninstall ${pageModule} --save`, {cwd: path.join(coreDir, 'front-end') });
 	});
 	fs.writeFileSync(webPageAttachListFile, 'export default [\n];', 'utf8');
 
@@ -154,7 +158,6 @@ const cleanUpSync = coreDir => {
 
 // prepare a single experiment's api controllers
 const prepApi = (expDir, controllerConfigs, coreDir, callback) => {
-	console.log(`prepApi:\n\t${expDir}\n\t${JSON.stringify(controllerConfigs)}\n\t${coreDir}\n\t[callback]`);
 	// task management
 	const fail = (reason, err) => { callback(new Error(`${reason}: ${err}`)); };
 	const tasks = [];
@@ -169,11 +172,11 @@ const prepApi = (expDir, controllerConfigs, coreDir, callback) => {
 
 	controllerConfigs.forEach(controller => {
 		const fullContrLoc = path.join(expDir, controller.location);
-		console.log(`Loading controller in ${fullContrLoc}`);
 		startTask();
 		packAndInstall(fullContrLoc, path.join(coreDir, 'api/tempPackages'), (err, moduleName) => {
 			if (err)
-				return fail(`Failed on prepping api controller ${fullContrLoc}:`, err);
+				return fail(`Failed on prepping API controller ${fullContrLoc}:`, err);
+			console.log(`Loaded API controller for ${controller.mountPath} (${moduleName})`);
 			contrListAppendix.push({ name: moduleName, mountPath: controller.mountPath });
 			finishTask(); // packing and installing controller
 		});
@@ -182,14 +185,13 @@ const prepApi = (expDir, controllerConfigs, coreDir, callback) => {
 
 // prepare a single experiment's web page
 const prepWeb = (expDir, expConfig, coreDir, callback) => {
-	console.log(`prepWeb:\n\t${expDir}\n\t${JSON.stringify(expConfig)}\n\t${coreDir}\n\t[callback]`);
 	const webPageLoc = path.join(expDir, expConfig.webPage.location);
 	packAndInstall(webPageLoc, path.join(coreDir, 'front-end/tempPackages'), (err, moduleName) => {
 		if (err) {
 			callback(`Failed on prepping web page: ${err}`);
 			return;
 		}
-
+		console.log(`Loaded web page for ${expConfig.webPage.location} (${moduleName})`);
 		// this must be one line
 		const modListAppendix = `{ fullName: '${expConfig.experimentName}', shortName: '${expConfig.shortName}', module: ${moduleName} }`;
 		callback(undefined, { moduleName: moduleName, listAppendix: modListAppendix });
@@ -197,17 +199,17 @@ const prepWeb = (expDir, expConfig, coreDir, callback) => {
 };
 
 // prepare a single experiment's worker
-const prepWorker = (expDir, workerConfig, callback) => {
-	console.log(`prepWorker:\n\t${expDir}\n\t${JSON.stringify(workerConfig)}\n\t[callback]`);
+const prepWorker = (expDir, expConfig, callback) => {
+	const workerConfig = expConfig.worker;
 	const workerService = workerConfig.service;
 	const workerName = `pushkinworker${uuid().split('-').join('')}`;
 	const workerLoc = path.join(expDir, workerConfig.location);
-	console.log(`docker build ${workerLoc} -t ${workerName}`);
 	exec(`docker build ${workerLoc} -t ${workerName}`, err => {
 		if (err) {
 			callback(new Error(`Failed to build worker: ${err}`));
 			return;
 		}
+		console.log(`Built image for worker ${expConfig.shortName} (${workerName})`);
 		const serviceContent = { ...workerService, image: workerName };
 		serviceContent.labels = { ...(serviceContent.labels || {}), isPushkinWorker: true };
 		callback(undefined, { serviceName: workerName, serviceContent: serviceContent });
@@ -227,14 +229,14 @@ export default (experimentsDir, coreDir, callback) => {
 	const newWebPageIncludes = []; // { moduleName:string, listAppendix:string } list
 	const newWorkerServices = []; // to add to main compose file (tag with label of isPushkinWorker) { serviceName, serviceContent } list
 	const finishTask = () => {
+		// write out what modules to include after all the building/moving's been done (all async tasks finished)
 		tasks.pop();
 		if (tasks.length == 0) {
-			console.log(newApiControllers, newWebPageIncludes, JSON.stringify(newWorkerServices));
+			console.log('Linking components');
 			// write out api includes
 			const controllersJsonFile = path.join(coreDir, 'api/src/controllers.json');
 			try { fs.writeFileSync(controllersJsonFile, JSON.stringify(newApiControllers), 'utf8'); }
 			catch (e) { return fail('Failed to write api controllers list', e); }
-			
 
 			// write out web page includes
 			try { 
@@ -258,6 +260,13 @@ export default (experimentsDir, coreDir, callback) => {
 			catch (e) { return fail('Failed to create new compose file without old workers', e); }
 			try { fs.writeFileSync(composeFileLoc, newCompData, 'utf8'); }
 			catch (e) { return fail('Failed to write new compose file without old workers', e); }
+
+			// rebuild the core api and front end with the new experiment modules
+			console.log('Building core Pushkin with new experiment components');
+			try{ execSync('npm run build', { cwd: path.join(coreDir, 'api') }); }
+			catch (e) { return fail('Failed to build core api', e); }
+			try { execSync('npm run build', { cwd: path.join(coreDir, 'front-end') }); }
+			catch (e) { return fail('Failed to build core front end', e); }
 			callback();
 		}
 	};
@@ -268,13 +277,13 @@ export default (experimentsDir, coreDir, callback) => {
 	// clean up old experiment stuff
 	console.log('Cleaning up old experiments');
 	try { cleanUpSync(coreDir); }
-	catch (e) { return fail('Failed to clean up old experiments from core', e); }
+	catch (e) { return fail('Failed to clean up old experiments', e); }
 	const expDirs = fs.readdirSync(experimentsDir);
 
 	expDirs.forEach(expDir => {
 		expDir = path.join(experimentsDir, expDir);
 		if (!fs.lstatSync(expDir).isDirectory()) return;
-		console.log(`Prepping experiment in ${expDir}`);
+		console.log(`Started prep for experiment in ${expDir}`);
 		// load the config file
 		const expConfigPath = path.join(expDir, 'config.yaml');
 		let expConfig;
@@ -286,7 +295,6 @@ export default (experimentsDir, coreDir, callback) => {
 		prepApi(expDir, expConfig.apiControllers, coreDir, (err, contrListAppendix) => {
 			if (err)
 				return fail(`Failed to prep api for ${expDir}`, err);
-			console.log(`Successfully prepped api for ${expDir}. List appendix: ${JSON.stringify(contrListAppendix)}`);
 			contrListAppendix.forEach(a => { newApiControllers.push(a); });
 			finishTask();
 		});
@@ -296,17 +304,15 @@ export default (experimentsDir, coreDir, callback) => {
 		prepWeb(expDir, expConfig, coreDir, (err, webListAppendix) => {
 			if (err)
 				return fail(`Failed to prep web page for ${expDir}`, err);
-			console.log(`Successfully prepped web page for ${expDir}. List appendix: ${JSON.stringify(webListAppendix)}`);
 			newWebPageIncludes.push(webListAppendix);
 			finishTask();
 		});
 
 		// worker
 		startTask();
-		prepWorker(expDir, expConfig.worker, (err, workerAppendix) => {
+		prepWorker(expDir, expConfig, (err, workerAppendix) => {
 			if (err)
 				return fail(`Failed to prep worker for ${expDir}`, err);
-			console.log(`Successfully prepp worker for ${expDir}. List appendix: ${JSON.stringify(workerAppendix)}`);
 			newWorkerServices.push(workerAppendix);
 			finishTask();
 		});
