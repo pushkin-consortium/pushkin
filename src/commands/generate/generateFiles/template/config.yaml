@@ -23,3 +23,9 @@ migrations:
   location: 'migrations'
 seeds:
   location: 'seeds'
+# Used for migration and seed commands via main CLI
+db:
+  user: 'postgres'
+  pass: ''
+  url: 'test_db'
+  name: 'test_db'
