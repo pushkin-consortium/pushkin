@@ -15,10 +15,11 @@ export default (coreDBs, mainExpDir) => {
 		let expConfig;
 		try { expConfig = jsYaml.safeLoad(fs.readFileSync(expConfigPath), 'utf8'); }
 		catch (e) { console.error(`Failed to load config file for ${expDir}:\n\t${e}`); return; }
+		console.log(expConfig);
 
 		// add these migrations and seeds to the appropriate database
-		const migsDir = path.join(expDir, expConfig.migrations);
-		const seedsDir = path.join(expDir, expConfig.seeds);
+		const migsDir = path.join(expDir, expConfig.migrations.location);
+		const seedsDir = path.join(expDir, expConfig.seeds.location);
 		if (dbsToExps.has(expConfig.database))
 			dbsToExps.get(expConfig.database).push({ migrations: migsDir, seeds: seedsDir });
 		else
@@ -26,14 +27,15 @@ export default (coreDBs, mainExpDir) => {
 	});
 
 	// migrate and seed for each database
-	for (db in dbsToExps.keys()) {
+	dbsToExps.forEach((migAndSeedDirs, db) => {
+		console.log(db, migAndSeedDirs);
 		if (!coreDBs[db]) {
 			console.error(`The database ${db} is not configured in pushkin.yaml`);
 			return;
 		}
 		const dbInfo = coreDBs[db];
-		const migDirs = dbsToExps.get(db).map(i => i.migrations);
-		const seedDirs = dbsToExps.get(db).map(i => i.seeds);
+		const migDirs = migAndSeedDirs.map(i => i.migrations);
+		const seedDirs = migAndSeedDirs.map(i => i.seeds);
 
 		const pg = knex({
 			client: 'pg',
@@ -46,7 +48,7 @@ export default (coreDBs, mainExpDir) => {
 			}
 		});
 
-		pg.migrate.latest({ directory: migrations })
+		pg.migrate.latest({ directory: migDirs })
 			.then(() => {
 				return Promise.all(
 					seedDirs.map(seedDir => (pg.seed.run({ directory: seedDir })))
@@ -62,5 +64,5 @@ export default (coreDBs, mainExpDir) => {
 			.finally(() => {
 				pg.destroy();
 			});
-	}
+	});
 };
