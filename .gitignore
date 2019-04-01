@@ -1,6 +1,9 @@
 # Build files
 build/
 
+# Test files
+testing/
+
 # Swap files
 *.swp
 
