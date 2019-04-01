@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import commandLineArgs from 'command-line-args';
 import jsYaml from 'js-yaml';
 import fs from 'fs';
@@ -6,7 +8,7 @@ import path from 'path';
 import generate from './commands/generate/index.js';
 import init from './commands/init/index.js';
 import prep from './commands/prep/index.js';
-import setupdbfor from './commands/setupdbfor/index.js';
+import setupdb from './commands/setupdb/index.js';
 
 const moveToProjectRoot = () => {
 	// better checking to make sure this is indeed a pushkin project would be good
@@ -62,11 +64,10 @@ const nextArg = inputGetter();
 			);
 			return;
 		}
-		case 'setupdbfor': {
+		case 'setupdb': {
 			moveToProjectRoot();
 			const config = loadConfig();
-			const exp = nextArg();
-			setupdbfor(path.join(process.cwd(), config.experimentsDir, exp));
+			setupdb(config.databases, path.join(process.cwd(), config.experimentsDir));
 			return;
 		}
 		default: {

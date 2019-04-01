@@ -11,7 +11,7 @@
 		"author":"L3",
 		"license":"MIT",
 		"dependencies":{
-			"pushkin-api":"0.0.17"
+			"pushkin-api":"latest"
 		},
 		"devDependencies":{
 			"@babel/cli":"^7.2.3",

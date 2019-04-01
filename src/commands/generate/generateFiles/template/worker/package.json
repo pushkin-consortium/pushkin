@@ -9,6 +9,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "pushkin-worker": "0.0.4"
+    "pushkin-worker": "latest"
   }
 }
