@@ -1,3 +1,9 @@
 # main directories relative to project root ('..')
 experimentsDir: 'experiments'
 coreDir: 'pushkin'
+databases:
+  localtestdb:
+    user: 'postgres'
+    pass: ''
+    url: 'localhost'
+    name: 'test_db'
