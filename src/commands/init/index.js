@@ -6,7 +6,7 @@ import { exec} from 'child_process';
 export default initDir => {
 	process.chdir(initDir);
 
-	const newDirs = ['.pushkin', 'pushkin', 'experiments'];
+	const newDirs = ['pushkin', 'experiments'];
 	const newFiles = ['pushkin.yaml'];
 
 	// make sure nothing to be created already exists
