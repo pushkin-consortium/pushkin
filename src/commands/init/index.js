@@ -48,7 +48,7 @@ export default initDir => {
 				fs.unlink(zipOutput, err => {
 					if (err) console.error(`Failed to delete tarball: ${err}`);
 				});
-				['api', 'front-end', 'util'].forEach(dir => {
+				['api', 'front-end'].forEach(dir => {
 					console.log(`Installing npm dependencies for ${dir}`);
 					exec('npm install', { cwd: path.join(process.cwd(), 'pushkin', dir) }, err => {
 						if (err) throw new Error(`Failed to install npm dependencies for ${dir}: ${err}`);
