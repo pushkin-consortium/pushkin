@@ -1,6 +1,6 @@
 {
     "name": "pushkin-client",
-    "version": "1.0.2",
+    "version": "1.0.4",
     "description": "A front-end Javascript module for interfacing with a Pushkin API",
     "main": "build/index.js",
     "files": [
