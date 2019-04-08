@@ -11,6 +11,7 @@ export default class ControllerBuilder {
 
 	// pass posts/gets/puts/deletes on this route to this method via this queue
 	setPass(route, rpcMethod, queue, httpMethod) {
+		httpMethod = httpMethod || 'post';
 		if (this.validHttpMethods.indexOf(httpMethod) < 0) {
 			console.error(`'${httpMethod}' is not a valid http method. Ignoring for route ${route}`);
 			return;
