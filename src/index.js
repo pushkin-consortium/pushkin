@@ -63,8 +63,9 @@ export default class Pushkin {
 
 	endExperiment() { return this.con.post('/endExperiment'); }
 
-	customApiCall(path, data) {
-		return this.con.post(path, data);
+	customApiCall(path, data, httpMethod) {
+		httpMethod = httpMethod || 'post';
+		return this.con[httpMethod](path, data);
 	}
 }
 
