@@ -65,7 +65,15 @@ export default class Pushkin {
 
 	customApiCall(path, data, httpMethod) {
 		httpMethod = httpMethod || 'post';
-		return this.con[httpMethod](path, data);
+		return new Promise((resolve, reject) => {
+			this.con[httpMethod](path, data)
+				.then(response => {
+					resolve(response.resData);
+				})
+				.catch(err => {
+					reject(err);
+				});
+		});
 	}
 }
 
