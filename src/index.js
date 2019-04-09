@@ -68,7 +68,11 @@ export default class Pushkin {
 		return new Promise((resolve, reject) => {
 			this.con[httpMethod](path, data)
 				.then(response => {
-					resolve(response.resData);
+					// parse it if it's JSON, leave it otherwise
+					try { response = JSON.parse(response); }
+					catch (e) { }
+					const resData = response.data && response.data.resData ? response.data.resData : null;
+					resolve(resData);
 				})
 				.catch(err => {
 					reject(err);
