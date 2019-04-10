@@ -191,7 +191,7 @@ const prepWeb = (expDir, expConfig, coreDir, callback) => {
 			callback(`Failed on prepping web page: ${err}`);
 			return;
 		}
-		console.log(`Loaded web page for ${expConfig.webPage.location} (${moduleName})`);
+		console.log(`Loaded web page for ${expConfig.shortName} (${moduleName})`);
 		// this must be one line
 		const modListAppendix = `{ fullName: '${expConfig.experimentName}', shortName: '${expConfig.shortName}', module: ${moduleName} }`;
 		callback(undefined, { moduleName: moduleName, listAppendix: modListAppendix });
