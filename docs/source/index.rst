@@ -11,6 +11,7 @@ Welcome to Pushkin's documentation!
    :caption: Contents:
 
    quickstart/gettingstarted
+   experiments/experiment_structure
    deployment/deploying
    maintenance/maintenance
    api/pushkin_api
