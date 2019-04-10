@@ -10,16 +10,14 @@ Welcome to Pushkin's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   setup/getPushkin
-   cli/pushkin_cli
-   setup/setup_aws
-   deployment/setup_rancher
-   quizzes/new_quiz
-   quizzes/foundational_quiz_components
-   quizzes/frontend_quiz_components
-   setup/local_deploy_pushkin
+   quickstart/gettingstarted
+   deployment/deploying
    maintenance/maintenance
-   old/tutorial
+   api/pushkin_api
+   cli/pushkin_cli
+   client/pushkin_client
+   jspsych/pushkin_jspsych
+   worker/pushkin_worker
 
 
 

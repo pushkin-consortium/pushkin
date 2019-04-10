@@ -34,5 +34,5 @@ The ".env" file in the root directory of Pushkin is used to house the configurat
 Create a new stack
 -------------------------------------
 
-  Go to Stacks > New Stack in the Rancher web UI and upload the docker-compose file generated for you (called "docker-compose.production.noEnvDependency.yml" by default). If this doesn't exist, make sure you've made a quiz (:ref:`new-quiz`) and done the initial deployment steps (:ref:`initial-deployment`).
+  Go to Stacks > New Stack in the Rancher web UI and upload the docker-compose file generated for you (called "docker-compose.production.noEnvDependency.yml" by default). If this doesn't exist, make sure you've made an experiment (:ref:`gettingstarted`) and done the initial deployment steps.
 

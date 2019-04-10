@@ -1,0 +1,1 @@
+Stuff in this folder is relevant to setting up and using Pushkin outside of one computer (i.e. everything to do with AWS, Rancher, external databases, etc.).
