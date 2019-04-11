@@ -39,23 +39,81 @@ experimentName
 ---------------
 The full name of your experiment. This is used as a display name on the website to users.
 
+---------------
+
 shortName
 -------------
 This is a short, more computer friendly version of you experiment's name. It should be unique as it is used as the folder name in the experiments folder.
 
+---------------
+
 apiControllers
 ---------------
+Note that this is an array. As many API controllers can be used as needed.
 
 mountPath
 ~~~~~~~~~~~~
+URL this controller's endpoint will be available at. Full path is /api/[shortName]/[mountPath].
 
 location
 ~~~~~~~~~~~~
+Path relative to config file the CLI will look for this module in.
 
 name
 ~~~~~~~~~~
+Used in logs.
+
+---------------
 
 worker
 -----------
 
-...etc...
+location
+~~~~~~~~~~
+Path relative to config file the CLI will look for this module in.
+
+service
+~~~~~~~~
+This section is appended to Pushkin's core Docker Compose file. Note that message-queue is a requirement. If you're not using the local test database, test_db is not necessary. Database connections credentials should be unique to every user. The defaults are shown here for the testing database.
+
+---------------
+
+webPage
+----------
+
+location
+~~~~~~~~~~
+Path relative to config file the CLI will look for this module in.
+
+---------------
+
+migrations
+----------
+
+location
+~~~~~~~~~~
+Path relative to config file the CLI will look for these files.
+
+---------------
+
+seeds
+----------
+
+location
+~~~~~~~~~~
+Path relative to config file the CLI will look for these files.
+
+---------------
+
+database
+----------
+A reference to a key defined in the core Pushkin config file. Experiments can share databases. The CLI will use this database to migrate and seed experiment data files. It is not used as connection information for any of the modules running the experiment, since these may or may not be inside containers and cannot use the same connection details as the CLI.
+
+
+
+
+
+
+
+
+

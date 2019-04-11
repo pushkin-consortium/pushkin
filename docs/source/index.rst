@@ -14,6 +14,7 @@ Welcome to Pushkin's documentation!
    experiments/experiment_structure
    deployment/deploying
    maintenance/maintenance
+   Development <development/development>
    api/pushkin_api
    cli/pushkin_cli
    client/pushkin_client
