@@ -8,8 +8,8 @@ Creating a new Pushkin
 
 Make sure you have the below programs installed.
 
--  Docker
--  NPM
+-  `Docker`_
+-  `NPM`_
 -  Pushkin CLI (can be installed with ``npm install -g pushkin-cli``)
 
 Open a terminal and move to an empty directory in which to setup
@@ -146,3 +146,5 @@ and you simply want to restart, it can be ommited.
 That’s the basics for setting up and making an experiment with Pushkin.
 The next steps are to change the default files with your own experiment
 design!
+
+.. include:: ../links/links.rst
