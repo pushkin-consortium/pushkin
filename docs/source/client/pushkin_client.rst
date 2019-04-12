@@ -80,36 +80,41 @@ setSaveAfterEachStimulus
 saveStimulusResponse
 ---------------------
 **Arguments:**
-   - **** : type
+   - **jsPych onfinish data** : { user_id : int, ... }
 
-     Description
+     Data to be saved in the database under user_id. Posted to [expapi]/stimulusResponse.
 
-**Returns:**
+**Returns:** Promise. Resolves upon successful database save.
 
-Description.
+Likely not wanted to be invoked directly by most users. Easiest to use if added to jsPsych's on_finish function for each timeline variable.
 
 ------------
 
 endExperiment
 -------------------
-**Arguments:**
-   - **** : type
+**Arguments:** None
 
-     Description
+**Returns:** Promise. Reolves upon successfully notifying the worker.
 
-**Returns:**
-
-Description.
+Notify the worker that the experiment has ended and it can stop preparing for future stimuli. This should probably be called whenever the user leaves a page in the middle of an experiment as well.
 
 ------------
 
 customApiCall
 -------------------
 **Arguments:**
-   - **** : type
+   - **path** : string
 
-     Description
+     URL of API endpoint to send this call to.
 
-**Returns:**
+   - **data** : object
 
-Description.
+     Data to send to the API endpoint.
+
+   - **httpMethod** : string (optional)
+
+     A lowercase string of an http method to call the endpoint, such as "get" or "put".
+
+**Returns:** Promise. Resolves with response data.
+
+Simplifies calls to custom API endpoints.
