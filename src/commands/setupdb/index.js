@@ -6,6 +6,7 @@ import knex from 'knex';
 export default (coreDBs, mainExpDir) => {
 	// load up all migrations for same dbs to be run at same time (knex requires this)
 	const dbsToExps = new Map(); // which dbs -> { migrations, seeds } list
+console.log("srsl")
 	fs.readdirSync(mainExpDir).forEach(expDir => {
 		expDir = path.join(mainExpDir, expDir);
 		if (!fs.lstatSync(expDir).isDirectory()) return;
@@ -25,7 +26,7 @@ export default (coreDBs, mainExpDir) => {
 		else
 			dbsToExps.set(expConfig.database, [{ migrations: migsDir, seeds: seedsDir }]);
 	});
-
+console.log('got this far')
 	// migrate and seed for each database
 	dbsToExps.forEach((migAndSeedDirs, db) => {
 		console.log(db, migAndSeedDirs);
@@ -36,7 +37,8 @@ export default (coreDBs, mainExpDir) => {
 		const dbInfo = coreDBs[db];
 		const migDirs = migAndSeedDirs.map(i => i.migrations);
 		const seedDirs = migAndSeedDirs.map(i => i.seeds);
-
+console.log(dbInfo)	
+console.log('hi')
 		const pg = knex({
 			client: 'pg',
 			version: '7.2',
@@ -44,7 +46,7 @@ export default (coreDBs, mainExpDir) => {
 				host: dbInfo.url,
 				user: dbInfo.user,
 				password: dbInfo.pass,
-				database: dbInfo.name
+				database: ''
 			}
 		});
 

@@ -45,5 +45,9 @@ services:
     image: "postgres:11"
     ports:
       - "5432:5432"
+    environment:
+      POSTGRES_DB: dev
+      POSTGRES_USER: '${DB_USER}'
+      POSTGRES_PASSWORD: '${DB_PW}'
     volumes:
       - test_db_volume:/var/lib/postgresql/data
