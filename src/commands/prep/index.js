@@ -172,6 +172,7 @@ const prepApi = (expDir, controllerConfigs, coreDir, callback) => {
 
 	controllerConfigs.forEach(controller => {
 		const fullContrLoc = path.join(expDir, controller.location);
+		console.log(`Started loading API controller for ${controller.mountPath}`);
 		startTask();
 		packAndInstall(fullContrLoc, path.join(coreDir, 'api/tempPackages'), (err, moduleName) => {
 			if (err)
@@ -186,12 +187,13 @@ const prepApi = (expDir, controllerConfigs, coreDir, callback) => {
 // prepare a single experiment's web page
 const prepWeb = (expDir, expConfig, coreDir, callback) => {
 	const webPageLoc = path.join(expDir, expConfig.webPage.location);
+	console.log(`Started loading web page for ${expConfig.shortName}`);
 	packAndInstall(webPageLoc, path.join(coreDir, 'front-end/tempPackages'), (err, moduleName) => {
 		if (err) {
 			callback(`Failed on prepping web page: ${err}`);
 			return;
 		}
-		console.log(`Loaded web page for ${expConfig.webPage.location} (${moduleName})`);
+		console.log(`Loaded web page for ${expConfig.shortName} (${moduleName})`);
 		// this must be one line
 		const modListAppendix = `{ fullName: '${expConfig.experimentName}', shortName: '${expConfig.shortName}', module: ${moduleName} }`;
 		callback(undefined, { moduleName: moduleName, listAppendix: modListAppendix });
@@ -204,6 +206,7 @@ const prepWorker = (expDir, expConfig, callback) => {
 	const workerService = workerConfig.service;
 	const workerName = `pushkinworker${uuid().split('-').join('')}`;
 	const workerLoc = path.join(expDir, workerConfig.location);
+	console.log(`Building image for worker ${expConfig.shortName} (${workerName})`);
 	exec(`docker build ${workerLoc} -t ${workerName}`, err => {
 		if (err) {
 			callback(new Error(`Failed to build worker: ${err}`));
@@ -267,6 +270,7 @@ export default (experimentsDir, coreDir, callback) => {
 			catch (e) { return fail('Failed to build core api', e); }
 			try { execSync('npm run build', { cwd: path.join(coreDir, 'front-end') }); }
 			catch (e) { return fail('Failed to build core front end', e); }
+			console.log('Prepped successfully');
 			callback();
 		}
 	};
