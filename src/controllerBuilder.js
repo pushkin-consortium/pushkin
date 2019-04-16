@@ -38,7 +38,7 @@ export default class ControllerBuilder {
 			const router = new express.Router();
 
 			this.passAlongs.forEach(point => 
-				route[point.httpMethod](point.route, (req, res, next) => { // eslint-disable-line
+				router[point.httpMethod](point.route, (req, res, next) => { // eslint-disable-line
 
 					console.log(`${point.httpMethod.toUpperCase()} ${point.route} hit (in router conn function)`);
 					console.log(req.body);
