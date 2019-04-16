@@ -73,7 +73,7 @@ const nextArg = inputGetter();
 		case 'hardreset': {
 			exec('docker-compose down; docker rm -f $(docker ps -a -q); docker volume rm $(docker volume ls -q);', (err, stdout, stderr) => {
 			  if (err) {
-    			console.log("node couldn't execute the command")
+    			console.log(`Error resetting docker containers and volumes: ${err}`);
 			    return;
 			  }
 			})
