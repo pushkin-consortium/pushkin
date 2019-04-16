@@ -44,10 +44,12 @@ export default initDir => {
 			if (err) throw new Error(`Failed to unzip core files: ${err}`);
 			console.log('Untarring core files');
 			exec(`tar -xf ${zipOutput} --strip-components=4`, err => {
+
 				if (err) throw new Error(`Failed to extract tarball: ${err}`);
 				fs.unlink(zipOutput, err => {
 					if (err) console.error(`Failed to delete tarball: ${err}`);
 				});
+
 				['api', 'front-end'].forEach(dir => {
 					console.log(`Installing npm dependencies for ${dir}`);
 					exec('npm install', { cwd: path.join(process.cwd(), 'pushkin', dir) }, err => {
@@ -56,6 +58,24 @@ export default initDir => {
 						console.log(`Building ${dir}`);
 						exec('npm run build', { cwd: path.join(process.cwd(), 'pushkin', dir) }, err => {
 							if (err) throw new Error(`Failed to build ${dir}: ${err}`);
+						});
+					});
+				});
+
+				console.log('Creating local test database');
+				exec('docker-compose -f pushkin/docker-compose.dev.yml start test_db', err => {
+					if (err) {
+						console.error(`Failed to start test_db container: ${err}`);
+						return;
+					}
+					exec('docker-compose -f pushkin/docker-compose.dev.yml exec -T test_db psql -U postgres -c "create database test_db"', err => {
+						if (err) {
+							console.error(`Failed to run create database command in test_db container: ${err}`); // no return after
+						} else {
+							console.log('Created local test database successfully');
+						}
+						exec('docker-compose -f pushkin/docker-compose.dev.yml stop test_db', err => {
+							if (err) console.error(`Failed to stop test_db container: ${err}`);
 						});
 					});
 				});

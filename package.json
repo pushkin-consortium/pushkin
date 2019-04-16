@@ -1,6 +1,6 @@
 {
   "name": "pushkin-cli",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "A CLI for automating basic Pushkin tasks",
   "main": "build/index.js",
   "files": [
@@ -20,16 +20,16 @@
   "author": "L3",
   "license": "MIT",
   "devDependencies": {
-    "@babel/cli": "^7.2.3",
-    "@babel/core": "^7.3.3",
-    "@babel/preset-env": "^7.3.1",
+    "@babel/cli": "^7.4.3",
+    "@babel/core": "^7.4.3",
+    "@babel/preset-env": "^7.4.3",
     "babel-eslint": "^10.0.1",
-    "eslint": "^5.14.0"
+    "eslint": "^5.16.0"
   },
   "dependencies": {
     "balanced-match": "^1.0.0",
-    "command-line-args": "^5.0.2",
-    "js-yaml": "^3.13.0",
+    "command-line-args": "^5.1.1",
+    "js-yaml": "^3.13.1",
     "knex": "^0.16.3",
     "pg": "^7.9.0",
     "replace-in-file": "^3.4.4",
