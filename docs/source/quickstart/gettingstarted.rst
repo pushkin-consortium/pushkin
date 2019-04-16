@@ -32,7 +32,7 @@ something like this:
 Most of the stuff in the pushkin folder won’t need to be edited at all,
 with the exception of the website (in the front-end folder). To build
 and run Pushkin for the first time, do
-``docker-compose -f pushkin/docker-compose.dev.yml up —build``, then
+``docker-compose -f pushkin/docker-compose.dev.yml up —-build``, then
 browse to ``http://localhost`` to see it working. It’s pretty empty, so
 let’s make an experiment.
 
@@ -54,7 +54,7 @@ experiments directory like
        ├── web page
        └── worker
 
-Each folder in here contains something unique to this experiments.
+Each folder in here contains something unique to this experiment.
 There’s also a configuration file that allows us to define a full name
 for the experiment and specify what database to use, among other things.
 
@@ -88,8 +88,7 @@ database. It should look something like this:
        url: 'localhost'
        name: 'test_db'
 
-To add a new database, simply add a new key with the same fields and
-your connection data. For example:
+The default localtestdb will work, but only for local testing. To add a new database for testing or production, simply add a new key with the same fields and your connection data. For example:
 
 .. code:: yaml
 
@@ -133,11 +132,11 @@ Liftoff
 
 Now that our database is up, we can run ``pushkin setupdb`` to
 initialize them with the migrations and seeds for each experiment. If
-you’re using the local database, turn it off before continuing with
+you’re using the local database, make sure it's turned off before continuing: 
 ``docker-compose -f pushkin/docker-compose.dev.yml stop test_db``.
 
 Everything’s now ready to be started with
-``docker-compose -f pushkin/docker-compose.dev.yml up —build``. browse
+``docker-compose -f pushkin/docker-compose.dev.yml up —-build``. browse
 to the experiments page to see our new experiment included. The
 ``--build`` appendix is necessary because we changed some things when we
 made the experiment and linked it to the main code. If nothing changed
