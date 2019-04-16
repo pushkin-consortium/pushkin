@@ -63,8 +63,21 @@ export default class Pushkin {
 
 	endExperiment() { return this.con.post('/endExperiment'); }
 
-	customApiCall(path, data) {
-		return this.con.post(path, data);
+	customApiCall(path, data, httpMethod) {
+		httpMethod = httpMethod || 'post';
+		return new Promise((resolve, reject) => {
+			this.con[httpMethod](path, data)
+				.then(response => {
+					// parse it if it's JSON, leave it otherwise
+					try { response = JSON.parse(response); }
+					catch (e) { }
+					const resData = response.data && response.data.resData ? response.data.resData : null;
+					resolve(resData);
+				})
+				.catch(err => {
+					reject(err);
+				});
+		});
 	}
 }
 
