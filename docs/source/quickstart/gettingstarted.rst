@@ -32,7 +32,7 @@ something like this:
 Most of the stuff in the pushkin folder won’t need to be edited at all,
 with the exception of the website (in the front-end folder). To build
 and run Pushkin for the first time, do
-``docker-compose -f pushkin/docker-compose.dev.yml up —-build``, then
+``docker-compose -f pushkin/docker-compose.dev.yml up --build``, then
 browse to ``http://localhost`` to see it working. It’s pretty empty, so
 let’s make an experiment.
 
@@ -106,7 +106,7 @@ The default localtestdb will work, but only for local testing. To add a new data
 
 (*It’s highly recommended that, when deploying any code, you refrain
 from typing in real passwords as plain text in the config file. Instead,
-use variables, which are supported by YAML.*)
+use environment variables, which are supported by docker-compose.*)
 
 Now open ``config.yaml`` for your experiment and replace the database
 line with the name of the database you entered into the main file. The
@@ -124,7 +124,7 @@ Starting the Local Database
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you’re not using an external database, you can use the one that comes
-bundled with Pushkin for development purposes. To start it, run
+bundled with Pushkin for development purposes. It's created when the ``init`` command is run. To start it, run
 ``docker-compose -f pushkin/docker-compose.dev.yml start test_db``.
 
 Liftoff
