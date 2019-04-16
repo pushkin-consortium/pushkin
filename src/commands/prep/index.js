@@ -109,6 +109,9 @@ ${allButEnd.join('\n')}
 
 
 // reset controllers, web pages, workers to be included in main build
+// errors that don't result in the "inclusion files" (i.e. experiments.js and controllers.json)
+// from having bad information shouldn't throw errors. Other stuff, like removing the tgz files
+// that are no longer needed but npm doesn't delete can fail and just log errors
 const cleanUpSync = coreDir => {
 
 	// reset api controllers
@@ -117,30 +120,35 @@ const cleanUpSync = coreDir => {
 	oldContrList.forEach(contr => {
 		const moduleName = contr.name;
 		console.log(`Cleaning API controller ${contr.mountPath} (${moduleName})`);
-		execSync(`npm uninstall ${moduleName} --save`, { cwd: path.join(coreDir, 'api') });
+		try { execSync(`npm uninstall ${moduleName} --save`, { cwd: path.join(coreDir, 'api') }); }
+		catch (e) { console.error(`Failed to uninstall API controller module: ${e}`); }
 	});
 	fs.writeFileSync(controllersJsonFile, JSON.stringify([]), 'utf8');
-	console.log('Cleaning temporary files');
-	fs.readdirSync(path.join(coreDir, 'api/tempPackages')).forEach(tempPackage => {
-		const maybeFile = path.join(coreDir, 'api/tempPackages', tempPackage);
-		if (fs.lstatSync(maybeFile).isFile())
-			fs.unlinkSync(maybeFile);
-	});
-	fs.readdirSync(path.join(coreDir, 'front-end/tempPackages')).forEach(tempPackage => {
-		const maybeFile = path.join(coreDir, 'front-end/tempPackages', tempPackage);
-		if (fs.lstatSync(maybeFile).isFile())
-			fs.unlinkSync(maybeFile);
-	});
-
 
 	// reset web page dependencies
 	const webPageAttachListFile = path.join(coreDir, 'front-end/src/experiments.js');
 	const oldPages = getModuleList(webPageAttachListFile);
 	oldPages.forEach(pageModule => {
 		console.log(`Cleaning web page (${pageModule})`);
-		execSync(`npm uninstall ${pageModule} --save`, {cwd: path.join(coreDir, 'front-end') });
+		try { execSync(`npm uninstall ${pageModule} --save`, {cwd: path.join(coreDir, 'front-end') }); }
+		catch (e) { console.error(`Failed to uninstall web page module: ${e}`); }
 	});
 	fs.writeFileSync(webPageAttachListFile, 'export default [\n];', 'utf8');
+
+	// remove tgz package files
+	try {
+		console.log('Cleaning temporary files');
+		fs.readdirSync(path.join(coreDir, 'api/tempPackages')).forEach(tempPackage => {
+			const maybeFile = path.join(coreDir, 'api/tempPackages', tempPackage);
+			if (fs.lstatSync(maybeFile).isFile())
+				fs.unlinkSync(maybeFile);
+		});
+		fs.readdirSync(path.join(coreDir, 'front-end/tempPackages')).forEach(tempPackage => {
+			const maybeFile = path.join(coreDir, 'front-end/tempPackages', tempPackage);
+			if (fs.lstatSync(maybeFile).isFile())
+				fs.unlinkSync(maybeFile);
+		});
+	} catch (e) { console.error(`Failed to remove old temporary files: ${e}`); }
 
 	// remove workers from main docker compose file
 	const composeFileLoc = path.join(coreDir, 'docker-compose.dev.yml');
