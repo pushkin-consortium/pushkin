@@ -56,7 +56,7 @@ export default class Worker {
 							console.log(req);
 							console.log(`sessionID: ${req.sessionId}`);
 							const sessId = req.sessionId;
-							return this.handlers.get(req.method)(sessId);
+							return this.handlers.get(req.method)(sessId, req.data, req.params);
 						})
 						.then(res => {
 							console.log(`responding ${res}`);

@@ -1,6 +1,6 @@
 {
   "name": "pushkin-worker",
-  "version": "0.0.4",
+  "version": "1.0.0",
   "description": "A basic starter worker used to communicate between a Pushkin API and databases",
   "main": "build/index.js",
   "files": [
