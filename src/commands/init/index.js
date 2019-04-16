@@ -63,7 +63,7 @@ export default initDir => {
 				});
 
 				console.log('Creating local test database');
-				exec('docker-compose -f pushkin/docker-compose.dev.yml start test_db', err => {
+				exec('docker-compose -f pushkin/docker-compose.dev.yml up --no-start && docker-compose -f pushkin/docker-compose.dev.yml start test_db', err => {
 					if (err) {
 						console.error(`Failed to start test_db container: ${err}`);
 						return;
