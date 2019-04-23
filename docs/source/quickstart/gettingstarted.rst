@@ -72,6 +72,8 @@ already up and running elsewhere, you’ll need to tell Pushkin about this
 database. Alternatively, you can use the testing database that comes
 with Pushkin for now.
 
+.. _adding_a_database:
+
 Adding a Database
 ~~~~~~~~~~~~~~~~~
 
