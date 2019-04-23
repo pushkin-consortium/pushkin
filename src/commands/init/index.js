@@ -68,7 +68,11 @@ export default initDir => {
 						console.error(`Failed to start test_db container: ${err}`);
 						return;
 					}
-					exec('docker-compose -f pushkin/docker-compose.dev.yml exec -T test_db psql -U postgres -c "create database test_db"', err => {
+					const command = `
+						bash pushkin/waitforit.sh localhost:5432 -t 10 -- \
+						docker-compose -f pushkin/docker-compose.dev.yml exec -T test_db psql -U postgres -c "create database test_db"
+					`;
+					exec(command, err => {
 						if (err) {
 							console.error(`Failed to run create database command in test_db container: ${err}`); // no return after
 						} else {
