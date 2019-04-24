@@ -1,0 +1,1 @@
+Apparently there is a :download: directive available in Sphinx that allows linking to files (like PDFs, for example) to be downloaded directly. That's what stuff in here is supposed to be for. I don't know the specifics on how to use it, just creating this directory to get rid of the build error.
