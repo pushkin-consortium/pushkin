@@ -2,7 +2,7 @@ import knex from 'knex';
 const trim = (s, len) => s.length > len ? s.substring(0, len) : s;
 
 class DefaultHandler {
-	constructor(db_url, dbTablePrefix) {
+	constructor(db_url, dbTablePrefix, transactionOps) {
 		this.tables = {
 			users: `${dbTablePrefix}_users`,
 			stim: `${dbTablePrefix}_stimuli`,
@@ -13,6 +13,20 @@ class DefaultHandler {
 			TUQSR: `${dbTablePrefix}_TUQSR`,
 		};
 		this.pg_main = knex({ client: 'pg', connection: db_url, });
+
+		this.logging = transactionOps ? true : false;
+		if (this.logging) {
+			this.trans_table = transactionOps.tableName;
+			this.pg_trans = knex({ client: 'pg', connection: transactionOps.url });
+			this.trans_mapper = transactionOps.mapper;
+		}
+	}
+
+	async logTransaction(knexCommand) {
+		if (!this.logging) return knexCommand;
+		const toInsert = this.trans_mapper(knexCommand.toString());
+		await this.pg_trans(this.trans_table).insert(toInsert);
+		return knexCommand;
 	}
 
 	async startExperiment(sessId) {
@@ -35,8 +49,8 @@ class DefaultHandler {
 		// the stimuli selected can be adjusted here
 		// create a stimulus group (stimGroups) (for this experiment, we'll just
 		// make a new group for each quiz run)
-		const stimGroupId = (await this.pg_main(this.tables.stimGroups)
-			.insert({ created_at: new Date() }).returning('id'))[0];
+		const stimGroupId = (await this.logTransaction(this.pg_main(this.tables.stimGroups)
+			.insert({ created_at: new Date() }).returning('id')))[0];
 
 		console.log(`assigned user ${userId} stimulus group ${stimGroupId}`);
 
@@ -47,23 +61,23 @@ class DefaultHandler {
 
 		// add stimuli to the group (stimGroupStim)
 		let position = 0;
-		await this.pg_main(this.tables.stimGroupStim).insert(
+		await this.logTransaction(this.pg_main(this.tables.stimGroupStim).insert(
 			selectedStims.map(stim => ({
 				group: stimGroupId,
 				stimulus: stim.id,
 				position: position++
 			}))
-		);
+		));
 
 		console.log(`added ${selectedStims.length} stimuli to group ${stimGroupId}`);
 
 		// initialize This User Quiz (TUQ)
-		await this.pg_main(this.tables.TUQ).insert({
+		await this.logTransaction(this.pg_main(this.tables.TUQ).insert({
 			user_id: userId,
 			stim_group: stimGroupId,
 			started_at: new Date(),
 			cur_position: 0
-		});
+		}));
 
 		console.log(`created new TUQ record for user ${userId}`);
 		console.log(`done starting experiment for user ${userId}`);
@@ -77,19 +91,21 @@ class DefaultHandler {
 
 		const userId = await this.getOrMakeUser(sessId);
 		return this.pg_main(this.tables.TUQ).where('user_id', userId).select('stim_group')
-			.then(g => {
+			.then(async g => {
 				if (g.length < 1)
 					throw new Error(`getStimuli: user ${userId} doesn't have a TUQ record, aborting`);
 
 				const stimGroupId = g[0].stim_group;
 				console.log(`getStimuli: getting user ${userId} stimuli from group ${stimGroupId}`);
 
-				return this.pg_main(this.tables.stim).join(
+				const stims = await this.pg_main(this.tables.stim).join(
 					this.tables.stimGroupStim,
 					`${this.tables.stim}.id`,
 					`${this.tables.stimGroupStim}.stimulus`
 				).where(`${this.tables.stimGroupStim}.group`, stimGroupId)
 					.select(`${this.tables.stim}.stimulus`);
+
+				return stims;
 			});
 	}
 
@@ -114,7 +130,7 @@ class DefaultHandler {
 			.then(maybeTypeData => {
 				const e = maybeTypeData[type];
 				console.log(`${e ? 'changing' : 'setting'} user ${userId}'s ${type} to "${trim(response, 30)}"`);
-				return this.pg_main(this.tables.users).where('id', userId).update(type, response);
+				return this.logTransaction(this.pg_main(this.tables.users).where('id', userId).update(type, response));
 			}).then(() => 0);
 	}
 
@@ -138,15 +154,15 @@ class DefaultHandler {
 						position: t.cur_position
 					}).first('stimulus');
 			}).then(stimRes => {
-				return this.pg_main(this.tables.TUQSR).insert({
+				return this.logTransaction(this.pg_main(this.tables.TUQSR).insert({
 					user_id: userId,
 					stimulus: stimRes.stimulus,
 					response: JSON.stringify(response),
 					answered_at: new Date()
-				});
+				}));
 			}).then(() => {
 				console.log(`incrementing user ${userId}'s cur_position`);
-				return this.pg_main(this.tables.TUQ).where('user_id', userId).increment('cur_position');
+				return this.logTransaction(this.pg_main(this.tables.TUQ).where('user_id', userId).increment('cur_position'));
 			}).then(() => 0);
 	}
 
@@ -175,15 +191,15 @@ class DefaultHandler {
 					updated_at: r.modified_at
 				}));
 				// put TUQSRs in stimResp
-				return this.pg_main(this.tables.stimResp).insert(res);
+				return this.logTransaction(this.pg_main(this.tables.stimResp).insert(res));
 			}).then(() => {
 				// delete TUQSRs
 				console.log(`deleting user ${userId}'s temp responses`);
-				return this.pg_main(this.tables.TUQSR).where('user_id', userId).del();
+				return this.logTransaction(this.pg_main(this.tables.TUQSR).where('user_id', userId).del());
 			}).then(() => {
 				// delete TUQ record
 				console.log(`removing user ${userId}'s TUQ record`);
-				return this.pg_main(this.tables.TUQ).where('user_id', userId).del();
+				return this.logTransaction(this.pg_main(this.tables.TUQ).where('user_id', userId).del());
 			}).then(() => 0);
 	}
 
@@ -200,11 +216,11 @@ class DefaultHandler {
 		}
 
 		// make new user
-		return this.pg_main(this.tables.users).insert({
+		return this.logTransaction(this.pg_main(this.tables.users).insert({
 			created_at: new Date(),
 			updated_at: new Date(),
 			session_id: sessId
-		}).returning('id').then(d => {
+		}).returning('id')).then(d => {
 			console.log(`session id ${sessId} -> (new) user ${d[0]}`);
 			return d[0];
 		});
