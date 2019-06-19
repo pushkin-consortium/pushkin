@@ -18,12 +18,14 @@ Pushkin.
 Make sure Docker is up and running, then run:
 
 .. code-block:: bash
+
   $ pushkin init
 
 This sets up a skeleton website in the current folder and sets up a development database. Once that finishes, you should have a directory tree that looks
 something like this:
 
 ::
+
    ├── experiments
    ├── pushkin
       ├── api
@@ -42,12 +44,14 @@ To create a new experiment from the boilerplate template Pushkin
 provides, run
 
 .. code-block:: bash
+
   $ pushkin generate myexp
 
 replacing “myexp” with a short name of your experiment. This will create a new folder in the
 experiments directory like
 
 ::
+
    └── myexp
        ├── api controllers
        ├── config.yaml
@@ -65,6 +69,7 @@ development, but not for actually deploying the website. To redistribute the exp
 files to the right places, run:
 
 .. code-block:: bash
+
   $ pushkin prep
 
 
@@ -75,6 +80,7 @@ For now, let's use the test database that is built by ``pushkin init``. We need 
 with stimuli for our experiment(s):
 
 .. code-block:: bash
+
   $ docker-compose -f pushkin/docker-compose.dev.yml start test_db
   $ pushkin setupdb
   $ docker-compose -f pushkin/docker-compose.dev.yml stop test_db
@@ -83,6 +89,7 @@ Local testing
 -------
 
 .. code-block:: bash
+
   $ docker-compose -f pushkin/docker-compose.dev.yml up --build
 
 Now browse to ``http://localhost`` to see the stub website.
@@ -99,6 +106,7 @@ Updating
 If you make updates to your website, here is how to re-launch a local test version:
 
 .. code-block:: bash
+
   $ docker-compose -f pushkin/docker-compose.dev.yml stop
   $ pushkin prep
   $ docker-compose -f pushkin/docker-compose.dev.yml start test_db
