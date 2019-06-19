@@ -12,6 +12,7 @@ Welcome to Pushkin's documentation!
 
    quickstart/gettingstarted
    experiments/experiment_structure
+   website/website_structure
    databases/databases
    deployment/deploying
    maintenance/maintenance

@@ -18,3 +18,15 @@ Receives messages from RabbitMQ and runs whatever functionality it's told to run
 
 5. `JSPsych <https://github.com/pushkin-consortium/pushkin-jspsych/>`_ (:ref:`Docs <pushkin_jspsych>`)
 The Pushkin JSPsych repo simply makes a few small changes to the official JSPsych library so that it can be bundled together as if it's an NPM module. In order for it to be globally accessible to plugins as they expect, the import must be assigned to window.jsPsych.
+
+
+Advanced topics
+=======================
+Several topics that may be helpful for developers are described in more detail in this section.
+
+
+.. toctree::
+   :maxdepth: 1
+
+   Experiment stubs <development_experimentSubs>
+   The prep command <development_prep>
