@@ -14,3 +14,5 @@ The code for ``prep`` can be found in ``pushkin-cli/src/commands/prep/index.js``
 3. ``npm pack`` is used to turn each experiment into a tarball. Those tarballs are stored in ``fronte-end/tempPackages``. The names of the experiments are added to ``experiments.js``.
 
 4. ``docker build`` is used to build an image for each experiment's workers. These are added to the core ``docker-compose.dev.yml``.
+
+.. include:: ../links/links.rst
