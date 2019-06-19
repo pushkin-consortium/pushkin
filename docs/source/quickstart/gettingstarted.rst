@@ -115,4 +115,13 @@ If you make updates to your website, here is how to re-launch a local test versi
   $ docker-compose -f pushkin/docker-compose.dev.yml up --build  
 
 
+Simple Customization
+==============
+In the rest of the getting started guide, we cover some simple customizations that can be done without having to understand the code in depth.
+
+.. toctree::
+   :maxdepth: 1
+
+   Customizing Experiment Stubs <gettingstarted_experimentStubs>
+
 .. include:: ../links/links.rst
