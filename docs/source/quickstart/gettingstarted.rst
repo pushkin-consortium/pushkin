@@ -17,14 +17,13 @@ Pushkin.
 
 Make sure Docker is up and running, then run:
 
-::
-  > pushkin init
+.. code-block:: bash
+  $ pushkin init
 
 This sets up a skeleton website in the current folder and sets up a development database. Once that finishes, you should have a directory tree that looks
 something like this:
 
 ::
-
    ├── experiments
    ├── pushkin
       ├── api
@@ -42,14 +41,13 @@ Making an Experiment
 To create a new experiment from the boilerplate template Pushkin
 provides, run
 
-::
-  > pushkin generate myexp
+.. code-block:: bash
+  $ pushkin generate myexp
 
 replacing “myexp” with a short name of your experiment. This will create a new folder in the
 experiments directory like
 
 ::
-
    └── myexp
        ├── api controllers
        ├── config.yaml
@@ -66,8 +64,8 @@ Keeping all the files for an experiment within the same root folder is convenien
 development, but not for actually deploying the website. To redistribute the experiment
 files to the right places, run:
 
-::
-  > pushkin prep
+.. code-block:: bash
+  $ pushkin prep
 
 
 Setting up a local database
@@ -76,16 +74,16 @@ Setting up a local database
 For now, let's use the test database that is built by ``pushkin init``. We need to populate it
 with stimuli for our experiment(s):
 
-::
-  > docker-compose -f pushkin/docker-compose.dev.yml start test_db
-  > pushkin setupdb
-  > docker-compose -f pushkin/docker-compose.dev.yml stop test_db
+.. code-block:: bash
+  $ docker-compose -f pushkin/docker-compose.dev.yml start test_db
+  $ pushkin setupdb
+  $ docker-compose -f pushkin/docker-compose.dev.yml stop test_db
 
 Local testing
 -------
 
-:: 
-  > docker-compose -f pushkin/docker-compose.dev.yml up --build
+.. code-block:: bash
+  $ docker-compose -f pushkin/docker-compose.dev.yml up --build
 
 Now browse to ``http://localhost`` to see the stub website.
 
@@ -100,13 +98,13 @@ Updating
 
 If you make updates to your website, here is how to re-launch a local test version:
 
-::
-  > docker-compose -f pushkin/docker-compose.dev.yml stop
-  > pushkin prep
-  > docker-compose -f pushkin/docker-compose.dev.yml start test_db
-  > pushkin setupdb
-  > docker-compose -f pushkin/docker-compose.dev.yml stop test_db
-  > docker-compose -f pushkin/docker-compose.dev.yml up --build  
+.. code-block:: bash
+  $ docker-compose -f pushkin/docker-compose.dev.yml stop
+  $ pushkin prep
+  $ docker-compose -f pushkin/docker-compose.dev.yml start test_db
+  $ pushkin setupdb
+  $ docker-compose -f pushkin/docker-compose.dev.yml stop test_db
+  $ docker-compose -f pushkin/docker-compose.dev.yml up --build  
 
 
 .. include:: ../links/links.rst
