@@ -9,3 +9,5 @@ Pushkin websites typically host multiple experiments or citizen science projects
 
    Experiments.js <website_experimentsJS>
    Web Page <website_controlersJSON>
+
+.. include:: ../links/links.rst
