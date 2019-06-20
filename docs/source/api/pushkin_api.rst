@@ -1,8 +1,8 @@
 .. _pushkin_api:
 
-Pushkin API
-==============
-The Pushkin API is available on NPM under ``pushkin-api``. It's split into two main parts:
+pushkin-api
+============================
+``pushkin-api`` comes with some convenience classes and functions that makes extending the API for a new experiment staightforward, It is split into two main parts:
 
 .. toctree::
    :maxdepth: 1
@@ -10,3 +10,4 @@ The Pushkin API is available on NPM under ``pushkin-api``. It's split into two m
 
    Controller Builder <pushkin_api_controllerbuilder>
    Core API <pushkin_api_coreapi>
+

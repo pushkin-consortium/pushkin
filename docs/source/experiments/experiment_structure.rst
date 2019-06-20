@@ -9,7 +9,7 @@ Pushkin experiments are highly modularized. This allows for the easy distributio
 
    Config File <exp_config>
    Web Page <exp_webpage>
-   API Controllers <exp_apicontrollers>
+   API <exp_api>
    Worker <exp_worker>
    Migrations <exp_migrations>
    Seeds <exp_seeds>
