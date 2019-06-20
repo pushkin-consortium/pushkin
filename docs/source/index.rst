@@ -16,7 +16,7 @@ Welcome to Pushkin's documentation!
    databases/databases
    deployment/deploying
    maintenance/maintenance
-   Development <development/development>
+   development/development
    api/pushkin_api
    cli/pushkin_cli
    client/pushkin_client
