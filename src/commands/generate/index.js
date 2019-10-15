@@ -43,7 +43,7 @@ export default (experimentsDir, newExpName) => {
 					fs.readdirSync(dir).forEach(el => {
 						el = path.join(dir, el);
 						if (fs.lstatSync(el).isDirectory()) {
-							updateName(el);
+							updateName(el); //notice this function calls itself recursively
 							return;
 						}
 						const newBase = path.basename(el).replace(/template/g, newExpName);

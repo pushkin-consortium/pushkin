@@ -42,13 +42,13 @@ const nextArg = inputGetter();
 (() => {
 	switch (nextArg()) {
 		case 'init': {
-			init(process.cwd());
+			init(process.cwd()); //Run ./commands/init/index.js
 			return;
 		}
 		case 'generate': {
 			moveToProjectRoot();
 			const config = loadConfig();
-			const name = nextArg();
+			const name = nextArg(); // Retrieves name of experiment, passed as argument to 'pushkin generate'
 			generate(path.join(process.cwd(), config.experimentsDir), name);
 			return;
 		}

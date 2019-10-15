@@ -29,12 +29,12 @@ const packAndInstall = (packDir, installDir, callback) => {
 	try { fs.copyFileSync(packageJsonPath, packageJsonBackup); }
 	catch (e) { return fail('Failed to backup package.json', e); }
 
-	// give package a unique name to avoid module conflicts
 	startTask();
 	fs.readFile(packageJsonPath, 'utf8', (err, data) => {
 		let packageJson;
 		try { packageJson = JSON.parse(data); }
 		catch (e) { return fail('Failed to parse package.json', e); }
+		// give package a unique name to avoid module conflicts
 		const uniqueName = `pushkinComponent${uuid().split('-').join('')}`;
 		packageJson.name = uniqueName;
 		startTask();
@@ -42,7 +42,7 @@ const packAndInstall = (packDir, installDir, callback) => {
 			if (err)
 				return fail('Failed to write new package.json', err);
 
-			// package it up
+			// package it up in tarball
 			startTask();
 			exec('npm pack', { cwd: packDir }, (err, stdout, stdin) => { // eslint-disable-line
 				if (err)
@@ -116,14 +116,14 @@ const cleanUpSync = coreDir => {
 
 	// reset api controllers
 	const controllersJsonFile = path.join(coreDir, 'api/src/controllers.json');
-	const oldContrList = JSON.parse(fs.readFileSync(controllersJsonFile, 'utf8'));
+	const oldContrList = JSON.parse(fs.readFileSync(controllersJsonFile, 'utf8')); //This is a file with a json that lists all the API controllers
 	oldContrList.forEach(contr => {
 		const moduleName = contr.name;
 		console.log(`Cleaning API controller ${contr.mountPath} (${moduleName})`);
 		try { execSync(`npm uninstall ${moduleName} --save`, { cwd: path.join(coreDir, 'api') }); }
 		catch (e) { console.error(`Failed to uninstall API controller module: ${e}`); }
 	});
-	fs.writeFileSync(controllersJsonFile, JSON.stringify([]), 'utf8');
+	fs.writeFileSync(controllersJsonFile, JSON.stringify([]), 'utf8'); //Re-write file with list of API controllers so it is empty.
 
 	// reset web page dependencies
 	const webPageAttachListFile = path.join(coreDir, 'front-end/src/experiments.js');
@@ -179,6 +179,7 @@ const prepApi = (expDir, controllerConfigs, coreDir, callback) => {
 	};
 
 	controllerConfigs.forEach(controller => {
+		// Reading through list of controllers in the experiment's config.yaml
 		const fullContrLoc = path.join(expDir, controller.location);
 		console.log(`Started loading API controller for ${controller.mountPath}`);
 		startTask();
