@@ -4,7 +4,7 @@ import zlib from 'zlib';
 import { exec} from 'child_process';
 
 export default initDir => {
-	process.chdir(initDir); //Node command to change directory
+	process.chdir(initDir);
 
 	const newDirs = ['pushkin', 'experiments'];
 	const newFiles = ['pushkin.yaml'];
@@ -23,15 +23,15 @@ export default initDir => {
 
 	// go ahead and initialize
 	newDirs.forEach(d => {
-		if (d == 'pushkin') return; // do nothing
+		if (d == 'pushkin') return; // let tar extract to this
 		const dir = path.join(initDir, d);
-		fs.mkdirSync(dir); //creates directories for each 'd' in newDirs
+		fs.mkdirSync(dir);
 	});
-	const config = path.join(__dirname, 'initFiles/pushkin.yaml'); // __dirname is always the directory in which the currently executing script resides
+	const config = path.join(__dirname, 'initFiles/pushkin.yaml');
 
-	fs.copyFileSync(config, path.join(initDir, 'pushkin.yaml')); // copies generic 'pushkin.yaml' to project root
+	fs.copyFileSync(config, path.join(initDir, 'pushkin.yaml'));
 
-	// unzip/untar core files and run npm install where needed
+	// unzip/untar core files and run npm install where appropriate
 	const coreBundle = path.join(__dirname, 'initFiles/pushkin.tar.gz');
 	const zipOutput = path.join(process.cwd(), 'pushkin.tar');
 	const contentStream = fs.createReadStream(coreBundle);
@@ -51,7 +51,6 @@ export default initDir => {
 				});
 
 				['api', 'front-end'].forEach(dir => {
-					// For 'api' and 'front-end', run 'npm install', which will install according to the package.json for each.
 					console.log(`Installing npm dependencies for ${dir}`);
 					exec('npm install', { cwd: path.join(process.cwd(), 'pushkin', dir) }, err => {
 						if (err) throw new Error(`Failed to install npm dependencies for ${dir}: ${err}`);
@@ -64,13 +63,11 @@ export default initDir => {
 				});
 
 				console.log('Creating local test database');
-				// note that pushkin/docker-compose.dev.yml defines a container called 'test_db', which gets fired up below
 				exec('docker-compose -f pushkin/docker-compose.dev.yml up --no-start && docker-compose -f pushkin/docker-compose.dev.yml start test_db', err => {
 					if (err) {
 						console.error(`Failed to start test_db container: ${err}`);
 						return;
 					}
-					//following command starts up a database called 'test_db' in the container 'test_db' (notice the overloading of the name)
 					const command = `
 						bash pushkin/waitforit.sh localhost:5432 -t 10 -- \
 						docker-compose -f pushkin/docker-compose.dev.yml exec -T test_db psql -U postgres -c "create database test_db"
@@ -81,7 +78,6 @@ export default initDir => {
 						} else {
 							console.log('Created local test database successfully');
 						}
-						//Stop the container
 						exec('docker-compose -f pushkin/docker-compose.dev.yml stop test_db', err => {
 							if (err) console.error(`Failed to stop test_db container: ${err}`);
 						});

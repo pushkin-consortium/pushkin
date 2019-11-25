@@ -42,15 +42,31 @@ const nextArg = inputGetter();
 (() => {
 	switch (nextArg()) {
 		case 'init': {
-			init(process.cwd());
+			init(process.cwd()); //Run ./commands/init/index.js
 			return;
 		}
 		case 'generate': {
 			moveToProjectRoot();
 			const config = loadConfig();
-			const name = nextArg();
+			const name = nextArg(); // Retrieves name of experiment, passed as argument to 'pushkin generate'
 			generate(path.join(process.cwd(), config.experimentsDir), name);
 			return;
+		}
+		case 'template': {
+			moveToProjectRoot();
+			var newTemplate = nextArg();
+			exec('npm install newTemplate;', (err, stdout, stderr) => {
+				if (err) {
+					console.log(`Error installing template: ${err}`);
+					return;
+				}
+			})
+			exec(`rm -rf pushkin/*; rm -rf pushkin.yaml; mv node_modules/${newTemplate}/* ./pushkin; mv pushkin/pushkin.yaml;`, (err, stdout, stderr) => {
+				if (err) {
+					console.log(`Error moving template files into position: ${err}`);
+					return;
+				}
+			})
 		}
 		case 'prep': {
 			moveToProjectRoot();
