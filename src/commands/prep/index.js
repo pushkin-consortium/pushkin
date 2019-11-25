@@ -204,7 +204,7 @@ const prepWeb = (expDir, expConfig, coreDir, callback) => {
 		}
 		console.log(`Loaded web page for ${expConfig.shortName} (${moduleName})`);
 		// this must be one line
-		const modListAppendix = `{ fullName: '${expConfig.experimentName}', shortName: '${expConfig.shortName}', module: ${moduleName} }`;
+		const modListAppendix = `{ fullName: '${expConfig.experimentName}', shortName: '${expConfig.shortName}', module: ${moduleName}', logo: '${expConfig.logo}', tagline: '${expConfig.tagline}', duration: '${expConfig.duration}' }`;
 		callback(undefined, { moduleName: moduleName, listAppendix: modListAppendix });
 	});
 };
