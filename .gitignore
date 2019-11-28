@@ -1,5 +1,15 @@
-# Build output
+**/*.sublime-project
+**/*.sublime-workspace
+**/*.DS_Store
+
+# Build files
 build/
+
+# Test files
+testing/
+
+# Swap files
+*.swp
 
 # Logs
 logs
