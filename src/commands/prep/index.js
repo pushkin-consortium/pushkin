@@ -44,39 +44,43 @@ const packAndInstall = (packDir, installDir, callback) => {
 
 			// package it up in tarball
 			startTask();
-			exec('npm pack', { cwd: packDir }, (err, stdout, stdin) => { // eslint-disable-line
+			exec('npm run build', { cwd: packDir}, (err, stdout, stdin) => {
 				if (err)
-					return fail('Failed to run npm pack', err);
-				const packedFileName = stdout.toString().trim();
-				const packedFile = path.join(packDir, packedFileName);
-				const movedPack = path.join(installDir, packedFileName);
-
-				// move the package to the installDir
-				startTask();
-				fs.rename(packedFile, movedPack, err => {
+					return fail('Failed to run npm build', err);
+				exec('npm pack', { cwd: packDir }, (err, stdout, stdin) => { // eslint-disable-line
 					if (err)
-						return fail(`Failed to move packaged file (${packedFile} => ${movedPack})`, err);
+						return fail('Failed to run npm pack', err);
+					const packedFileName = stdout.toString().trim();
+					const packedFile = path.join(packDir, packedFileName);
+					const movedPack = path.join(installDir, packedFileName);
 
-					// restore the unmodified package.json
+					// move the package to the installDir
 					startTask();
-					fs.unlink(packageJsonPath, err => {
+					fs.rename(packedFile, movedPack, err => {
 						if (err)
-							return fail(`Failed to delete ${packageJsonPath}`, err);
-						try { fs.renameSync(packageJsonBackup, packageJsonPath); }
-						catch (e) { return fail('Failed to restore package.json backup', e); }
-						finishTask(); // deleting modified package.json
-					});
+							return fail(`Failed to move packaged file (${packedFile} => ${movedPack})`, err);
 
-					// install package to installDir
-					startTask();
-					exec(`npm install "${packedFileName}"`, { cwd: installDir }, err => {
-						if (err)
-							return fail(`Failed to run npm install ${packedFileName}`, err);
-						finishTask(uniqueName); // npm install [package bundle] in installDir
+						// restore the unmodified package.json
+						startTask();
+						fs.unlink(packageJsonPath, err => {
+							if (err)
+								return fail(`Failed to delete ${packageJsonPath}`, err);
+							try { fs.renameSync(packageJsonBackup, packageJsonPath); }
+							catch (e) { return fail('Failed to restore package.json backup', e); }
+							finishTask(); // deleting modified package.json
+						});
+
+						// install package to installDir
+						startTask();
+						exec(`npm install "${packedFileName}"`, { cwd: installDir }, err => {
+							if (err)
+								return fail(`Failed to run npm install ${packedFileName}`, err);
+							finishTask(uniqueName); // npm install [package bundle] in installDir
+						});
+						finishTask(); // moving package to installDir
 					});
-					finishTask(); // moving package to installDir
+					finishTask(); // npm pack
 				});
-				finishTask(); // npm pack
 			});
 			finishTask(); // write new package file
 		});
@@ -204,7 +208,7 @@ const prepWeb = (expDir, expConfig, coreDir, callback) => {
 		}
 		console.log(`Loaded web page for ${expConfig.shortName} (${moduleName})`);
 		// this must be one line
-		const modListAppendix = `{ fullName: '${expConfig.experimentName}', shortName: '${expConfig.shortName}', module: ${moduleName}', logo: '${expConfig.logo}', tagline: '${expConfig.tagline}', duration: '${expConfig.duration}' }`;
+		const modListAppendix = `{ fullName: '${expConfig.experimentName}', shortName: '${expConfig.shortName}', module: ${moduleName}, logo: '${expConfig.logo}', tagline: '${expConfig.tagline}', duration: '${expConfig.duration}' }`;
 		callback(undefined, { moduleName: moduleName, listAppendix: modListAppendix });
 	});
 };
