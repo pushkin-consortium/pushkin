@@ -25,18 +25,18 @@
   },
   "homepage": "https://github.com/pushkin-consortium/pushkin-worker#readme",
   "devDependencies": {
-    "@babel/cli": "^7.2.3",
-    "@babel/core": "^7.3.4",
-    "@babel/preset-env": "^7.3.4",
-    "babel-eslint": "^10.0.1",
-    "eslint": "^5.14.1"
+    "@babel/cli": "^7.7.4",
+    "@babel/core": "^7.7.4",
+    "@babel/preset-env": "^7.7.4",
+    "babel-eslint": "^10.0.3",
+    "eslint": "^5.16.0"
   },
   "dependencies": {
-    "@babel/polyfill": "^7.2.5",
-    "amqplib": "^0.5.3",
+    "@babel/polyfill": "^7.7.0",
+    "amqplib": "^0.5.5",
     "install": "^0.12.2",
-    "knex": "^0.16.3",
-    "npm": "^6.8.0",
+    "knex": "^0.16.5",
+    "npm": "^6.13.1",
     "pg": "^7.8.1"
   }
 }
