@@ -1,6 +1,6 @@
 {
   "name": "pushkin-worker",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "A basic starter worker used to communicate between a Pushkin API and databases",
   "main": "build/index.js",
   "files": [
@@ -34,9 +34,7 @@
   "dependencies": {
     "@babel/polyfill": "^7.7.0",
     "amqplib": "^0.5.5",
-    "install": "^0.12.2",
-    "knex": "^0.19.5",
-    "npm": "^6.13.1",
+    "knex": "^0.16.5",
     "pg": "^7.8.1"
   }
 }

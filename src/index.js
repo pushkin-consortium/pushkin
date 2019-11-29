@@ -1,4 +1,3 @@
-import '@babel/polyfill';
 import amqp from 'amqplib';
 import { defaultHandler, defaultMethods }from './defaultHandler.js';
 
