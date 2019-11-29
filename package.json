@@ -1,6 +1,6 @@
 {
     "name": "pushkin-api",
-    "version": "1.0.7",
+    "version": "1.0.8",
     "description": "The core Pushkin API module designed for interfacing between Pushkin clients and workers through RabbitMQ",
     "main": "build/index.js",
     "files": [
@@ -19,6 +19,7 @@
     "devDependencies": {
         "@babel/cli": "^7.7.4",
         "@babel/core": "^7.7.4",
+        "@babel/plugin-transform-async-to-generator": "^7.7.4",
         "@babel/preset-env": "^7.7.4",
         "babel-eslint": "^10.0.3",
         "eslint": "^5.16.0"
