@@ -1,3 +1,5 @@
+import "core-js/stable";
+import "regenerator-runtime/runtime";
 import knex from 'knex';
 const trim = (s, len) => s.length > len ? s.substring(0, len) : s;
 
