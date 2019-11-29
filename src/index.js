@@ -1,3 +1,5 @@
+import "core-js/stable";
+import "regenerator-runtime/runtime";
 import amqp from 'amqplib';
 import { defaultHandler, defaultMethods }from './defaultHandler.js';
 
