@@ -1,4 +1,4 @@
-.. _gettingstarted:
+.. _gettingstarted_index:
 
 .. toctree::
    :maxdepth: 2

@@ -1,7 +1,10 @@
 .. _gettingstarted:
 
 Getting Started
-###############
+================
+
+Initialization
+################ 
 
 Creating a basic new Pushkin site
 ----------------------

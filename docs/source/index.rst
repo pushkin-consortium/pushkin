@@ -11,8 +11,8 @@ Welcome to Pushkin's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   quickstart/index
-   deployment/deployment_index
+   quickstart/gettingstarted
+   deployment/deployment
    development/development
 
 
