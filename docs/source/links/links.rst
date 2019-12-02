@@ -3,8 +3,6 @@
 .. _Docker_volumes: https://docs.docker.com/storage/volumes/
 .. _Docker_Compose: https://docs.docker.com/compose/compose-file/
 
-.. _development_experimentStubs:
-.. _development_prep: 
 .. _website_controlersJSON: 
 .. _website_experimentsJS: 
 .. _pushkin_api: 

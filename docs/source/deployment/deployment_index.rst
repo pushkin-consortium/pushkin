@@ -6,7 +6,7 @@ Deployment
 These pages explain deployment in significantly more detail. 
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    :numbered:
    :titlesonly:
 

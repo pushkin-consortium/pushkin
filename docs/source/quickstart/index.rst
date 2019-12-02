@@ -1,7 +1,7 @@
 .. _gettingstarted:
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
    Getting Started <gettingstarted>
 
