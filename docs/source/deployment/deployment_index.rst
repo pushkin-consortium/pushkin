@@ -1,4 +1,4 @@
-.. _deploying:
+.. _deployment_index:
 
 Deployment
 ======================

@@ -15,7 +15,7 @@ Welcome to Pushkin's documentation!
    experiments/experiment_structure
    website/website_structure
    databases/databases
-   deployment/index
+   deployment/deployment_index
    maintenance/maintenance
    development/development
    api/pushkin_api
