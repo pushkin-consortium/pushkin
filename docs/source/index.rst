@@ -5,16 +5,17 @@
 
 Welcome to Pushkin's documentation!
 ===================================
+"Getting Started" will get a very simple demo site up and running. The remaining pages explain how to customize your website. Instructions are geared towards someone who has at least some familiarity with javascript and react. Sections intended for more experienced programmers who need to understand the guts of Pushkin are labeled "DEV".
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
-   quickstart/gettingstarted
+   quickstart/index
    experiments/experiment_structure
    website/website_structure
    databases/databases
-   deployment/deploying
+   deployment/index
    maintenance/maintenance
    development/development
    api/pushkin_api

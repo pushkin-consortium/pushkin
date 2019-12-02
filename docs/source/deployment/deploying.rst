@@ -1,17 +1,40 @@
-.. _deploying:
+.. _deploying_aws:
 
-Deploying to the Web
+Local Deployment
 ======================
 
-Deploying Pushkin in production can be done with any technology capable of running containers. We include guides here for setting up AWS and Rancher, but the same general process can be extracted and applied to any tech stack.
 
-Deployment consists mainly of three components:
 
-.. toctree::
-   :maxdepth: 1
-   :numbered:
-   :titlesonly:
+DEV: Local Deployment Stack
+------------------
 
-   Setting up AWS <setup_aws>
-   Setting up Containers <setup_rancher>
-   Setting up Pushkin <setup_pushkin_fordeployment>
+In the official website templates, the ``front end`` app was created with `create-react-app <https://github.com/facebook/create-react-app>`. This handle toolbox handles babel and webpack so that you don't have to. 
+
+By default, create-react-app expects local tests to listen on port 3000. However, this is the port that our API uses. Thus, you will see that the custom start script in ``package.json`` requests port 80:
+
+:: javascript
+  
+  "scripts": {
+    "start": "PORT=80 react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+
+The `docker-compose.dev.yml` file likewise specifies that port 80 is open. 
+
+:: json
+
+  server:
+    build: ./front-end
+    environment:
+      API_PORT: '3000'
+    ports:
+      - '80:80'
+      - '433:433'
+    links:
+      - api
+
+
+
+.. include:: ../links/links.rst

@@ -97,7 +97,7 @@ In ``config.js``, set ``useAuth`` to ``true`` or ``false`` depending on whether 
   useAuth: false, 
   //Note that the forum won't work without authentication
 
-By default, Pushkin authenticates users using `Auth0 <http://auth0.com>`. This provides many features and better security than could be managed otherwise. It is free for open source projects (contact sales@auth0.com); otherwise it can be fairly pricey if you are hoping for a lot of users. To set up Auth0, use the following directions. (Note that at some point, Auth0 will change up their website and these instructions may get out of date.)
+By default, Pushkin authenticates users using `Auth0 <http://auth0.com>`_. This provides many features and better security than could be managed otherwise. It is free for open source projects (contact sales@auth0.com); otherwise it can be fairly pricey if you are hoping for a lot of users. To set up Auth0, use the following directions. (Note that at some point, Auth0 will change up their website and these instructions may get out of date.)
 
 1. Go to auth0.com and create an Auth0 account. 
 
@@ -126,12 +126,6 @@ Local testing
 
 Now browse to ``http://localhost`` to see the stub website.
 
-Deploying to AWS
----------
-
-Deploying to AWS is much more complicated <deploying>
-
-
 Updating
 --------
 
@@ -146,14 +140,15 @@ If you make updates to your website, here is how to re-launch a local test versi
   $ docker-compose -f pushkin/docker-compose.dev.yml stop test_db
   $ docker-compose -f pushkin/docker-compose.dev.yml up --build  
 
+Experiment Stubs
+===============
 
-Simple Customization
-==============
-In the rest of the getting started guide, we cover some simple customizations that can be done without having to understand the code in depth.
+FUBAR
 
-.. toctree::
-   :maxdepth: 1
+Deploying to AWS
+===============
 
-   Customizing Experiment Stubs <gettingstarted_experimentStubs>
+FUBAR
+
 
 .. include:: ../links/links.rst
