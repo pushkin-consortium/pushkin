@@ -1,7 +1,7 @@
 .. _gettingstarted:
 
 Getting Started
-===============
+###############
 
 Creating a basic new Pushkin site
 ----------------------
@@ -141,12 +141,12 @@ If you make updates to your website, here is how to re-launch a local test versi
   $ docker-compose -f pushkin/docker-compose.dev.yml up --build  
 
 Experiment Stubs
-===============
+###############
 
 FUBAR
 
 Deploying to AWS
-===============
+###############
 
 FUBAR
 

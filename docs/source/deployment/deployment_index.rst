@@ -1,8 +1,5 @@
 .. _deployment_index:
 
-Deployment
-======================
-
 These pages explain deployment in significantly more detail. 
 
 .. toctree::

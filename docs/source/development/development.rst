@@ -1,7 +1,8 @@
 .. _development:
 
-Contributing to Pushkin
-=======================
+Developing with Pushkin
+####################
+
 Pushkin is 100% open-source. We love it when people come together to help fix bugs, build features, and make Pushkin better for everyone. If you'd like to contribute, feel free to open a pull request. The Pushkin project is split into several repos, each corresponding to a an NPM module. Issues and general project direction is tracked via GitHub's project boards and issues. An example of all of them working together is available via the ``pushkin generate`` command. Below is a general overview.
 
 1. `Client <https://github.com/pushkin-consortium/pushkin-client>`_ (:ref:`Docs <pushkin_client>`)
@@ -20,7 +21,7 @@ Receives messages from RabbitMQ and runs whatever functionality it's told to run
 The Pushkin JSPsych repo simply makes a few small changes to the official JSPsych library so that it can be bundled together as if it's an NPM module. In order for it to be globally accessible to plugins as they expect, the import must be assigned to window.jsPsych.
 
 Getting Started on Development
-=======================
+####################
 
 Understanding the Front End
 ----------------------
@@ -38,7 +39,8 @@ Understanding the Front End
 7. At this point, we recommend going back through the tutorial in #2 above.
 
 Advanced topics
-=======================
+####################
+
 Several topics that may be helpful for developers are described in more detail in this section.
 
 

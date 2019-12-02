@@ -3,7 +3,7 @@
 Note: This will need to be updated once we have more than one stub experiment type.
 
 Stub experiment
-===================
+----------------------
 
 ``pushkin generate newExp`` will generate a new stub experiment called ``newExp``. It does this by running ``index.js`` in 
 
