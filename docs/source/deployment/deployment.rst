@@ -160,7 +160,7 @@ Set up IAM Users and Roles
   More information on IAM users can be found `on Amazon's website <https://docs.aws.amazon.com/IAM/latest/UserGuide/introduction.html>`_
 
 Preparing Pushkin to Deploy
-##################
+---------------
 
 Depending on how you've set up Pushkin and your experiments, some of the database credentials may have to be changed. If your experiments are using the local testing database, make sure to change connection information in the experiments' ``config.yaml`` files.
 
