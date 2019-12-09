@@ -14,6 +14,7 @@ Welcome to Pushkin's documentation!
    quickstart/gettingstarted
    deployment/deployment
    development/development
+   usernames/usernames
 
 
 
