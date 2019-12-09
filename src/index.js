@@ -9,7 +9,7 @@ export default class Pushkin {
 		this.con = Axios.create({
 			baseURL: quizAPIUrl
 		});
-	}setSaveAfterEachStimulus
+	}
 
 	loadScript(url) {
 		return new Promise( (resolve, reject) => {
