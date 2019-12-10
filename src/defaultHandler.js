@@ -31,13 +31,14 @@ class DefaultHandler {
 		return knexCommand;
 	}
 
-	async startExperiment(sessId) {
-		console.log(`sessId: ${sessId}`);
+	async startExperiment(sessId, data) {
 		console.log(arguments);
 		if (!sessId)
 			throw new Error('startExperiment got invalid session id');
+		if (!data.user_id)
+			throw new Error('startExperiment got invalid userID');
 
-		const userId = await this.getOrMakeUser(sessId);
+		const userId = data.user_id;
 
 		// check if the user already has a TUQ record (i.e. is already taking the quiz)
 		const tuqCount = (await this.pg_main(this.tables.TUQ).where('user_id', userId).count('*'))[0].count;
@@ -87,11 +88,13 @@ class DefaultHandler {
 		return true;
 	}
 
-	async getStimuli(sessId) {
+	async getStimuli(sessId, data) {
 		if (!sessId)
 			throw new Error('getStimuli got invalid session id');
+		if (!data.user_id)
+			throw new Error('getStimuli got invalid userID');
 
-		const userId = await this.getOrMakeUser(sessId);
+		const userId = data.user_id;
 		return this.pg_main(this.tables.TUQ).where('user_id', userId).select('stim_group')
 			.then(async g => {
 				if (g.length < 1)
@@ -118,6 +121,9 @@ class DefaultHandler {
 			throw new Error('insertMetaResponse got invalid response type');
 		if (!data.response)
 			throw new Error('insertMetaResponse got invalid response data');
+		if (!data.user_id)
+			throw new Error('insertMetaResponse got invalid userID');
+		const userId = data.user_id;
 		const type = data.type;
 		const response = data.response;
 
@@ -125,8 +131,6 @@ class DefaultHandler {
 		const validMetaColumns = [ 'dob', 'native_language' ];
 		if (validMetaColumns.indexOf(type) <= -1)
 			throw new Error(`insertMetaResponse: user ${userId} attempted to save meta to an invalid column "${type}"`);
-
-		const userId = await this.getOrMakeUser(sessId);
 
 		return this.pg_main(this.tables.users).where('id', userId).first(type)
 			.then(maybeTypeData => {
@@ -141,9 +145,12 @@ class DefaultHandler {
 			throw new Error('insertStimulusResponse got invalid session id');
 		if (!data.data_string)
 			throw new Error('insertStimulusResponse got invalid response data string');
-		const response = data.data_string;
+		if (!data.user_id)
+			throw new Error('insertStimulusResponse got invalid userID');
 
-		const userId = await this.getOrMakeUser(sessId);
+		const response = data.data_string;
+		const userId = data.user_id;
+
 		console.log(`inserting response for user ${userId}: ${trim(JSON.stringify(response), 100)}`);
 
 		// DO CHECKS (not past end of experiment, etc.)
@@ -168,11 +175,13 @@ class DefaultHandler {
 			}).then(() => 0);
 	}
 
-	async endExperiment(sessId) {
+	async endExperiment(sessId, data) {
 		if (!sessId)
 			throw new Error('endExperiment got invalid session id');
+		if (!data.user_id)
+			throw new Error('endExperiment got invalid userID');
 
-		const userId = await this.getOrMakeUser(sessId);
+		const userId = data.user_id;
 
 		// make sure the user has a TUQ record
 		const tuqCount = (await this.pg_main(this.tables.TUQ).where('user_id', userId).count('*'))[0].count;
@@ -203,29 +212,6 @@ class DefaultHandler {
 				console.log(`removing user ${userId}'s TUQ record`);
 				return this.logTransaction(this.pg_main(this.tables.TUQ).where('user_id', userId).del());
 			}).then(() => 0);
-	}
-
-	async getOrMakeUser(sessId) {
-		if (!sessId)
-			throw new Error('getOrMakeUser got invalid session id');
-
-		const maybeUserId =
-			(await this.pg_main(this.tables.users).where('session_id', sessId).first('id'));
-
-		if (maybeUserId) {
-			console.log(`session id ${sessId} -> (already existing) user ${maybeUserId.id}`);
-			return maybeUserId.id;
-		}
-
-		// make new user
-		return this.logTransaction(this.pg_main(this.tables.users).insert({
-			created_at: new Date(),
-			updated_at: new Date(),
-			session_id: sessId
-		}).returning('id')).then(d => {
-			console.log(`session id ${sessId} -> (new) user ${d[0]}`);
-			return d[0];
-		});
 	}
 
 }
