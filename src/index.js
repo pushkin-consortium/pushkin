@@ -36,10 +36,18 @@ export default class Pushkin {
 
 	loadScripts(urls) { return Promise.all(urls.map(this.loadScript)); }
 
-	prepExperimentRun() { return this.con.post('/startExperiment'); }
+	prepExperimentRun(userID) {
+		const postData = {
+			user_id: userID
+		} 
+		return this.con.post('/startExperiment', postData); 
+	}
 
-	getAllStimuli() {
-		return this.con.post('/getStimuli')
+	getAllStimuli(userID) {
+		const postData = {
+			user_id: userID
+		} 
+		return this.con.post('/getStimuli', postData)
 			.then(res => {
 				const stimuli = res.data.resData;
 				return stimuli.map(s => JSON.parse(s.stimulus));
@@ -54,6 +62,8 @@ export default class Pushkin {
 	}
 
 	saveStimulusResponse(data) {
+		// Because we are saving data, it should be coming with a userID already
+		// Might make sense at some point to confirm this is what we expect
 		const postData = {
 			user_id: data.user_id,
 			data_string: data
@@ -61,7 +71,12 @@ export default class Pushkin {
 		return this.con.post('/stimulusResponse', postData);
 	}
 
-	endExperiment() { return this.con.post('/endExperiment'); }
+	endExperiment(userID) { 
+		const postData = {
+			user_id: userID
+		} 
+		return this.con.post('/endExperiment', postData); 
+	}
 
 	customApiCall(path, data, httpMethod) {
 		httpMethod = httpMethod || 'post';
