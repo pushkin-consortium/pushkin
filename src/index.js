@@ -6,7 +6,7 @@ import fs from 'fs';
 import path from 'path';
 // subcommands
 import generate from './commands/generate/index.js';
-import init from './commands/init/index.js';
+import { getSiteTemplates, pushkinInit} from './commands/init/index.js';
 import prep from './commands/prep/index.js';
 import setupdb from './commands/setupdb/index.js';
 
@@ -42,7 +42,15 @@ const nextArg = inputGetter();
 (() => {
 	switch (nextArg()) {
 		case 'init': {
-			init(process.cwd()); //Run ./commands/init/index.js
+			let arg = nextArg();
+			switch (arg) {
+				case 'list':
+					getSiteTemplates();
+					return;
+				default:
+					pushkinInit(process.cwd(), arg);
+					return;
+			}
 			return;
 		}
 		case 'generate': {
