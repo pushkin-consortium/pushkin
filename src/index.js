@@ -43,9 +43,10 @@ export default class Pushkin {
 		return this.con.post('/startExperiment', postData); 
 	}
 
-	getAllStimuli(userID) {
+	getAllStimuli(userID, nItems) {
 		const postData = {
-			user_id: userID
+			user_id: userID,
+			nItems: nItems
 		} 
 		return this.con.post('/getStimuli', postData)
 			.then(res => {
