@@ -3,6 +3,8 @@ import path from 'path';
 import zlib from 'zlib';
 import { exec} from 'child_process';
 import { templates } from './templates.js'
+const wget = require('node-wget-promise'); // for downloading files
+const got = require("got") // analog of curl
 
 export function getSiteTemplates() {
 	const templateNames = templates.map(t => (t.name))
@@ -27,29 +29,38 @@ export async function pushkinInit(initDir, template) {
 			throw new Error(`Failed to initialize pushkin project: file ${file} already exists`);
 	});
 
+	exec(`mkdir experiments`) // shouldn't be included in templates
+	const coreBundle = path.join(initDir, 'pushkin.tar.gz');
+	const zipOutput = path.join(initDir, 'pushkin.tar');
+
 	// download files
 	let url
 	for(let val in templates) {
 		if (templates[val].name == template) { 
-			console.log("found you!");
 			url = templates[val].url;
 		}
 	}
-	console.log(url);
+	if (!url){
+		throw new Error('There is no site template by that name. For a list, run "pushkin init list".');
+	}
 	console.log("retrieving from "+url)
-	let command = 'curl -s '+url+' | grep "tarball_url" | cut -d \\\" -f 4 | wget -qi - -O pushkin.tar.gz'
-	console.log(command);
+	let tarball_url;
+    try {
+        const response = await got(url);
+        tarball_url = JSON.parse(response.body).tarball_url;
+    } catch (error) {
+        console.log(error.response.body);
+        throw new Error('Problem parsing github JSON');
+    }
+    console.log(tarball_url);
+	await wget(tarball_url, {
+	    output: coreBundle
+	  })
+	  .catch(err => {
+	  	console.log(err.response.body);
+	  	throw new Error('Problem downloading file.');
+	  });
 	//exec(`curl `+url+` | grep "download_url" | cut -d \" -f 4 | wget -qi - -O temp.zip; unzip temp.zip -d .; rm temp.zip`)
-	await exec(command, function (error, stdout, stderr) {
-      console.log('stdout: ' + stdout);
-      console.log('stderr: ' + stderr);
-      if (error !== null) {
-        console.log('exec error: ' + error);
-      }
-    });
-	exec(`mkdir experiments`) // shouldn't be included in templates
-	const coreBundle = path.join(initDir, 'pushkin.tar.gz');
-	const zipOutput = path.join(initDir, 'pushkin.tar');
 	const contentStream = fs.createReadStream(coreBundle);
 	const writeStream = fs.createWriteStream(zipOutput);
 

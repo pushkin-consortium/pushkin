@@ -4,6 +4,8 @@ import commandLineArgs from 'command-line-args';
 import jsYaml from 'js-yaml';
 import fs from 'fs';
 import path from 'path';
+import "core-js/stable";
+import "regenerator-runtime/runtime";
 // subcommands
 import generate from './commands/generate/index.js';
 import { getSiteTemplates, pushkinInit} from './commands/init/index.js';
