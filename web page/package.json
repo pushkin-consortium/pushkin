@@ -1,0 +1,27 @@
+{
+  "name": "quiz_page",
+  "version": "1.0.0",
+  "description": "",
+  "main": "build/index.js",
+  "files": [
+    "build/*"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "babel src -d build"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "pushkin-client": "^1.1.16",
+    "pushkin-jspsych": "^1.0.1",
+    "react": "^16.12.0",
+    "react-router-dom": "^5.1.2"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.7.4",
+    "@babel/core": "^7.7.4",
+    "@babel/preset-env": "^7.7.4",
+    "@babel/preset-react": "^7.7.4"
+  }
+}
