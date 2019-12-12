@@ -1,4 +1,5 @@
 **/*.DS_Store
+**/*.sublime*
 
 # Build files
 build/

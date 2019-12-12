@@ -4,9 +4,11 @@ import commandLineArgs from 'command-line-args';
 import jsYaml from 'js-yaml';
 import fs from 'fs';
 import path from 'path';
+import "core-js/stable";
+import "regenerator-runtime/runtime";
 // subcommands
 import generate from './commands/generate/index.js';
-import init from './commands/init/index.js';
+import { listSiteTemplates, getPushkinSite, pushkinInit} from './commands/init/index.js';
 import prep from './commands/prep/index.js';
 import setupdb from './commands/setupdb/index.js';
 
@@ -41,9 +43,21 @@ const nextArg = inputGetter();
 
 (() => {
 	switch (nextArg()) {
-		case 'init': {
-			init(process.cwd()); //Run ./commands/init/index.js
+		case 'site': {
+			let arg = nextArg();
+			switch (arg) {
+				case 'list':
+					listSiteTemplates();
+					return;
+				default:
+					getPushkinSite(process.cwd(), arg);
+					return;
+			}
 			return;
+		}
+		case 'init': {
+			moveToProjectRoot();
+			pushkinInit(process.cwd());
 		}
 		case 'generate': {
 			moveToProjectRoot();
