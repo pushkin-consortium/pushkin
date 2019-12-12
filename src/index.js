@@ -8,7 +8,7 @@ import "core-js/stable";
 import "regenerator-runtime/runtime";
 // subcommands
 import generate from './commands/generate/index.js';
-import { getSiteTemplates, pushkinInit} from './commands/init/index.js';
+import { listSiteTemplates, getPushkinSite, pushkinInit} from './commands/init/index.js';
 import prep from './commands/prep/index.js';
 import setupdb from './commands/setupdb/index.js';
 
@@ -43,17 +43,21 @@ const nextArg = inputGetter();
 
 (() => {
 	switch (nextArg()) {
-		case 'init': {
+		case 'site': {
 			let arg = nextArg();
 			switch (arg) {
 				case 'list':
-					getSiteTemplates();
+					listSiteTemplates();
 					return;
 				default:
-					pushkinInit(process.cwd(), arg);
+					getPushkinSite(process.cwd(), arg);
 					return;
 			}
 			return;
+		}
+		case 'init': {
+			moveToProjectRoot();
+			pushkinInit(process.cwd());
 		}
 		case 'generate': {
 			moveToProjectRoot();
