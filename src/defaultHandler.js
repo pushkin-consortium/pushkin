@@ -3,6 +3,16 @@ import "regenerator-runtime/runtime";
 import knex from 'knex';
 const trim = (s, len) => s.length > len ? s.substring(0, len) : s;
 
+// helper function for turning string *or* JSON into string
+function handleJSON(str) {
+    try {
+        JSON.parse(str);
+    } catch (e) {
+        return str;
+    }
+    return JSON.stringify(str);
+}
+
 class DefaultHandler {
 	constructor(db_url, dbTablePrefix, transactionOps) {
 		this.tables = {
@@ -89,29 +99,21 @@ class DefaultHandler {
 	}
 
 	async getStimuli(sessId, data) {
+		// nItems = 0 implies get all stimuli
 		if (!sessId)
 			throw new Error('getStimuli got invalid session id');
 		if (!data.user_id)
 			throw new Error('getStimuli got invalid userID');
 
 		const userId = data.user_id;
-		return this.pg_main(this.tables.TUQ).where('user_id', userId).select('stim_group')
-			.then(async g => {
-				if (g.length < 1)
-					throw new Error(`getStimuli: user ${userId} doesn't have a TUQ record, aborting`);
+		const nItems = data.nItems;
+		const selectedStims = (data.nItems ? 
+			await this.pg_main(this.tables.stim).select('stimulus').orderByRaw('random()').limit(nItems) :
+			await this.pg_main(this.tables.stim).select('stimulus').orderByRaw('random()')
+			);
+		console.log(selectedStims);
 
-				const stimGroupId = g[0].stim_group;
-				console.log(`getStimuli: getting user ${userId} stimuli from group ${stimGroupId}`);
-
-				const stims = await this.pg_main(this.tables.stim).join(
-					this.tables.stimGroupStim,
-					`${this.tables.stim}.id`,
-					`${this.tables.stimGroupStim}.stimulus`
-				).where(`${this.tables.stimGroupStim}.group`, stimGroupId)
-					.select(`${this.tables.stim}.stimulus`);
-
-				return stims;
-			});
+		return selectedStims;
 	}
 
 	async insertMetaResponse(sessId, data) {
@@ -147,32 +149,17 @@ class DefaultHandler {
 			throw new Error('insertStimulusResponse got invalid response data string');
 		if (!data.user_id)
 			throw new Error('insertStimulusResponse got invalid userID');
+		if (!data.data_string.stimulus)
+			throw new Error('insertStimulusResponse got invalid stimulus');
 
-		const response = data.data_string;
-		const userId = data.user_id;
+		console.log(`inserting response for user ${data.user_id}: ${trim(JSON.stringify(data.data_string), 100)}`);
 
-		console.log(`inserting response for user ${userId}: ${trim(JSON.stringify(response), 100)}`);
-
-		// DO CHECKS (not past end of experiment, etc.)
-
-		return this.pg_main(this.tables.TUQ).where('user_id', userId).first('stim_group', 'cur_position')
-			.then(t => {
-				return this.pg_main(this.tables.stimGroupStim)
-					.where({
-						group: t.stim_group,
-						position: t.cur_position
-					}).first('stimulus');
-			}).then(stimRes => {
-				return this.logTransaction(this.pg_main(this.tables.TUQSR).insert({
-					user_id: userId,
-					stimulus: stimRes.stimulus,
-					response: JSON.stringify(response),
-					answered_at: new Date()
-				}));
-			}).then(() => {
-				console.log(`incrementing user ${userId}'s cur_position`);
-				return this.logTransaction(this.pg_main(this.tables.TUQ).where('user_id', userId).increment('cur_position'));
-			}).then(() => 0);
+		return this.logTransaction(this.pg_main(this.tables.stimResp).insert({
+			user_id: data.user_id,
+			stimulus: handleJSON(data.stimulus),
+			response: JSON.stringify(data.data_string),
+			created_at: new Date()
+		}));
 	}
 
 	async endExperiment(sessId, data) {
