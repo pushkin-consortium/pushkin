@@ -7,7 +7,7 @@ import path from 'path';
 import "core-js/stable";
 import "regenerator-runtime/runtime";
 // subcommands
-import generate from './commands/generate/index.js';
+import { listExpTemplates, getExpTemplate, initExperiment } from './commands/generate/index.js';
 import { listSiteTemplates, getPushkinSite, pushkinInit} from './commands/init/index.js';
 import prep from './commands/prep/index.js';
 import setupdb from './commands/setupdb/index.js';
@@ -56,31 +56,31 @@ const nextArg = inputGetter();
 			return;
 		}
 		case 'init': {
+			let arg = nextArg();
 			moveToProjectRoot();
-			pushkinInit(process.cwd());
-		}
-		case 'generate': {
-			moveToProjectRoot();
-			const config = loadConfig();
-			const name = nextArg(); // Retrieves name of experiment, passed as argument to 'pushkin generate'
-			generate(path.join(process.cwd(), config.experimentsDir), name);
-			return;
-		}
-		case 'template': {
-			moveToProjectRoot();
-			var newTemplate = nextArg();
-			exec('npm install newTemplate;', (err, stdout, stderr) => {
-				if (err) {
-					console.log(`Error installing template: ${err}`);
+			switch (arg) {
+				case 'site':
+					pushkinInit(process.cwd());
 					return;
-				}
-			})
-			exec(`rm -rf pushkin/*; rm -rf pushkin.yaml; mv node_modules/${newTemplate}/* ./pushkin; mv pushkin/pushkin.yaml;`, (err, stdout, stderr) => {
-				if (err) {
-					console.log(`Error moving template files into position: ${err}`);
+				default:
+					const config = loadConfig();
+					initExperiment(path.join(process.cwd(), config.experimentsDir, arg), arg);
 					return;
-				}
-			})
+			}
+		}
+		case 'experiment': {
+			let arg = nextArg();
+			switch (arg) {
+				case 'list':
+					listExpTemplates();
+					return;
+				default:
+					moveToProjectRoot();
+					const config = loadConfig();
+					const name = nextArg(); // Retrieves name of experiment, passed as argument to 'pushkin generate'
+					getExpTemplate(path.join(process.cwd(), config.experimentsDir), arg, name);
+					return;					
+			}
 		}
 		case 'prep': {
 			moveToProjectRoot();
@@ -109,7 +109,7 @@ const nextArg = inputGetter();
 			})
 		}
 		default: {
-			const usage = 'blah blah blah usage';
+			const usage = 'command not recognized';
 			console.error(usage);
 			return;
 		}

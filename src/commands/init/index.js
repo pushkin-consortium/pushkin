@@ -21,12 +21,12 @@ export async function getPushkinSite(initDir, template) {
 	newDirs.forEach(d => {
 		const dir = path.join(initDir, d);
 		if (fs.existsSync(dir) && fs.lstatSync(dir).isDirectory())
-			throw new Error(`Failed to initialize pushkin project: directory ${dir} already exists`);
+			console.error(`Failed to initialize pushkin project: directory ${dir} already exists`);
 	});
 	newFiles.forEach(f => {
 		const file = path.join(initDir, f);
 		if (fs.existsSync(file) && !fs.lstatSync(file).isDirectory())
-			throw new Error(`Failed to initialize pushkin project: file ${file} already exists`);
+			console.error(`Failed to initialize pushkin project: file ${file} already exists`);
 	});
 
 	// download files
@@ -37,7 +37,7 @@ export async function getPushkinSite(initDir, template) {
 		}
 	}
 	if (!url){
-		throw new Error('There is no site template by that name. For a list, run "pushkin init list".');
+		console.error('There is no site template by that name. For a list, run "pushkin init list".');
 	}
 	console.log("retrieving from "+url)
 	console.log("be patient...")
@@ -66,11 +66,11 @@ export async function pushkinInit(initDir) {
 		// For 'api' and 'front-end', run 'npm install', which will install according to the package.json for each.
 		console.log(`Installing npm dependencies for ${dir}`);
 		exec('npm install', { cwd: path.join(initDir, 'pushkin', dir) }, err => {
-			if (err) throw new Error(`Failed to install npm dependencies for ${dir}: ${err}`);
+			if (err) console.error(`Failed to install npm dependencies for ${dir}: ${err}`);
 			if (dir != 'api' && dir != 'front-end') return;
 			console.log(`Building ${dir}`);
 			exec('npm run build', { cwd: path.join(process.cwd(), 'pushkin', dir) }, err => {
-				if (err) throw new Error(`Failed to build ${dir}: ${err}`);
+				if (err) console.error(`Failed to build ${dir}: ${err}`);
 			});
 		});
 	});
