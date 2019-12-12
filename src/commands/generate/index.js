@@ -54,13 +54,13 @@ export async function getExpTemplate(experimentsDir, templateName, newExpName) {
 	shell.rm(`temp.zip`);
 	shell.mv(`temp/*`, `temp/temp`);
 	shell.mv(`temp/temp/*`, `temp/`);
-	shell.rm(`-rm`,`temp/temp`);
+	shell.rm(`-rf`,`temp/temp`);
 	shell.mv(`temp/*`, newDir);
 }
 
 export function initExperiment(expDir, expName) {
-	if (!(fs.existsSync(expDir) && fs.lstatSync(newDir).isDirectory()))
-		console.error(`There is no experiment directory with the name (${newExpName})`);
+	if (!(fs.existsSync(expDir) && fs.lstatSync(expDir).isDirectory()))
+		console.error(`There is no experiment directory with the name (${expName})`);
 	// change all occurrences of "template" in filenames and contents to exp name
 	const updateName = dir => {
 		fs.readdirSync(dir).forEach(el => {
@@ -69,25 +69,25 @@ export function initExperiment(expDir, expName) {
 				updateName(el); //notice this function calls itself recursively
 				return;
 			}
-			const newBase = path.basename(el).replace(/template/g, newExpName);
+			const newBase = path.basename(el).replace(/pushkintemplate/g, expName);
 			const newName = path.join(path.dirname(el), newBase);
 			fs.renameSync(el, newName);
 
-			try { replace.sync({ files: path.join(dir, '*'), from: /template/g, to: newExpName }); }
+			try { replace.sync({ files: path.join(dir, '*'), from: /pushkintemplate/g, to: expName }); }
 			catch (e) { console.error(e); }
 		});
 	};
-	updateName(newDir);
+	updateName(expDir);
 
 	// specific to this experiment (some might not need a build phase, for example)
 	['api controllers', 'web page', 'worker'].forEach(dir => {
 		console.log(`Installing npm dependencies for ${dir}`);
-		exec('npm install', { cwd: path.join(newDir, dir) }, err => {
+		exec('npm install', { cwd: path.join(expDir, dir) }, err => {
 			if (err)
 				console.error(`Failed to install npm dependencies for ${dir}: ${err}`);
 			if (dir == 'worker') return;
 			console.log(`Building ${dir}`);
-			exec('npm run build', { cwd: path.join(newDir, dir) }, err => {
+			exec('npm run build', { cwd: path.join(expDir, dir) }, err => {
 				if (err)
 					console.error(`Failed to build ${dir}:\n\t${err}`);
 			});

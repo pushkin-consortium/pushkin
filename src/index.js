@@ -109,7 +109,7 @@ const nextArg = inputGetter();
 			})
 		}
 		default: {
-			const usage = 'blah blah blah usage';
+			const usage = 'command not recognized';
 			console.error(usage);
 			return;
 		}
