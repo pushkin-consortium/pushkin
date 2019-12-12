@@ -65,9 +65,22 @@ export default class Pushkin {
 	saveStimulusResponse(data) {
 		// Because we are saving data, it should be coming with a userID already
 		// Might make sense at some point to confirm this is what we expect
+		let stimulus;
+		try {
+			stimulus = data.stimulus;
+		} catch (e) {
+			throw new Error('jsPsych data does not include a stimulus key');
+		}
+		let user_id;
+		try {
+			user_id = data.user_id;
+		} catch (e) {
+			throw new Error('req does not include a user_id');
+		}
 		const postData = {
-			user_id: data.user_id,
-			data_string: data
+			user_id: user_id,
+			data_string: data,
+			stimulus: stimulus
 		};
 		return this.con.post('/stimulusResponse', postData);
 	}
