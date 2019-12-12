@@ -33,8 +33,6 @@
     "got": "^10.0.3",
     "js-yaml": "^3.13.1",
     "knex": "^0.16.5",
-    "node-wget": "^0.4.3",
-    "node-wget-promise": "^0.1.6",
     "pg": "^7.14.0",
     "replace-in-file": "^3.4.4",
     "shelljs": "^0.8.3",
