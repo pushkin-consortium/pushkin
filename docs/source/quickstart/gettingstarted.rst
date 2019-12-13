@@ -8,21 +8,22 @@ Initialization
 
 Creating a basic new Pushkin site
 ----------------------
+All instructions are for working on a Mac. If you figure out how to install Pushkin on Windows, please update the documentation and submit a pull request!
 
-Make sure you have the below programs installed.
+If you don't have `Homebrew <https://brew.sh/>`_, install it. Then run the following:
 
--  `Docker`_
--  `NPM`_
--  Pushkin CLI (can be installed with ``npm install -g pushkin-cli``)
+:: code-block:: bash
+  
+  $ brew install Node wget
 
-Open a terminal and move to an empty directory in which to setup
-Pushkin.
+Next, istall `Docker`_.
 
-Make sure Docker is up and running, then run:
+Make sure Docker is running. Then, open a terminal and move to an empty directory in which to setup Pushkin.
 
 .. code-block:: bash
 
-  $ pushkin init
+  $ pushkin site default
+  $ pushkin init site
 
 This sets up a skeleton website in the current folder and sets up a development database. Once that finishes, you should have a directory tree that looks
 something like this:
@@ -48,7 +49,8 @@ provides, run
 
 .. code-block:: bash
 
-  $ pushkin generate myexp
+  $ pushkin experiment default myexp
+  $ pushkin init myexp
 
 replacing “myexp” with a short name of your experiment. This will create a new folder in the
 experiments directory like
@@ -75,11 +77,10 @@ files to the right places, run:
 
   $ pushkin prep
 
-
 Setting up a local database
 -----------------------
 
-For now, let's use the test database that is built by ``pushkin init``. We need to populate it
+For now, let's use the test database that is built by ``pushkin init site``. We need to populate it
 with stimuli for our experiment(s):
 
 .. code-block:: bash
@@ -141,17 +142,34 @@ If you make updates to your website, here is how to re-launch a local test versi
   $ docker-compose -f pushkin/docker-compose.dev.yml start test_db
   $ pushkin setupdb
   $ docker-compose -f pushkin/docker-compose.dev.yml stop test_db
-  $ docker-compose -f pushkin/docker-compose.dev.yml up --build  
+  $ docker-compose -f pushkin/docker-compose.dev.yml up --build   --remove-orphans
 
-Experiment Stubs
+Templates
 ###############
 
-FUBAR
+There are a growing number of templates for Pushkin websites and experiments. You can get the current list of website templates as follows:
+
+.. code-block:: bash
+  
+  $ pushkin site list
+
+Similarly, to get experiment templates:
+
+.. code-block:: bash
+  
+  $ pushkin experiment list
+
+These lists are hard-coded into the CLI. If you want access to more recently released templates, update your CLI:
+
+.. code-block:: bash
+  
+  $ npm update -g pushkin-cli
+
 
 Deploying to AWS
 ###############
 
-FUBAR
+TODO
 
 
 .. include:: ../links/links.rst
