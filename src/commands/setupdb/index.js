@@ -6,16 +6,15 @@ import knex from 'knex';
 export default (coreDBs, mainExpDir) => {
 	// load up all migrations for same dbs to be run at same time (knex requires this)
 	const dbsToExps = new Map(); // which dbs -> { migrations, seeds } list
+	let expConfig;
 	fs.readdirSync(mainExpDir).forEach(expDir => {
 		expDir = path.join(mainExpDir, expDir);
 		if (!fs.lstatSync(expDir).isDirectory()) return;
 
 		// load exp config, skip if there isn't any
 		const expConfigPath = path.join(expDir, 'config.yaml');
-		let expConfig;
 		try { expConfig = jsYaml.safeLoad(fs.readFileSync(expConfigPath), 'utf8'); }
 		catch (e) { console.error(`Failed to load config file for ${expDir}:\n\t${e}`); return; }
-		console.log(expConfig);
 
 		// add these migrations and seeds to the appropriate database
 		const migsDir = path.join(expDir, expConfig.migrations.location);
@@ -46,12 +45,15 @@ export default (coreDBs, mainExpDir) => {
 				database: dbInfo.name
 			}
 		});
-
 		pg.migrate.latest({ directory: migDirs })
 			.then(() => {
-				return Promise.all(
-					seedDirs.map(seedDir => (pg.seed.run({ directory: seedDir })))
-				);
+				if (expConfig.seeds.location){
+					return Promise.all(
+						seedDirs.map(seedDir => (pg.seed.run({ directory: seedDir })))
+					);
+				} else {
+					return true
+				}
 			})
 			.then(() => {
 				console.log('Setup databases successfully');
