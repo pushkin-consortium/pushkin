@@ -14,8 +14,8 @@ Welcome to Pushkin's documentation!
    quickstart/gettingstarted
    deployment/deployment
    development/development
-   sli/pushkin_cli
-   usernames/usernames
+   cli/pushkin_cli
+   usernames/index
 
 
 
