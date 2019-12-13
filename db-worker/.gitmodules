@@ -1,9 +1,0 @@
-[submodule "seeds"]
-	path = seeds
-	url = https://github.com/pushkin-consortium/seeds.git
-[submodule "models"]
-	path = models
-	url = https://github.com/pushkin-consortium/models.git
-[submodule "migrations"]
-	path = migrations
-	url = https://github.com/pushkin-consortium/migrations.git

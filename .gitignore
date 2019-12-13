@@ -136,3 +136,6 @@ acs-**/*.bib
 **/.Rhistory
 **/.Rapp.history
 **/.Rproj.user
+
+### Sublime
+**/*.sublime*

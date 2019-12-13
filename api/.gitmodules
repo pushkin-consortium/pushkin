@@ -1,3 +1,0 @@
-[submodule "controllers"]
-	path = controllers
-	url = https://github.com/pushkin-consortium/controllers.git
