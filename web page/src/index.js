@@ -3,7 +3,7 @@ import pushkinClient from 'pushkin-client';
 import jsPsych from 'pushkin-jspsych';
 import { withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
-import timeline_basic from './timeline';
+import timeline_basic from './experiment';
 
 const pushkin = new pushkinClient();
 window.jsPsych = jsPsych;
