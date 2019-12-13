@@ -3,6 +3,7 @@ import pushkinClient from 'pushkin-client';
 import jsPsych from 'pushkin-jspsych';
 import { withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
+import timeline_basic from './timeline';
 
 const pushkin = new pushkinClient();
 window.jsPsych = jsPsych;
@@ -23,13 +24,7 @@ class quizComponent extends React.Component {
 
   componentDidMount() {
     this.startExperiment();
-    window.addEventListener('beforeunload', this.beforeunload.bind(this));
   }
-
-  async beforeunload(e) {
-    await this.endExperiment();
-    delete e['returnValue']
-    }
 
   async startExperiment() {
     this.setState({ experimentStarted: true });
@@ -39,31 +34,20 @@ class quizComponent extends React.Component {
     await pushkin.connect('/api/pushkintemplate');
     await pushkin.prepExperimentRun(this.props.userID);
     await pushkin.loadScripts([
-      'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/plugins/jspsych-html-button-response.js',
-      'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/plugins/jspsych-instructions.js',
-      'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/plugins/jspsych-survey-text.js'
+      'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/plugins/html-keyboard-response.js',
     ]);
-    const stimuli = await pushkin.getAllStimuli(this.props.userID);
-    const timeline = pushkin.setSaveAfterEachStimulus(stimuli);
+    const timeline = pushkin.setSaveAfterEachStimulus(timeline_basic);
     await jsPsych.init({
       display_element: document.getElementById('jsPsychTarget'),
       timeline: timeline,
       on_finish: this.endExperiment.bind(this),
-      on_close: this.endExperiment.bind(this)
     });
 
     this.setState({ loading: false });
   }
 
-  finishExperiment() {
-    //Basically just a wrapper
-    document.getElementById("jsPsychTarget").innerHTML = "Thank you for participating!";
-    this.endExperiment();
-  }
-
   endExperiment() {
-    pushkin.endExperiment(this.props.userID);
-    window.removeEventListener('beforeunload', this.beforeunload.bind(this));
+    document.getElementById("jsPsychTarget").innerHTML = "Thank you for participating!";
   }
 
   render() {
