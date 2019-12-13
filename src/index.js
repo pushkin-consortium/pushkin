@@ -100,6 +100,11 @@ const nextArg = inputGetter();
 			setupdb(config.databases, path.join(process.cwd(), config.experimentsDir));
 			return;
 		}
+		case 'dev': {
+			moveToProjectRoot();
+			exec('docker-compose -f pushkin/docker-compose.dev.yml up --build --remove-orphans;');
+			return;
+		}
 		case 'hardreset': {
 			exec('docker-compose down; docker rm -f $(docker ps -a -q); docker volume rm $(docker volume ls -q);', (err, stdout, stderr) => {
 			  if (err) {
