@@ -42,17 +42,3 @@ Understanding Docker
 --------------------
 
 There are a number of tutorials on Docker. For ongoing use, this `cheatsheet <https://www.digitalocean.com/community/tutorials/how-to-remove-docker-images-containers-and-volumes>`_ is pretty useful.
-
-Advanced topics
-####################
-
-Several topics that may be helpful for developers are described in more detail in this section.
-
-
-.. toctree::
-   :maxdepth: 1
-
-   Experiment stubs <development_experimentSubs>
-   The prep command <development_prep>
-
-.. include:: ../links/links.rst
