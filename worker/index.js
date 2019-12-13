@@ -1,6 +1,6 @@
-const pWorker = require('pushkin-worker').PushkinWorker;
-const defaultHandler = require('pushkin-worker').defaultHandler;
-
+const workers = require('pushkin-worker');
+const pWorker = workers.pushkinWorker;
+const defaultHandler = workers.defaultHandler;
 
 const options = {
 	amqpAddress: process.env.AMQP_ADDRESS || 'amqp://localhost',
