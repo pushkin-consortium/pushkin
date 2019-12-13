@@ -1,4 +1,6 @@
-const pWorker = require('pushkin-worker').default;
+const pWorker = require('pushkin-worker').PushkinWorker;
+const defaultHandler = require('pushkin-worker').defaultHandler;
+
 
 const options = {
 	amqpAddress: process.env.AMQP_ADDRESS || 'amqp://localhost',
@@ -21,7 +23,7 @@ worker.init()
 			console.log(`handling test method got data: ${data}`);
 			return `successfully got ${data}`;
 		});
-		worker.useDefaultHandles(db_conn_address, 'pushkintemplate');
+		worker.useHandler(defaultHandler, db_conn_address, 'pushkintemplate');
 		worker.start();
 	})
 	.catch(err => {
