@@ -13,6 +13,13 @@ function handleJSON(str) {
     return JSON.stringify(str);
 }
 
+const methods = [
+	'getStimuli',
+	'insertStimulusResponse',
+	'startExperiment'
+]
+
+
 class DefaultHandler {
 	constructor(db_url, dbTablePrefix, transactionOps) {
 		this.tables = {
@@ -52,8 +59,6 @@ class DefaultHandler {
 				user_id: data.user_id,
 				created_at: new Date()
 			}));
-	}
-
 		}
 	}
 
@@ -95,21 +100,14 @@ class DefaultHandler {
 		}));
 	}
 
-	function methods(){
-		methods = [
-			'getStimuli',
-			'insertStimulusResponse'
-		]
+	methods(){
 		return methods;
 	}
 }
 
 module.exports = {
 	defaultHandler: DefaultHandler,
-	defaultMethods: [
-		'getStimuli',
-		'insertStimulusResponse'
-	]
+	defaultMethods: methods
 };
 
 
