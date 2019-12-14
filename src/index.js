@@ -142,14 +142,16 @@ class DefaultHandler {
 
 		const userId = data.user_id;
 
-		await this.logTransaction(this.pg_main(this.tables.users).insert({
-			user_id: data.user_id,
-			created_at: new Date()
-		})); 
-		//using 'await' because stimulus recording will fail if user isn't initialized yet.
-		//not likely to happen, but stranger things have happened...
-
-		return true;
+		const userCount = (await this.pg_main(this.tables.users).where('user_id', userId).count('*'))[0].count;
+		if (userCount>0) {
+			//only need to insert if subject has never done this experiment below
+			return 
+		} else {
+			return this.logTransaction(this.pg_main(this.tables.users).insert({
+				user_id: data.user_id,
+				created_at: new Date()
+			}));
+		}
 	}
 
 	async getStimuli(sessId, data) {
@@ -184,7 +186,7 @@ class DefaultHandler {
 
 		return this.logTransaction(this.pg_main(this.tables.stimResp).insert({
 			user_id: data.user_id,
-			stimulus: handleJSON(data.stimulus),
+			stimulus: handleJSON(data.data_string.stimulus),
 			response: JSON.stringify(data.data_string),
 			created_at: new Date()
 		}));
