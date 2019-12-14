@@ -154,14 +154,6 @@ class DefaultHandler {
 		}
 	}
 
-	async startExperiment(data) {
-		if (!data.user_id)
-			throw new Error('getStimuli got invalid userID');
-		const userId = data.user_id;
-	}
-
-
-
 	async getStimuli(sessId, data) {
 		// nItems = 0 implies get all stimuli
 		if (!sessId)
@@ -194,7 +186,7 @@ class DefaultHandler {
 
 		return this.logTransaction(this.pg_main(this.tables.stimResp).insert({
 			user_id: data.user_id,
-			stimulus: handleJSON(data.stimulus),
+			stimulus: handleJSON(data.data_string.stimulus),
 			response: JSON.stringify(data.data_string),
 			created_at: new Date()
 		}));
