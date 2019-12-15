@@ -44,10 +44,10 @@ const packAndInstall = (packDir, installDir, callback) => {
 
 			// package it up in tarball
 			startTask();
-			exec('npm run build', { cwd: packDir}, (err, stdout, stdin) => {
+			execSync('npm run build', { cwd: packDir}, (err, stdout, stdin) => {
 				if (err)
 					return fail('Failed to run npm build', err);
-				exec('npm pack', { cwd: packDir }, (err, stdout, stdin) => { // eslint-disable-line
+				execSync('npm pack', { cwd: packDir }, (err, stdout, stdin) => { // eslint-disable-line
 					if (err)
 						return fail('Failed to run npm pack', err);
 					const packedFileName = stdout.toString().trim();
