@@ -72,7 +72,7 @@ const packAndInstall = (packDir, installDir, callback) => {
 
 						// install package to installDir
 						startTask();
-						exec(`npm install "${packedFileName}"`, { cwd: installDir }, err => {
+						execSync(`npm install "${packedFileName}"`, { cwd: installDir }, err => {
 							if (err)
 								return fail(`Failed to run npm install ${packedFileName}`, err);
 							finishTask(uniqueName); // npm install [package bundle] in installDir
