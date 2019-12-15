@@ -20,7 +20,7 @@ export default class ControllerBuilder {
 	}
 
 	// allow users to set their own custom api endpoints that just pass things along
-	setCustomPass(route, handler, httpMethodOption) {
+	setCustomPass(route, handler, queue, httpMethodOption) {
 		httpMethod = httpMethod || 'post';
 		if (this.validHttpMethods.indexOf(httpMethod) < 0) {
 			console.error(`'${httpMethod}' is not a valid http method. Ignoring for route ${route}`);
