@@ -6,6 +6,5 @@ const task_queue = 'pushkintemplate_quiz_taskworker'; // for stuff that might ne
 
 const myController = new pushkin.ControllerBuilder();
 myController.setDefaultPasses(db_read_queue, db_write_queue, task_queue);
-myController.setDirectUse('/status', (req, res, next) => res.send('up'), 'get'); // eslint-disable-line
 
 module.exports = myController;

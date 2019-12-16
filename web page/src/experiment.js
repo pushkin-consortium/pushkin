@@ -1,3 +1,5 @@
+import jsPsych from 'pushkin-jspsych';
+
 const timeline = []
 
 

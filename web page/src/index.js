@@ -31,7 +31,6 @@ class quizComponent extends React.Component {
 
   async startExperiment() {
     this.setState({ experimentStarted: true });
-    this.props.history.listen(this.endEarly);
 
     jsPsych.data.addProperties({user_id: this.props.userID}); //See https://www.jspsych.org/core_library/jspsych-data/#jspsychdataaddproperties
     await pushkin.connect('/api/pushkintemplate');
@@ -46,6 +45,7 @@ class quizComponent extends React.Component {
       on_finish: this.endExperiment.bind(this),
     });
 
+    document.getElementById('jsPsychTarget').focus();
     this.setState({ loading: false });
   }
 
