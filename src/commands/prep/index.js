@@ -51,13 +51,7 @@ const packAndInstall = (packDir, installDir, callback) => {
 							fs.rename(packageJsonBackup, packageJsonPath, err => {
 								if (err)
 									return fail('Failed to restore package.json backup', e); 
-								exec(`npm install "${packedFileName}"`, { cwd: installDir }, err => {
-									if (err)
-										return fail(`Failed to run npm install ${packedFileName}`, err);
-									if (!uniqueName)
-										return fail('Internal error: no final module name returned');
-									callback(undefined, uniqueName);
-								});
+								callback(undefined, uniqueName);
 							});
 						});
 					});

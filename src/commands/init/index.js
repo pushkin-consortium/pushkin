@@ -69,21 +69,22 @@ export async function pushkinInit(initDir) {
 		if (tasks.length == 0) {
 			console.log('Starting local test database container');
 			// note that pushkin/docker-compose.dev.yml defines a container called 'test_db', which gets fired up below
-			try {shell.exec('docker-compose -f pushkin/docker-compose.dev.yml up --no-start && docker-compose -f pushkin/docker-compose.dev.yml start test_db')}
-			catch (e) {
-				console.error(`Failed to start test_db container: ${err}`);
-				return;
-			}
-			console.log('Creating local test database');
-			shell.exec(`docker-compose -f pushkin/docker-compose.dev.yml exec -T test_db psql -U postgres -c "create database test_db"`, err => {
+			shell.exec('docker-compose -f pushkin/docker-compose.dev.yml up --no-start && docker-compose -f pushkin/docker-compose.dev.yml start test_db', err => {
 				if (err) {
-					console.error(`Failed to run create database command in test_db container: ${err}`); // no return after
-				} else {
-					console.log('Created local test database successfully');
+					console.error(`Failed to start test_db container: ${err}`);
+					return;
 				}
-				//Stop the container
-				exec('docker-compose -f pushkin/docker-compose.dev.yml stop test_db', err => {
-					if (err) console.error(`Failed to stop test_db container: ${err}`);
+				console.log('Creating local test database');
+				shell.exec(`docker-compose -f pushkin/docker-compose.dev.yml exec -T test_db psql -U postgres -c "create database test_db"`, err => {
+					if (err) {
+						console.error(`Failed to run create database command in test_db container: ${err}`); // no return after
+					} else {
+						console.log('Created local test database successfully');
+					}
+					//Stop the container
+					shell.exec('docker-compose -f pushkin/docker-compose.dev.yml stop test_db', err => {
+						if (err) console.error(`Failed to stop test_db container: ${err}`);
+					});
 				});
 			});
 		}
