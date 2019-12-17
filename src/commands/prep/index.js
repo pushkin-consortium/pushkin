@@ -10,18 +10,6 @@ const packAndInstall = (packDir, installDir, callback) => {
 	const fail = (reason, err) => {
 		callback(new Error(`${reason}\n\t(${packDir}, ${installDir}):\n\t\t${err}`));
 	};
-	const tasks = [];
-	const startTask = () => { tasks.push(true); };
-	let finalModuleName;
-	const finishTask = moduleName => {
-		if (moduleName) finalModuleName = moduleName;
-		tasks.pop();
-		if (tasks.length == 0) {
-			if (!moduleName)
-				return fail('Internal error: no final module name returned');
-			callback(undefined, finalModuleName);
-		}
-	};
 
 	// backup the package json
 	const packageJsonPath = path.join(packDir, 'package.json');
@@ -29,7 +17,6 @@ const packAndInstall = (packDir, installDir, callback) => {
 	try { fs.copyFileSync(packageJsonPath, packageJsonBackup); }
 	catch (e) { return fail('Failed to backup package.json', e); }
 
-	startTask();
 	fs.readFile(packageJsonPath, 'utf8', (err, data) => {
 		let packageJson;
 		try { packageJson = JSON.parse(data); }
@@ -37,14 +24,12 @@ const packAndInstall = (packDir, installDir, callback) => {
 		// give package a unique name to avoid module conflicts
 		const uniqueName = `pushkinComponent${uuid().split('-').join('')}`;
 		packageJson.name = uniqueName;
-		startTask();
 		fs.writeFile(packageJsonPath, JSON.stringify(packageJson), 'utf8', err => {
 			if (err)
 				return fail('Failed to write new package.json', err);
 
 			// package it up in tarball
-			startTask();
-			execSync('npm run build', { cwd: packDir}, (err, stdout, stdin) => {
+			exec('npm run build', { cwd: packDir}, (err, stdout, stdin) => {
 				if (err)
 					return fail('Failed to run npm build', err);
 				execSync('npm pack', { cwd: packDir }, (err, stdout, stdin) => { // eslint-disable-line
@@ -55,36 +40,24 @@ const packAndInstall = (packDir, installDir, callback) => {
 					const movedPack = path.join(installDir, packedFileName);
 
 					// move the package to the installDir
-					startTask();
 					fs.rename(packedFile, movedPack, err => {
 						if (err)
 							return fail(`Failed to move packaged file (${packedFile} => ${movedPack})`, err);
 
 						// restore the unmodified package.json
-						startTask();
 						fs.unlink(packageJsonPath, err => {
 							if (err)
 								return fail(`Failed to delete ${packageJsonPath}`, err);
-							try { fs.renameSync(packageJsonBackup, packageJsonPath); }
-							catch (e) { return fail('Failed to restore package.json backup', e); }
-							finishTask(); // deleting modified package.json
+							fs.rename(packageJsonBackup, packageJsonPath, err => {
+								if (err)
+									return fail('Failed to restore package.json backup', e); 
+								callback(undefined, uniqueName);
+							});
 						});
-
-						// install package to installDir
-						startTask();
-						execSync(`npm install "${packedFileName}"`, { cwd: installDir }, err => {
-							if (err)
-								return fail(`Failed to run npm install ${packedFileName}`, err);
-							finishTask(uniqueName); // npm install [package bundle] in installDir
-						});
-						finishTask(); // moving package to installDir
 					});
-					finishTask(); // npm pack
 				});
 			});
-			finishTask(); // write new package file
 		});
-		finishTask(); // read package file
 	});
 };
 
@@ -251,8 +224,9 @@ export default (experimentsDir, coreDir, callback) => {
 			console.log('Linking components');
 			// write out api includes
 			const controllersJsonFile = path.join(coreDir, 'api/src/controllers.json');
-			try { fs.writeFileSync(controllersJsonFile, JSON.stringify(newApiControllers), 'utf8'); }
-			catch (e) { return fail('Failed to write api controllers list', e); }
+			fs.writeFile(controllersJsonFile, JSON.stringify(newApiControllers), 'utf8', err => {
+				if (err) return fail('Failed to write api controllers list', e)
+			});
 
 			// write out web page includes
 			try { 
@@ -274,13 +248,18 @@ export default (experimentsDir, coreDir, callback) => {
 			let newCompData;
 			try { newCompData = jsYaml.safeDump(compFile); }
 			catch (e) { return fail('Failed to create new compose file without old workers', e); }
-			try { fs.writeFileSync(composeFileLoc, newCompData, 'utf8'); }
-			catch (e) { return fail('Failed to write new compose file without old workers', e); }
+			fs.writeFile(composeFileLoc, newCompData, 'utf8', err => {
+				if (err) return fail('Failed to write new compose file without old workers', e)
+			}); 
 
 			// rebuild the core api and front end with the new experiment modules
 			console.log('Building core Pushkin with new experiment components');
+			try{ execSync('npm install *', { cwd: path.join(coreDir, 'api/tempPackages') }); }
+			catch (e) { return fail('Failed to install api packages', e); }
 			try{ execSync('npm run build', { cwd: path.join(coreDir, 'api') }); }
 			catch (e) { return fail('Failed to build core api', e); }
+			try{ execSync('npm install *', { cwd: path.join(coreDir, 'front-end/tempPackages') }); }
+			catch (e) { return fail('Failed to install web page packages', e); }
 			try { execSync('npm run build', { cwd: path.join(coreDir, 'front-end') }); }
 			catch (e) { return fail('Failed to build core front end', e); }
 			console.log('Prepped successfully');
@@ -313,6 +292,7 @@ export default (experimentsDir, coreDir, callback) => {
 			if (err)
 				return fail(`Failed to prep api for ${expDir}`, err);
 			contrListAppendix.forEach(a => { newApiControllers.push(a); });
+			console.log(`Finished ${expDir} API`)
 			finishTask();
 		});
 
@@ -322,6 +302,7 @@ export default (experimentsDir, coreDir, callback) => {
 			if (err)
 				return fail(`Failed to prep web page for ${expDir}`, err);
 			newWebPageIncludes.push(webListAppendix);
+			console.log(`Finished ${expDir} web page`)
 			finishTask();
 		});
 
@@ -331,6 +312,7 @@ export default (experimentsDir, coreDir, callback) => {
 			if (err)
 				return fail(`Failed to prep worker for ${expDir}`, err);
 			newWorkerServices.push(workerAppendix);
+			console.log(`Finished ${expDir} worker`)
 			finishTask();
 		});
 	});

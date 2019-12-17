@@ -62,7 +62,37 @@ export async function getPushkinSite(initDir, template) {
 };
 
 export async function pushkinInit(initDir) {
+	const tasks = [];
+	const startTask = () => { tasks.push(true); };
+	const finishTask = () => {
+		tasks.pop();
+		if (tasks.length == 0) {
+			console.log('Starting local test database container');
+			// note that pushkin/docker-compose.dev.yml defines a container called 'test_db', which gets fired up below
+			shell.exec('docker-compose -f pushkin/docker-compose.dev.yml up --no-start && docker-compose -f pushkin/docker-compose.dev.yml start test_db', err => {
+				if (err) {
+					console.error(`Failed to start test_db container: ${err}`);
+					return;
+				}
+				console.log('Creating local test database');
+				shell.exec(`docker-compose -f pushkin/docker-compose.dev.yml exec -T test_db psql -U postgres -c "create database test_db"`, err => {
+					if (err) {
+						console.error(`Failed to run create database command in test_db container: ${err}`); // no return after
+					} else {
+						console.log('Created local test database successfully');
+					}
+					//Stop the container
+					shell.exec('docker-compose -f pushkin/docker-compose.dev.yml stop test_db', err => {
+						if (err) console.error(`Failed to stop test_db container: ${err}`);
+					});
+				});
+			});
+		}
+	};
+
+	//// Begins here ////
 	['api', 'front-end'].forEach(dir => {
+		startTask();
 		// For 'api' and 'front-end', run 'npm install', which will install according to the package.json for each.
 		console.log(`Installing npm dependencies for ${dir}`);
 		exec('npm install', { cwd: path.join(initDir, 'pushkin', dir) }, err => {
@@ -71,31 +101,8 @@ export async function pushkinInit(initDir) {
 			console.log(`Building ${dir}`);
 			exec('npm run build', { cwd: path.join(process.cwd(), 'pushkin', dir) }, err => {
 				if (err) console.error(`Failed to build ${dir}: ${err}`);
-			});
-		});
-	});
-
-	console.log('Creating local test database');
-	// note that pushkin/docker-compose.dev.yml defines a container called 'test_db', which gets fired up below
-	exec('docker-compose -f pushkin/docker-compose.dev.yml up --no-start && docker-compose -f pushkin/docker-compose.dev.yml start test_db', err => {
-		if (err) {
-			console.error(`Failed to start test_db container: ${err}`);
-			return;
-		}
-		//following command starts up a database called 'test_db' in the container 'test_db' (notice the overloading of the name)
-		const command = `
-			bash pushkin/waitforit.sh localhost:5432 -t 10 -- \
-			docker-compose -f pushkin/docker-compose.dev.yml exec -T test_db psql -U postgres -c "create database test_db"
-		`;
-		exec(command, err => {
-			if (err) {
-				console.error(`Failed to run create database command in test_db container: ${err}`); // no return after
-			} else {
-				console.log('Created local test database successfully');
-			}
-			//Stop the container
-			exec('docker-compose -f pushkin/docker-compose.dev.yml stop test_db', err => {
-				if (err) console.error(`Failed to stop test_db container: ${err}`);
+				console.log(`${dir} is built`)
+				finishTask();
 			});
 		});
 	});
