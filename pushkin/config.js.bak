@@ -1,0 +1,49 @@
+// Global configuration file
+
+const production = process.env.NODE_ENV === 'production';
+
+// --- API ---
+let apiEndpoint; //Still needed?
+let frontEndURL; //Still needed?
+let logoutURL; //Still needed?
+const rootDomain = 'http://localhost';
+if (production) {
+  // Production
+  // use /api/ as base url
+  apiEndpoint = rootDomain + '/api';
+  frontEndURL = rootDomain + '/callback';
+  logoutURL = rootDomain;
+} else {
+  // Debug / Test
+  // remove port (if there is one specified) and append port 3000 and /api/
+  apiEndpoint = rootDomain + '/api';
+  frontEndURL = rootDomain + '/callback';
+  logoutURL = rootDomain;
+}
+
+export const CONFIG = {
+  production,
+  debug: !production,
+
+  apiEndpoint,
+  frontEndURL,
+  logoutURL,
+
+  useForum: false,
+  useAuth: false,
+  //Note that the forum won't work without authentication
+
+  authDomain: '<YOUR_AUTH0_DOMAIN>',
+  authClientID: '<YOUR_AUTH0_CLIENT_ID>',
+
+  whoAmI: 'Citizen Science Website',
+  hashtags: 'science, learn',
+  email: 'me@mydomain.com',
+  shortName: 'CSW',
+
+  salt: 'abc123',
+
+  fc: {
+    popup: false
+  }
+};

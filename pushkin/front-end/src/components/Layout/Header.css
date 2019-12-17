@@ -1,0 +1,125 @@
+.navWrapper {
+  text-align: center;
+  position: absolute;
+  right: 10px;
+}
+.row {
+  padding: 40px;
+}
+
+.title {
+  color: #fff;
+  text-decoration: none;
+}
+
+@media all and (max-width: 278px) {
+  .header {
+    min-height: 105px !important;
+  }
+}
+@media all and (max-width: 768px) {
+  .logo {
+    float: left;
+  }
+}
+
+.logo {
+  height: 100px;
+  margin: auto;
+  display: block;
+  padding: 15px;
+}
+
+.the-icons {
+  font-size: 25px;
+}
+
+.header {
+  position: fixed;
+  z-index: 1;
+  width: 100%;
+}
+
+.header2 {
+  position: relative;
+  visibility: hidden;
+  background-color: #8991a7;
+  z-index: -1;
+}
+
+.blocker {
+  height: 178px;
+  background-color: #8991a7;
+}
+
+.gray {
+  background-color: #8991a7;
+  min-height: 53px;
+}
+
+.topBorder {
+  border-top: 0 !important;
+  border-spacing: 0px !important;
+}
+
+.socialIconth {
+  width: 5%;
+  border-top: 0 !important;
+  padding-top: 0px !important;
+}
+
+.socialIcon {
+  margin-left: 10px !important;
+}
+
+.socialIcon a {
+  padding: 0 !important;
+}
+
+.socialIcon img {
+  max-height: 35px;
+}
+
+.grayHome {
+  background-color: #747a88;
+  min-height: 53px;
+}
+
+.white {
+  background-color: #ffffff;
+  min-height: 53px;
+}
+
+.navLinks {
+}
+
+.beta {
+  font-size: 20px;
+}
+
+.picback {
+  background-color: #747a88;
+}
+
+.pichead {
+  text-align: center;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+.navback {
+  background-color: #8991a7;
+}
+
+.navhead {
+  font-weight: 500;
+  font-size: 18px;
+}
+
+.navbar {
+  border: none !important;
+}
+
+.rightalign {
+  text-align: right;
+}
