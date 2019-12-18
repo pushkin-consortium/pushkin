@@ -13,6 +13,8 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "fs": "0.0.1-security",
+    "js-yaml": "^3.13.1",
     "pushkin-client": "^1.3.0",
     "pushkin-jspsych": "^1.0.1",
     "react": "^16.12.0",

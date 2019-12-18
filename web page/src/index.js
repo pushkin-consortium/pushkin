@@ -4,9 +4,13 @@ import jsPsych from 'pushkin-jspsych';
 import { withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
 import timeline_basic from './experiment';
+import fs from 'fs';
+import jsYaml from 'js-yaml';
 
 //stylin'
 import './assets/experiment.css'
+
+const expConfig = jsYaml.safeLoad(fs.readFileSync(expConfigPath), 'utf8');
 
 const pushkin = new pushkinClient();
 window.jsPsych = jsPsych;
@@ -51,7 +55,7 @@ class quizComponent extends React.Component {
 
   async endExperiment() {
     document.getElementById("jsPsychTarget").innerHTML = "Processing...";
-    await pushkin.tabulateAndPostResults(this.props.userID, 'pushkintemplate')
+    await pushkin.tabulateAndPostResults(this.props.userID, expConfig.experimentName)
     document.getElementById("jsPsychTarget").innerHTML = "Thank you for participating!";
   }
 
