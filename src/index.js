@@ -144,7 +144,7 @@ class DefaultHandler {
 
 		const results = 'Completed this experiment with flying colors'; //stub
 
-		return this.logTransaction(this.pg_main(this.tables.users).insert({
+		return this.logTransaction(this.pg_main(this.tables.userResults).insert({
 			user_id: data.user_id,
 			experiment: data.experiment,
 			results: results,
