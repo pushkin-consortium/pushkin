@@ -12,11 +12,11 @@ All instructions are for working on a Mac. If you figure out how to install Push
 
 If you don't have `Homebrew <https://brew.sh/>`_, install it. Then run the following:
 
-.. code-block: bash
+.. code-block:: bash
   
   $ brew install Node wget
 
-Next, istall `Docker`_.
+Next, install `Docker`_.
 
 Make sure Docker is running. Then, open a terminal and move to an empty directory in which to setup Pushkin.
 

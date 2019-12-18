@@ -8,7 +8,7 @@ Recommended Structure
 =========================
 As long as the webpage folder contains an 'index.js' file that includes all your experiment code, you should be set. It is not even necessary for this to use jsPsych. However, we recommend building on top of an experiment template. Most have the same structure, including in the ``/src`` folder two files (``experiments.js`` and ``index.js``) and a folder (``/assets``). ``experiments.js`` contains a jsPsych timeline. ``index.js`` is essentially a wrapper around the timeline. The core functionality of interest is here:
 
-:: code-block: javascript
+.. code-block:: javascript
 	
 	async startExperiment() {
     this.setState({ experimentStarted: true });
@@ -47,7 +47,7 @@ The ``assets`` folder should contain any static assets that will be imported by 
 
 Note that this method of importation won't work for files referenced by jsPsych. jsPsych timelines are not compiled by React, and so by the time jsPsych runs, the files on the server are no longer accessible. However, create-react-app provides a nifty workaround: ``process.env.PUBLIC_URL`` will point to the folder ``/front-end/src/public`` during runtime. This, this jsPsych snippet will work, so long as the PNGs in question are in the public folder:
 
-.. code-block: javascript
+.. code-block:: javascript
 	var test_stimuli = [
 	  { stimulus: process.env.PUBLIC_URL+"/blue.png"},
 	  { stimulus: process.env.PUBLIC_URL+"/orange.png"}
@@ -57,13 +57,13 @@ Customizing the client
 ======================
 If you need to extend the client with custom API calls, etc., you should extend the defaultClient class. For instance, rather than loading the pushkin client directly:
 
-.. code-block: javascript
+.. code-block:: javascript
 	import pushinClient from 'pushkin-client';
 	const pushkin = new pushkinClientExtended();
 
 You would first extend it, adding any additional methods you need:
 
-.. code-block: javascript
+.. code-block:: javascript
 	class pushkinClientExtended extends pushkinClient {
 	  postResults(userID, results) {
 	    const postData = {
