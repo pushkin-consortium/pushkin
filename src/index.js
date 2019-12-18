@@ -110,7 +110,9 @@ function handleJSON(str) {
 class DefaultHandler {
 	constructor(db_url, dbTablePrefix, transactionOps) {
 		this.tables = {
-			users: `${dbTablePrefix}_users`,
+			users: `pushkin_users`,
+			userResults: `pushkin_userResults`,
+			userMeta: `pushkin_userMeta`,
 			stim: `${dbTablePrefix}_stimuli`,
 			stimResp: `${dbTablePrefix}_stimulusResponses`,
 			stimGroups: `${dbTablePrefix}_stimulusGroups`,
@@ -144,7 +146,7 @@ class DefaultHandler {
 
 		const userCount = (await this.pg_main(this.tables.users).where('user_id', userId).count('*'))[0].count;
 		if (userCount>0) {
-			//only need to insert if subject has never done this experiment below
+			//only need to insert if new subject
 			return 
 		} else {
 			return this.logTransaction(this.pg_main(this.tables.users).insert({
