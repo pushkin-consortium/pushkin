@@ -253,17 +253,31 @@ export default (experimentsDir, coreDir, callback) => {
 			}); 
 
 			// rebuild the core api and front end with the new experiment modules
+			var prepping = 2;
 			console.log('Building core Pushkin with new experiment components');
-			try{ execSync('npm install *', { cwd: path.join(coreDir, 'api/tempPackages') }); }
-			catch (e) { return fail('Failed to install api packages', e); }
-			try{ execSync('npm run build', { cwd: path.join(coreDir, 'api') }); }
-			catch (e) { return fail('Failed to build core api', e); }
-			try{ execSync('npm install *', { cwd: path.join(coreDir, 'front-end/tempPackages') }); }
-			catch (e) { return fail('Failed to install web page packages', e); }
-			try { execSync('npm run build', { cwd: path.join(coreDir, 'front-end') }); }
-			catch (e) { return fail('Failed to build core front end', e); }
-			console.log('Prepped successfully');
-			callback();
+			execSync('npm install *', { cwd: path.join(coreDir, 'api/tempPackages') }, err => {
+				if (err) 
+					return fail('Failed to install api packages', e);
+				exec('npm run build', { cwd: path.join(coreDir, 'api') }, err => {
+					if (err)
+						return fail('Failed to build core api', e);
+					prepping = prepping - 1
+					if (!prepping)
+						console.log('Prepped successfully');
+						callback();
+				});
+			});
+			exec('npm install *', { cwd: path.join(coreDir, 'front-end/tempPackages') }, err => {
+				if (err)
+					return fail('Failed to install web page packages', e);
+				exec('npm run build', { cwd: path.join(coreDir, 'front-end') }, err => {
+					return fail('Failed to build core front end', e);
+					prepping = prepping - 1
+					if (!prepping)
+						console.log('Prepped successfully');
+						callback();
+				});
+			});
 		}
 	};
 
