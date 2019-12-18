@@ -7,7 +7,7 @@ Subject responses are associated with a username. This is either a randomly-gene
 
 The userID is set by a redux saga:
 
-:: code-block:: javascript
+.. code-block:: javascript
   
   //actions/userInfo.js
 
