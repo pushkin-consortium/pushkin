@@ -149,7 +149,7 @@ class DefaultHandler {
 			experiment: data.experiment,
 			results: results,
 			created_at: new Date()
-		});
+		}));
 	}
 
 	async startExperiment(sessId, data) {
