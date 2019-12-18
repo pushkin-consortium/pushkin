@@ -61,7 +61,7 @@ const nextArg = inputGetter();
 			const config = loadConfig();
 			switch (arg) {
 				case 'site':
-					setupdb(config.databases, path.join(process.cwd(), config.experimentsDir));
+					pushkinInit(process.cwd());
 					return;
 				default:
 					initExperiment(path.join(process.cwd(), config.experimentsDir, arg), arg);
