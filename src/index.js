@@ -58,12 +58,13 @@ const nextArg = inputGetter();
 		case 'init': {
 			let arg = nextArg();
 			moveToProjectRoot();
+			const config = loadConfig();
 			switch (arg) {
 				case 'site':
-					pushkinInit(process.cwd());
+					//pushkinInit(process.cwd());
+					setupdb(config.databases, path.join(process.cwd(), config.experimentsDir));
 					return;
 				default:
-					const config = loadConfig();
 					initExperiment(path.join(process.cwd(), config.experimentsDir, arg), arg);
 					return;
 			}
