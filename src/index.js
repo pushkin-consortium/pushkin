@@ -36,6 +36,15 @@ export default class Pushkin {
 
 	loadScripts(urls) { return Promise.all(urls.map(this.loadScript)); }
 
+
+	tabulateAndPostResults(userID, experiment) {
+		const postData = {
+			user_id: userID,
+			experiment: experiment
+		}
+		return this.con.post('/tabulateAndPostResults', postData)
+	}
+
 	prepExperimentRun(userID) {
 		const postData = {
 			user_id: userID
