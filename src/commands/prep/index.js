@@ -3,6 +3,8 @@ import fs from 'fs';
 import jsYaml from 'js-yaml';
 import { execSync, exec } from 'child_process'; // eslint-disable-line
 import uuid from 'uuid/v4';
+const shell = require('shelljs');
+
 
 // give package unique name, package it, npm install on installDir, return module name
 const packAndInstall = (packDir, installDir, callback) => {
@@ -29,10 +31,10 @@ const packAndInstall = (packDir, installDir, callback) => {
 				return fail('Failed to write new package.json', err);
 
 			// package it up in tarball
-			exec('npm run build', { cwd: packDir}, (err, stdout, stdin) => {
+			shell.exec('npm run build', { cwd: packDir}, (err, stdout, stdin) => {
 				if (err)
 					return fail('Failed to run npm build', err);
-				exec('npm pack', { cwd: packDir }, (err, stdout, stdin) => { // eslint-disable-line
+				shell.exec('npm pack', { cwd: packDir }, (err, stdout, stdin) => { // eslint-disable-line
 					if (err)
 						return fail('Failed to run npm pack', err);
 					const packedFileName = stdout.toString().trim();
@@ -97,7 +99,7 @@ const cleanUpSync = coreDir => {
 	oldContrList.forEach(contr => {
 		const moduleName = contr.name;
 		console.log(`Cleaning API controller ${contr.mountPath} (${moduleName})`);
-		try { execSync(`npm uninstall ${moduleName} --save`, { cwd: path.join(coreDir, 'api') }); }
+		try { shell.exec(`npm uninstall ${moduleName} --save`, { cwd: path.join(coreDir, 'api') }); }
 		catch (e) { console.error(`Failed to uninstall API controller module: ${e}`); }
 	});
 	fs.writeFileSync(controllersJsonFile, JSON.stringify([]), 'utf8'); //Re-write file with list of API controllers so it is empty.
@@ -107,7 +109,7 @@ const cleanUpSync = coreDir => {
 	const oldPages = getModuleList(webPageAttachListFile);
 	oldPages.forEach(pageModule => {
 		console.log(`Cleaning web page (${pageModule})`);
-		try { execSync(`npm uninstall ${pageModule} --save`, {cwd: path.join(coreDir, 'front-end') }); }
+		try { shell.exec(`npm uninstall ${pageModule} --save`, {cwd: path.join(coreDir, 'front-end') }); }
 		catch (e) { console.error(`Failed to uninstall web page module: ${e}`); }
 	});
 	fs.writeFileSync(webPageAttachListFile, 'export default [\n];', 'utf8');
@@ -193,7 +195,7 @@ const prepWorker = (expDir, expConfig, callback) => {
 	const workerName = `pushkinworker${uuid().split('-').join('')}`;
 	const workerLoc = path.join(expDir, workerConfig.location);
 	console.log(`Building image for worker ${expConfig.shortName} (${workerName})`);
-	exec(`docker build ${workerLoc} -t ${workerName}`, err => {
+	shell.exec(`docker build ${workerLoc} -t ${workerName}`, err => {
 		if (err) {
 			callback(new Error(`Failed to build worker: ${err}`));
 			return;
@@ -255,10 +257,10 @@ export default (experimentsDir, coreDir, callback) => {
 				// rebuild the core api and front end with the new experiment modules
 				var prepping = 2;
 				console.log('Building core Pushkin with new experiment components');
-				execSync('npm install *', { cwd: path.join(coreDir, 'api/tempPackages') }, err => {
+				shell.exec('npm install *', { cwd: path.join(coreDir, 'api/tempPackages') }, err => {
 					if (err) 
 						return fail('Failed to install api packages', err);
-					exec('npm run build', { cwd: path.join(coreDir, 'api') }, err => {
+					shell.exec('npm run build', { cwd: path.join(coreDir, 'api') }, err => {
 						if (err)
 							return fail('Failed to build core api', err);
 						prepping = prepping - 1
@@ -267,10 +269,10 @@ export default (experimentsDir, coreDir, callback) => {
 							callback();
 					});
 				});
-				execSync('npm install *', { cwd: path.join(coreDir, 'front-end/tempPackages') }, err => {
+				shell.exec('npm install *', { cwd: path.join(coreDir, 'front-end/tempPackages') }, err => {
 					if (err)
 						return fail('Failed to install web page packages', err);
-					exec('npm run build', { cwd: path.join(coreDir, 'front-end') }, err => {
+					shell.exec('npm run build', { cwd: path.join(coreDir, 'front-end') }, err => {
 						if (err)
 							return fail('Failed to build core front end', err);
 						prepping = prepping - 1
