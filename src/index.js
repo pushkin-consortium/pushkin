@@ -6,11 +6,13 @@ import fs from 'fs';
 import path from 'path';
 import "core-js/stable";
 import "regenerator-runtime/runtime";
+import { execSync, exec } from 'child_process'; // eslint-disable-line
 // subcommands
 import { listExpTemplates, getExpTemplate, initExperiment } from './commands/generate/index.js';
 import { listSiteTemplates, getPushkinSite, pushkinInit} from './commands/init/index.js';
 import prep from './commands/prep/index.js';
 import setupdb from './commands/setupdb/index.js';
+
 
 const moveToProjectRoot = () => {
 	// better checking to make sure this is indeed a pushkin project would be good
@@ -41,7 +43,7 @@ const inputGetter = () => {
 };
 const nextArg = inputGetter();
 
-(async () => {
+(() => {
 	switch (nextArg()) {
 		case 'site': {
 			let arg = nextArg();
@@ -61,8 +63,7 @@ const nextArg = inputGetter();
 			const config = loadConfig();
 			switch (arg) {
 				case 'site':
-					await pushkinInit(process.cwd());
-					setupdb(config.databases, path.join(process.cwd(), config.experimentsDir));
+					pushkinInit(process.cwd());
 					return;
 				default:
 					initExperiment(path.join(process.cwd(), config.experimentsDir, arg), arg);
