@@ -12,7 +12,6 @@ Welcome to Pushkin's documentation!
    :caption: Contents:
 
    quickstart/gettingstarted
-   deployment/deployment
    development/development
    cli/pushkin_cli
    experiments/experiment_structure
