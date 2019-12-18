@@ -12,7 +12,7 @@ All instructions are for working on a Mac. If you figure out how to install Push
 
 If you don't have `Homebrew <https://brew.sh/>`_, install it. Then run the following:
 
-:: code-block:: bash
+.. code-block: bash
   
   $ brew install Node wget
 
