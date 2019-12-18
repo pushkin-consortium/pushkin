@@ -226,56 +226,58 @@ export default (experimentsDir, coreDir, callback) => {
 			const controllersJsonFile = path.join(coreDir, 'api/src/controllers.json');
 			fs.writeFile(controllersJsonFile, JSON.stringify(newApiControllers), 'utf8', err => {
 				if (err) return fail('Failed to write api controllers list', e)
-			});
 
-			// write out web page includes
-			try { 
-				const webPageAttachListFile = path.join(coreDir, 'front-end/src/experiments.js');
-				newWebPageIncludes.forEach(include => {
-					includeInModuleList(include.moduleName, include.listAppendix, webPageAttachListFile);
+				// write out web page includes
+				try { 
+					const webPageAttachListFile = path.join(coreDir, 'front-end/src/experiments.js');
+					newWebPageIncludes.forEach(include => {
+						//the following uses fs.writeFileSync so probably is blocking?...
+						includeInModuleList(include.moduleName, include.listAppendix, webPageAttachListFile);
+					});
+				}
+				catch (e) { return fail('Failed to include web pages in front end', e); }
+
+				// write out new compose file with worker services
+				const composeFileLoc = path.join(coreDir, 'docker-compose.dev.yml');
+				let compFile;
+				try { compFile = jsYaml.safeLoad(fs.readFileSync(composeFileLoc), 'utf8'); }
+				catch (e) { return fail('Failed to load main docker compose file', e); }
+				newWorkerServices.forEach(workService => {
+					compFile.services[workService.serviceName] = workService.serviceContent;
 				});
-			}
-			catch (e) { return fail('Failed to include web pages in front end', e); }
+				let newCompData;
+				try { newCompData = jsYaml.safeDump(compFile); }
+				catch (e) { return fail('Failed to create new compose file without old workers', e); }
+				fs.writeFile(composeFileLoc, newCompData, 'utf8', err => {
+					if (err) return fail('Failed to write new compose file without old workers', e)
+				}); 
 
-			// write out new compose file with worker services
-			const composeFileLoc = path.join(coreDir, 'docker-compose.dev.yml');
-			let compFile;
-			try { compFile = jsYaml.safeLoad(fs.readFileSync(composeFileLoc), 'utf8'); }
-			catch (e) { return fail('Failed to load main docker compose file', e); }
-			newWorkerServices.forEach(workService => {
-				compFile.services[workService.serviceName] = workService.serviceContent;
-			});
-			let newCompData;
-			try { newCompData = jsYaml.safeDump(compFile); }
-			catch (e) { return fail('Failed to create new compose file without old workers', e); }
-			fs.writeFile(composeFileLoc, newCompData, 'utf8', err => {
-				if (err) return fail('Failed to write new compose file without old workers', e)
-			}); 
-
-			// rebuild the core api and front end with the new experiment modules
-			var prepping = 2;
-			console.log('Building core Pushkin with new experiment components');
-			execSync('npm install *', { cwd: path.join(coreDir, 'api/tempPackages') }, err => {
-				if (err) 
-					return fail('Failed to install api packages', e);
-				exec('npm run build', { cwd: path.join(coreDir, 'api') }, err => {
+				// rebuild the core api and front end with the new experiment modules
+				var prepping = 2;
+				console.log('Building core Pushkin with new experiment components');
+				execSync('npm install *', { cwd: path.join(coreDir, 'api/tempPackages') }, err => {
+					if (err) 
+						return fail('Failed to install api packages', err);
+					exec('npm run build', { cwd: path.join(coreDir, 'api') }, err => {
+						if (err)
+							return fail('Failed to build core api', err);
+						prepping = prepping - 1
+						if (!prepping)
+							console.log('Prepped successfully');
+							callback();
+					});
+				});
+				execSync('npm install *', { cwd: path.join(coreDir, 'front-end/tempPackages') }, err => {
 					if (err)
-						return fail('Failed to build core api', e);
-					prepping = prepping - 1
-					if (!prepping)
-						console.log('Prepped successfully');
-						callback();
-				});
-			});
-			exec('npm install *', { cwd: path.join(coreDir, 'front-end/tempPackages') }, err => {
-				if (err)
-					return fail('Failed to install web page packages', e);
-				exec('npm run build', { cwd: path.join(coreDir, 'front-end') }, err => {
-					return fail('Failed to build core front end', e);
-					prepping = prepping - 1
-					if (!prepping)
-						console.log('Prepped successfully');
-						callback();
+						return fail('Failed to install web page packages', err);
+					exec('npm run build', { cwd: path.join(coreDir, 'front-end') }, err => {
+						if (err)
+							return fail('Failed to build core front end', err);
+						prepping = prepping - 1
+						if (!prepping)
+							console.log('Prepped successfully');
+							callback();
+					});
 				});
 			});
 		}
