@@ -183,10 +183,13 @@ class DefaultHandler {
 			throw new Error('insertStimulusResponse got invalid stimulus');
 
 		console.log(`inserting response for user ${data.user_id}: ${trim(JSON.stringify(data.data_string), 100)}`);
+		console.log(`handleJSON: `+handleJSON(data.data_string.stimulus));
+		console.log(`JSON.stringify: `+JSON.stringify(data.data_string.stimulus));
+
 
 		return this.logTransaction(this.pg_main(this.tables.stimResp).insert({
 			user_id: data.user_id,
-			stimulus: handleJSON(data.data_string.stimulus),
+			stimulus: JSON.stringify(data.data_string.stimulus),
 			response: JSON.stringify(data.data_string),
 			created_at: new Date()
 		}));
