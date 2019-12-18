@@ -41,7 +41,7 @@ const inputGetter = () => {
 };
 const nextArg = inputGetter();
 
-(async () => {
+(() => {
 	switch (nextArg()) {
 		case 'site': {
 			let arg = nextArg();
@@ -61,7 +61,6 @@ const nextArg = inputGetter();
 			const config = loadConfig();
 			switch (arg) {
 				case 'site':
-					await pushkinInit(process.cwd());
 					setupdb(config.databases, path.join(process.cwd(), config.experimentsDir));
 					return;
 				default:
