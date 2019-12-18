@@ -94,6 +94,27 @@ export default class Pushkin {
 		return this.con.post('/stimulusResponse', postData);
 	}
 
+	insertMetaResponse(data) {
+		let metaQuestion;
+		try {
+			metaQuestion = data.stimulus;
+		} catch (e) {
+			throw new Error('jsPsych data does not include a stimulus key');
+		}
+		let user_id;
+		try {
+			user_id = data.user_id;
+		} catch (e) {
+			throw new Error('req does not include a user_id');
+		}
+		const postData = {
+			user_id: user_id,
+			data_string: data,
+			stimulus: stimulus
+		};
+		return this.con.post('/insertMetaResponse', postData);
+	}
+
 	endExperiment(userID) { 
 		const postData = {
 			user_id: userID
