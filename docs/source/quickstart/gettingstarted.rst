@@ -123,7 +123,7 @@ Local testing
 
 .. code-block:: bash
 
-  $ pushkin dev
+  $ docker-compose -f pushkin/docker-compose.dev.yml up --build --remove-orphans;
 
 Now browse to ``http://localhost`` to see the stub website.
 
@@ -137,7 +137,7 @@ If you make updates to your website, here is how to re-launch a local test versi
   $ docker-compose -f pushkin/docker-compose.dev.yml stop
   $ pushkin prep
   $ pushkin setupdb
-  $ pushkin dev
+  $ docker-compose -f pushkin/docker-compose.dev.yml up --build --remove-orphans;
 
 Templates
 ###############

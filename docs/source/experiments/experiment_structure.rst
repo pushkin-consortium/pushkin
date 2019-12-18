@@ -15,6 +15,3 @@ For convenience, all the code is kept in the experiments folder as defined in ``
    Worker <exp_worker>
    Migrations <exp_migrations>
    Seeds <exp_seeds>
-
-
-FUBAR - WHEN MAKING A NEW EXPERIMENT WITH NEW MIGRATIONS, BE CAREFUL OF THE ORDERING!

@@ -4,7 +4,7 @@ Pushkin CLI
 ################
 The Pushkin command-line package is available via NPM. We highly recommend a global install in order to make working with Pushkin projects as easy as possible:
 
-:: code-block:: bash
+.. code-block:: bash
 	
 	$ npm install -g pushkin-cli
 
@@ -76,4 +76,4 @@ dev
 =======================
 Syntax: ``pushkin dev``
 
-Start the development server. This just runs ``docker-compose -f pushkin/docker-compose.dev.yml up --build --remove-orphans;``, saving you the trouble of remembering the syntax.
+Start the development server. This just runs ``docker-compose -f pushkin/docker-compose.dev.yml up --build --remove-orphans;``, saving you the trouble of remembering the syntax. Unfortunately, you also don't see any of the output from docker, so if there are errors, you won't know.

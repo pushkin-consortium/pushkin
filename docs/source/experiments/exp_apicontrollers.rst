@@ -59,19 +59,18 @@ By using the pushkin-api helper functions, this code starts an Express router ap
 
 Experiment-specific API code
 ============================
-Each experiment should have an ``/api controllers`` folder that contains the Express app for that experiment. Again, this is simplified by making use of convenience functions provided by ``pushkin-api``. The critical code is in ``/api controllers/src/index.js``:
+Each experiment should have an ``/api controllers`` folder that contains the Express app for that experiment. Again, this is simplified by making use of convenience functions provided by ``pushkin-api``. The critical code is in ``/api controllers/src/index.js``. For a simple experiment, this may not do much more than call ``pushkin-api``:
 
 .. code-block:: javascript
 
 	import pushkin from 'pushkin-api';
 
-	const db_read_queue = 'myexp_quiz_dbread'; // simple endpoints
-	const db_write_queue = 'myexp_quiz_dbwrite'; // simple save endpoints (durable/persistent)
-	const task_queue = 'myexp_quiz_taskworker'; // for stuff that might need preprocessing
+	const db_read_queue = 'exp1_quiz_dbread'; // simple endpoints
+	const db_write_queue = 'exp1_quiz_dbwrite'; // simple save endpoints (durable/persistent)
+	const task_queue = 'exp1_quiz_taskworker'; // for stuff that might need preprocessing
 
 	const myController = new pushkin.ControllerBuilder();
 	myController.setDefaultPasses(db_read_queue, db_write_queue, task_queue);
-	myController.setDirectUse('/status', (req, res, next) => res.send('up'), 'get'); // eslint-disable-line
 
 	module.exports = myController;
 
@@ -93,7 +92,34 @@ To use these, all you need to do is set the names of the queues:
 
 	myController.setDefaultPasses(db_read_queue, db_write_queue, task_queue);
 
-Additional endpoints can be defined. In the example above, we have added an endpoint at ``/status``.
+Adding custom endpoints
+-----------------------
+
+Adding custom endpoints is straightforward. Here is an example of a custom passthrough endpoint ``/postResults`` (it passes some data along to a worker):
+
+.. code-block:: javascript
+
+	import pushkin from 'pushkin-api';
+
+	const db_read_queue = 'trial_quiz_dbread'; // simple endpoints
+	const db_write_queue = 'trial_quiz_dbwrite'; // simple save endpoints (durable/persistent)
+	const task_queue = 'trial_quiz_taskworker'; // for stuff that might need preprocessing
+
+	const myController = new pushkin.ControllerBuilder();
+	myController.setDefaultPasses(db_read_queue, db_write_queue, task_queue);
+	myController.setCustomPass('/postResults', 'postResults', db_write_queue, 'post'); // eslint-disable-line
+
+	module.exports = myController;
+
+More complex custom endpoints can be created using the ``pushkin-api`` method ``setDirectUse``. The code for that method is shown below:
+
+.. code-block:: javascript
+	
+	// allow users to set their own custom api endpoints that don't just pass things along
+	setDirectUse(route, handler, httpMethodOption) {
+		const httpMethod = httpMethodOption == undefined ? 'post' : httpMethodOption;
+		this.directUses.push({ httpMethod, route, handler });
+	}
 
 pushkin-api
 =====================================
