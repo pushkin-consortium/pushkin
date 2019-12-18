@@ -106,8 +106,9 @@ const nextArg = inputGetter();
 			exec('docker-compose -f pushkin/docker-compose.dev.yml up --build --remove-orphans;');
 			return;
 		}
-		case 'hardreset': {
-			exec('docker-compose down; docker rm -f $(docker ps -a -q); docker volume rm $(docker volume ls -q);', (err, stdout, stderr) => {
+
+		case 'armageddon': {
+			exec('docker stop $(docker ps -aq); docker rm $(docker ps -aq); docker network prune -f; docker rmi -f $(docker images --filter dangling=true -qa); docker volume rm $(docker volume ls --filter dangling=true -q); docker rmi -f $(docker images -qa);', (err, stdout, stderr) => {
 			  if (err) {
     			console.log(`Error resetting docker containers and volumes: ${err}`);
 			    return;
