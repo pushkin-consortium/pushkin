@@ -6,7 +6,7 @@ import { connect } from 'react-redux';
 import timeline_basic from './experiment';
 
 //stylin'
-import './css/experiment.css'
+import './assets/experiment.css'
 
 const pushkin = new pushkinClient();
 window.jsPsych = jsPsych;
