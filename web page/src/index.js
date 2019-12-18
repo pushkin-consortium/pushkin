@@ -50,6 +50,8 @@ class quizComponent extends React.Component {
   }
 
   endExperiment() {
+    document.getElementById("jsPsychTarget").innerHTML = "Processing...";
+    await pushkin.tabulateAndPostResults(this.props.userID, 'pushkintemplate')
     document.getElementById("jsPsychTarget").innerHTML = "Thank you for participating!";
   }
 
