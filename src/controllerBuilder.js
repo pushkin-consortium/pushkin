@@ -36,6 +36,7 @@ export default class ControllerBuilder {
 	}
 
 	setDefaultPasses(readQueue, writeQueue, taskQueue) {
+		this.setPass('/tabulateAndPostResults', 'tabulateAndPostResults', taskQueue, 'post');
 		this.setPass('/startExperiment', 'startExperiment', taskQueue, 'post');
 		this.setPass('/getStimuli', 'getStimuli', readQueue, 'post');
 		this.setPass('/metaResponse', 'insertMetaResponse', writeQueue, 'post');
