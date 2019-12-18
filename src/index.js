@@ -62,8 +62,6 @@ class PushkinWorker {
 							// try to call a handler
 							if (!this.handlers.has(req.method))
 								throw new Error(`no handler found to handle method ${req.method}`);
-							console.log(req);
-							console.log(`sessionID: ${req.sessionId}`);
 							const sessId = req.sessionId;
 							return this.handlers.get(req.method)(sessId, req.data, req.params);
 						})
@@ -110,7 +108,9 @@ function handleJSON(str) {
 class DefaultHandler {
 	constructor(db_url, dbTablePrefix, transactionOps) {
 		this.tables = {
-			users: `${dbTablePrefix}_users`,
+			users: `pushkin_users`,
+			userResults: `pushkin_userResults`,
+			userMeta: `pushkin_userMeta`,
 			stim: `${dbTablePrefix}_stimuli`,
 			stimResp: `${dbTablePrefix}_stimulusResponses`,
 			stimGroups: `${dbTablePrefix}_stimulusGroups`,
@@ -133,8 +133,26 @@ class DefaultHandler {
 		return knexCommand;
 	}
 
+	async tabulateAndPostResults(sessId, data) {
+		//this is just a stub. It should be overwritten in most cases.
+		if (!sessId)
+			throw new Error('startExperiment got invalid session id');
+		if (!data.user_id)
+			throw new Error('startExperiment got invalid userID');
+		if (!data.experiment)
+			throw new Error('startExperiment got invalid userID');
+
+		const results = 'Completed this experiment with flying colors'; //stub
+
+		return this.logTransaction(this.pg_main(this.tables.users).insert({
+			user_id: data.user_id,
+			experiment: data.experiment,
+			results: results,
+			created_at: new Date()
+		}));
+	}
+
 	async startExperiment(sessId, data) {
-		console.log(arguments);
 		if (!sessId)
 			throw new Error('startExperiment got invalid session id');
 		if (!data.user_id)
@@ -144,7 +162,7 @@ class DefaultHandler {
 
 		const userCount = (await this.pg_main(this.tables.users).where('user_id', userId).count('*'))[0].count;
 		if (userCount>0) {
-			//only need to insert if subject has never done this experiment below
+			//only need to insert if new subject
 			return 
 		} else {
 			return this.logTransaction(this.pg_main(this.tables.users).insert({
@@ -167,7 +185,6 @@ class DefaultHandler {
 			await this.pg_main(this.tables.stim).select('stimulus').orderByRaw('random()').limit(nItems) :
 			await this.pg_main(this.tables.stim).select('stimulus').orderByRaw('random()')
 			);
-		console.log(selectedStims);
 
 		return selectedStims;
 	}
@@ -184,10 +201,30 @@ class DefaultHandler {
 
 		console.log(`inserting response for user ${data.user_id}: ${trim(JSON.stringify(data.data_string), 100)}`);
 
+
 		return this.logTransaction(this.pg_main(this.tables.stimResp).insert({
 			user_id: data.user_id,
-			stimulus: handleJSON(data.data_string.stimulus),
+			stimulus: JSON.stringify(data.data_string.stimulus),
 			response: JSON.stringify(data.data_string),
+			created_at: new Date()
+		}));
+	}
+
+	async insertMetaResponse(sessId, data) {
+		if (!sessId)
+			throw new Error('insertStimulusResponse got invalid session id');
+		if (!data.data_string)
+			throw new Error('insertStimulusResponse got invalid response data string');
+		if (!data.user_id)
+			throw new Error('insertStimulusResponse got invalid userID');
+		if (!data.stimulus)
+			throw new Error('insertStimulusResponse got invalid stimulus');
+
+		console.log(`inserting meta response for user ${data.user_id}: ${trim(JSON.stringify(data.data_string), 100)}`);
+		return this.logTransaction(this.pg_main(this.tables.userMeta).insert({
+			user_id: data.user_id,
+			metaQuestion: JSON.stringify(data.stimulus),
+			metaResponse: JSON.stringify(data.data_string),
 			created_at: new Date()
 		}));
 	}
@@ -196,7 +233,9 @@ class DefaultHandler {
 		const methods = [
 			'getStimuli',
 			'insertStimulusResponse',
-			'startExperiment'
+			'startExperiment',
+			'insertMetaResponse',
+			'tabulateAndPostResults'
 		]
 		return methods;
 	}
