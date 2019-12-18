@@ -12,6 +12,7 @@ Any subcommand that affects a specific project must be run from a folder inside 
 
 The CLI has the following subcommands:
 
+.. _`pushkin site`:
 site
 =============
 Syntax: ``pushkin site``
@@ -50,6 +51,7 @@ Syntax: ``pushkin setupdb``
 
 Runs migrations and seeds for experiments. Ensures experiments using the same database (as defined in ``pushkin.yaml``) are migrated at the same time to avoid errors with the knex_migrations table.
 
+.. _prep:
 prep
 =======================
 Syntax: ``pushkin prep``

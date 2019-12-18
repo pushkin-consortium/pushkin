@@ -85,10 +85,7 @@ with stimuli for our experiment(s):
 
 .. code-block:: bash
 
-  $ docker-compose -f pushkin/docker-compose.dev.yml start test_db
   $ pushkin setupdb
-  $ docker-compose -f pushkin/docker-compose.dev.yml stop test_db
-
 
 Setting up logins
 --------
@@ -126,7 +123,7 @@ Local testing
 
 .. code-block:: bash
 
-  $ docker-compose -f pushkin/docker-compose.dev.yml up --build
+  $ pushkin dev
 
 Now browse to ``http://localhost`` to see the stub website.
 
@@ -139,10 +136,8 @@ If you make updates to your website, here is how to re-launch a local test versi
 
   $ docker-compose -f pushkin/docker-compose.dev.yml stop
   $ pushkin prep
-  $ docker-compose -f pushkin/docker-compose.dev.yml start test_db
   $ pushkin setupdb
-  $ docker-compose -f pushkin/docker-compose.dev.yml stop test_db
-  $ docker-compose -f pushkin/docker-compose.dev.yml up --build   --remove-orphans
+  $ pushkin dev
 
 Templates
 ###############

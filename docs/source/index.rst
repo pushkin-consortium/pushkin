@@ -15,6 +15,7 @@ Welcome to Pushkin's documentation!
    deployment/deployment
    development/development
    cli/pushkin_cli
+   experiments/experiment_structure
    usernames/index
 
 

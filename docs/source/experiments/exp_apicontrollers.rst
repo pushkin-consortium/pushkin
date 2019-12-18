@@ -95,10 +95,6 @@ To use these, all you need to do is set the names of the queues:
 
 Additional endpoints can be defined. In the example above, we have added an endpoint at ``/status``.
 
-Binding together the controllers
-=====================================
-The ``pushkin prep`` command bundles the various controllers together with the core API. See development_prep_.
-
 pushkin-api
 =====================================
 For more information on the ``pushkin-api`` package and available functions, see pushkin_api_.

@@ -6,8 +6,8 @@ The config file provides information to the rest of Pushkin about the experiment
 
 ::
 
-   experimentName: &fullName 'myexp Experiment'
-   shortName: &shortName 'myexp'
+   experimentName: &fullName 'pushkintemplate Experiment'
+   shortName: &shortName 'pushkintemplate'
    apiControllers:
      - mountPath: *shortName
        location: 'api controllers'
@@ -32,6 +32,9 @@ The config file provides information to the rest of Pushkin about the experiment
    seeds:
      location: 'seeds'
    database: 'localtestdb'
+   logo: 'logo512.png'
+   tagline: 'Be a citizen scientist! Try this quiz.'
+   duration: ''
     
 Each of the above fields is explained in detail below.
 
@@ -53,7 +56,7 @@ Note that this is an array. As many API controllers can be used as needed.
 
 mountPath
 ~~~~~~~~~~~~
-URL this controller's endpoint will be available at. Full path is /api/[shortName]/[mountPath].
+URL this controller's endpoint will be available at. Full path is /api/[mountPath].
 
 location
 ~~~~~~~~~~~~
@@ -101,7 +104,7 @@ seeds
 
 location
 ~~~~~~~~~~
-Path relative to config file the CLI will look for these files.
+Path relative to config file the CLI will look for these files. If you aren't seeding a database table, set this to ``''``. Otherwise, if the folder pointed to by ``location`` is empty, ``pushkin setupdb`` will fail.
 
 ---------------
 
@@ -109,11 +112,6 @@ database
 ----------
 A reference to a key defined in the core Pushkin config file. Experiments can share databases. The CLI will use this database to migrate and seed experiment data files. It is not used as connection information for any of the modules running the experiment, since these may or may not be inside containers and cannot use the same connection details as the CLI.
 
-
-
-
-
-
-
-
-
+logo, tagline, duration, other
+--------------
+You may find it useful to include information about your experiment here that can be used by ``front-end`` to describe the experiment to potential subjects. For instance, the default pushkin site template uses ``logo``, ``tagline``, and ``duration``, which are self-explanatory. Note that no path is given for the logo because the default pushkin site template assumes this is in ``front-end/src/img``.
