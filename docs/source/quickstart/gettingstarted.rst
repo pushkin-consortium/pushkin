@@ -49,7 +49,7 @@ provides, run
 
 .. code-block:: bash
 
-  $ pushkin experiment default myexp
+  $ pushkin experiment basic myexp
   $ pushkin init myexp
 
 replacing “myexp” with a short name of your experiment. This will create a new folder in the
