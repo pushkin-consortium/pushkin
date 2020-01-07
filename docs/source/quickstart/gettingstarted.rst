@@ -20,7 +20,7 @@ Install the pushkin-cli package globally.
 
 .. code-block:: bash
 
-  $ pnpm install -g pushkin-cli
+  $ npm install -g pushkin-cli
 
 Next, install `Docker`_.
 
