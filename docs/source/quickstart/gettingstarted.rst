@@ -16,6 +16,12 @@ If you don't have `Homebrew <https://brew.sh/>`_, install it. Then run the follo
   
   $ brew install Node wget
 
+Install the pushkin-cli package globally.
+
+.. code-block:: bash
+
+  $ pnpm install -g pushkin-cli
+
 Next, install `Docker`_.
 
 Make sure Docker is running. Then, open a terminal and move to an empty directory in which to setup Pushkin.
@@ -84,8 +90,9 @@ For now, let's use the test database that is built by ``pushkin init site``. We 
 with stimuli for our experiment(s):
 
 .. code-block:: bash
-
+  $ docker-compose -f pushkin/docker-compose.dev.yml start test_db
   $ pushkin setupdb
+  $ docker-compose -f pushkin/docker-compose.dev.yml stop test_db
 
 Setting up logins
 --------
