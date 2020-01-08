@@ -24,7 +24,9 @@ Install the pushkin-cli package globally.
 
 Next, install `Docker`_.
 
-Make sure Docker is running. Then, open a terminal and move to an empty directory in which to setup Pushkin.
+Make sure Docker is running. 
+
+Then, open a terminal and move to an empty directory in which to setup Pushkin.
 
 .. code-block:: bash
 
