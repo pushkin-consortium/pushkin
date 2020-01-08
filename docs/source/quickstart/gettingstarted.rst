@@ -18,7 +18,15 @@ If you don't have `Homebrew <https://brew.sh/>`_, install it. Then run the follo
 
 Next, install `Docker`_.
 
-Make sure Docker is running. Then, open a terminal and move to an empty directory in which to setup Pushkin.
+Make sure Docker is running. 
+
+Next install the Pushkin CLI:
+
+.. code-block:: bash
+
+   $ npm install -g pushkin-cli
+
+Then, open a terminal and move to an empty directory in which to setup Pushkin.
 
 .. code-block:: bash
 
