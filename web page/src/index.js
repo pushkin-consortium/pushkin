@@ -10,7 +10,7 @@ import jsYaml from 'js-yaml';
 //stylin'
 import './assets/experiment.css'
 
-const expConfig = jsYaml.safeLoad(fs.readFileSync(expConfigPath), 'utf8');
+const expConfig = jsYaml.safeLoad(fs.readFileSync('../config.yaml'), 'utf8');
 
 const pushkin = new pushkinClient();
 window.jsPsych = jsPsych;
