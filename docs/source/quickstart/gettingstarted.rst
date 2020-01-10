@@ -99,7 +99,7 @@ with stimuli for our experiment(s):
 Setting up logins
 --------
 
-In ``config.js``, set ``useAuth`` to ``true`` or ``false`` depending on whether you want to have a login system or not. Note that you cannot use a forum without a login system: 
+In ``config.js``, located at ./pushkin/front-end/src, set ``useAuth`` to ``true`` or ``false`` depending on whether you want to have a login system or not. Note that you cannot use a forum without a login system: 
 
 .. code-block:: javascript
 
@@ -115,9 +115,9 @@ By default, Pushkin authenticates users using `Auth0 <http://auth0.com>`_. This 
 
 3. Give your application and a name. Select *Single Page Web App* as your application type. Click *Create*.
 
-4. Choose the *Settings* tab. In *Allowed Callback URLs*, add ``http://localhost:3000/callback``. In *Allowed Logout URLs*, add ``http://localhost:3000/``.  In *Allowed Web Origins*, also add ``http://localhost:3000/``. Click the *Save Changes* button.
+4. Choose the *Settings* tab. In *Allowed Callback URLs*, add ``http://localhost/``. In *Allowed Logout URLs*, add ``http://localhost``.  In *Allowed Web Origins*, also add ``http://localhost``. Click the *Save Changes* button.
 
-Note that these URLs are used for development. When you launch the live verrsion of your website, you will need to add your public URLs. Repeat the instructions above, replacing *http://localhost:3000* with *https://YOUR-WEBSITE*. For instance, for gameswithwords, the urls are ``https://gameswithwords.org`` and ``https://gameswithwords/callback``. 
+Note that these URLs are used for development. When you launch the live verrsion of your website, you will need to add your public URLs. Repeat the instructions above, replacing *http://localhost* with *https://YOUR-WEBSITE*. For instance, for gameswithwords, the urls are ``https://gameswithwords.org`` and ``https://gameswithwords/callback``. 
 
 5. On the setings page, you will see a ``Domain`` (something like ``gameswithwords.auth0.com``) and a ``Client ID``. Edit ``config.js`` to match: 
 
