@@ -25,15 +25,3 @@ Indices and tables
 
 * :ref:`genindex`
 * :ref:`search`
-
-..
-   
-   experiments/experiment_structure
-   maintenance/maintenance
-   website/website_structure
-   databases/databases
-   api/pushkin_api
-   cli/pushkin_cli
-   client/pushkin_client
-   jspsych/pushkin_jspsych
-   worker/pushkin_worker
