@@ -3,16 +3,16 @@
 Summary of tutorial content
 ================
 
-Pushkin's modularity means that, in principle, you could porbably use any javascript-based experiment engine to write your expeirments. However, we highly recommend using `jsPsych <https://www.jspsych.org>`_. Pushkin has only been extensively tested with jsPsych, and all the documentation currently assumes you are using jsPsych. 
+Pushkin's modularity means that, in principle, you could probably use any javascript-based experiment engine to write your expeirments. However, we highly recommend using `jsPsych <https://www.jspsych.org>`_. Pushkin has only been extensively tested with jsPsych, and all the documentation currently assumes you are using jsPsych. 
 
-jsPsych provides a `tutorial <https://www.jspsych.org/tutorials/rt-task/>`_ for putting together a simple lexical decision experiment. The tutorial below explains how to modify this code to run on Pushkin.
+The tutorial below starts with a simple lexical decision task written in vanilla jsPsych. The tutorial below explains how to modify this code to run on Pushkin.
+
+If you are not familiar with jsPsych, please consult the `documentation <https://www.jspsych.org>`_ first. We recommend you also walk through some of the tutorials. 
 
 Initial code
 ---------------
 
-If you are not familiar with jsPsych, please consult the `documentation <https://www.jspsych.org>`_ first. We recommend you also walk through some of the tutorials. 
-
-Below, we will adapt a simple lexical decision experiment. The original code can be found `here <https://github.com/jodeleeuw/bigcog-lexical-decision/>`. This repository consists of the base jsPsych installation and a single HTML file:
+Below, we will adapt a simple lexical decision experiment. The original code can be found `here <https://github.com/jodeleeuw/bigcog-lexical-decision/>`_. This repository consists of the base jsPsych installation and a single HTML file:
 
 .. code-block:: javascript
 
