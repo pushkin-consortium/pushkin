@@ -1,10 +1,7 @@
 .. _gettingstarted:
 
-Getting Started
+Quickstart
 ================
-
-Initialization
-################ 
 
 Creating a basic new Pushkin site
 ----------------------
@@ -150,7 +147,7 @@ If you make updates to your website, here is how to re-launch a local test versi
   $ docker-compose -f pushkin/docker-compose.dev.yml up --build --remove-orphans;
 
 Templates
-###############
+================
 
 There are a growing number of templates for Pushkin websites and experiments. You can get the current list of website templates as follows:
 
@@ -172,7 +169,7 @@ These lists are hard-coded into the CLI. If you want access to more recently rel
 
 
 Deploying to AWS
-###############
+================
 
 TODO
 

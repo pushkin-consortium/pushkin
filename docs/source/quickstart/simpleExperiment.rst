@@ -8,7 +8,7 @@ Pushkin's modularity means that, in principle, you could porbably use any javasc
 jsPsych provides a `tutorial <https://www.jspsych.org/tutorials/rt-task/>`_ for putting together a simple lexical decision experiment. The tutorial below explains how to modify this code to run on Pushkin.
 
 Initial code
-################ 
+---------------
 
 If you are not familiar with jsPsych, please consult the `documentation <https://www.jspsych.org>`_ first. We recommend you also walk through some of the tutorials. 
 
