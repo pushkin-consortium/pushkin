@@ -43,8 +43,8 @@ Understanding Docker
 
 There are a number of tutorials on Docker. For ongoing use, this `cheatsheet <https://www.digitalocean.com/community/tutorials/how-to-remove-docker-images-containers-and-volumes>`_ is pretty useful.
 
-Testing new version of Pushkin modules locally
---------------------
+Testing Pushkin Modules Locally
+####################
 
 Currently, the most convenient way to test new version of Pushkin modules locally is getting the tarball of the pushkin modules you modified and putting it into the node test project folder.
 
