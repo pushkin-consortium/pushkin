@@ -66,3 +66,13 @@ usePushkinController
 **Returns:** None
 
 The Pushkin will package the experiments that users develop and move it to ``./pushkin``. For the API part, the pushkin will load and require the experiment's controllers. With this method, the Pushkin-API will nest the Express router app for this experiment at the route /api/[exp], where [exp] is the path for the experiment in question.
+
+-------------------
+
+start
+-------------
+**Arguments:** None
+
+**Returns:** None
+
+Start the server and listen to the given port.
