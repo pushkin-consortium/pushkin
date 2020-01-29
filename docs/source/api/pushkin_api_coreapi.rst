@@ -32,3 +32,20 @@ init
 **Arguments:** None
 
 **Returns:** Promise, in which the connection to message queue is built. Once the connection succeeds, the Promise will be resolved and developers can define what to do next.
+
+-------------------
+
+useController
+-------------
+**Arguments:**
+   - **route** : string
+
+     The API endpoint that this use applies to.
+
+   - **controller** : express.router
+
+     The middleware function that can be used by Express App to handle the HTTP request.
+
+**Returns:** None
+
+An encapsulated method of Express app.use(route, controller). Use it to add controller/request handling method to certain endpoint.
