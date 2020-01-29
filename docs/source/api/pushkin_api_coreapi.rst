@@ -26,3 +26,9 @@ The Core API provides some methods which Pushkin can use to load users's control
 	.catch(console.error);
 
 The first line imports the API and the following three create an api. After executing ``api.init()``, the message queue will be connected and if it succeeds, the Promise it returned will be resolved and the controllers that users build will be loaded and used as the middleware by the Express App. Finally when the ``start()``method is called, the Express App will listen to the given port, and the server starts. The port is default to ``3000`` and the amqpAddress is default to ``amqp://localhost:5672``.
+
+init
+----------
+**Arguments:** None
+
+**Returns:** Promise, in which the connection to message queue is built. Once the connection succeeds, the Promise will be resolved and developers can define what to do next.
