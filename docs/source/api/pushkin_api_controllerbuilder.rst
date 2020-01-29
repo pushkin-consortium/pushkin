@@ -69,3 +69,24 @@ Enable the default endpoints a simple experiment would use. This makes it possib
    - '/metaResponse', 'insertMetaResponse', writeQueue, 'post'
    - '/stimulusResponse', 'insertStimulusResponse', writeQueue, 'post'
    - '/endExperiment', 'endExperiment', taskQueue, 'post'
+
+-------------------
+
+setDirectUse
+-------------
+**Arguments:**
+   - **route** : string
+
+     The API endpoint that this use applies to.
+
+   - **handler** : function
+
+     Function to call when this endpoint is hit.
+
+   - **httpMethod** : string
+
+     The http method this endpoint will listen on.
+
+**Returns:** None
+
+Applies this function to an API endpoint. The handler function is directly attached to an Express Router and should therefore take three arguments for the request, response, and next paramaters respectively.
