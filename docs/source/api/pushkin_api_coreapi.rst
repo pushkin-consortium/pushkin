@@ -49,3 +49,20 @@ useController
 **Returns:** None
 
 An encapsulated method of Express app.use(route, controller). Use it to add controller/request handling method to certain endpoint.
+
+-------------------
+
+usePushkinController
+------------------
+**Arguments:**
+   - **route** : string
+
+     The API endpoint that this use applies to.
+
+   - **pushkinController** : ControllerBuilder
+
+     The controller created by users using Controller Builder. After users build their custom controllers in their experiments, the pushkin will package them under the ``pushkin prep`` command.
+
+**Returns:** None
+
+The Pushkin will package the experiments that users develop and move it to ``./pushkin``. For the API part, the pushkin will load and require the experiment's controllers. With this method, the Pushkin-API will nest the Express router app for this experiment at the route /api/[exp], where [exp] is the path for the experiment in question.
