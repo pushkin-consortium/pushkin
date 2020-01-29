@@ -42,3 +42,30 @@ setPass
 **Returns:** None
 
 When an ``httpmethod`` is send to ``/api/myexp/controllermountpath/route``, send an RPC call of ``rpcMethod`` through ``queue`` to a worker listening on the backend. This makes is easy for worker methods to be mapped to API endpoint URLS. When attached to a core API, this controller endpoint returns the data sent back by the worker to the client.
+
+-------------------
+
+setDefaultPasses
+------------------
+**Arguments:**
+   - **read queue** : string
+
+     Name of RabbitMQ read queue to use. Not persistent.
+
+   - **write queue** : string
+
+     Name of RabbitMQ write queue to use. Persistent.
+
+   - **task queue** : string
+
+     Name of RabbitMQ task queue to use. Not persistent.
+
+**Returns:** None
+
+Enable the default endpoints a simple experiment would use. This makes it possible to use the default Pushkin Client calls. The default endpoints are
+
+   - '/startExperiment', 'startExperiment', taskQueue, 'post'
+   - '/getStimuli', 'getStimuli', readQueue, 'post'
+   - '/metaResponse', 'insertMetaResponse', writeQueue, 'post'
+   - '/stimulusResponse', 'insertStimulusResponse', writeQueue, 'post'
+   - '/endExperiment', 'endExperiment', taskQueue, 'post'
