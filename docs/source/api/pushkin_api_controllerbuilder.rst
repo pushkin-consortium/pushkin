@@ -90,3 +90,13 @@ setDirectUse
 **Returns:** None
 
 Applies this function to an API endpoint. The handler function is directly attached to an Express Router and should therefore take three arguments for the request, response, and next paramaters respectively.
+
+-------------------
+
+getConnFunction
+-------------
+**Arguments:** None
+
+**Returns:** A function that takes a connection obj as the argument and will return a router/controller. This is the API of pushkin to handle the request to the current endpoint. The returned router/controller will be used as the ``callback`` argument of the ``app.use([path,] callback [, callback...])``
+
+Use this methods to get the function and take a message queue connection as the argument, then you can get the returned controller, which can be used as the argument of ``useController`` method in``Core API`` section.
