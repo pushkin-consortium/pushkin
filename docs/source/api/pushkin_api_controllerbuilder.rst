@@ -19,3 +19,26 @@ The controller builder is what most users will likely want to use for their expe
    module.exports = myController;
 
 The first line imports the API and the second creates a controller builder. The queues refer to specific queues to send information on through RabbitMQ. Using separate queues allows general categorization of data. For example, in the case of a crash, the write queue is backed up so as to avoid loss of research data during times of high traffic. The controller must be exported when done being modified so it can be required by the core API.
+
+setPass
+----------
+**Arguments:**
+   - **route** : string
+
+     The API endpoint that this pass applies to.
+
+   - **rpcMethod** : string
+
+     What method to request the worker to perform.
+
+   - **queue** : string
+
+     The RabbitMQ queue via which to send this pass.
+
+   - **httpMethod** : string
+
+     The http method this endpoint will listen on.
+
+**Returns:** None
+
+When an ``httpmethod`` is send to ``/api/myexp/controllermountpath/route``, send an RPC call of ``rpcMethod`` through ``queue`` to a worker listening on the backend. This makes is easy for worker methods to be mapped to API endpoint URLS. When attached to a core API, this controller endpoint returns the data sent back by the worker to the client.
