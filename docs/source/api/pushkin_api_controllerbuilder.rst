@@ -20,6 +20,10 @@ The controller builder is what most users will likely want to use for their expe
 
 The first line imports the API and the second creates a controller builder. The queues refer to specific queues to send information on through RabbitMQ. Using separate queues allows general categorization of data. For example, in the case of a crash, the write queue is backed up so as to avoid loss of research data during times of high traffic. The controller must be exported when done being modified so it can be required by the core API.
 
+The API layer of a Pushkin project has two main jobs. The first job is taking the Request sent from the client, and the second job is sending the request to the message queue. So developers don't need to implement too many details about their experiments logics in API layer. All they need to do are designing the endpoints and assigning the message queues. So Pushkin-API provides some useful methods, which will simplify the operation of the developer's job. 
+
+For example, developers can use ``setPass()`` method to assign which HTTP request to which message queue by giving some simple arguments. They can also use ``setDirectUse()`` if there is no need to use the rpc and message queue in their controller design. Pushkin also provides a quite useful method ``setDefaultPasses()`` to provide a typical controller design of experiments, which only need some message queue arguments.
+
 setPass
 ----------
 **Arguments:**
@@ -99,4 +103,4 @@ getConnFunction
 
 **Returns:** A function that takes a connection obj as the argument and will return a router/controller. This is the API of pushkin to handle the request to the current endpoint. The returned router/controller will be used as the ``callback`` argument of the ``app.use([path,] callback [, callback...])``
 
-Use this methods to get the function and take a message queue connection as the argument, then you can get the returned controller, which can be used as the argument of ``useController`` method in``Core API`` section.
+Use this methods to get the function and take a message queue connection as the argument, then you can get the returned controller, which can be used as the argument of ``useController`` method in``Core API`` section. This method is usually used in Core-API part, ``usePushkinController`` method. When it gets the Pushkin controller, call this function with a message queue connection to finally get the Express router/controller.

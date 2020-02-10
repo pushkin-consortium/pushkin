@@ -27,6 +27,8 @@ The Core API provides some methods which Pushkin can use to load users's control
 
 The first line imports the API and the following three create an api. After executing ``api.init()``, the message queue will be connected and if it succeeds, the Promise it returned will be resolved and the controllers that users build will be loaded and used as the middleware by the Express App. Finally when the ``start()``method is called, the Express App will listen to the given port, and the server starts. The port is default to ``3000`` and the amqpAddress is default to ``amqp://localhost:5672``.
 
+The Core-API part‘s main jobs are taking the controllers the developers build, using it in Express App, and starting the server. The processes are quite standardized. When developers finish their design of controllers, they can require the controllers as modules then use ``usePushkinController()`` method to actually use the controllers in their server. Pushkin will take charge of packaging the custom experiments.
+
 init
 ----------
 **Arguments:** None
