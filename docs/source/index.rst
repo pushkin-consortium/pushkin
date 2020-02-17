@@ -15,9 +15,8 @@ Welcome to Pushkin's documentation!
    development/development
    cli/pushkin_cli
    experiments/experiment_structure
+   api/pushkin_api
    usernames/index
-
-
 
 
 Indices and tables
