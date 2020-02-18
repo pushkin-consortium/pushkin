@@ -7,7 +7,7 @@
         "build/*"
     ],
     "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1",
+        "test": "jest",
         "build": "babel src -d build"
     },
     "keywords": [
@@ -22,7 +22,8 @@
         "@babel/plugin-transform-async-to-generator": "^7.7.4",
         "@babel/preset-env": "^7.7.4",
         "babel-eslint": "^10.0.3",
-        "eslint": "^5.16.0"
+        "eslint": "^5.16.0",
+        "jest": "^25.1.0"
     },
     "dependencies": {
         "amqplib": "^0.5.5",
