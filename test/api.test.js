@@ -39,4 +39,15 @@ describe('ControllerBuilder', () => {
 		expect(myController.passAlongs.length).toBe(7);
 	});
 
+	const api = new pushkin.API(3000, 'amqp://localhost:5672');
+
+	test('test api init async', () => {
+		
+		// return api.init().then(() => {
+		// 	expect(initialized).toBeTruthy();
+		// });
+
+		expect.assertions(1);
+		return api.init().catch(e => expect(e).toMatch('Error connecting to message queue: Error: connect ECONNREFUSED 127.0.0.1:5672'));
+	});
 });
