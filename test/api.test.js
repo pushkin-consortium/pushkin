@@ -23,12 +23,6 @@ describe('ControllerBuilder', () => {
 	});
 	myController.passAlongs.pop();
 
-	// test('test setCustomPass, one adding to passAlongs', () => {
-	// 	myController.setCustomPass('/testRoute', 'testRPC', task_queue, 'post');
-	// 	expect(myController.passAlongs.length).toBe(2);
-	// });
-	// myController.passAlongs.pop();
-
 	test('test setDirectUse, one adding to directUses', () => {
 		myController.setDirectUse('/testRoute2', 'hanlder', 'get');
 		expect(myController.directUses.length).toBe(1);

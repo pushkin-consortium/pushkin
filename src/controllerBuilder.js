@@ -19,16 +19,6 @@ export default class ControllerBuilder {
 		this.passAlongs.push({ route, rpcMethod, queue, httpMethod });
 	}
 
-	// allow users to set their own custom api endpoints that just pass things along
-	// setCustomPass(route, handler, queue, httpMethod) {
-	// 	httpMethod = httpMethod || 'post';
-	// 	if (this.validHttpMethods.indexOf(httpMethod) < 0) {
-	// 		console.error(`'${httpMethod}' is not a valid http method. Ignoring for route ${route}`);
-	// 		return;
-	// 	}
-	// 	this.passAlongs.push({ route, rpcMethod, queue, httpMethod });
-	// }
-
 	// allow users to set their own custom api endpoints that don't just pass things along
 	setDirectUse(route, handler, httpMethodOption) {
 		const httpMethod = httpMethodOption == undefined ? 'post' : httpMethodOption;
