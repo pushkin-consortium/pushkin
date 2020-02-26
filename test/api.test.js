@@ -1,4 +1,5 @@
 const pushkin = require('../src/index.js');
+const express = require('express');
 
 describe('ControllerBuilder', () => {
 	
@@ -24,8 +25,14 @@ describe('ControllerBuilder', () => {
 	myController.passAlongs.pop();
 
 	test('test setDirectUse, one adding to directUses', () => {
-		myController.setDirectUse('/testRoute2', 'hanlder', 'get');
-		expect(myController.directUses.length).toBe(1);
+		// myController.setDirectUse('/testRoute2', 'hanlder', 'get');
+		myController.setDirectUse('/router1', function(req, res) {
+  			res.send('direct use 1st');
+		}, 'get');
+		myController.setDirectUse('/router2', function(req, res) {
+  			res.send('direct use 2nd');
+		}, 'get');
+		expect(myController.directUses.length).toBe(2);
 	});
 
 	test('test setDefaultPasses, six addings to passAlongs', () => {
@@ -35,13 +42,18 @@ describe('ControllerBuilder', () => {
 
 	const api = new pushkin.API(3000, 'amqp://localhost:5672');
 
-	test('test api init async', () => {
-		
-		// return api.init().then(() => {
-		// 	expect(initialized).toBeTruthy();
-		// });
-
-		expect.assertions(1);
-		return api.init().catch(e => expect(e).toMatch('Error connecting to message queue: Error: connect ECONNREFUSED 127.0.0.1:5672'));
+	test('test useController', () => {
+		const router = new express.Router();
+		myController.directUses.forEach(point =>
+			router[point.httpMethod](point.route, point.handler)
+		);
+		api.useController('/myexp', router);
 	});
+
+	test('test start', () => {
+		api.initialized = true;
+		api.start();
+		console.log('ready to access the http://localhost:3000/myexp/router1 to see if any response');
+	});
+
 });
