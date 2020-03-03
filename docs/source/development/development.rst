@@ -8,7 +8,7 @@ Pushkin is 100% open-source. We love it when people come together to help fix bu
 1. `Client <https://github.com/pushkin-consortium/pushkin-client>`_ (:ref:`Docs <pushkin_client>`)
 A module that provides simplified methods for making calls to a Pushkin API and unpacking data sent back from a worker. Note that built-in functions assume the API has corresponding default routes enabled to handle such requests.
 
-2. `API <https://github.com/pushkin-consortium/pushkin_api>`_ (:ref:`Docs <pushkin_api>`)
+2. `API <https://github.com/pushkin-consortium/pushkin-api>`_ (:ref:`Docs <pushkin_api>`)
 Essentially a mini-server designed with the use case of interfacing between Pushkin Client and Pushkin Worker via RabbitMQ.
 
 3. `CLI <https://github.com/pushkin-consortium/pushkin-cli>`_ (:ref:`Docs <pushkin_cli>`)
