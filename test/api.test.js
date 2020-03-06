@@ -1,5 +1,6 @@
 const pushkin = require('../src/index.js');
 const express = require('express');
+const supertest = require('supertest');
 
 describe('ControllerBuilder', () => {
 	
@@ -50,10 +51,25 @@ describe('ControllerBuilder', () => {
 		api.useController('/myexp', router);
 	});
 
+	// start the server
 	test('test start', () => {
 		api.initialized = true;
 		api.start();
-		console.log('ready to access the http://localhost:3000/myexp/router1 to see if any response');
 	});
-
+	
+	// test if the endpoint added is valid
+	// check the status and response text
+	it('test the endpoint', async done => {
+		const request = supertest('http://localhost:3000/myexp');
+		request.get('/router1')
+		.expect(200)
+		.end((err, res) => {
+			if(err) {
+				throw err;
+			} else {
+				expect(res.text).toEqual('direct use 1st');
+			}
+		});
+		done();
+	})
 });
