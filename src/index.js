@@ -1,4 +1,4 @@
-import Axios from 'axios';
+import axios from 'axios';
 
 export default class Pushkin {
   constructor() {
@@ -6,7 +6,7 @@ export default class Pushkin {
   }
 
   connect(quizAPIUrl) {
-    this.con = Axios.create({
+    this.con = axios.create({
       baseURL: quizAPIUrl,
     });
   }
