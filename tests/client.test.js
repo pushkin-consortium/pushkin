@@ -71,6 +71,12 @@ test('end experiment', () => {
   pushkinClient.endExperiment(postData).then((data) => expect(data).toEqual(postData));
 });
 
-test('custon API call', () => {
-  // TO DO
+test('custom API call', () => {
+  const postData = {
+    user_id: 123456,
+    data_string: [1, 'a', '2c'],
+    stimulus: { A: [2, 'b', '3d'] },
+  };
+  axios.post.mockImplementation(() => Promise.resolve(postData));
+  pushkinClient.customApiCall('./custom/api/url', postData, 'post').then((data) => expect(data).toEqual(postData));
 });
