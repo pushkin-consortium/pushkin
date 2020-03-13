@@ -108,7 +108,7 @@ export default class Pushkin {
     const postData = {
       user_id,
       data_string: data,
-      stimulus,
+      metaQuestion,
     };
     return this.con.post('/insertMetaResponse', postData);
   }
