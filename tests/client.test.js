@@ -99,7 +99,6 @@ test('set save after each stimulus', () => {
 });
 
 test('insert meta response', () => {
-  // ReferenceError: stimulus is not defined
   const postData = {
     user_id: 123456,
     data_string: [1, 'a', '2c'],
@@ -125,6 +124,6 @@ test('end experiment', () => {
     .catch((error) => console.log(error));
 });
 
-test('custom API call', () => {
+test.skip('custom API call', () => {
   // TO DO
 });
