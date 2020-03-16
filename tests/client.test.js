@@ -69,7 +69,18 @@ test('save stimulus response', () => {
 });
 
 test('set save after each stimulus', () => {
-  // TO DO
+  const test_stimuli = [
+    { stimulus: 'img/blue.png' },
+    { stimulus: 'img/orange.png' },
+  ];
+
+  const postData = {
+    user_id: 123456,
+    data_string: [1, 'a', '2c'],
+    stimulus: { A: [2, 'b', '3d'] },
+  };
+
+  pushkinClient.setSaveAfterEachStimulus(test_stimuli)[0].on_finish(test_stimuli).then((data) => expect(data).toEqual(postData));
 });
 
 test('insert meta response', () => {
@@ -97,14 +108,4 @@ test('end experiment', () => {
 
 test.skip('custom API call', () => {
   // TO DO
-
-  const postData = {
-    user_id: 123456,
-    data_string: [1, 'a', '2c'],
-    stimulus: { A: [2, 'b', '3d'] },
-  };
-
-  axios.post.mockImplementation(() => Promise.resolve(postData));
-
-  pushkinClient.customApiCall('./custom/api/url', postData, 'post').then((data) => expect(data).toEqual(postData));
 });
