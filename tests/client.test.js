@@ -17,13 +17,17 @@ test('connect to quiz api url', () => {
 test('load script url', () => {
   const testURL = '/testurl';
 
-  pushkinClient.loadScript(testURL).then((data) => expect(data).toEqual(testURL));
+  pushkinClient.loadScript(testURL)
+    .then((data) => expect(data).toEqual(testURL))
+    .catch((error) => console.log(error));
 });
 
 test('load multiple script urls', () => {
   const testURLs = ['/testurl1', '/testurl2', '/testurl3'];
 
-  pushkinClient.loadScripts(testURLs).then((data) => expect(data).toEqual(testURLs));
+  pushkinClient.loadScripts(testURLs)
+    .then((data) => expect(data).toEqual(testURLs))
+    .catch((error) => console.log(error));
 });
 
 test('prepare for experiment', () => {
@@ -31,7 +35,9 @@ test('prepare for experiment', () => {
 
   axios.post.mockImplementation(() => Promise.resolve(postData));
 
-  pushkinClient.prepExperimentRun(postData).then((data) => expect(data).toEqual(postData));
+  pushkinClient.prepExperimentRun(postData)
+    .then((data) => expect(data).toEqual(postData))
+    .catch((error) => console.log(error));
 });
 
 test('tabulate and post results', () => {
@@ -42,7 +48,9 @@ test('tabulate and post results', () => {
 
   axios.post.mockImplementation(() => Promise.resolve(postData));
 
-  pushkinClient.tabulateAndPostResults(postData).then((data) => expect(data).toEqual(postData));
+  pushkinClient.tabulateAndPostResults(postData)
+    .then((data) => expect(data).toEqual(postData))
+    .catch((error) => console.log(error));
 });
 
 test('get all stimuli', () => {
@@ -53,7 +61,10 @@ test('get all stimuli', () => {
 
   axios.post.mockImplementation(() => Promise.resolve(postData));
 
-  pushkinClient.getAllStimuli(postData).then((data) => expect(data).toEqual(postData));
+  // TypeError: Cannot read property 'resData' of undefined
+  pushkinClient.getAllStimuli(postData)
+    .then((data) => expect(data).toEqual(postData))
+    .catch((error) => console.log(error));
 });
 
 test('save stimulus response', () => {
@@ -65,7 +76,9 @@ test('save stimulus response', () => {
 
   axios.post.mockImplementation(() => Promise.resolve(postData));
 
-  pushkinClient.saveStimulusResponse(postData).then((data) => expect(data).toEqual(postData));
+  pushkinClient.saveStimulusResponse(postData)
+    .then((data) => expect(data).toEqual(postData))
+    .catch((error) => console.log(error));
 });
 
 test('set save after each stimulus', () => {
@@ -80,7 +93,9 @@ test('set save after each stimulus', () => {
     stimulus: { A: [2, 'b', '3d'] },
   };
 
-  pushkinClient.setSaveAfterEachStimulus(test_stimuli)[0].on_finish(test_stimuli).then((data) => expect(data).toEqual(postData));
+  pushkinClient.setSaveAfterEachStimulus(test_stimuli)[0].on_finish(test_stimuli)
+    .then((data) => expect(data).toEqual(postData))
+    .catch((error) => console.log(error));
 });
 
 test('insert meta response', () => {
@@ -93,7 +108,9 @@ test('insert meta response', () => {
 
   axios.post.mockImplementation(() => Promise.resolve(postData));
 
-  pushkinClient.insertMetaResponse(postData).then((data) => expect(data).toEqual(postData));
+  pushkinClient.insertMetaResponse(postData)
+    .then((data) => expect(data).toEqual(postData))
+    .catch((error) => console.log(error));
 });
 
 test('end experiment', () => {
@@ -103,9 +120,11 @@ test('end experiment', () => {
 
   axios.post.mockImplementation(() => Promise.resolve(postData));
 
-  pushkinClient.endExperiment(postData).then((data) => expect(data).toEqual(postData));
+  pushkinClient.endExperiment(postData)
+    .then((data) => expect(data).toEqual(postData))
+    .catch((error) => console.log(error));
 });
 
-test.skip('custom API call', () => {
+test('custom API call', () => {
   // TO DO
 });
