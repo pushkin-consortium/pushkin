@@ -1,4 +1,0 @@
-All commands not almost universally found on *NIX systems should be listed here.
-We'll make a nice little package later with an install script via homebrew or something.
-
-envsubst

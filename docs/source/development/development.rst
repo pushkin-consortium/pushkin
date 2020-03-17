@@ -42,3 +42,23 @@ Understanding Docker
 --------------------
 
 There are a number of tutorials on Docker. For ongoing use, this `cheatsheet <https://www.digitalocean.com/community/tutorials/how-to-remove-docker-images-containers-and-volumes>`_ is pretty useful.
+
+Testing Pushkin Modules Locally
+####################
+
+Currently, the most convenient way to test new version of Pushkin modules locally is getting the tarball of the pushkin modules you modified and putting it into the node test project folder.
+
+1. If you have a node project for test the new version of Pushkin modules(pushkin-api, pushkin-client, pushkin-worker, etc.), create a folder in the project dir named "testPackages".
+
+2. Get the tarball of the pushkin modules to be tested, like "pushkin-api-1.2.0.tgz". Put this tarball into the testPackages folder.
+
+3. Modify the package.json file in the project dir like this::
+
+    "dependencies": {
+    	"pushkin-api": "file:testPackages/pushkin-api-1.2.0.tgz",
+    	... ...
+  	}
+
+That is, modify the path of the Pushkin module to the local test version, so that the npm will find it locally rather than the npm library
+
+4. npm install all the dependencies, then you can write the test codes.
