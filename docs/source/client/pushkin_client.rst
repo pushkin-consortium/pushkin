@@ -90,6 +90,15 @@ Likely not wanted to be invoked directly by most users. Easiest to use if added 
 
 ------------
 
+insertMetaResponse
+-------------------
+**Arguments:**
+   - **jsPych onfinish data** : { user_id : int, ... }
+
+**Returns:** Promise. Resolves on successful connection.
+
+------------
+
 endExperiment
 -------------------
 **Arguments:** None
