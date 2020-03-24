@@ -61,7 +61,7 @@ describe('ControllerBuilder', () => {
 	
 	// test if the endpoint added is valid
 	// check the status and response text
-	it('test the endpoint', async done => {
+	test('test the endpoint', async done => {
     	const request = supertest('http://localhost:3000/myexp');
     	request.get('/router1')
     	.expect(200)
@@ -71,7 +71,8 @@ describe('ControllerBuilder', () => {
         	} else {
             	expect(res.text).toEqual('direct use 1st');
             	done();
+            	api.server.close();
         	}
-    });
-})
+    	});
+	});
 });

@@ -24,6 +24,7 @@ export default class PushkinAPI {
 		});
 		this.app.use(bodyParser.json());
 		this.expressListening = false;
+		this.server = null;
 	}
 
 	async init() {
@@ -61,7 +62,7 @@ export default class PushkinAPI {
 		if (!this.initialized)
 			throw new Error('The API hasn\'t been successfully initialized');
 		this.expressListening = true;
-		this.app.listen(this.expressPort, () => {
+		this.server = this.app.listen(this.expressPort, async () => {
 			console.log(`Pushkin API listening on port ${this.expressPort}`);
 		});
 	}
