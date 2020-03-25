@@ -7,7 +7,7 @@
         "build/*"
     ],
     "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1",
+        "test": "jest",
         "build": "babel src -d build"
     },
     "keywords": [
@@ -21,12 +21,18 @@
     },
     "devDependencies": {
         "@babel/cli": "^7.7.4",
-        "@babel/core": "^7.7.4",
+        "@babel/core": "^7.8.7",
         "@babel/plugin-proposal-class-properties": "^7.7.4",
-        "@babel/preset-env": "^7.7.4",
+        "@babel/preset-env": "^7.8.7",
         "babel-eslint": "^10.0.3",
-        "eslint": "^5.16.0",
-        "eslint-plugin-react": "^7.12.4",
-        "fs": "0.0.1-security"
+        "babel-jest": "^25.1.0",
+        "eslint": "^6.8.0",
+        "eslint-config-airbnb": "^18.0.1",
+        "eslint-plugin-import": "^2.20.1",
+        "eslint-plugin-jsx-a11y": "^6.2.3",
+        "eslint-plugin-react": "^7.18.3",
+        "eslint-plugin-react-hooks": "^1.7.0",
+        "fs": "0.0.1-security",
+        "jest": "^25.1.0"
     }
 }
