@@ -33,6 +33,6 @@
         "eslint-plugin-react": "^7.18.3",
         "eslint-plugin-react-hooks": "^1.7.0",
         "fs": "0.0.1-security",
-        "jest": "^25.1.0"
+        "jest": "^25.2.0"
     }
 }
