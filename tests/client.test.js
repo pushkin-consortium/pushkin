@@ -62,6 +62,7 @@ test('get all stimuli', () => {
   axios.post.mockImplementation(() => Promise.resolve(postData));
 
   // TypeError: Cannot read property 'resData' of undefined
+  // This is because getAllStimuli does something with the returned data
   pushkinClient.getAllStimuli(postData)
     .then((data) => expect(data).toEqual(postData))
     .catch((error) => console.log(error));
