@@ -17,6 +17,7 @@ Welcome to Pushkin's documentation!
    experiments/experiment_structure
    api/pushkin_api
    usernames/index
+   testing/testing
 
 
 Indices and tables
