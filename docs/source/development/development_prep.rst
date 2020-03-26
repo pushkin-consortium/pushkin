@@ -7,7 +7,7 @@ In order to simplify maintaining a Pushkin website, all code for a single experi
 
 The code for ``prep`` can be found in ``pushkin-cli/src/commands/prep/index.js``. There is inline documentation. Below, we provide an overview of what ``prep`` does.
 
-1. Prep deletes the ``experiments.js`` and ``controllers.json`` files (see website_controlersJSON_ and website_expeirmentsJS_). It deletes temporary files stored in ``api`` and ``front-end``. It also removes the experiment workers from the core ``docker-compose.dev.yml``.
+1. Prep deletes the ``experiments.js`` and ``controllers.json`` files (see website_controlersJSON_ and website_experimentsJS_). It deletes temporary files stored in ``api`` and ``front-end``. It also removes the experiment workers from the core ``docker-compose.dev.yml``.
 
 2. ``npm pack`` is used to turn each API controller into a tarball. Those tarballs are stored in ``api/tempPackages``. The names of these controllers are added to ``controllers.json``.
 
