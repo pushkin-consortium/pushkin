@@ -89,13 +89,11 @@ For now, let's use the test database that is built by ``pushkin init site``. We 
 with stimuli for our experiment(s):
 
 .. code-block:: bash
+
+  $ pushkin prep
   $ docker-compose -f pushkin/docker-compose.dev.yml start test_db
   $ pushkin setupdb
   $ docker-compose -f pushkin/docker-compose.dev.yml stop test_db
-
-.. code-block:: bash
-
-  $ pushkin prep
 
 Setting up logins
 --------
