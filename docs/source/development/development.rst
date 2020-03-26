@@ -36,7 +36,7 @@ Understanding the Front End
 
 5. You'll also want to understand Redux better. Redux is used to keep track of application-level state variables. For Pushkin, a primary usecase is keeping track of subject IDs. The best tutorial we've found for React-Redux is `the official one <https://redux.js.org/basics/basic-tutorial>`_. Note that it's a little out-of-date with regards to use of object spread syntax (which is now supported by Node) and with how to handle asynchronous requests: we'll be using `redux sagas <https://redux-saga.js.org/docs/introduction/>`_ for that, so read up on that as well. A good place to start on why redux sagas are worth using is `here <https://engineering.universe.com/what-is-redux-saga-c1252fc2f4d1>`_.
 
-7. At this point, we recommend going back through the tutorial in #2 above.
+6. At this point, we recommend going back through the tutorial in #2 above.
 
 Understanding Docker
 --------------------
