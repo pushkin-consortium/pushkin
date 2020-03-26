@@ -90,7 +90,6 @@ with stimuli for our experiment(s):
 
 .. code-block:: bash
 
-  $ pushkin prep
   $ docker-compose -f pushkin/docker-compose.dev.yml start test_db
   $ pushkin setupdb
   $ docker-compose -f pushkin/docker-compose.dev.yml stop test_db
