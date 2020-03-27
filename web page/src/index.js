@@ -4,8 +4,8 @@ import jsPsych from 'pushkin-jspsych';
 import { withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
 import timeline_basic from './experiment';
-import fs from 'fs';
 import jsYaml from 'js-yaml';
+const fs = require('fs');
 
 //stylin'
 import './assets/experiment.css'
