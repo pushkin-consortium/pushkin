@@ -19,6 +19,7 @@ Welcome to Pushkin's documentation!
    api/pushkin_api
    usernames/index
    testing/testing
+   sitetemplate/index
 
 
 Indices and tables
