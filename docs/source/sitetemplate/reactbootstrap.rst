@@ -101,3 +101,8 @@ It means ``marginLeft`` is 2 and ``marginRight`` is 2 as well.
   <img className="m-4" />
 
 It means margins of all sides (left, right, top, bottom) are 4.
+
+LinkContainer
+--------------
+
+``<LinkContainer>`` is a component of `react-router-bootstrap <https://github.com/react-bootstrap/react-router-bootstrap>`_. Wrap your React Bootstrap element in a ``<LinkContainer>`` to make it behave like a React Router ``<Link>`` ``<LinkContainer>`` accepts same parameters as React Router's ``<NavLink>``
