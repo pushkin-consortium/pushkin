@@ -6,7 +6,7 @@ Home Page
 Jumbotron
 ----------
 
-The Jumbotron is a lightweight, flexible component that can optionally extend the entire viewport to showcase key content on your site.
+`The Jumbotron <https://react-bootstrap.github.io/components/jumbotron/>`_ is a lightweight, flexible component that can optionally extend the entire viewport to showcase key content on your site.
 
 .. code-block:: javascript
 
@@ -26,6 +26,11 @@ The Jumbotron is a lightweight, flexible component that can optionally extend th
   </Jumbotron>
 
 It includes a link to the feedback page, an archor tag wrapped in ``<LinkContainer>`` component.
+
+CardDeck
+---------
+
+The ``<CardDeck>`` creates a grid of cards that are of equal height and width. The layout will automatically adjust as you insert more cards. We recommend putting every 3 cards in a card deck. Quizzes are wrapped in card decks in ``Home.js`` located in ``pushkin/front-end/src/pages``.
 
 Card
 -----
@@ -103,8 +108,3 @@ The components inside a quiz card, in order from top to bottom, are:
  - ``<Card.Text>``: Quiz description
  - ``<Button>``: Wrapped in ``<LinkContainer>``
  - ``<SocialIcon>``: The `react social icons <https://www.npmjs.com/package/react-social-icons>`_ provides a set of beautiful svg social icons.
-
-CardDeck
----------
-
-The ``<CardDeck>`` creates a grid of cards that are of equal height and width. The layout will automatically adjust as you insert more cards. We recommend putting every 3 cards in a card deck. Quizzes are wrapped in card decks in ``Home.js`` located in ``pushkin/front-end/src/pages``.
