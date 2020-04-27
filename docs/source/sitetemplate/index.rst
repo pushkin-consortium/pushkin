@@ -9,6 +9,6 @@ Modifying Site Template
    React Bootstrap <reactbootstrap>
    Header and Footer <headerandfooter>
    Home Page <home>
-   Findings Page
+   Findings Page <findings>
    About Page
    Feedback Page
