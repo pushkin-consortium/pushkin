@@ -11,4 +11,4 @@ Modifying Site Template
    Home Page <home>
    Findings Page <findings>
    About Page <about>
-   Feedback Page
+   Feedback Page <feedback>

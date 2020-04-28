@@ -18,8 +18,8 @@ Welcome to Pushkin's documentation!
    client/pushkin_client
    api/pushkin_api
    usernames/index
-   testing/testing
    sitetemplate/index
+   testing/testing
 
 
 Indices and tables
