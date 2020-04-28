@@ -26,7 +26,7 @@ Use two ``<Col>`` components wrapped in one ``<Row>`` inside cards:
     </Row>
   </Card>
 
-The content in the first <Col> will be on the left side of the card. And the content in the second <Col> will be on the right side of the card. 
+The content in the first ``<Col>`` will be on the left side of the card. And the content in the second ``<Col>`` will be on the right side of the card. 
 
 For example, the first card in the findings page has its ``<Card.Img>`` in the first ``<Col>``, ``<Card.Body>``, ``<Card.Title>``, ``<Card.Text>`` in the second ``<Col>``
 
