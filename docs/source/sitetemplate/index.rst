@@ -10,5 +10,5 @@ Modifying Site Template
    Header and Footer <headerandfooter>
    Home Page <home>
    Findings Page <findings>
-   About Page
+   About Page <about>
    Feedback Page
