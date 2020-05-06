@@ -9,6 +9,7 @@ Modifying Site Template
    React Bootstrap <reactbootstrap>
    Header and Footer <headerandfooter>
    Home Page <home>
+   Add a Quiz <quiz>
    Findings Page <findings>
    About Page <about>
    Feedback Page <feedback>
