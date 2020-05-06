@@ -54,15 +54,32 @@ provides, run
 
 .. code-block:: bash
 
-  $ pushkin experiment basic myexp
-  $ pushkin init myexp
+  $ pushkin experiment basic vocab
+  $ pushkin experiment basic mind
+  $ pushkin experiment basic whichenglish
+  $ pushkin init vocab
+  $ pushkin init mind
+  $ pushkin init whichenglish
 
-replacing “myexp” with a short name of your experiment. This will create a new folder in the
-experiments directory like
+This will create a new folder in the experiments directory like
 
 ::
 
-   └── myexp
+   └── vocab
+       ├── api controllers
+       ├── config.yaml
+       ├── migrations
+       ├── seeds
+       ├── web page
+       └── worker
+   └── mind
+       ├── api controllers
+       ├── config.yaml
+       ├── migrations
+       ├── seeds
+       ├── web page
+       └── worker
+   └── whichenglish
        ├── api controllers
        ├── config.yaml
        ├── migrations
