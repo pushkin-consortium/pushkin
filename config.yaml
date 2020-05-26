@@ -28,5 +28,6 @@ seeds:
 # Since it's running inside a linked docker container
 database: 'localtestdb'
 logo: 'logo512.png'
+text: 'Enter your experiment description here.'
 tagline: 'Be a citizen scientist! Try this quiz.'
 duration: ''
