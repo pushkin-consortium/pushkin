@@ -5,9 +5,45 @@ Add a Quiz
 
 To add a quiz, run ``pushkin experiment basic yourQuizName``. This will create a pushkin experiment template experiment in the ``experiments/`` folder.
 
-After running ``pushkin prep``, the ``experiments.js`` located in ``pushkin/front-end/src`` will be updated.
+Open the ``config.js`` located in your experiment folder, modify the experiment name, shortName, logo, text etc.
 
-The ``experiments.js`` contains a array of objects:
+.. code-block:: yaml
+
+  experimentName: &fullName 'mind Experiment'
+  shortName: &shortName 'mind' # This should be unique as its used for urls, etc.
+  apiControllers: # The default export from each of these locations will be attached to a pushkin API
+    - mountPath: *shortName
+      location: 'api controllers'
+      name: 'mycontroller'
+  worker:
+    location: 'worker'
+    service: # what to add as a service in main compose file
+      image: *shortName
+      links:
+        - message-queue
+        - test_db
+      environment:
+        - "AMQP_ADDRESS=amqp://message-queue:5672"
+        - "DB_USER=postgres"
+        - "DB_PASS="
+        - "DB_URL=test_db"
+        - "DB_NAME=test_db"
+  webPage:
+    location: 'web page'
+  migrations:
+    location: 'migrations'
+  seeds:
+    location: ''
+  # Used for migration and seed commands via main CLI
+  # Note that these might be different than those given to the worker,
+  # Since it's running inside a linked docker container
+  database: 'localtestdb'
+  logo: 'Mind.png'
+  text: 'Enter your experiment description here'
+  tagline: 'Be a citizen scientist! Try this quiz.'
+  duration: ''
+
+After running ``pushkin prep``, the ``experiments.js`` located in ``pushkin/front-end/src`` will be updated, it should be an array of objects like this:
 
 .. code-block:: javascript
 
@@ -17,72 +53,4 @@ The ``experiments.js`` contains a array of objects:
     { fullName: 'whichenglish Experiment', shortName: 'whichenglish', module: pushkinComponentbbca5356917345c2b2532e84e5325197, logo: 'logo512.png', tagline: 'Be a citizen scientist! Try this quiz.', duration: '' },
   ];
 
-The ``shortName`` is the experiment you named in ``pushkin experiment basic`` command, you can learn more about experiment structure :ref:`HERE <experiment_structure>`.
-
-After that, you need to map this array of objects into quiz components props in ``src/pages/Home.js``:
-
-.. code-block:: javascript
-
-  import experiments from '../experiments.js';
-
-  // ......
-
-  {experiments.map(e => {
-              if (e.shortName === 'vocab') {
-                return <Vocab
-                        id={e.shortName}
-                        title={e.fullName}
-                        duration={e.duration}
-                        post={e.tagline}
-                        img={require('../assets/images/quiz/Vocab.png')}
-                        key={e.shortName}
-                      />
-              } else if (e.shortName === 'mind') {
-                 return <Mind
-                          id={e.shortName}
-                          title={e.fullName}
-                          duration={e.duration}
-                          post={e.tagline}
-                          img={require('../assets/images/quiz/Mind.png')}
-                          key={e.shortName}
-                        />
-              } else if (e.shortName === 'whichenglish') {
-                 return <WhichEnglish 
-                          id={e.shortName}
-                          title={e.fullName}
-                          duration={e.duration}
-                          post={e.tagline}
-                          img={require('../assets/images/quiz/WhichEnglish.png')}
-                          key={e.shortName}
-                        />
-              }
-            })}
-  
-  // ......
-
-Then you can use those props in your quiz component and add quiz description in ``<Card.Text>``, for example, the ``<Vocab>`` component:
-
-.. code-block:: javascript
-
-  <Card className="border-0 shadow" style={styles.card}>
-    <Card.Body>
-      <Card.Img src={this.props.img} style={styles.cardImage} />
-      <Card.Title className="mt-4" style={styles.cardTitle}>
-        {this.props.title}
-      </Card.Title>
-      <Card.Text className="mt-4" style={styles.cardText}>
-        Forget psychics, all of us have to read minds. We try to figure out
-        what people are thinking based on what they say or do. See your
-        results at the end.
-      </Card.Text>
-    </Card.Body>
-    <Row className="justify-content-center mt-2">
-      <LinkContainer
-        style={styles.cardButton}
-        to={'/quizzes/' + this.props.id}
-      >
-        <Button>Play Now</Button>
-      </LinkContainer>
-    </Row>
-    // ......
-  </Card>
+Then the new quiz card will be automatically added to the home page.

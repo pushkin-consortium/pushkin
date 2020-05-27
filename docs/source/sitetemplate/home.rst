@@ -41,41 +41,41 @@ Card
  - Title, text, and links: Using ``<Card.Title>``, ``<Card.Subtitle>``, and ``<Card.Text>`` inside the ``<Card.Body>`` will line them up nicely. ``<Card.Link>`` are used to line up links next to each other.
  - Images: Cards include a few options for working with images. Choose from appending “image caps” at either end of a card, overlaying images with card content, or simply embedding the image in a card.
 
-For example, the vocabulary quiz card in the template site:
+For example, the quiz card in the home page:
 
 .. code-block:: javascript
 
-  <Card className="border-0 shadow" style={styles.card}>
-    <Card.Body>
-      <Card.Img src={this.props.img} style={styles.cardImage} />
-      <Card.Title className="mt-4" style={styles.cardTitle}>
-        {this.props.title}
-      </Card.Title>
-      <Card.Text className="mt-4" style={styles.cardText}>
-        <Row>
-          How many words do you know? See your results at the end.
-        </Row>
-        {this.props.duration && (
-          <p>
-            {' '}
-            <strong>
+    <Card className="border-0 shadow" style={styles.card}>
+      <Card.Body>
+        <Card.Img src={this.props.img} style={styles.cardImage} />
+        <Card.Title className="mt-4" style={styles.cardTitle}>
+          {this.props.title}
+        </Card.Title>
+        <Card.Text className="mt-4" style={styles.cardText}>
+          {this.props.text}
+
+          {/* {this.props.duration && (
+            <p>
               {' '}
-              Average time: {this.props.duration} minutes.{' '}
-            </strong>{' '}
-          </p>
-        )}
-        {this.state.count && (
-          <p> {this.state.count} players so far! </p>
-        )}
-      </Card.Text>
-    </Card.Body>
-    <Row className="justify-content-center mt-2">
-      <LinkContainer style={styles.cardButton} to={'/quizzes/' + this.props.id}>
-        <Button className="btn-danger">Play Now</Button>
-      </LinkContainer>
-    </Row>
-    <Row className="justify-content-center mt-3 mb-3">
-        <SocialIcon
+              <strong>
+                {' '}
+                Average time: {this.props.duration} minutes.{' '}
+              </strong>{' '}
+            </p>
+          )}
+
+          {this.state.count && (
+            <p> {this.state.count} players so far! </p>
+          )} */}
+        </Card.Text>
+      </Card.Body>
+      <Row className="justify-content-center mt-2">
+        <LinkContainer style={styles.cardButton} to={'/quizzes/' + this.props.id}>
+          <Button>Play Now</Button>
+        </LinkContainer>
+      </Row>
+      <Row className="justify-content-center mt-3 mb-3">
+        <i.SocialIcon
           url={share.facebook}
           onClick={e => {
             e.preventDefault();
@@ -84,7 +84,7 @@ For example, the vocabulary quiz card in the template site:
           style={styles.socialIcon}
           target="_blank"
         />
-        <SocialIcon
+        <i.SocialIcon
           url={share.twitter}
           onClick={e => {
             e.preventDefault();
@@ -93,13 +93,22 @@ For example, the vocabulary quiz card in the template site:
           style={styles.socialIcon}
           target="_blank"
         />
-        <SocialIcon
+        <i.SocialIcon
           url={share.email}
           style={styles.socialIcon}
           target="_blank"
         />
+        {/* BETA ribbon */}
+        {/* {this.props.beta && (
+          <LinkContainer to={'/quizzes/' + this.props.id}>
+            <div className={s.ribbon + ' ' + s.ribbonBottomLeft}>
+              {' '}
+              <span>BETA</span>{' '}
+            </div>
+          </LinkContainer>
+        )} */}
       </Row>
-  </Card>
+    </Card>
 
 The components inside a quiz card, in order from top to bottom, are:
 
