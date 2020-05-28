@@ -27,9 +27,33 @@ The ``<Card.ImgOverlay>`` component turns an image into a card background and ov
     </Card.ImgOverlay>
   </Card>
 
-Team Members
--------------
+Add a Team Member In About Page
+-------------------------------
 
-Each team member is in a ``<Card>`` component. We put every three cards inside one ``<CardDeck>`` component in a row.
+To add a team member in the about page, open ``People.js`` located in ``components/TeamMember``, it should be an array of objects look like this:
 
-To change the picture of the card, add images to the ``pushkin/front-end/src/assets/images/profile`` folder, and change the src prop of ``<Card.Img src={require("../assets/images/profile/xxx.png")} />`` to the right path.
+.. code-block:: javascript
+
+  const people = [
+    { 
+      name: 'Team Member Name', 
+      image: 'Template.png', 
+      description: 'Enter team member description here.' 
+    },
+    { 
+      name: 'Team Member Name', 
+      image: 'Template.png', 
+      description: 'Enter team member description here.' 
+    },
+    { 
+      name: 'Team Member Name', 
+      image: 'Template.png', 
+      description: 'Enter team member description here.' 
+    },
+  ]
+
+Each object contains three properties: `name`, `image` and `description`. Edit the `name` and `description` properties in ``People.js``.
+
+To add a profile picture of the team member. Copy the image file into the ``assets/images/teamMember`` folder. 
+
+Then edit the image property in ``People.js``, make sure the name of the image file and the `image` property match, including the extension name, like: ``Josh.jpg``. 
