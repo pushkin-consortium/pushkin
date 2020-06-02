@@ -115,9 +115,9 @@ By default, Pushkin authenticates users using `Auth0 <http://auth0.com>`_. This 
 
 4. Choose the *Settings* tab. In *Allowed Callback URLs*, add ``http://localhost/``. In *Allowed Logout URLs*, add ``http://localhost``.  In *Allowed Web Origins*, also add ``http://localhost``. Click the *Save Changes* button.
 
-Note that these URLs are used for development. When you launch the live verrsion of your website, you will need to add your public URLs. Repeat the instructions above, replacing *http://localhost* with *https://YOUR-WEBSITE*. For instance, for gameswithwords, the urls are ``https://gameswithwords.org`` and ``https://gameswithwords/callback``. 
+Note that these URLs are used for development. When you launch the live version of your website, you will need to add your public URLs. Repeat the instructions above, replacing *http://localhost* with *https://YOUR-WEBSITE*. For instance, for gameswithwords, the urls are ``https://gameswithwords.org`` and ``https://gameswithwords/callback``. 
 
-5. On the setings page, you will see a ``Domain`` (something like ``gameswithwords.auth0.com``) and a ``Client ID``. Edit ``config.js`` to match: 
+5. On the settings page, you will see a ``Domain`` (something like ``gameswithwords.auth0.com``) and a ``Client ID``. Edit ``config.js`` to match: 
 
 .. code-block:: javascript
 
