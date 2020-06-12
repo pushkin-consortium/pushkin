@@ -1,28 +1,62 @@
 # Quickstart
 Here's how to get started with generating and using Pushkin.
 
-Text test
-
 {% include "./creating-basic-new-pushkin-site.md" %}
 
-Text test
+### Setting up a local database
 
-{% include "./making-an-experiment.md" %}
+For now, let’s use the test database that is built by `pushkin init site`. We need to populate it with stimuli for our experiment\(s\):
 
-Text test
+```bash
+$ docker-compose -f pushkin/docker-compose.dev.yml start test_db
+$ pushkin setupdb
+$ docker-compose -f pushkin/docker-compose.dev.yml stop test_db
+```
 
-{% include "./setting-up-local-database.md" %}
+### Setting up logins
 
-Text test
+In `config.js`, located at ./pushkin/front-end/src, set `useAuth` to `true` or `false` depending on whether you want to have a login system or not. Note that you cannot use a forum without a login system:
 
-{% include "./setting-up-logins.md" %}
+```javascript
+useForum: false,
+useAuth: false,
+//Note that the forum won't work without authentication
+```
 
-Text test
+By default, Pushkin authenticates users using [Auth0](http://auth0.com/). This provides many features and better security than could be managed otherwise. It is free for open source projects \(contact [sales@auth0.com](mailto:sales%40auth0.com)\); otherwise it can be fairly pricey if you are hoping for a lot of users. To set up Auth0, use the following directions. \(Note that at some point, Auth0 will change up their website and these instructions may get out of date.\)
 
-{% include "./local-testing.md" %}
+1. Go to auth0.com and create an Auth0 account.
+2. Go to the _Applications_ section of the Auth0 dashboard and click _Create Application_.
+3. Give your application and a name. Select _Single Page Web App_ as your application type. Click _Create_.
+4. Choose the _Settings_ tab. In _Allowed Callback URLs_, add `http://localhost/`. In _Allowed Logout URLs_, add `http://localhost`. In _Allowed Web Origins_, also add `http://localhost`. Click the _Save Changes_ button.
 
-Text test
+Note that these URLs are used for development. When you launch the live verrsion of your website, you will need to add your public URLs. Repeat the instructions above, replacing _http://localhost_ with _https://YOUR-WEBSITE_. For instance, for gameswithwords, the urls are `https://gameswithwords.org` and `https://gameswithwords/callback`.
 
-{% include "./updating.md" %}
+1. On the setings page, you will see a `Domain` \(something like `gameswithwords.auth0.com`\) and a `Client ID`. Edit `config.js` to match:
 
-Text test
+```javascript
+authDomain: '<YOUR_AUTH0_DOMAIN>',
+authClientID: '<YOUR_AUTH0_CLIENT_ID>',
+```
+
+### Local testing
+
+```bash
+$ docker-compose -f pushkin/docker-compose.dev.yml up --build --remove-orphans;
+```
+
+Now browse to `http://localhost` to see the stub website.
+
+### Updating
+
+If you make updates to your website, here is how to re-launch a local test version:
+
+```bash
+$ docker-compose -f pushkin/docker-compose.dev.yml stop
+$ pushkin prep
+$ docker-compose -f pushkin/docker-compose.dev.yml start test_db
+$ pushkin setupdb
+$ docker-compose -f pushkin/docker-compose.dev.yml stop test_db
+$ docker-compose -f pushkin/docker-compose.dev.yml up --build --remove-orphans;
+```
+
