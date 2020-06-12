@@ -1,8 +1,8 @@
 # Quickstart
 
-[Link](#making-an-experiment)
+[Link](./#making-an-experiment)
 
-### Creating a basic new Pushkin site
+## Creating a basic new Pushkin site
 
 All instructions are for working on a Mac. If you figure out how to install Pushkin on Windows, please update the documentation and submit a pull request!
 
@@ -43,7 +43,7 @@ This sets up a skeleton website in the current folder and sets up a development 
 
 Most of the stuff in the pushkin folder won’t need to be edited at all, with the exception of the website \(in the front-end folder\).
 
-### Making an Experiment
+## Making an Experiment
 
 To create a new experiment from the boilerplate template Pushkin provides, run
 
@@ -72,7 +72,7 @@ Keeping all the files for an experiment within the same root folder is convenien
 $ pushkin prep
 ```
 
-### Setting up a local database
+## Setting up a local database
 
 For now, let’s use the test database that is built by `pushkin init site`. We need to populate it with stimuli for our experiment\(s\):
 
@@ -82,7 +82,7 @@ $ pushkin setupdb
 $ docker-compose -f pushkin/docker-compose.dev.yml stop test_db
 ```
 
-### Setting up logins
+## Setting up logins
 
 In `config.js`, located at ./pushkin/front-end/src, set `useAuth` to `true` or `false` depending on whether you want to have a login system or not. Note that you cannot use a forum without a login system:
 
@@ -99,7 +99,7 @@ By default, Pushkin authenticates users using [Auth0](http://auth0.com/). This p
 3. Give your application and a name. Select _Single Page Web App_ as your application type. Click _Create_.
 4. Choose the _Settings_ tab. In _Allowed Callback URLs_, add `http://localhost/`. In _Allowed Logout URLs_, add `http://localhost`. In _Allowed Web Origins_, also add `http://localhost`. Click the _Save Changes_ button.
 
-Note that these URLs are used for development. When you launch the live verrsion of your website, you will need to add your public URLs. Repeat the instructions above, replacing _http://localhost_ with _https://YOUR-WEBSITE_. For instance, for gameswithwords, the urls are `https://gameswithwords.org` and `https://gameswithwords/callback`.
+Note that these URLs are used for development. When you launch the live verrsion of your website, you will need to add your public URLs. Repeat the instructions above, replacing [http://localhost](http://localhost) with [https://YOUR-WEBSITE](https://YOUR-WEBSITE). For instance, for gameswithwords, the urls are `https://gameswithwords.org` and `https://gameswithwords/callback`.
 
 1. On the setings page, you will see a `Domain` \(something like `gameswithwords.auth0.com`\) and a `Client ID`. Edit `config.js` to match:
 
@@ -108,7 +108,7 @@ authDomain: '<YOUR_AUTH0_DOMAIN>',
 authClientID: '<YOUR_AUTH0_CLIENT_ID>',
 ```
 
-### Local testing
+## Local testing
 
 ```bash
 $ docker-compose -f pushkin/docker-compose.dev.yml up --build --remove-orphans;
@@ -116,7 +116,7 @@ $ docker-compose -f pushkin/docker-compose.dev.yml up --build --remove-orphans;
 
 Now browse to `http://localhost` to see the stub website.
 
-### Updating
+## Updating
 
 If you make updates to your website, here is how to re-launch a local test version:
 

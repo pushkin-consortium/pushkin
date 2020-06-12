@@ -2,7 +2,9 @@
 
 * [Welcome!](README.md)
 
-### Getting Started
+## Getting Started
 
 * [Quickstart](getting-started/quickstart/README.md)
-  * [Test](getting-started/quickstart/README.md#making-an-experiment) 
+  * [Making an experiment](https://app.gitbook.com/@cbainbridge/s/pushkin-documentation/~/drafts/-M9dS__ICdNnUSFdjMcQ/getting-started/quickstart#making-an-experiment)
+  * [Test](getting-started/quickstart/test.md)
+
