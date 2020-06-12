@@ -2,8 +2,6 @@
 
 [Link](#making-an-experiment)
 
-{% include "./Local-testing.md" %}
-
 ### Creating a basic new Pushkin site
 
 All instructions are for working on a Mac. If you figure out how to install Pushkin on Windows, please update the documentation and submit a pull request!
