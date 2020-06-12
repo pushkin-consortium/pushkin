@@ -1,4 +1,3 @@
-### Local testing
 
 ```bash
 $ docker-compose -f pushkin/docker-compose.dev.yml up --build --remove-orphans;
