@@ -5,4 +5,4 @@
 ## Getting Started
 
 * [Quickstart](getting-started/quickstart/README.md)
-  * [Test](getting-started/quickstart/README.md#Creating a basic new Pushkin site)
+  * [Test](getting-started/quickstart/gettingstarted.html#making-an-experiment)
