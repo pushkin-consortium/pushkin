@@ -1,6 +1,7 @@
+# Stuff
 
-```bash
-$ docker-compose -f pushkin/docker-compose.dev.yml up --build --remove-orphans;
-```
+{% block pageContent %}
+TESTING
+{% endblock %}
 
-Now browse to `http://localhost` to see the stub website.
+OTHER stuffs
