@@ -5,5 +5,5 @@
 ## Getting Started
 
 * [Quickstart](getting-started/quickstart/README.md)
-  * [Local testing](getting-started/quickstart/RLocal-testing.md)
+  * [Local testing](getting-started/quickstart/local-testing.md)
 

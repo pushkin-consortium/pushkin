@@ -1,12 +1,9 @@
 # Quickstart
 
+Hello.
+
 {% include "./Local-testing.md" %}
 
-{% extends "./Local-testing" %}
-
-{% block pageContent %}
-# This is my page content
-{% endblock %}
 
 ### Creating a basic new Pushkin site
 
