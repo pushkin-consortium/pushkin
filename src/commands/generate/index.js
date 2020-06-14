@@ -11,10 +11,16 @@ const shell = require('shelljs');
 // This may be overly restrictive in some cases
 const isValidExpName = (name) => (/^([a-zA-Z])([a-zA-Z0-9_])*$/.test(name));
 
-export function listExpTemplates() {
+export async function listExpTemplates() {
   const templateNames = templates.map((t) => (t.name));
   console.log(templateNames);
 }
+
+export async function listSiteTemplates() {
+  const templateNames = templates.map((t) => (t.name));
+  console.log(templateNames);
+}
+
 
 export async function getExpTemplate(experimentsDir, templateName, newExpName) {
   if (!isValidExpName(newExpName)) {
@@ -59,35 +65,51 @@ export async function getExpTemplate(experimentsDir, templateName, newExpName) {
   shell.mv('temp/*', newDir);
 }
 
-export function initExperiment(expDir, expName) {
-  if (!(fs.existsSync(expDir) && fs.lstatSync(expDir).isDirectory())) { console.error(`There is no experiment directory with the name (${expName})`); }
-  // change all occurrences of "template" in filenames and contents to exp name
-  const updateName = (dir) => {
-    fs.readdirSync(dir).forEach((el) => {
-      el = path.join(dir, el);
-      if (fs.lstatSync(el).isDirectory()) {
-        updateName(el); // notice this function calls itself recursively
-        return;
-      }
-      const newBase = path.basename(el).replace(/pushkintemplate/g, expName);
-      const newName = path.join(path.dirname(el), newBase);
-      fs.renameSync(el, newName);
+export async function getPushkinSite(initDir, template) {
+  process.chdir(initDir); // Node command to change directory
 
-      try { replace.sync({ files: path.join(dir, '*'), from: /pushkintemplate/g, to: expName }); } catch (e) { console.error(e); }
-    });
-  };
-  updateName(expDir);
+  const newDirs = ['pushkin', 'experiments'];
+  const newFiles = ['pushkin.yaml'];
 
-  // specific to this experiment (some might not need a build phase, for example)
-  ['api controllers', 'web page', 'worker'].forEach((dir) => {
-    console.log(`Installing npm dependencies for ${dir}`);
-    exec('npm install', { cwd: path.join(expDir, dir) }, (err) => {
-      if (err) { console.error(`Failed to install npm dependencies for ${dir}: ${err}`); }
-      if (dir == 'worker') return;
-      console.log(`Building ${dir}`);
-      exec('npm run build', { cwd: path.join(expDir, dir) }, (err) => {
-        if (err) { console.error(`Failed to build ${dir}:\n\t${err}`); }
-      });
-    });
+  // make sure nothing to be created already exists
+  newDirs.forEach((d) => {
+    const dir = path.join(initDir, d);
+    if (fs.existsSync(dir) && fs.lstatSync(dir).isDirectory()) { console.error(`Failed to initialize pushkin project: directory ${dir} already exists`); }
   });
+  newFiles.forEach((f) => {
+    const file = path.join(initDir, f);
+    if (fs.existsSync(file) && !fs.lstatSync(file).isDirectory()) { console.error(`Failed to initialize pushkin project: file ${file} already exists`); }
+  });
+
+  // download files
+  let url;
+  for (const val in templates) {
+    if (templates[val].name == template) {
+      url = templates[val].url;
+    }
+  }
+  if (!url) {
+    console.error('There is no site template by that name. For a list, run "pushkin init list".');
+  }
+  console.log(`retrieving from ${url}`);
+  console.log('be patient...');
+  let zipball_url;
+  try {
+    const response = await got(url);
+    zipball_url = JSON.parse(response.body).zipball_url;
+  } catch (error) {
+    console.log(error.response.body);
+    throw new Error('Problem parsing github JSON');
+  }
+  shell.exec(`wget ${zipball_url} -O temp.zip`);
+  shell.exec('unzip temp.zip -d .');
+  shell.rm('temp.zip');
+  shell.mv('*', 'temp');
+  shell.mv('temp/*', '.');
+  shell.rm('-rf', 'temp');
+  shell.mv('pushkin/pushkin.yaml.bak', './pushkin.yaml');
+  shell.mv('pushkin/config.js.bak', 'pushkin/front-end/src/config.js');
+  shell.mkdir('experiments');
+  return true;
 }
+
