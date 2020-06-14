@@ -8,11 +8,11 @@ import 'core-js/stable';
 import 'regenerator-runtime/runtime';
 import { execSync, exec } from 'child_process'; // eslint-disable-line
 // subcommands
-import { listExpTemplates, getExpTemplate, initExperiment } from './commands/generate/index.js';
-import { listSiteTemplates, getPushkinSite, pushkinInit } from './commands/init/index.js';
+import { listExpTemplates, getExpTemplate, listSiteTemplates, getPushkinSite } from './commands/generate/index.js';
+import { pushkinInit, initExperiment } from './commands/init/index.js';
 import prep from './commands/prep/index.js';
 import setupdb from './commands/setupdb/index.js';
-
+import * as compose from 'docker-compose'
 
 const moveToProjectRoot = () => {
   // better checking to make sure this is indeed a pushkin project would be good
@@ -101,9 +101,34 @@ const nextArg = inputGetter();
       setupdb(config.databases, path.join(process.cwd(), config.experimentsDir));
       return;
     }
-    case 'dev': {
+    case 'start': {
       moveToProjectRoot();
-      exec('docker-compose -f pushkin/docker-compose.dev.yml up --build --remove-orphans;');
+      compose.upAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml'})
+        .then(
+          out => { console.log(out.out, 'done')},
+          err => { console.log('something went wrong:', err.message)}
+        );
+      //exec('docker-compose -f pushkin/docker-compose.dev.yml up --build --remove-orphans;');
+      return;
+    }
+    case 'stop': {
+      moveToProjectRoot();
+      compose.stop({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml'})
+        .then(
+          out => { console.log(out.out, 'done')},
+          err => { console.log('something went wrong:', err.message)}
+        );
+      //exec('docker-compose -f pushkin/docker-compose.dev.yml up --build --remove-orphans;');
+      return;
+    }
+    case 'kill': {
+      moveToProjectRoot();
+      compose.kill({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml'})
+        .then(
+          out => { console.log(out.out, 'done')},
+          err => { console.log('something went wrong:', err.message)}
+        );
+      //exec('docker-compose -f pushkin/docker-compose.dev.yml up --build --remove-orphans;');
       return;
     }
 

@@ -21,7 +21,6 @@ export async function listSiteTemplates() {
   console.log(templateNames);
 }
 
-
 export async function getExpTemplate(experimentsDir, templateName, newExpName) {
   if (!isValidExpName(newExpName)) {
     console.error(`'${newExpName}' is not a valid name. Names must start with a letter and can only contain alphanumeric characters.`);
