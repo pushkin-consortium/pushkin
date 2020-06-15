@@ -35,12 +35,12 @@ Currently, the most convenient way to test new version of Pushkin modules locall
 2. Get the tarball of the pushkin modules to be tested, like “pushkin-api-1.2.0.tgz”. Put this tarball into the testPackages folder.
 3. Modify the package.json file in the project dir like this:
 
-   ```text
-   "dependencies": {
-       "pushkin-api": "file:testPackages/pushkin-api-1.2.0.tgz",
-       ... ...
-       }
-   ```
+```javascript
+"dependencies": {
+    "pushkin-api": "file:testPackages/pushkin-api-1.2.0.tgz",
+    ... ...
+    }
+```
 
 That is, modify the path of the Pushkin module to the local test version, so that the npm will find it locally rather than the npm library
 
