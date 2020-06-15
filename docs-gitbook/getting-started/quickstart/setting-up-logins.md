@@ -1,4 +1,4 @@
-### Setting up logins
+# Setting up logins
 
 In `config.js`, located at ./pushkin/front-end/src, set `useAuth` to `true` or `false` depending on whether you want to have a login system or not. Note that you cannot use a forum without a login system:
 
@@ -15,7 +15,7 @@ By default, Pushkin authenticates users using [Auth0](http://auth0.com/). This p
 3. Give your application and a name. Select _Single Page Web App_ as your application type. Click _Create_.
 4. Choose the _Settings_ tab. In _Allowed Callback URLs_, add `http://localhost/`. In _Allowed Logout URLs_, add `http://localhost`. In _Allowed Web Origins_, also add `http://localhost`. Click the _Save Changes_ button.
 
-Note that these URLs are used for development. When you launch the live verrsion of your website, you will need to add your public URLs. Repeat the instructions above, replacing _http://localhost_ with _https://YOUR-WEBSITE_. For instance, for gameswithwords, the urls are `https://gameswithwords.org` and `https://gameswithwords/callback`.
+Note that these URLs are used for development. When you launch the live verrsion of your website, you will need to add your public URLs. Repeat the instructions above, replacing [http://localhost](http://localhost) with [https://YOUR-WEBSITE](https://YOUR-WEBSITE). For instance, for gameswithwords, the urls are `https://gameswithwords.org` and `https://gameswithwords/callback`.
 
 1. On the setings page, you will see a `Domain` \(something like `gameswithwords.auth0.com`\) and a `Client ID`. Edit `config.js` to match:
 
@@ -23,3 +23,4 @@ Note that these URLs are used for development. When you launch the live verrsion
 authDomain: '<YOUR_AUTH0_DOMAIN>',
 authClientID: '<YOUR_AUTH0_CLIENT_ID>',
 ```
+

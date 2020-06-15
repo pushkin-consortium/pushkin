@@ -1,4 +1,4 @@
-### Making an Experiment
+# Making an Experiment
 
 To create a new experiment from the boilerplate template Pushkin provides, run
 
@@ -26,3 +26,4 @@ Keeping all the files for an experiment within the same root folder is convenien
 ```bash
 $ pushkin prep
 ```
+

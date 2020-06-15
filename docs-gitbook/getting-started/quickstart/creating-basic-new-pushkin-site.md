@@ -1,4 +1,4 @@
-### Creating a basic new Pushkin site
+# Creating a basic new Pushkin site
 
 All instructions are for working on a Mac. If you figure out how to install Pushkin on Windows, please update the documentation and submit a pull request!
 
@@ -38,3 +38,4 @@ This sets up a skeleton website in the current folder and sets up a development 
 ```
 
 Most of the stuff in the pushkin folder won’t need to be edited at all, with the exception of the website \(in the front-end folder\).
+
