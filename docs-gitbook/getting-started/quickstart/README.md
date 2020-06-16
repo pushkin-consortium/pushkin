@@ -1,5 +1,12 @@
 # Quickstart
 
+  * [Creating a basic new Pushkin site](#creating-basic-new-pushkin-site)
+  * [Making an experiment](#making-an-experiment)
+  * [Setting up a local database](#setting-up-local-database)
+  * [Setting up logins](#setting-up-logins)
+  * [Local testing](#local-testing)
+  * [Updating](#updating)
+
 ## Creating a basic new Pushkin site
 
 All instructions are for working on a Mac. If you figure out how to install Pushkin on Windows, please update the documentation and submit a pull request!
