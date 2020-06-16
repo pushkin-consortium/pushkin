@@ -1,5 +1,12 @@
 # Pushkin CLI
 
+## Skip to section
+
+* site
+* experiment
+* prep
+* dev
+
 The Pushkin command-line package is available via NPM. We highly recommend a global install in order to make working with Pushkin projects as easy as possible:
 
 ```bash

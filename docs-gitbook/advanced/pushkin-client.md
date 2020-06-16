@@ -1,5 +1,18 @@
 # Pushkin Client
 
+## Skip to section
+
+* connect
+* loadScript
+* loadScripts
+* prepExperimentRun
+* getAllStimuli
+* setSaveAfterEachStimulus
+* saveStimulusResponse
+* insertMetaResponse
+* endExperiment
+* customApiCall
+
 The Pushkin client is available on NPM under `pushkin-client`. It should be instantiated once imported into a web page:
 
 ```javascript

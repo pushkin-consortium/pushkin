@@ -1,3 +1,7 @@
+---
+description: Start here to build a basic Pushkin site and experiment.
+---
+
 # Quickstart
 
 ## Skip to section
