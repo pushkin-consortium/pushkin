@@ -2,12 +2,12 @@
 
 ### Skip to section
 
-[Creating a basic new Pushkin site](#creating-basic-new-pushkin-site)
-[Making an experiment](#making-an-experiment)
-[Setting up a local database](#setting-up-local-database)
-[Setting up logins](#setting-up-logins)
-[Local testing](#local-testing)
-[Updating](#updating)
+* [Creating a basic new Pushkin site](#creating-basic-new-pushkin-site)
+* [Making an experiment](#making-an-experiment)
+* [Setting up a local database](#setting-up-local-database)
+* [Setting up logins](#setting-up-logins)
+* [Local testing](#local-testing)
+* [Updating](#updating)
 
 ## Creating a basic new Pushkin site
 
