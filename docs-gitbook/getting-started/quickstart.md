@@ -1,13 +1,13 @@
 # Quickstart
 
-### Skip to section
+## Skip to section
 
-* [Creating a basic new Pushkin site](#creating-basic-new-pushkin-site)
-* [Making an experiment](#making-an-experiment)
-* [Setting up a local database](#setting-up-local-database)
-* [Setting up logins](#setting-up-logins)
-* [Local testing](#local-testing)
-* [Updating](#updating)
+* [Creating a basic new Pushkin site](quickstart.md#creating-basic-new-pushkin-site)
+* [Making an experiment](quickstart.md#making-an-experiment)
+* [Setting up a local database](quickstart.md#setting-up-local-database)
+* [Setting up logins](quickstart.md#setting-up-logins)
+* [Local testing](quickstart.md#local-testing)
+* [Updating](quickstart.md#updating)
 
 ## Creating a basic new Pushkin site
 
