@@ -1,4 +1,4 @@
-# Making an Experiment
+# Making an experiment
 
 To create a new experiment from the boilerplate template Pushkin provides, run
 
