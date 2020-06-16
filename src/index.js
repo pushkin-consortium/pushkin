@@ -103,7 +103,7 @@ const nextArg = inputGetter();
     }
     case 'start': {
       moveToProjectRoot();
-      compose.upAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml'})
+      compose.upAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: true, composeOptions: ['--verbose']})
         .then(
           out => { console.log(out.out, 'done')},
           err => { console.log('something went wrong:', err.message)}
