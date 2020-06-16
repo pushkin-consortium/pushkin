@@ -1,7 +1,5 @@
 # Getting Started on Development
 
-
-
 ### Understanding the Front End
 
 1. Basics. You’ll want a reasonably thorough grounding in Javascript and React. The tutorials in Code Academy are pretty good, though not free.
