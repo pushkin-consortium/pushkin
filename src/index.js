@@ -103,7 +103,7 @@ const nextArg = inputGetter();
     }
     case 'start': {
       moveToProjectRoot();
-      compose.upAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: true, composeOptions: ['--verbose']})
+      compose.upAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: true})
         .then(
           out => { console.log(out.out, 'Starting. You may not be able to load localhost for a minute or two.')},
           err => { console.log('something went wrong:', err.message)}
@@ -127,10 +127,30 @@ const nextArg = inputGetter();
       compose.stop({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml'})
         .then(
           out => { 
-            exec('docker volume rm pushkin_test_db_volume pushkin_message_queue_volume; docker rm $(docker ps -a -f status=exited -q); docker images -a | grep "pushkin*" | awk `{print $3}` | xargs docker rmi -f');
-            console.log(out.out, 'done');
+            console.log(out.out);
+            console.log('removing containers');
+            compose.rm({cwd: path.join(process.cwd(), 'pushkin')})//, commandOptions: ['--volumes']
+            .then(
+              out => {
+                console.log(out.out);
+                console.log('removing volumes and pushkin-specific images');
+                exec(`docker volume rm pushkin_test_db_volume pushkin_message_queue_volume; docker images -a | grep "pushkin*" | awk '{print $3}' | xargs docker rmi -f`, (error, stdout, stderr) => {
+                  if (error) {
+                    console.error(`error removing volumes and images: ${error}`);
+                    return;
+                  }
+                  console.log(`${stdout}`);
+                  console.log(out.out, 'done');
+                });
+              },
+              err => { 
+                console.log('something went wrong:', err.message);
+              })
+              //
           },
-          err => { console.log('something went wrong:', err.message)}
+          err => { 
+            console.log('something went wrong:', err.message);
+          }
         );
       return;
     }
