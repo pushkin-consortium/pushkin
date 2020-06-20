@@ -124,7 +124,7 @@ const nextArg = inputGetter();
     case 'kill': {
       console.log('Removing all containers and volumes, as well as pushkin images. To additionally remove third-party images, run `pushkin armageddon`.') 
       moveToProjectRoot();
-      compose.kill({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml'})
+      compose.stop({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml'})
         .then(
           out => { 
             exec('docker volume rm pushkin_test_db_volume pushkin_message_queue_volume; docker rm $(docker ps -a -f status=exited -q); docker images -a | grep "pushkin*" | awk `{print $3}` | xargs docker rmi -f');
