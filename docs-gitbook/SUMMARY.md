@@ -20,6 +20,13 @@
   * [API Controller Builder](advanced/pushkin-api/api-controller-builder.md)
   * [Core API](advanced/pushkin-api/core-api.md)
 * [Users & Authentication](advanced/users-and-authentication.md)
+* [Modifying Site Template](advanced/modifying-site-template/README.md)
+  * [React Bootstrap](advanced/modifying-site-template/react-bootstrap.md)
+  * [Header and Footer](advanced/modifying-site-template/header-and-footer.md)
+  * [Home Page](advanced/modifying-site-template/home-page.md)
+  * [Findings Page](advanced/modifying-site-template/findings-page.md)
+  * [About Page](advanced/modifying-site-template/about-page.md)
+  * [Feedback Page](advanced/modifying-site-template/feedback-page.md)
 * [Testing Pushkin with Jest](advanced/testing-pushkin-with-jest.md)
 
 ## Developers
