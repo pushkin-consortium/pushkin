@@ -1,4 +1,5 @@
 import path from 'path';
+//import { promises as fs } from 'fs';
 import fs from 'fs';
 import jsYaml from 'js-yaml';
 import { execSync, exec } from 'child_process'; // eslint-disable-line
@@ -80,7 +81,7 @@ ${allButEnd.join('\n')}
 // errors that don't result in the "inclusion files" (i.e. experiments.js and controllers.json)
 // from having bad information shouldn't throw errors. Other stuff, like removing the tgz files
 // that are no longer needed but npm doesn't delete can fail and just log errors
-async function cleanUpFiles(coreDir) {
+async function cleanUpFiles(coreDir, callback) {
   const cleanupTasks = [];
   const startCleanupTask = () => { 
     cleanupTasks.push(true); 
@@ -90,16 +91,15 @@ async function cleanUpFiles(coreDir) {
     cleanupTasks.pop();
     console.log(`Cleanup tasks: ${cleanupTasks.length}`)
     if (cleanupTasks.length == 0) {
-      return true;
+      callback(true);
     }
   };
 
   // reset api controllers
-  console.log("Cleaning API controllers")
-  const controllersJsonFile = path.join(coreDir, 'api/src/controllers.json');
-  fs.readFile(controllersJsonFile, (err, data) => {
-    if (err) throw err;
-    const oldContrList = JSON.parse(data);
+  console.log("Cleaning API controllers");
+  async () => {
+    const controllersJsonFile = await fs.promise.readFile(path.join(coreDir, 'api/src/controllers.json'));
+    const oldContrList = JSON.parse(controllersJsonFile);
     oldContrList.forEach((contr) => {
       startCleanupTask();
       const moduleName = contr.name;
@@ -119,7 +119,7 @@ async function cleanUpFiles(coreDir) {
       if (err) throw err;
       finishCleaupTask();
     });
-  });
+  }
 
 
   // reset web page dependencies
@@ -300,7 +300,7 @@ export default async (experimentsDir, coreDir, callback) => {
   /** ***************************** begin ****************************** */
   // clean up old experiment stuff
   console.log('Cleaning up old experiments');
-  let cleanCore = await cleanUpFiles(coreDir); 
+  let cleanCore = await cleanUpFiles(coreDir, (err) => {return err}); 
   console.log(`Cleaned up old experiments.`)
 
   const expDirs = fs.readdirSync(experimentsDir);

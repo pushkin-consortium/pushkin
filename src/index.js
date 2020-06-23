@@ -8,163 +8,112 @@ import 'core-js/stable';
 import 'regenerator-runtime/runtime';
 import { execSync, exec } from 'child_process'; // eslint-disable-line
 // subcommands
-import { listExpTemplates, getExpTemplate, listSiteTemplates, getPushkinSite } from './commands/generate/index.js';
-import { pushkinInit, initExperiment } from './commands/init/index.js';
+import { listExpTemplates, getExpTemplate,  } from './commands/experiments/index.js';
+import { pushkinInit, initExperiment, listSiteTemplates, getPushkinSite } from './commands/sites/index.js';
 import prep from './commands/prep/index.js';
 import setupdb from './commands/setupdb/index.js';
 import * as compose from 'docker-compose'
+import { Command } from 'commander'
+import inquirer from 'inquirer'
+
+const program = new Command();
+program.version('0.0.1');
 
 const moveToProjectRoot = () => {
-  // better checking to make sure this is indeed a pushkin project would be good
+  // better checking to make sure this is indeed a pushkin project would be goodf
   while (process.cwd() != path.parse(process.cwd()).root) {
     if (fs.existsSync(path.join(process.cwd(), 'pushkin.yaml'))) return;
     process.chdir('..');
   }
-  throw new Error('No pushkin project found here or in any above directories');
+  console.error('No pushkin project found here or in any above directories');
+  process.exit();
 };
-const loadConfig = () => {
+
+const loadConfig = (configFile) => {
   // could add some validation to make sure everything expected in the config is there
-  try { return jsYaml.safeLoad(fs.readFileSync('pushkin.yaml', 'utf8')); } catch (e) { console.error(`Pushkin config file missing, error: ${e}`); process.exit(); }
+  return new Promise((resolve, reject) => {
+    try { 
+      resolve(jsYaml.safeLoad(fs.readFileSync(configFile, 'utf8')));
+    } catch (e) { 
+      console.error(`Pushkin config file missing, error: ${e}`); 
+      process.exit(); 
+    }
+  })
 };
 
-// ----------- process command line arguments ------------
-const inputGetter = () => {
-  let remainingArgs = process.argv;
-  return () => {
-    const commandOps = [{ name: 'name', defaultOption: true }];
-    const mainCommand = commandLineArgs(
-      commandOps,
-      { argv: remainingArgs, stopAtFirstUnknown: true },
-    );
-    remainingArgs = mainCommand._unknown || [];
-    return mainCommand.name;
-  };
-};
-const nextArg = inputGetter();
+const handleViewConfig = async (what) => {
+  moveToProjectRoot();
+  let x = await ((what=='site' | !what) ? loadConfig(path.join(process.cwd(), 'pushkin.yaml')) : '')
+  console.log(x)
+  let exps = fs.readdirSync(path.join(process.cwd(), 'experiments'));
+  let y = await Promise.all(exps.map(async (exp) => {
+    return await (what == exp | !what) ? loadConfig(path.join(process.cwd(), 'experiments', exp, 'config.yaml')) : '';
+  }));
+  console.log(y);
+  //Thanks to https://stackoverflow.com/questions/49627044/javascript-how-to-await-multiple-promises
+}
 
-(() => {
-  switch (nextArg()) {
-    case 'site': {
-      const arg = nextArg();
-      switch (arg) {
-        case 'list':
-          listSiteTemplates();
-          return;
-        default:
-          getPushkinSite(process.cwd(), arg);
-          return;
-      }
-      return;
-    }
-    case 'init': {
-      const arg = nextArg();
-      moveToProjectRoot();
-      const config = loadConfig();
-      switch (arg) {
-        case 'site':
-          pushkinInit(process.cwd());
-          return;
-        default:
-          initExperiment(path.join(process.cwd(), config.experimentsDir, arg), arg);
-          return;
-      }
-    }
-    case 'experiment': {
-      const arg = nextArg();
-      switch (arg) {
-        case 'list':
-          listExpTemplates();
-          return;
-        default:
-          moveToProjectRoot();
-          const config = loadConfig();
-          const name = nextArg(); // Retrieves name of experiment, passed as argument to 'pushkin generate'
-          getExpTemplate(path.join(process.cwd(), config.experimentsDir), arg, name);
-          return;
-      }
-    }
-    case 'prep': {
-      moveToProjectRoot();
-      const config = loadConfig();
-      prep(
-        path.join(process.cwd(), config.experimentsDir),
-        path.join(process.cwd(), config.coreDir),
-        (err) => {
-          if (err) console.error(`Error prepping: ${err}`);
-        },
-      );
-      return;
-    }
-    case 'setupdb': {
-      moveToProjectRoot();
-      const config = loadConfig();
-      setupdb(config.databases, path.join(process.cwd(), config.experimentsDir));
-      return;
-    }
-    case 'start': {
-      moveToProjectRoot();
-      compose.upAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: true})
-        .then(
-          out => { console.log(out.out, 'Starting. You may not be able to load localhost for a minute or two.')},
-          err => { console.log('something went wrong:', err.message)}
-        );
-      //exec('docker-compose -f pushkin/docker-compose.dev.yml up --build --remove-orphans;');
-      return;
-    }
-    case 'stop': {
-      moveToProjectRoot();
-      compose.stop({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml'})
-        .then(
-          out => { console.log(out.out, 'done')},
-          err => { console.log('something went wrong:', err.message)}
-        );
-      //exec('docker-compose -f pushkin/docker-compose.dev.yml up --build --remove-orphans;');
-      return;
-    }
-    case 'kill': {
-      console.log('Removing all containers and volumes, as well as pushkin images. To additionally remove third-party images, run `pushkin armageddon`.') 
-      moveToProjectRoot();
-      compose.stop({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml'})
-        .then(
-          out => { 
-            console.log(out.out);
-            console.log('removing containers');
-            compose.rm({cwd: path.join(process.cwd(), 'pushkin')})//, commandOptions: ['--volumes']
-            .then(
-              out => {
-                console.log(out.out);
-                console.log('removing volumes and pushkin-specific images');
-                exec(`docker volume rm pushkin_test_db_volume pushkin_message_queue_volume; docker images -a | grep "pushkin*" | awk '{print $3}' | xargs docker rmi -f`, (error, stdout, stderr) => {
-                  if (error) {
-                    console.error(`error removing volumes and images: ${error}`);
-                    return;
-                  }
-                  console.log(`${stdout}`);
-                  console.log(out.out, 'done');
-                });
-              },
-              err => { 
-                console.log('something went wrong:', err.message);
-              })
-              //
-          },
-          err => { 
-            console.log('something went wrong:', err.message);
-          }
-        );
-      return;
-    }
+const handleInstall = async (what) => {
+  if (what == 'site'){
+    const siteList = await listSiteTemplates();
+    inquirer
+      .prompt([
+        { type: 'list', name: 'sites', choices: siteList, default: 0, message: 'Which site template do you want to use?'}
+        ]).then(answers => getPushkinSite(process.cwd(),answers.sites))
+  } else {
+    //definitely experiment then
+    moveToProjectRoot()
+    const expList = await listExpTemplates();
+    inquirer.prompt([
+        { type: 'list', name: 'experiments', choices: expList, default: 0, message: 'Which site template do you want to use?'}
+        ]).then(answers => {
+          let expType = answers.experiments
+          console.log(expType)
+          inquirer.prompt([
+            { type: 'input', name: 'name', message: 'What do you want to call your experiment?'}]).then(async (answers) => {
+              let config = await loadConfig('pushkin.yaml');
+              console.log(expType)
+              getExpTemplate(path.join(process.cwd(), config.experimentsDir), expType, answers.name)
+            })
+      })
+  } 
+}
 
-    case 'armageddon': {
-      exec('docker stop $(docker ps -aq); docker rm $(docker ps -aq); docker network prune -f; docker rmi -f $(docker images --filter dangling=true -qa); docker volume rm $(docker volume ls --filter dangling=true -q); docker rmi -f $(docker images -qa);', (err, stdout, stderr) => {
-			  if (err) {
-    			console.log(`Error resetting docker containers and volumes: ${err}`);
-			  }
-      });
-    }
-    default: {
-      const usage = 'command not recognized';
-      console.error(usage);
-    }
-  }
-})();
+const printOpts = function() {
+  if (program.debug) console.log(program.opts());
+  console.log('pizza details:');
+  if (program.small) console.log('- small pizza size');
+  if (program.pizzaType) console.log(`- ${program.pizzaType}`);
+}
+ 
+async function main() {
+  program
+    .option('-d, --debug', 'output extra debugging')
+    .option('-s, --small', 'small pizza size')
+    .option('-p, --pizza-type <type>', 'flavour of pizza');
+
+  program
+    .command('config [what]')
+    .description('View config file for `what`, with possible values being `site` or any of the installed experiments by name. Defaults to all.')
+    .action((what) => {
+      handleViewConfig(what)
+    });
+
+  program
+    .command('install <what>')
+    .description(`Install template website ('site') or experiment ('experiment').`)
+    .action((what) => {
+      if (what == 'site' | what == 'experiment'){
+        handleInstall(what)  
+      }else{
+        console.error(`Command not recognized. Run 'pushkin --help' for help.`)
+      }
+    });
+ 
+  program.parseAsync(process.argv);
+
+}
+
+main();
+//program.parseAsync(process.argv);
+ 
