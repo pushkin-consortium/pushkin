@@ -1,10 +1,9 @@
 import fs from 'fs';
 import path from 'path';
-import zlib from 'zlib';
-import { exec } from 'child_process';
+import sa from 'superagent';
+import admZip from 'adm-zip';
 import { templates } from './templates.js';
-
-const got = require('got'); // analog of curl
+import got from 'got';
 const shell = require('shelljs');
 
 export function listSiteTemplates() {
@@ -18,7 +17,7 @@ export function listSiteTemplates() {
   })
 }
 
-export async function getPushkinSite(initDir, template) {
+export async function getPushkinSite(initDir, templateName) {
   process.chdir(initDir); // Node command to change directory
 
   const newDirs = ['pushkin', 'experiments'];
@@ -37,33 +36,43 @@ export async function getPushkinSite(initDir, template) {
   // download files
   let url;
   for (const val in templates) {
-    if (templates[val].name == template) {
+    if (templates[val].name == templateName) {
       url = templates[val].url;
     }
   }
   if (!url) {
-    console.error('There is no site template by that name. For a list, run "pushkin init list".');
+    console.error('Unable to download from specified site. Make sure your internet is on. If it is on but this error repeats, ask for help on the Pushkin forum.');
+    return;
   }
   console.log(`retrieving from ${url}`);
   console.log('be patient...');
   let zipball_url;
   try {
     const response = await got(url);
-    zipball_url = JSON.parse(response.body).zipball_url;
+    zipball_url = JSON.parse(response.body).assets[0].browser_download_url;
+    console.log(zipball_url)
   } catch (error) {
     console.log(error.response.body);
     throw new Error('Problem parsing github JSON');
   }
-  shell.exec(`wget ${zipball_url} -O temp.zip`);
-  shell.exec('unzip temp.zip -d .');
-  shell.rm('temp.zip');
-  shell.mv('*', 'temp');
-  shell.mv('temp/*', '.');
-  shell.rm('-rf', 'temp');
-  shell.mv('pushkin/pushkin.yaml.bak', './pushkin.yaml');
-  shell.mv('pushkin/config.js.bak', 'pushkin/front-end/src/config.js');
-  shell.mkdir('experiments');
-  return true;
+  sa
+    .get(zipball_url)
+    .on('error', function(error){
+      console.error('Download failed: ',error);
+      process.exit();
+    })
+    .pipe(fs.createWriteStream('temp.zip'))
+    .on('finish', async () => {
+      console.log('finished downloading');
+      var zip = new admZip('temp.zip');
+      await zip.extractAllTo('.', true);
+      await fs.promises.unlink('temp.zip');
+      shell.mv('pushkin/pushkin.yaml.bak', './pushkin.yaml');
+      shell.mv('pushkin/config.js.bak', 'pushkin/front-end/src/config.js');
+      shell.mkdir('experiments');
+      shell.rm('-rf','__MACOSX');
+      return true;
+    })
 }
 
 export async function pushkinInit(initDir) {
