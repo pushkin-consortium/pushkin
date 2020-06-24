@@ -9,7 +9,7 @@ import 'regenerator-runtime/runtime';
 import { execSync, exec } from 'child_process'; // eslint-disable-line
 // subcommands
 import { listExpTemplates, getExpTemplate,  } from './commands/experiments/index.js';
-import { pushkinInit, initExperiment, listSiteTemplates, getPushkinSite } from './commands/sites/index.js';
+import { initExperiment, listSiteTemplates, getPushkinSite } from './commands/sites/index.js';
 import prep from './commands/prep/index.js';
 import setupdb from './commands/setupdb/index.js';
 import * as compose from 'docker-compose'
@@ -109,8 +109,8 @@ async function main() {
         console.error(`Command not recognized. Run 'pushkin --help' for help.`)
       }
     });
- 
-  program.parseAsync(process.argv);
+
+   program.parseAsync(process.argv);
 
 }
 

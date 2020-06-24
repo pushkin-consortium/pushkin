@@ -1,9 +1,12 @@
 import fs from 'fs';
+import util from 'util';
 import path from 'path';
 import sa from 'superagent';
 import admZip from 'adm-zip';
-import { templates } from './templates.js';
 import got from 'got';
+import * as compose from 'docker-compose'
+const exec = util.promisify(require('child_process').exec);
+import { templates } from './templates.js';
 const shell = require('shelljs');
 
 export function listSiteTemplates() {
@@ -14,6 +17,21 @@ export function listSiteTemplates() {
       console.error(`Something is wrong with sites/templates.js, error: ${e}`); 
       process.exit(); 
     }
+  })
+}
+
+const promiseFolderInit = async (initDir, dir) => {
+  console.log(`Installing npm dependencies for ${dir}`);
+  const { stdout, stderr } = await exec('npm install', { cwd: path.join(initDir, dir) }) //this may not work on Windows
+  if (stderr) console.log(stderr);
+  console.log(`Building ${dir}`);
+  const { stdout2, stderr2 } = await exec('npm run build', { cwd: path.join(initDir, dir) }) //this may not work on Windows
+  if (stderr2) {
+    console.log(stderr2)
+  }
+  console.log(`${dir} is built`);
+  return new Promise ((resolve, reject) => {
+    resolve("built")
   })
 }
 
@@ -66,91 +84,43 @@ export async function getPushkinSite(initDir, templateName) {
       console.log('finished downloading');
       var zip = new admZip('temp.zip');
       await zip.extractAllTo('.', true);
-      await fs.promises.unlink('temp.zip');
-      shell.mv('pushkin/pushkin.yaml.bak', './pushkin.yaml');
-      shell.mv('pushkin/config.js.bak', 'pushkin/front-end/src/config.js');
-      shell.mkdir('experiments');
-      shell.rm('-rf','__MACOSX');
+      await Promise.all([
+        await fs.promises.rename('pushkin/pushkin.yaml.bak', './pushkin.yaml').catch((err) => { console.error(err); }),
+        await fs.promises.rename('pushkin/config.js.bak', 'pushkin/front-end/src/config.js').catch((err) => { console.error(err); })
+      ]);
+      fs.promises.mkdir('experiments').catch((err) => { console.error(err); });
+      if (fs.existsSync('__MACOSX')) {
+        const shellresp = shell.rm('-rf','__MACOSX'); //fs doesn't have a stable directly removal function yet
+      }      
+      fs.promises.unlink('temp.zip');
+
+      const apiPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'api').catch((err) => { console.error(err); });
+      const frontendPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'front-end').catch((err) => { console.error(err); });
+      await Promise.all([apiPromise, frontendPromise]);
       return true;
     })
 }
 
 export async function pushkinInit(initDir) {
-  // const tasks = [];
-  // const startTask = () => { tasks.push(true); };
-  // const finishTask = () => {
-  //   tasks.pop();
-  //   if (tasks.length == 0) {
-  //     console.log('Starting local test database container');
-  //     // note that pushkin/docker-compose.dev.yml defines a container called 'test_db', which gets fired up below
-  //     shell.exec('docker-compose -f pushkin/docker-compose.dev.yml up --no-start && docker-compose -f pushkin/docker-compose.dev.yml start test_db', (err) => {
-  //       if (err) {
-  //         console.error(`Failed to start test_db container: ${err}`);
-  //         return;
-  //       }
-  //       console.log('Creating local test database');
-  //       shell.exec('docker-compose -f pushkin/docker-compose.dev.yml exec -T test_db psql -U postgres -c "create database test_db"', (err) => {
-  //         if (err) {
-  //           console.error(`Failed to run create database command in test_db container: ${err}`); // no return after
-  //         } else {
-  //           console.log('Created local test database successfully');
-  //         }
-  //         // Stop the container
-  //         shell.exec('docker-compose -f pushkin/docker-compose.dev.yml stop test_db', (err) => {
-  //           if (err) console.error(`Failed to stop test_db container: ${err}`);
-  //         });
-  //       });
-  //     });
-  //   }
-  // };
-
-  // // // Begins here ////
-  // ['api', 'front-end'].forEach((dir) => {
-  //   startTask();
-  //   // For 'api' and 'front-end', run 'npm install', which will install according to the package.json for each.
-  //   console.log(`Installing npm dependencies for ${dir}`);
-  //   exec('npm install', { cwd: path.join(initDir, 'pushkin', dir) }, (err) => {
-  //     if (err) console.error(`Failed to install npm dependencies for ${dir}: ${err}`);
-  //     if (dir != 'api' && dir != 'front-end') return;
-  //     console.log(`Building ${dir}`);
-  //     exec('npm run build', { cwd: path.join(process.cwd(), 'pushkin', dir) }, (err) => {
-  //       if (err) console.error(`Failed to build ${dir}: ${err}`);
-  //       console.log(`${dir} is built`);
-  //       finishTask();
-  //     });
-  //   });
-  // });
-
-  ['api', 'front-end'].forEach((dir) => {
-    console.log(`Installing npm dependencies for ${dir}`);
-    shell.exec('npm install', { cwd: path.join(initDir, 'pushkin', dir) }, (err) => {
-      if (err) console.error(`Failed to install npm dependencies for ${dir}: ${err}`);
-      if (dir !== 'api' && dir !== 'front-end') return;
-      console.log(`Building ${dir}`);
-      shell.exec('npm run build', { cwd: path.join(process.cwd(), 'pushkin', dir) }, (err) => {
-        if (err) console.error(`Failed to build ${dir}: ${err}`);
-        console.log(`${dir} is built`);
-        console.log('Starting local test database container');
-        // note that pushkin/docker-compose.dev.yml defines a container called 'test_db', which gets fired up below
-        shell.exec('docker-compose -f pushkin/docker-compose.dev.yml up --no-start && docker-compose -f pushkin/docker-compose.dev.yml start test_db', (err) => {
-          if (err) {
-            console.error(`Failed to start test_db container: ${err}`);
-            return;
-          }
-          console.log('Creating local test database');
-          shell.exec('docker-compose -f pushkin/docker-compose.dev.yml exec -T test_db psql -U postgres -c "create database test_db"', (err) => {
-            if (err) {
-              console.error(`Failed to run create database command in test_db container: ${err}`); // no return after
-            } else {
-              console.log('Created local test database successfully');
-            }
-            // Stop the container
-            shell.exec('docker-compose -f pushkin/docker-compose.dev.yml stop test_db', (err) => {
-              if (err) console.error(`Failed to stop test_db container: ${err}`);
-            });
-          });
-        });
-      });
-    });
-  });
+  //Deprecated. Shouldn't really need this. Keeping it as a useful example of working with Docker.
+  //However, the same thing can be achieved by adding 'POSTGRES_DB: test_db' to the docker-compose environment variables.
+      const apiPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'api').catch((err) => { console.error(err); });
+      const frontendPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'front-end').catch((err) => { console.error(err); });
+      const dbPromise = compose.upOne('test_db', {cwd: path.join(initDir, 'pushkin'), config: 'docker-compose.dev.yml'})
+        .then((resp) => resp, err => console.log('something went wrong:', err))
+      
+      const wait = async () => {
+        //Sometimes, I really miss loops
+        let x = await compose.ps({cwd: path.join(initDir, 'pushkin'), config: 'docker-compose.dev.yml'})
+              .then((x) => x.out.search('healthy'), err => {console.error(err)})
+        if (x) {
+          console.log(x);
+          return compose.exec('test_db', ['psql', '-U', 'postgres', '-c', 'create database test_db'], {cwd: path.join(initDir, 'pushkin'), config: 'docker-compose.dev.yml'})
+            .then((resp) => resp, err => console.log('something went wrong:', err))
+        } else {
+          setTimeout( wait, 500 );
+        }
+      }
+      const dbCreate = wait(); //ridiculously roundabout loop
+      return await Promise.all([apiPromise, frontendPromise, dbPromise, dbCreate]);
 }
