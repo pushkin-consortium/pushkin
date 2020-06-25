@@ -1,7 +1,5 @@
 # Home Page
 
-
-
 ### Add a Quiz
 
 To add a quiz, run `pushkin experiment basic yourQuizName`. This will create a pushkin experiment template experiment in the `experiments/` folder.
