@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "babel src -d build"
+    "build": "echo 'no building necessary for workers.'"
   },
   "author": "",
   "license": "ISC",
