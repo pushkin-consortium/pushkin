@@ -90,13 +90,20 @@ The `<CardDeck>` creates a grid of cards that are of equal height and width. The
 > * Body: Use `<Card.Body>` to pad content inside a `<Card>`.
 > * Title, text, and links: Using `<Card.Title>`, `<Card.Subtitle>`, and `<Card.Text>` inside the `<Card.Body>` will line them up nicely. `<Card.Link>` are used to line up links next to each other.
 > * Images: Cards include a few options for working with images. Choose from appending “image caps” at either end of a card, overlaying images with card content, or simply embedding the image in a card.
+> * Image clickable area styling: If you would like to use circular images and limit the clickable space to be circular, be sure to keep the `:hoverStyles.circleStyle` className in the `<LinkContainer`. If you would like to use square or rectangular images, be sure to not include this className.
 
 For example, the quiz card in the home page:
 
 ```jsx
 <Card className="border-0 shadow" style={styles.card}>
   <Card.Body>
-    <Card.Img src={this.props.img} style={styles.cardImage} />
+    <LinkContainer
+      // style={styles.cardButton}
+      to={'/quizzes/' + this.props.id}
+      className={css(hoverStyles.opacityStyle, hoverStyles.circleStyle)}
+    >
+      <Card.Img src={this.props.img} style={styles.cardImage} />
+    </LinkContainer>
     <Card.Title className="mt-4" style={styles.cardTitle}>
       {this.props.title}
     </Card.Title>
@@ -119,8 +126,11 @@ For example, the quiz card in the home page:
     </Card.Text>
   </Card.Body>
   <Row className="justify-content-center mt-2">
-    <LinkContainer style={styles.cardButton} to={'/quizzes/' + this.props.id}>
-      <Button>Play Now</Button>
+    <LinkContainer
+      // style={styles.cardButton}
+      to={'/quizzes/' + this.props.id}
+    >
+      <Button className={css(hoverStyles.cardButton)}>Play Now</Button>
     </LinkContainer>
   </Row>
   <Row className="justify-content-center mt-3 mb-3">
@@ -130,7 +140,7 @@ For example, the quiz card in the home page:
         e.preventDefault();
         share.open(share.facebook);
       }}
-      style={styles.socialIcon}
+      className={css(hoverStyles.socialIcon, hoverStyles.opacityStyle)}
       target="_blank"
     />
     <i.SocialIcon
@@ -139,12 +149,12 @@ For example, the quiz card in the home page:
         e.preventDefault();
         share.open(share.twitter);
       }}
-      style={styles.socialIcon}
+      className={css(hoverStyles.socialIcon, hoverStyles.opacityStyle)}
       target="_blank"
     />
     <i.SocialIcon
       url={share.email}
-      style={styles.socialIcon}
+      className={css(hoverStyles.socialIcon, hoverStyles.opacityStyle)}
       target="_blank"
     />
     {/* BETA ribbon */}
