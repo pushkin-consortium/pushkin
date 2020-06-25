@@ -20,7 +20,7 @@ export function listSiteTemplates() {
   })
 }
 
-const promiseFolderInit = async (initDir, dir) => {
+export const promiseFolderInit = async (initDir, dir) => {
   console.log(`Installing npm dependencies for ${dir}`);
   const { stdout, stderr } = await exec('npm install', { cwd: path.join(initDir, dir) }) //this may not work on Windows
   if (stderr) console.log(stderr);

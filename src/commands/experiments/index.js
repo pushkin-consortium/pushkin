@@ -4,6 +4,8 @@ import sa from 'superagent';
 import admZip from 'adm-zip';
 import got from 'got';
 import { templates } from './templates.js';
+import { promiseFolderInit } from '../sites/index.js'; //useful utility function
+import replace from 'replace-in-file';
 const shell = require('shelljs');
 
 // This may be overly restrictive in some cases
@@ -68,6 +70,26 @@ export async function getExpTemplate(experimentsDir, templateName, newExpName) {
       await zip.extractAllTo(newDir, true);
       await fs.promises.unlink('temp.zip');
       shell.rm('-rf','__MACOSX');
+      await initExperiment(newDir, newExpName);
     })
 }
+
+const initExperiment = async (expDir, expName) => {
+  const options = {
+    files: expDir.concat('/**/*.*'),
+    from: /pushkintemplate/g,
+    to: expName,
+  };
+  try {
+    const results = await replace(options)
+    console.log('Replacement results:', results);
+  }
+  catch (error) {
+    console.error('Error occurred:', error);
+  }
+  const apiPromise = promiseFolderInit(expDir, 'api controllers').catch((err) => { console.error(err); });
+  const webPromise = promiseFolderInit(expDir, 'web page').catch((err) => { console.error(err); });
+  const workerPromise = promiseFolderInit(expDir, 'worker').catch((err) => { console.error(err); });
+  await Promise.all([apiPromise, webPromise, workerPromise])
+};
 
