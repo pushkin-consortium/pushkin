@@ -9,7 +9,7 @@ import 'regenerator-runtime/runtime';
 import { execSync, exec } from 'child_process'; // eslint-disable-line
 // subcommands
 import { listExpTemplates, getExpTemplate,  } from './commands/experiments/index.js';
-import { listSiteTemplates, getPushkinSite } from './commands/sites/index.js';
+import { listSiteTemplates, getPushkinSite, pushkinInit } from './commands/sites/index.js';
 import prep from './commands/prep/index.js';
 import setupdb from './commands/setupdb/index.js';
 import * as compose from 'docker-compose'
@@ -51,6 +51,13 @@ const handleViewConfig = async (what) => {
   }));
   console.log(y);
   //Thanks to https://stackoverflow.com/questions/49627044/javascript-how-to-await-multiple-promises
+}
+
+const handleUpdateDB = async () => {
+  moveToProjectRoot();
+  const config = await loadConfig(path.join(process.cwd(), 'pushkin.yaml'));
+  console.log('loaded Pushkin config file')
+  return await setupdb(config.databases, path.join(process.cwd(), config.experimentsDir));
 }
 
 const handleInstall = async (what) => {
@@ -109,6 +116,18 @@ async function main() {
         console.error(`Command not recognized. Run 'pushkin --help' for help.`)
       }
     });
+
+  program
+    .command('init')
+    .description(`Primarily for development. Don't use.`)
+    .action(() => {
+      pushkinInit();
+    })
+
+  program
+    .command('updateDB')
+    .description('Updates test database. This needs to be run after new experiments are added or the migrations for an experiment are changed.')
+    .action(handleUpdateDB)
 
    program.parseAsync(process.argv);
 

@@ -101,26 +101,24 @@ export async function getPushkinSite(initDir, templateName) {
     })
 }
 
-export async function pushkinInit(initDir) {
+export async function pushkinInit() {
   //Deprecated. Shouldn't really need this. Keeping it as a useful example of working with Docker.
   //However, the same thing can be achieved by adding 'POSTGRES_DB: test_db' to the docker-compose environment variables.
-      const apiPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'api').catch((err) => { console.error(err); });
-      const frontendPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'front-end').catch((err) => { console.error(err); });
-      const dbPromise = compose.upOne('test_db', {cwd: path.join(initDir, 'pushkin'), config: 'docker-compose.dev.yml'})
-        .then((resp) => resp, err => console.log('something went wrong:', err))
+      const dbPromise = compose.upOne('test_db', {cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml'})
+        .then((resp) => resp, err => console.log('something went wrong starting database container:', err))
       
       const wait = async () => {
         //Sometimes, I really miss loops
-        let x = await compose.ps({cwd: path.join(initDir, 'pushkin'), config: 'docker-compose.dev.yml'})
-              .then((x) => x.out.search('healthy'), err => {console.error(err)})
+        let x = await compose.ps({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml'})
+              .then((x) => x.out.search('healthy'), err => {console.error('Problem with waiting:',err)})
         if (x) {
           console.log(x);
-          return compose.exec('test_db', ['psql', '-U', 'postgres', '-c', 'create database test_db'], {cwd: path.join(initDir, 'pushkin'), config: 'docker-compose.dev.yml'})
+          return compose.exec('test_db', ['psql', '-U', 'postgres', '-c', 'create database test_db'], {cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml'})
             .then((resp) => resp, err => console.log('something went wrong:', err))
         } else {
           setTimeout( wait, 500 );
         }
       }
       const dbCreate = wait(); //ridiculously roundabout loop
-      return await Promise.all([apiPromise, frontendPromise, dbPromise, dbCreate]);
+      return await Promise.all([dbPromise, dbCreate]);
 }
