@@ -102,18 +102,26 @@ const handleInstall = async (what) => {
   } 
 }
 
-const printOpts = function() {
-  if (program.debug) console.log(program.opts());
-  console.log('pizza details:');
-  if (program.small) console.log('- small pizza size');
-  if (program.pizzaType) console.log(`- ${program.pizzaType}`);
+const killLocal = async () => {
+  console.log('Removing all containers and volumes, as well as pushkin images. To additionally remove third-party images, run `pushkin armageddon`.') 
+  moveToProjectRoot();
+  try {
+    await compose.stop({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml'})
+    await compose.rm({cwd: path.join(process.cwd(), 'pushkin')})
+    await exec(`docker volume rm pushkin_test_db_volume pushkin_message_queue_volume; docker images -a | grep "pushkin*" | awk '{print $3}' | xargs docker rmi -f`)    
+  } catch (err) {
+    console.error('Problem with killing docker: ', err)
+    process.exit();
+  }
+  console.log('done')
+  return;  
 }
- 
+
 async function main() {
-  program
-    .option('-d, --debug', 'output extra debugging')
-    .option('-s, --small', 'small pizza size')
-    .option('-p, --pizza-type <type>', 'flavour of pizza');
+//  program
+//    .option('-d, --debug', 'output extra debugging')
+//    .option('-s, --small', 'small pizza size')
+//    .option('-p, --pizza-type <type>', 'flavour of pizza');
 
   program
     .command('config [what]')
@@ -142,13 +150,57 @@ async function main() {
 
   program
     .command('updateDB')
-    .description('Updates test database. This needs to be run after new experiments are added or the migrations for an experiment are changed. Be sure to read the instructions on migrations before messing with them.')
+    .description('Updates test database. This is automatically run as part of `pushkin prep`, so you are unlikely to need to use it directly.')
     .action(handleUpdateDB)
 
   program
     .command('prep')
-    .description('Prepares local copy for local testing.')
+    .description('Prepares local copy for local testing. This step includes running migrations, so be sure you have read the documentation on how that works.')
     .action(handlePrep)
+
+  program
+    .command('start')
+    .description('Starts local deploy for debugging purposes. To start only the front end (no databases), see the manual.')
+    .action(() => {
+      moveToProjectRoot();
+      compose.upAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: true})
+        .then(
+          out => { console.log(out.out, 'Starting. You may not be able to load localhost for a minute or two.')},
+          err => { console.log('something went wrong:', err.message)}
+        );
+      //exec('docker-compose -f pushkin/docker-compose.dev.yml up --build --remove-orphans;');
+      return;      
+    })
+
+  program
+    .command('stop')
+    .description('Stops the local deploy. This will not remove the local docker images. To do that, see documentation for pushkin kill and pushkin armageddon.')
+    .action(() => {
+      moveToProjectRoot();
+      compose.stop({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml'})
+        .then(
+          out => { console.log(out.out, 'done')},
+          err => { console.log('something went wrong:', err.message)}
+        );
+      //exec('docker-compose -f pushkin/docker-compose.dev.yml up --build --remove-orphans;');
+      return;      
+    })
+
+  program
+    .command('kill')
+    .description('Removes all containers and volumes from local Docker, as well as pushkin-specific images. To additionally remove third-party images, run `pushkin armageddon`.')
+    .action(killLocal)
+
+  program
+    .command('armageddon')
+    .description('Complete reset of the local docker. This will generate some error messages, which you can safely ignore.')
+    .action(async () => {
+      try {
+        await exec('docker stop $(docker ps -aq); docker rm $(docker ps -aq); docker network prune -f; docker rmi -f $(docker images --filter dangling=true -qa); docker volume rm $(docker volume ls --filter dangling=true -q); docker rmi -f $(docker images -qa);')
+      } catch (err) {
+        console.err(err);
+      }
+    })
 
    program.parseAsync(process.argv);
 }
