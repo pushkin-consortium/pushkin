@@ -6,6 +6,7 @@ import uuid from 'uuid/v4';
 import util from 'util';
 import { execSync } from 'child_process'; // eslint-disable-line
 const exec = util.promisify(require('child_process').exec);
+import setupdb from '../setupdb/index.js';
 
 // give package unique name, package it, npm install on installDir, return module name
 const packAndInstall = async (packDir, installDir, packName) => {
@@ -59,18 +60,6 @@ const packAndInstall = async (packDir, installDir, packName) => {
   })
 };
 
-
-// sketchy method to handle writing pure js for static imports
-const includeInModuleList = (importName, listAppendix, file) => { // eslint-disable-line
-  const data = fs.readFileSync(file, 'utf8').trim();
-  const lineSplit = data.split('\n');
-  const allButEnd = lineSplit.slice(0, lineSplit.length - 1);
-  const newData = `import ${importName} from '${importName}';
-${allButEnd.join('\n')}
-	${listAppendix},
-];`;
-  fs.writeFileSync(file, newData, 'utf8');
-};
 
 
 async function cleanUpFiles(coreDir) {
@@ -311,13 +300,11 @@ export default async (experimentsDir, coreDir) => {
   }
 
   const tempAwait = await Promise.all([WorkerIncludes, WebPageIncludes, contrListAppendix])
-  console.log('tempAwait: ',tempAwait)
   let finalWorkers = tempAwait[0]
   let finalWebPages = tempAwait[1]
   let finalControllers = tempAwait[2].map((c) => c[0]);
 
   //Handle API includes
-  console.log('API controllers list: ', finalControllers);
   try {
     fs.writeFileSync(path.join(coreDir, 'api/src/controllers.json'), JSON.stringify(finalControllers), 'utf8')
   } catch (err) {
@@ -334,18 +321,14 @@ export default async (experimentsDir, coreDir) => {
   }
 
   // Deal with Web page includes
-  console.log('Web pages list: ', finalWebPages);
   let top
   let bottom
   let toWrite
   try {
     top = finalWebPages.map((include) => {return `import ${include.moduleName} from '${include.moduleName}';\n`})
     top = top.join('')
-    console.log('top: ',top)
     bottom = finalWebPages.map((include) => {return `${include.listAppendix}\n`}).join(',')
-    console.log('bottom: ', bottom)
     toWrite = top.concat(`export default [\n`).concat(bottom).concat(`];`)
-    console.log('to write: ', toWrite)
     fs.writeFileSync(path.join(coreDir, 'front-end/src/experiments.js'), toWrite, 'utf8')
   } catch (e) { 
     console.error('Failed to include web pages in front end');
@@ -361,7 +344,6 @@ export default async (experimentsDir, coreDir) => {
   }
 
   // write out new compose file with worker services
-  console.log('Workers list: ', finalWorkers);
   const composeFileLoc = path.join(coreDir, 'docker-compose.dev.yml');
   let compFile;
   try { 
@@ -381,5 +363,31 @@ export default async (experimentsDir, coreDir) => {
     process.exit()
   }
 
-  return await Promise.all([installedApi, installedWeb])
+  console.log('Installing packages. This may take a few minutes.')
+  let anotherAwait = await Promise.all([installedApi, installedWeb])
+
+  let settingUpDB, rebuildingServices, config;
+  try {
+     config = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'pushkin.yaml')));
+  } catch (err) {
+    if (err.code === 'ENOENT') {
+      console.log('File not found!');
+    }
+    throw err
+  }
+  try {
+    settingUpDB = setupdb(config.databases, experimentsDir);
+  } catch (err) {
+    console.error(err);
+    process.exit();
+  }
+  try {
+    rebuildingServices = exec(`docker-compose -f pushkin/docker-compose.dev.yml build --no-cache --parallel server api`);
+  } catch (err) {
+    console.error('Problem with building local docker images for front-end and/or api. ', err);
+    process.exit();
+  }
+
+  console.log('Rebuilding local docker images. This will take some time. You will need to check Docker to see when it is done, since Docker and Node do not play well together.')
+  return await Promise.all([settingUpDB, rebuildingServices])
 };
