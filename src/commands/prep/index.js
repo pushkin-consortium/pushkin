@@ -2,69 +2,65 @@ import path from 'path';
 //import { promises as fs } from 'fs';
 import fs from 'fs';
 import jsYaml from 'js-yaml';
-import { execSync, exec } from 'child_process'; // eslint-disable-line
 import uuid from 'uuid/v4';
+import util from 'util';
+import { execSync } from 'child_process'; // eslint-disable-line
+const exec = util.promisify(require('child_process').exec);
 
 // give package unique name, package it, npm install on installDir, return module name
-const packAndInstall = (packDir, installDir, callback) => {
-  // task management
-  const fail = (reason, err) => {
-    callback(new Error(`${reason}\n\t(${packDir}, ${installDir}):\n\t\t${err}`));
-  };
-
-  // backup the package json
-  const packageJsonPath = path.join(packDir, 'package.json');
-  const packageJsonBackup = path.join(packDir, 'package.json.bak');
-  try { fs.copyFileSync(packageJsonPath, packageJsonBackup); } catch (e) { return fail('Failed to backup package.json', e); }
-
-  fs.readFile(packageJsonPath, 'utf8', (err, data) => {
+const packAndInstall = async (packDir, installDir, packName) => {
+  return new Promise((resolve, reject) => {
+    // backup the package json
+    console.log('packDir: ', packDir)
+    const packageJsonPath = path.join(packDir, 'package.json');
+    const packageJsonBackup = path.join(packDir, 'package.json.bak');
+    try { 
+      fs.copyFileSync(packageJsonPath, packageJsonBackup); 
+    } catch (e) { 
+      reject(new Error('Failed to backup package.json'.concat(e))); 
+    }
     let packageJson;
-    try { packageJson = JSON.parse(data); } catch (e) { return fail('Failed to parse package.json', e); }
-    // give package a unique name to avoid module conflicts
-    const uniqueName = `pushkinComponent${uuid().split('-').join('')}`;
-    packageJson.name = uniqueName;
-    fs.writeFile(packageJsonPath, JSON.stringify(packageJson), 'utf8', (err) => {
-      if (err) return fail('Failed to write new package.json', err);
+    try {
+      packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+    } catch (e) {
+      reject(new Error('Failed to parse package.json'.concat(e)))
+    }
+    packageJson.name = packName;
+    try {
+      fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson), 'utf8')
+    } catch (e) {
+      reject(new Error('Failed to rewrite package.json'.concat(e)))
+    }
 
-      // package it up in tarball
-      exec('npm run build', { cwd: packDir }, (err, stdout, stdin) => {
-        if (err) return fail('Failed to run npm build', err);
-				execSync('npm pack', { cwd: packDir }, (err, stdout, stdin) => { // eslint-disable-line
-          if (err) return fail('Failed to run npm pack', err);
-          const packedFileName = stdout.toString().trim();
-          const packedFile = path.join(packDir, packedFileName);
-          const movedPack = path.join(installDir, packedFileName);
+    // package it up in tarball
+    let stdout
+    try {
+      execSync('npm install', { cwd: packDir })
+      execSync('npm run build', { cwd: packDir })
+      stdout = execSync('npm pack', { cwd: packDir })
+    } catch (e) {
+      reject(new Error('Failed to build and pack'.concat(packName).concat(e)))
+    }
+    console.log('Built package for ', packName)
+    console.log('stdout: ', stdout.toString().trim())
+    const packedFileName = stdout.toString().trim();
+    const packedFile = path.join(packDir, packedFileName);
+    const movePack = path.join(installDir, packName.concat('.tgz'));
+    try {
+      fs.renameSync(packedFile, movePack)
+      fs.unlinkSync(packageJsonPath)
+      fs.renameSync(packageJsonBackup, packageJsonPath)
+    } catch (e) {
+      reject(new Error('Ran into issues moving the packages for'.concat(packName).concat(e)))
+    }
 
-          // move the package to the installDir
-          fs.rename(packedFile, movedPack, (err) => {
-            if (err) return fail(`Failed to move packaged file (${packedFile} => ${movedPack})`, err);
-
-            // restore the unmodified package.json
-            fs.unlink(packageJsonPath, (err) => {
-              if (err) return fail(`Failed to delete ${packageJsonPath}`, err);
-              fs.rename(packageJsonBackup, packageJsonPath, (err) => {
-                if (err) return fail('Failed to restore package.json backup', e);
-                callback(undefined, uniqueName);
-              });
-            });
-          });
-        });
-      });
-    });
-  });
+    console.log('Finished packing up', packName)
+    resolve(packName)
+  })
 };
 
 
-// two sketchy methods to handle writing pure js for static imports
-const getModuleList = file => { // eslint-disable-line
-  const moduleNames = [];
-  const data = fs.readFileSync(file, 'utf8').trim();
-  data.split('\n').forEach((line) => {
-    const spaces = line.split(' ');
-    if (spaces[0] == 'import') moduleNames.push(spaces[1]);
-  });
-  return moduleNames;
-};
+// sketchy method to handle writing pure js for static imports
 const includeInModuleList = (importName, listAppendix, file) => { // eslint-disable-line
   const data = fs.readFileSync(file, 'utf8').trim();
   const lineSplit = data.split('\n');
@@ -77,128 +73,114 @@ ${allButEnd.join('\n')}
 };
 
 
-// reset controllers, web pages, workers to be included in main build
-// errors that don't result in the "inclusion files" (i.e. experiments.js and controllers.json)
-// from having bad information shouldn't throw errors. Other stuff, like removing the tgz files
-// that are no longer needed but npm doesn't delete can fail and just log errors
-async function cleanUpFiles(coreDir, callback) {
-  const cleanupTasks = [];
-  const startCleanupTask = () => { 
-    cleanupTasks.push(true); 
-    console.log(`Cleanup tasks: ${cleanupTasks.length}`)
-  };
-  const finishCleanupTask = () => {
-    cleanupTasks.pop();
-    console.log(`Cleanup tasks: ${cleanupTasks.length}`)
-    if (cleanupTasks.length == 0) {
-      callback(true);
-    }
-  };
+async function cleanUpFiles(coreDir) {
+  // reset controllers, web pages, workers to be included in main build
+
+  console.log('loading files...')
+
+  const apiPackages = await fs.promises.readdir(path.join(coreDir, 'api/tempPackages'))
+    .catch((e) => {
+      console.error(`Failed to find api/tempPackages`, e);
+      process.exit()
+    })
+  const webPackages = await fs.promises.readdir(path.join(coreDir, 'front-end/tempPackages'))
+    .catch((e) => {
+      console.error(`Failed to find front-end/tempPackages`, e);
+      process.exit()
+    })
+  const controllersJsonFile = await fs.promises.readFile(path.join(coreDir, 'api/src/controllers.json'))
+    .catch((e) => {
+      console.error('Failed to load api/src/controllers.json', e);
+      process.exit()
+    })
+  const webPageAttachListFile = path.join(coreDir, 'front-end/src/experiments.js');
+  const data = await fs.promises.readFile(webPageAttachListFile, 'utf8')
+    .catch((e) => {
+      console.error(`Failed to load ${webPageAttachListFile}`, e);
+      process.exit()
+    })
+  await Promise.all([apiPackages, webPackages, controllersJsonFile, data]);
 
   // reset api controllers
-  console.log("Cleaning API controllers");
-  async () => {
-    const controllersJsonFile = await fs.promise.readFile(path.join(coreDir, 'api/src/controllers.json'));
-    const oldContrList = JSON.parse(controllersJsonFile);
-    oldContrList.forEach((contr) => {
-      startCleanupTask();
-      const moduleName = contr.name;
-      console.log(`Cleaning API controller ${contr.mountPath} (${moduleName})`);
-      exec(`npm uninstall ${moduleName} --save`, { cwd: path.join(coreDir, 'api') }, (error, stdout, stderr) => {
-        if (error) {
-          console.error(`Error cleaning API controller ${contr.mountPath} (${moduleName}): ${error}`);
-          return;
-        }
-        console.log(`Successfully cleaned API controller ${contr.mountPath} (${moduleName})`)
-        finishCleanupTask();
-      });
-    });
-
-    startCleanupTask();
-    fs.writeFile(controllersJsonFile, JSON.stringify([]), 'utf8', (err) => {
-      if (err) throw err;
-      finishCleaupTask();
-    });
+  console.log('reading controllersJsonFile')
+  const oldContrList = JSON.parse(controllersJsonFile);
+  const cleanAPI = async (contr) => {
+    const moduleName = contr.name;
+    console.log(`Cleaning API controller ${contr.mountPath} (${moduleName})`);  
+    return exec(`npm uninstall ${moduleName} --save`, { cwd: path.join(coreDir, 'api') }).catch((err) => console.error(err))  
   }
-
+  const cleanedAPI = oldContrList.map(cleanAPI); //https://stackoverflow.com/questions/31413749/node-js-promise-all-and-foreach
 
   // reset web page dependencies
-  const webPageAttachListFile = path.join(coreDir, 'front-end/src/experiments.js');
-  const oldPages = getModuleList(webPageAttachListFile);
-  oldPages.forEach((pageModule) => {
-    console.log(`Cleaning web page (${pageModule})`);
-    try { execSync(`npm uninstall ${pageModule} --save`, { cwd: path.join(coreDir, 'front-end') }); } catch (e) { console.error(`Failed to uninstall web page module: ${e}`); }
+  let oldPages = [];
+
+  data.trim().split('\n').forEach((line) => {
+    const spaces = line.split(' ');
+    if (spaces[0] == 'import') moduleNames.push(spaces[1]);
   });
-  fs.writeFileSync(webPageAttachListFile, 'export default [\n];', 'utf8');
+  const cleanWeb = async (pageModule) => {
+    console.log(`Cleaning web page (${pageModule})`); 
+    return exec(`npm uninstall ${pageModule} --save`, { cwd: path.join(coreDir, 'front-end') }).catch((err) => console.error(err))  
+  }
+  const cleanedWeb = oldPages.map(cleanWeb); //https://stackoverflow.com/questions/31413749/node-js-promise-all-and-foreach
+
 
   // remove tgz package files
-  try {
-    console.log('Cleaning temporary files');
-    fs.readdirSync(path.join(coreDir, 'api/tempPackages')).forEach((tempPackage) => {
-      const maybeFile = path.join(coreDir, 'api/tempPackages', tempPackage);
-      if (fs.lstatSync(maybeFile).isFile()) fs.unlinkSync(maybeFile);
-    });
-    fs.readdirSync(path.join(coreDir, 'front-end/tempPackages')).forEach((tempPackage) => {
-      const maybeFile = path.join(coreDir, 'front-end/tempPackages', tempPackage);
-      if (fs.lstatSync(maybeFile).isFile()) fs.unlinkSync(maybeFile);
-    });
-  } catch (e) { console.error(`Failed to remove old temporary files: ${e}`); }
+  console.log('Cleaning temporary files');
+  const cleanPackages = async (dir, tempPackage) => {
+    const maybeFile = path.join(dir, tempPackage);
+    return fs.lstatSync(maybeFile).isFile() ? 
+      fs.promises.unlink(maybeFile).catch((err) => console.error(`Problem removing old temporary file ${maybeFile}`, err)) :
+      new Promise((resolve, reject) => resolve('NA'))
+  }
+  const cleanedAPIPackages = apiPackages.map((x) => cleanPackages(path.join(coreDir, 'api/tempPackages'),x));
+  const cleanedWebPackages = webPackages.map((x) => cleanPackages(path.join(coreDir, 'front-end/tempPackages'),x));
 
-  // remove workers from main docker compose file
-  const composeFileLoc = path.join(coreDir, 'docker-compose.dev.yml');
-  const compFile = jsYaml.safeLoad(fs.readFileSync(composeFileLoc), 'utf8');
-  console.log('Cleaning workers');
-  Object.keys(compFile.services).forEach((service) => {
-    const serviceContent = compFile.services[service];
-    if (serviceContent.labels && serviceContent.labels.isPushkinWorker) delete compFile.services[service];
-  });
-  const newCompData = jsYaml.safeDump(compFile);
-  fs.writeFileSync(composeFileLoc, newCompData, 'utf8');
+  // used to remove workers from main docker compose file
+  // I don't think this goes here anymore. Only needed for actually deleting an experiment.
+
+  const writeAPI = fs.promises.writeFile(controllersJsonFile, JSON.stringify([]), 'utf8').catch((err) => console.error(err))
+  const writeWeb = fs.promises.writeFile(webPageAttachListFile, 'export default [\n];', 'utf8').catch((err) => console.error(err))
+  return await Promise.all([cleanedAPI, cleanedWeb, cleanedAPIPackages, cleanedWebPackages, writeAPI, writeWeb]);
 };
 
 
 // prepare a single experiment's api controllers
-const prepApi = (expDir, controllerConfigs, coreDir, callback) => {
-  // task management
-  const fail = (reason, err) => { callback(new Error(`${reason}: ${err}`)); };
-  const tasks = [];
-  const startTask = () => { tasks.push(true); };
-  const contrListAppendix = [];
-  const finishTask = () => {
-    tasks.pop();
-    if (tasks.length == 0) {
-      callback(undefined, contrListAppendix);
-    }
-  };
-
-  controllerConfigs.forEach((controller) => {
-    // Reading through list of controllers in the experiment's config.yaml
+const prepApi = async (expDir, controllerConfigs, coreDir) => {
+  return Promise.all(controllerConfigs.map(async (controller) => {
     const fullContrLoc = path.join(expDir, controller.location);
     console.log(`Started loading API controller for ${controller.mountPath}`);
-    startTask();
-    packAndInstall(fullContrLoc, path.join(coreDir, 'api/tempPackages'), (err, moduleName) => {
-      if (err) return fail(`Failed on prepping API controller ${fullContrLoc}:`, err);
-      console.log(`Loaded API controller for ${controller.mountPath} (${moduleName})`);
-      contrListAppendix.push({ name: moduleName, mountPath: controller.mountPath });
-      finishTask(); // packing and installing controller
-    });
-  });
-};
+    let moduleName;
+    try {
+      moduleName = await packAndInstall(fullContrLoc, path.join(coreDir, 'api/tempPackages'), controller.mountPath.concat('_api'))
+    } catch (e) {
+      console.error(`Problem packing and installing api for`.concat(controller.mountPath));
+      throw e;
+    }
+    return ({ name: moduleName, mountPath: controller.mountPath });
+  }))
+}
 
 // prepare a single experiment's web page
-const prepWeb = (expDir, expConfig, coreDir, callback) => {
+const prepWeb = async (expDir, expConfig, coreDir) => {
   const webPageLoc = path.join(expDir, expConfig.webPage.location);
   console.log(`Started loading web page for ${expConfig.shortName}`);
-  packAndInstall(webPageLoc, path.join(coreDir, 'front-end/tempPackages'), (err, moduleName) => {
-    if (err) {
-      callback(`Failed on prepping web page: ${err}`);
-      return;
-    }
-    console.log(`Loaded web page for ${expConfig.shortName} (${moduleName})`);
-    // this must be one line
-    const modListAppendix = `{ fullName: '${expConfig.experimentName}', shortName: '${expConfig.shortName}', module: ${moduleName}, logo: '${expConfig.logo}', tagline: '${expConfig.tagline}', duration: '${expConfig.duration}', text: '${expConfig.text}' }`;
-    callback(undefined, { moduleName, listAppendix: modListAppendix });
-  });
+  let moduleName
+  try {
+    moduleName = await packAndInstall(webPageLoc, path.join(coreDir, 'front-end/tempPackages'), expConfig.experimentName.concat('_web'))
+  } catch (err) {
+    console.error(`Failed on prepping web page: ${err}`);
+    throw err;
+  }
+  console.log(`Loaded web page for ${expConfig.shortName} (${moduleName})`);
+  // this must be one line
+  const modListAppendix = `{ fullName: '${expConfig.experimentName}', 
+    shortName: '${expConfig.shortName}', 
+    module: ${moduleName}, logo: '${expConfig.logo}', 
+    tagline: '${expConfig.tagline}', 
+    duration: '${expConfig.duration}', 
+    text: '${expConfig.text}' }`;
+  return { moduleName, listAppendix: modListAppendix };
 };
 
 // prepare a single experiment's worker
@@ -220,138 +202,67 @@ const prepWorker = (expDir, expConfig, callback) => {
   });
 };
 
+const readConfig = (expDir) => {
+  const expConfigPath = path.join(expDir, 'config.yaml');
+  try {
+    return jsYaml.safeLoad(fs.readFileSync(path.join(expDir, 'config.yaml')));
+  } catch (err) {
+    if (err.code === 'ENOENT') {
+      console.log('File not found!');
+    }
+    throw err
+  }
+}
 
 // the main prep function for prepping all experiments
-export default async (experimentsDir, coreDir, callback) => {
-  // task management
-  const fail = (reason, err) => { 
-    callback(new Error(`${reason}: ${err}`)); 
-  };
-  const tasks = [];
-  const startTask = () => { 
-    tasks.push(true); 
-    console.log(`tasks: ${tasks.length}`)
-  };
-  
-  // keep track of stuff to write out
-  const newApiControllers = []; // { name (module name), mountPath } list
-  const newWebPageIncludes = []; // { moduleName:string, listAppendix:string } list
-  const newWorkerServices = []; // to add to main compose file (tag with label of isPushkinWorker) { serviceName, serviceContent } list
+export default async (experimentsDir, coreDir) => {
 
-  const finishTask = () => {
-    // write out what modules to include after all the building/moving's been done (all async tasks finished)
-    tasks.pop();
-    console.log(`tasks: ${tasks.length}`)
-    if (tasks.length == 0) {
-      console.log('Linking components');
-      // write out api includes
-      const controllersJsonFile = path.join(coreDir, 'api/src/controllers.json');
-      fs.writeFile(controllersJsonFile, JSON.stringify(newApiControllers), 'utf8', (err) => {
-        if (err) return fail('Failed to write api controllers list', e);
-
-        // write out web page includes
-        try {
-          const webPageAttachListFile = path.join(coreDir, 'front-end/src/experiments.js');
-          newWebPageIncludes.forEach((include) => {
-            // the following uses fs.writeFileSync so probably is blocking?...
-            includeInModuleList(include.moduleName, include.listAppendix, webPageAttachListFile);
-          });
-        } catch (e) { return fail('Failed to include web pages in front end', e); }
-
-        // write out new compose file with worker services
-        const composeFileLoc = path.join(coreDir, 'docker-compose.dev.yml');
-        let compFile;
-        try { compFile = jsYaml.safeLoad(fs.readFileSync(composeFileLoc), 'utf8'); } catch (e) { return fail('Failed to load main docker compose file', e); }
-        newWorkerServices.forEach((workService) => {
-          compFile.services[workService.serviceName] = workService.serviceContent;
-        });
-        let newCompData;
-        try { newCompData = jsYaml.safeDump(compFile); } catch (e) { return fail('Failed to create new compose file without old workers', e); }
-        fs.writeFile(composeFileLoc, newCompData, 'utf8', (err) => {
-          if (err) return fail('Failed to write new compose file without old workers', e);
-        });
-
-        // rebuild the core api and front end with the new experiment modules
-        let prepping = 2;
-        console.log('Building core Pushkin with new experiment components');
-        execSync('npm install *', { cwd: path.join(coreDir, 'api/tempPackages') }, (err) => {
-          if (err) return fail('Failed to install api packages', err);
-          exec('npm run build', { cwd: path.join(coreDir, 'api') }, (err) => {
-            if (err) return fail('Failed to build core api', err);
-            prepping -= 1;
-            if (!prepping) console.log('Prepped successfully');
-            callback();
-          });
-        });
-        execSync('npm install *', { cwd: path.join(coreDir, 'front-end/tempPackages') }, (err) => {
-          if (err) return fail('Failed to install web page packages', err);
-          exec('npm run build', { cwd: path.join(coreDir, 'front-end') }, (err) => {
-            if (err) return fail('Failed to build core front end', err);
-            prepping -= 1;
-            if (!prepping) console.log('Prepped successfully');
-            callback();
-          });
-        });
-      });
-    }
-  };
-
-
-  /** ***************************** begin ****************************** */
-  // clean up old experiment stuff
   console.log('Cleaning up old experiments');
-  let cleanCore = await cleanUpFiles(coreDir, (err) => {return err}); 
+  try {
+    let cleanCore = await cleanUpFiles(coreDir); 
+  } catch (e) {
+    console.error(`Problem cleaning old files:`, e);
+    process.exit();
+  }
   console.log(`Cleaned up old experiments.`)
 
-  const expDirs = fs.readdirSync(experimentsDir);
-
-  expDirs.forEach((expDir) => {
-    expDir = path.join(experimentsDir, expDir);
-    if (!fs.lstatSync(expDir).isDirectory()) return;
-    console.log(`Started prep for experiment in ${expDir}`);
-    // load the config file
-    const expConfigPath = path.join(expDir, 'config.yaml');
-    let expConfig;
-    fs.readFile(expConfigPath, (err, data) => {
-      if (err) throw err;
-      console.log(data);
+  const prepAPIWrapper = (exp) => {
+    console.log(`Started prepping API for`, exp);
+    return new Promise((resolve, reject) => {
+      const expDir = path.join(experimentsDir, exp)
+      if (!fs.lstatSync(expDir).isDirectory()) resolve('');
+      let expConfig;
       try {
-        expConfig = jsYaml.safeLoad(data, 'utf8');  
-      } catch (e) { 
-        return fail(`Failed to load config file for ${expDir}`, e); 
+        expConfig = readConfig(expDir);
+      } catch (err) {
+        console.error(err);
+        reject(new Error(`Failed to read experiment config file for `.concat(exp).concat(err)))
       }
+      let preppedApi;
+      try {
+        preppedApi = prepApi(expDir, expConfig.apiControllers, coreDir)
+      } catch (err) {
+        reject(new Error(`Unable to prep api for `.concat(exp)))
+      }
+      console.log('preppedApi: ', preppedApi)
+      resolve(preppedApi)
+    })
+  }
 
-      // api
-      startTask();
-      prepApi(expDir, expConfig.apiControllers, coreDir, (err, contrListAppendix) => {
-        if (err) return fail(`Failed to prep api for ${expDir}`, err);
-        contrListAppendix.forEach((a) => { newApiControllers.push(a); });
-        console.log(`Finished ${expDir} API`);
-        finishTask();
-      });
+  const expDirs = fs.readdirSync(experimentsDir);
+  let contrListAppendix;
+  try {
+    contrListAppendix = await Promise.all(expDirs.map(prepAPIWrapper))
+  } catch (err) {
+    console.error(err);
+    process.exit();
+  }
+  console.log('API controllers list: ', contrListAppendix);
+  try {
+    fs.writeFileSync(path.join(coreDir, 'api/src/controllers.json'), JSON.stringify(contrListAppendix), 'utf8')
+  } catch (err) {
+    console.error(`Failed to write api controllers list`)
+    throw err;
+  }
 
-
-      // web page
-      startTask();
-      prepWeb(expDir, expConfig, coreDir, (err, webListAppendix) => {
-        if (err) return fail(`Failed to prep web page for ${expDir}`, err);
-        newWebPageIncludes.push(webListAppendix);
-        console.log(`Finished ${expDir} web page`);
-        finishTask();
-      });
-
-      // worker
-      startTask();
-      prepWorker(expDir, expConfig, (err, workerAppendix) => {
-        if (err) return fail(`Failed to prep worker for ${expDir}`, err);
-        newWorkerServices.push(workerAppendix);
-        console.log(`Finished ${expDir} worker`);
-        finishTask();
-      });
-
-    console.log('how did I get here?')
-    });
- 
-
-  });
 };

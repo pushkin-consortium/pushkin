@@ -60,6 +60,17 @@ const handleUpdateDB = async () => {
   return await setupdb(config.databases, path.join(process.cwd(), config.experimentsDir));
 }
 
+const handlePrep = async () => {
+  moveToProjectRoot();
+  const config = await loadConfig(path.join(process.cwd(), 'pushkin.yaml'));
+  const out = await prep(
+    path.join(process.cwd(), config.experimentsDir),
+    path.join(process.cwd(), config.coreDir)
+  );
+  if (out) console.error(out) //should only trigger when `prep` exited with an error
+  return;  
+}
+
 const handleInstall = async (what) => {
   if (what == 'site'){
     const siteList = await listSiteTemplates();
@@ -126,11 +137,15 @@ async function main() {
 
   program
     .command('updateDB')
-    .description('Updates test database. This needs to be run after new experiments are added or the migrations for an experiment are changed.')
+    .description('Updates test database. This needs to be run after new experiments are added or the migrations for an experiment are changed. Be sure to read the instructions on migrations before messing with them.')
     .action(handleUpdateDB)
 
-   program.parseAsync(process.argv);
+  program
+    .command('prep')
+    .description('Prepares local copy for local testing.')
+    .action(handlePrep)
 
+   program.parseAsync(process.argv);
 }
 
 main();
