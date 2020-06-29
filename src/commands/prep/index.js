@@ -113,11 +113,10 @@ async function cleanUpFiles(coreDir) {
 
   // reset web page dependencies
   let oldPages = [];
-
-  data.trim().split('\n').forEach((line) => {
-    const spaces = line.split(' ');
-    if (spaces[0] == 'import') moduleNames.push(spaces[1]);
-  });
+    data.trim().split('\n').forEach((line) => {
+      const spaces = line.split(' ');
+      if (spaces[0] == 'import') oldPages.push(spaces[1]);
+    });
   const cleanWeb = async (pageModule) => {
     console.log(`Cleaning web page (${pageModule})`); 
     return exec(`npm uninstall ${pageModule} --save`, { cwd: path.join(coreDir, 'front-end') }).catch((err) => console.error(err))  
@@ -167,7 +166,7 @@ const prepWeb = async (expDir, expConfig, coreDir) => {
   console.log(`Started loading web page for ${expConfig.shortName}`);
   let moduleName
   try {
-    moduleName = await packAndInstall(webPageLoc, path.join(coreDir, 'front-end/tempPackages'), expConfig.experimentName.concat('_web'))
+    moduleName = await packAndInstall(webPageLoc, path.join(coreDir, 'front-end/tempPackages'), expConfig.shortName.concat('_web'))
   } catch (err) {
     console.error(`Failed on prepping web page: ${err}`);
     throw err;
@@ -244,7 +243,6 @@ export default async (experimentsDir, coreDir) => {
       } catch (err) {
         reject(new Error(`Unable to prep api for `.concat(exp)))
       }
-      console.log('preppedApi: ', preppedApi)
       resolve(preppedApi)
     })
   }
@@ -263,6 +261,60 @@ export default async (experimentsDir, coreDir) => {
   } catch (err) {
     console.error(`Failed to write api controllers list`)
     throw err;
+  }
+
+  const prepWebWrapper = (exp) => {
+    console.log(`Started prepping web page for`, exp);
+    return new Promise((resolve, reject) => {
+      const expDir = path.join(experimentsDir, exp)
+      if (!fs.lstatSync(expDir).isDirectory()) resolve('');
+      let expConfig;
+      try {
+        expConfig = readConfig(expDir);
+      } catch (err) {
+        console.error(err);
+        reject(new Error(`Failed to read experiment config file for `.concat(exp).concat(err)))
+      }
+      let WebPageIncludes;
+      try {
+        WebPageIncludes = prepWeb(expDir, expConfig, coreDir)
+      } catch (err) {
+        reject(new Error(`Unable to prep web page for `.concat(exp)))
+      }
+      resolve(WebPageIncludes)
+    })
+  }
+
+  let WebPageIncludes;
+  try {
+    WebPageIncludes = await Promise.all(expDirs.map(prepWebWrapper))
+  } catch (err) {
+    console.error(err);
+    process.exit();
+  }
+  console.log('Web pages list: ', WebPageIncludes);
+  try {
+    fs.writeFileSync(path.join(coreDir, 'api/src/controllers.json'), JSON.stringify(contrListAppendix), 'utf8')
+  } catch (err) {
+    console.error(`Failed to write Web pages list`)
+    throw err;
+  }
+  // write out web page includes
+  let top
+  let bottom
+  let toWrite
+  try {
+    top = WebPageIncludes.map((include) => {return `import ${include.moduleName} from '${include.moduleName}';\n`})
+    top = top.join('')
+    console.log('top: ',top)
+    bottom = WebPageIncludes.map((include) => {return `${include.listAppendix}\n`}).join('')
+    console.log('bottom: ', bottom)
+    toWrite = top.concat(`export default [\n`).concat(bottom).concat(`];`)
+    console.log('to write: ', toWrite)
+    fs.writeFileSync(path.join(coreDir, 'front-end/src/experiments.js'), toWrite, 'utf8')
+  } catch (e) { 
+    console.error('Failed to include web pages in front end');
+    throw e; 
   }
 
 };

@@ -63,11 +63,16 @@ const handleUpdateDB = async () => {
 const handlePrep = async () => {
   moveToProjectRoot();
   const config = await loadConfig(path.join(process.cwd(), 'pushkin.yaml'));
-  const out = await prep(
-    path.join(process.cwd(), config.experimentsDir),
-    path.join(process.cwd(), config.coreDir)
-  );
-  if (out) console.error(out) //should only trigger when `prep` exited with an error
+  let out;
+  try {
+    out = await prep(
+      path.join(process.cwd(), config.experimentsDir),
+      path.join(process.cwd(), config.coreDir)
+    );
+  } catch (err) {
+    console.error(err);
+    process.exit();
+  }
   return;  
 }
 
