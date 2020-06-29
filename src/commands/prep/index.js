@@ -220,8 +220,9 @@ export default async (experimentsDir, coreDir) => {
       }
       let preppedApi;
       try {
-        preppedApi = prepApi(expDir, expConfig.apiControllers, coreDir)
+        preppedApi = prepApi(expDir, expConfig.apiControllers, coreDir);
       } catch (err) {
+        console.error('Something wrong with prepping API', err)
         reject(new Error(`Unable to prep api for `.concat(exp)))
       }
       resolve(preppedApi)
@@ -249,26 +250,26 @@ export default async (experimentsDir, coreDir) => {
     return returnVal
   }
 
-  const prepWebWrapper = async (exp) => {
+  const prepWebWrapper = (exp) => {
     console.log(`Started prepping web page for`, exp);
+    return new Promise((resolve, reject) => {
       const expDir = path.join(experimentsDir, exp)
       if (!fs.lstatSync(expDir).isDirectory()) resolve('');
       let expConfig;
       try {
         expConfig = readConfig(expDir);
       } catch (err) {
-        console.error(`Failed to read experiment config file for `.concat(exp).concat(err));
-        throw err
+        console.error(err);
+        reject(new Error(`Failed to read experiment config file for `.concat(exp).concat(err)))
       }
       let WebPageIncludes;
       try {
         WebPageIncludes = prepWeb(expDir, expConfig, coreDir)
       } catch (err) {
-        console.error(`Unable to prep web page for `.concat(exp))
-        throw err
+        reject(new Error(`Unable to prep web page for `.concat(exp)))
       }
-      return WebPageIncludes
-    }
+      resolve(WebPageIncludes)
+    })
   }
 
   let WebPageIncludes;
@@ -309,12 +310,16 @@ export default async (experimentsDir, coreDir) => {
     process.exit();
   }
 
-  await Promise.all([WorkerIncludes, WebPageIncludes, contrListAppendix])
+  const tempAwait = await Promise.all([WorkerIncludes, WebPageIncludes, contrListAppendix])
+  console.log('tempAwait: ',tempAwait)
+  let finalWorkers = tempAwait[0]
+  let finalWebPages = tempAwait[1]
+  let finalControllers = tempAwait[2].map((c) => c[0]);
 
   //Handle API includes
-  console.log('API controllers list: ', contrListAppendix);
+  console.log('API controllers list: ', finalControllers);
   try {
-    fs.writeFileSync(path.join(coreDir, 'api/src/controllers.json'), JSON.stringify(contrListAppendix), 'utf8')
+    fs.writeFileSync(path.join(coreDir, 'api/src/controllers.json'), JSON.stringify(finalControllers), 'utf8')
   } catch (err) {
     console.error(`Failed to write api controllers list`)
     throw err;
@@ -329,15 +334,15 @@ export default async (experimentsDir, coreDir) => {
   }
 
   // Deal with Web page includes
-  console.log('Web pages list: ', WebPageIncludes);
+  console.log('Web pages list: ', finalWebPages);
   let top
   let bottom
   let toWrite
   try {
-    top = WebPageIncludes.map((include) => {return `import ${include.moduleName} from '${include.moduleName}';\n`})
+    top = finalWebPages.map((include) => {return `import ${include.moduleName} from '${include.moduleName}';\n`})
     top = top.join('')
     console.log('top: ',top)
-    bottom = WebPageIncludes.map((include) => {return `${include.listAppendix}\n`}).join(',')
+    bottom = finalWebPages.map((include) => {return `${include.listAppendix}\n`}).join(',')
     console.log('bottom: ', bottom)
     toWrite = top.concat(`export default [\n`).concat(bottom).concat(`];`)
     console.log('to write: ', toWrite)
@@ -356,7 +361,7 @@ export default async (experimentsDir, coreDir) => {
   }
 
   // write out new compose file with worker services
-  console.log('Workers list: ', WorkerIncludes);
+  console.log('Workers list: ', finalWorkers);
   const composeFileLoc = path.join(coreDir, 'docker-compose.dev.yml');
   let compFile;
   try { 
@@ -365,7 +370,7 @@ export default async (experimentsDir, coreDir) => {
     console.error('Failed to load main docker compose file: ',e);
     process.exit() 
   }
-  WorkerIncludes.forEach((workService) => {
+  finalWorkers.forEach((workService) => {
     compFile.services[workService.serviceName] = workService.serviceContent;
   });
   let newCompData;
