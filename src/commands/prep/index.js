@@ -182,25 +182,6 @@ const prepWeb = async (expDir, expConfig, coreDir) => {
   return { moduleName, listAppendix: modListAppendix };
 };
 
-// prepare a single experiment's worker
-const prepWorker = (expDir, expConfig, callback) => {
-  const workerConfig = expConfig.worker;
-  const workerService = workerConfig.service;
-  const workerName = `pushkinworker${uuid().split('-').join('')}`;
-  const workerLoc = path.join(expDir, workerConfig.location);
-  console.log(`Building image for worker ${expConfig.shortName} (${workerName})`);
-  exec(`docker build ${workerLoc} -t ${workerName}`, (err) => {
-    if (err) {
-      callback(new Error(`Failed to build worker: ${err}`));
-      return;
-    }
-    console.log(`Built image for worker ${expConfig.shortName} (${workerName})`);
-    const serviceContent = { ...workerService, image: workerName };
-    serviceContent.labels = { ...(serviceContent.labels || {}), isPushkinWorker: true };
-    callback(undefined, { serviceName: workerName, serviceContent });
-  });
-};
-
 const readConfig = (expDir) => {
   const expConfigPath = path.join(expDir, 'config.yaml');
   try {
@@ -250,11 +231,87 @@ export default async (experimentsDir, coreDir) => {
   const expDirs = fs.readdirSync(experimentsDir);
   let contrListAppendix;
   try {
-    contrListAppendix = await Promise.all(expDirs.map(prepAPIWrapper))
+    contrListAppendix = Promise.all(expDirs.map(prepAPIWrapper))
   } catch (err) {
     console.error(err);
     process.exit();
   }
+  
+  const installAndBuild = async (where) =>
+  {
+    let returnVal
+    try {
+      await exec('npm install *', {cwd: path.join(where, 'tempPackages')})
+      returnVal = exec('npm run build', {cwd: where})
+    } catch (err) {
+      throw err
+    }
+    return returnVal
+  }
+
+  const prepWebWrapper = async (exp) => {
+    console.log(`Started prepping web page for`, exp);
+      const expDir = path.join(experimentsDir, exp)
+      if (!fs.lstatSync(expDir).isDirectory()) resolve('');
+      let expConfig;
+      try {
+        expConfig = readConfig(expDir);
+      } catch (err) {
+        console.error(`Failed to read experiment config file for `.concat(exp).concat(err));
+        throw err
+      }
+      let WebPageIncludes;
+      try {
+        WebPageIncludes = prepWeb(expDir, expConfig, coreDir)
+      } catch (err) {
+        console.error(`Unable to prep web page for `.concat(exp))
+        throw err
+      }
+      return WebPageIncludes
+    }
+  }
+
+  let WebPageIncludes;
+  try {
+    WebPageIncludes = Promise.all(expDirs.map(prepWebWrapper))
+  } catch (err) {
+    console.error(err);
+    process.exit();
+  }
+
+  const prepWorkerWrapper = async (exp) => {
+    console.log(`Started prepping worker for`, exp);
+    const expDir = path.join(experimentsDir, exp)
+    if (!fs.lstatSync(expDir).isDirectory()) resolve('');
+    let expConfig;
+    try {
+      expConfig = readConfig(expDir);
+    } catch (err) {
+      console.error(`Failed to read experiment config file for `.concat(exp));
+      throw err;
+    }
+    const workerConfig = expConfig.worker;
+    const workerService = workerConfig.service;
+    const workerName = `pushkinworker_${exp}`.toLowerCase(); //Docker names must all be lower case
+    const workerLoc = path.join(expDir, workerConfig.location);
+    const serviceContent = { ...workerService, image: workerName };
+    serviceContent.labels = { ...(serviceContent.labels || {}), isPushkinWorker: true };
+    await exec(`docker build ${workerLoc} -t ${workerName}`);
+    console.log( `Build image for worker `,exp)
+    return { serviceName: workerName, serviceContent };
+  }
+
+  let WorkerIncludes;
+  try {
+    WorkerIncludes = Promise.all(expDirs.map(prepWorkerWrapper))
+  } catch (err) {
+    console.error(err);
+    process.exit();
+  }
+
+  await Promise.all([WorkerIncludes, WebPageIncludes, contrListAppendix])
+
+  //Handle API includes
   console.log('API controllers list: ', contrListAppendix);
   try {
     fs.writeFileSync(path.join(coreDir, 'api/src/controllers.json'), JSON.stringify(contrListAppendix), 'utf8')
@@ -263,43 +320,16 @@ export default async (experimentsDir, coreDir) => {
     throw err;
   }
 
-  const prepWebWrapper = (exp) => {
-    console.log(`Started prepping web page for`, exp);
-    return new Promise((resolve, reject) => {
-      const expDir = path.join(experimentsDir, exp)
-      if (!fs.lstatSync(expDir).isDirectory()) resolve('');
-      let expConfig;
-      try {
-        expConfig = readConfig(expDir);
-      } catch (err) {
-        console.error(err);
-        reject(new Error(`Failed to read experiment config file for `.concat(exp).concat(err)))
-      }
-      let WebPageIncludes;
-      try {
-        WebPageIncludes = prepWeb(expDir, expConfig, coreDir)
-      } catch (err) {
-        reject(new Error(`Unable to prep web page for `.concat(exp)))
-      }
-      resolve(WebPageIncludes)
-    })
+  let installedApi
+  try {
+    installedApi = installAndBuild(path.join(coreDir, 'api'));
+  } catch (err) {
+    console.error('Problem installing and buiding combined API')
+    throw err
   }
 
-  let WebPageIncludes;
-  try {
-    WebPageIncludes = await Promise.all(expDirs.map(prepWebWrapper))
-  } catch (err) {
-    console.error(err);
-    process.exit();
-  }
+  // Deal with Web page includes
   console.log('Web pages list: ', WebPageIncludes);
-  try {
-    fs.writeFileSync(path.join(coreDir, 'api/src/controllers.json'), JSON.stringify(contrListAppendix), 'utf8')
-  } catch (err) {
-    console.error(`Failed to write Web pages list`)
-    throw err;
-  }
-  // write out web page includes
   let top
   let bottom
   let toWrite
@@ -307,7 +337,7 @@ export default async (experimentsDir, coreDir) => {
     top = WebPageIncludes.map((include) => {return `import ${include.moduleName} from '${include.moduleName}';\n`})
     top = top.join('')
     console.log('top: ',top)
-    bottom = WebPageIncludes.map((include) => {return `${include.listAppendix}\n`}).join('')
+    bottom = WebPageIncludes.map((include) => {return `${include.listAppendix}\n`}).join(',')
     console.log('bottom: ', bottom)
     toWrite = top.concat(`export default [\n`).concat(bottom).concat(`];`)
     console.log('to write: ', toWrite)
@@ -317,4 +347,34 @@ export default async (experimentsDir, coreDir) => {
     throw e; 
   }
 
+  let installedWeb;
+  try {
+    installedWeb = installAndBuild(path.join(coreDir, 'front-end'));
+  } catch (err) {
+    console.error('Problem installing and buiding combined front-end')
+    throw err
+  }
+
+  // write out new compose file with worker services
+  console.log('Workers list: ', WorkerIncludes);
+  const composeFileLoc = path.join(coreDir, 'docker-compose.dev.yml');
+  let compFile;
+  try { 
+    compFile = jsYaml.safeLoad(fs.readFileSync(composeFileLoc), 'utf8'); 
+  } catch (e) { 
+    console.error('Failed to load main docker compose file: ',e);
+    process.exit() 
+  }
+  WorkerIncludes.forEach((workService) => {
+    compFile.services[workService.serviceName] = workService.serviceContent;
+  });
+  let newCompData;
+  try { 
+    fs.writeFileSync(composeFileLoc, jsYaml.safeDump(compFile), 'utf8');
+  } catch (e) { 
+    console.error('Failed to create new compose file', e); 
+    process.exit()
+  }
+
+  return await Promise.all([installedApi, installedWeb])
 };
