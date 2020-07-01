@@ -11,13 +11,21 @@ If you don't have `Homebrew <https://brew.sh/>`_, install it. Then run the follo
 
 .. code-block:: bash
   
-  $ brew install Node wget
+  $ brew install Node
 
 Install the pushkin-cli package globally.
 
 .. code-block:: bash
 
   $ npm install -g pushkin-cli
+
+Confirm that pushkin-cli is installed by running
+
+.. code-block:: bash
+
+  $ pushkin --help
+
+You should get a list of commands with some documentation for each. We'll be going through the critical ones below. 
 
 Next, install `Docker`_.
 
@@ -27,8 +35,9 @@ Then, open a terminal and move to an empty directory in which to setup Pushkin.
 
 .. code-block:: bash
 
-  $ pushkin site default
-  $ pushkin init site
+  $ pushkin install site
+
+You will be asked to select a site template to use. Choose 'default'.
 
 This sets up a skeleton website in the current folder and sets up a development database. Once that finishes, you should have a directory tree that looks
 something like this:
@@ -54,15 +63,29 @@ provides, run
 
 .. code-block:: bash
 
-  $ pushkin experiment basic myexp
-  $ pushkin init myexp
+  $ pushkin install experiment
 
-replacing “myexp” with a short name of your experiment. This will create a new folder in the
-experiments directory like
+Choose a 'basic' experiment. When prompted, name your experiment 'Vocab'. Repeat the process to add 'basic' experiments called 'Mind' and 'WhichEnglish' as well.
+
+This will create a new folder in the experiments directory like
 
 ::
 
-   └── myexp
+   └── vocab
+       ├── api controllers
+       ├── config.yaml
+       ├── migrations
+       ├── seeds
+       ├── web page
+       └── worker
+   └── mind
+       ├── api controllers
+       ├── config.yaml
+       ├── migrations
+       ├── seeds
+       ├── web page
+       └── worker
+   └── whichenglish
        ├── api controllers
        ├── config.yaml
        ├── migrations
@@ -70,7 +93,7 @@ experiments directory like
        ├── web page
        └── worker
 
-Each folder in here contains something unique to this experiment.
+Each folder in here contains something unique to each experiment.
 There’s also a configuration file that allows us to define a full name
 for the experiment and specify what database to use, among other things.
 
@@ -81,18 +104,6 @@ files to the right places, run:
 .. code-block:: bash
 
   $ pushkin prep
-
-Setting up a local database
------------------------
-
-For now, let's use the test database that is built by ``pushkin init site``. We need to populate it
-with stimuli for our experiment(s):
-
-.. code-block:: bash
-
-  $ docker-compose -f pushkin/docker-compose.dev.yml start test_db
-  $ pushkin setupdb
-  $ docker-compose -f pushkin/docker-compose.dev.yml stop test_db
 
 Setting up logins
 --------
@@ -128,46 +139,41 @@ Note that these URLs are used for development. When you launch the live version 
 Local testing
 -------
 
+Now, let's look at your website! Make sure Docker is running, and then type
+
 .. code-block:: bash
 
-  $ docker-compose -f pushkin/docker-compose.dev.yml up --build --remove-orphans;
+  $ pushkin start;
 
 Now browse to ``http://localhost`` to see the stub website.
+
+When you are done looking at your website, stop it by running: 
+
+.. code-block:: bash
+
+  $ pushkin stop;
+
+If you don't do that, the web server will keep running in Docker until you quit Docker or restart. 
 
 Updating
 --------
 
-If you make updates to your website, here is how to re-launch a local test version:
+Every time you update code or add an experiment, you'll need to run pushkin prep again:
 
 .. code-block:: bash
 
-  $ docker-compose -f pushkin/docker-compose.dev.yml stop
-  $ pushkin prep
   $ docker-compose -f pushkin/docker-compose.dev.yml start test_db
-  $ pushkin setupdb
-  $ docker-compose -f pushkin/docker-compose.dev.yml stop test_db
-  $ docker-compose -f pushkin/docker-compose.dev.yml up --build --remove-orphans;
+  $ pushkin start
+
+Starting over
+--------
+
+The great thing about Docker is that it saves your work. (Read up on Docker to see what I mean.) The bad thing is that it saves your work. Simply editing your code locally may not change what Docker thinks the code is. So if you are updating something but it's not showing up in your website or if you are getting error messages from Docker ... ideally, you should read up on Docker. However, as a fail-safe, run `pushkin kill` to delete all your pushkin-specific code in Docker. Then just run `pushkin prep` again. This will take a while, but should address any Docker-specific problems. If you really need a fresh Docker install, run `pushkin armageddon`, which will completely clean Docker. 
 
 Templates
 ================
 
-There are a growing number of templates for Pushkin websites and experiments. You can get the current list of website templates as follows:
-
-.. code-block:: bash
-  
-  $ pushkin site list
-
-Similarly, to get experiment templates:
-
-.. code-block:: bash
-  
-  $ pushkin experiment list
-
-These lists are hard-coded into the CLI. If you want access to more recently released templates, update your CLI:
-
-.. code-block:: bash
-  
-  $ npm update -g pushkin-cli
+TBI
 
 
 Deploying to AWS

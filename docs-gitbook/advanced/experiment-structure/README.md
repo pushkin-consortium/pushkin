@@ -4,11 +4,13 @@ From the perspective of the web server, a Pushkin experiment involves a number o
 
 For convenience, all the code is kept in the experiments folder as defined in `pushkin.yaml`. The CLI command [prep\_](https://pushkin-social-science-at-scale.readthedocs.io/en/latest/experiments/experiment_structure.html#id2) automagically redistributes this code where it needs to go.
 
-* [Config File](https://pushkin-social-science-at-scale.readthedocs.io/en/latest/experiments/exp_config.html)
-* [Experiment Web Page Component](https://pushkin-social-science-at-scale.readthedocs.io/en/latest/experiments/exp_webpage.html)
-* [Recommended Structure](https://pushkin-social-science-at-scale.readthedocs.io/en/latest/experiments/exp_webpage.html#recommended-structure)
-* [Customizing the client](https://pushkin-social-science-at-scale.readthedocs.io/en/latest/experiments/exp_webpage.html#customizing-the-client)
-* [Worker](https://pushkin-social-science-at-scale.readthedocs.io/en/latest/experiments/exp_worker.html)
-* [Migrations](https://pushkin-social-science-at-scale.readthedocs.io/en/latest/experiments/exp_migrations.html)
-* [Seeds](https://pushkin-social-science-at-scale.readthedocs.io/en/latest/experiments/exp_seeds.html)
+* [Config File](experiment-config-files.md)
+* [Experiment Web Page Component](experiment-web-page-component.md)
+* [Recommended Structure](experiment-web-page-component.md#recommended-structure)
+* [Customizing the client](experiment-web-page-component.md#customizing-the-client)
+* [Worker](worker-component-migration-and-seed.md#experiment-worker-component)
+* [Migrations](worker-component-migration-and-seed.md#experiment-migrations)
+* [Seeds](worker-component-migration-and-seed.md#experiment-seeds)
+
+
 
