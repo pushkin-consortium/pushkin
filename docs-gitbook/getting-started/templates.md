@@ -1,5 +1,7 @@
 # Templates
 
+{Below is former text, this page needs to be updated!}
+
 There are a growing number of templates for Pushkin websites and experiments. You can get the current list of website templates as follows:
 
 ```bash
