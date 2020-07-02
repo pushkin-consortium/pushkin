@@ -168,6 +168,14 @@ const prepWeb = async (expDir, expConfig, coreDir) => {
     tagline: '${expConfig.tagline}', 
     duration: '${expConfig.duration}', 
     text: '${expConfig.text}' }`;
+  // move logo to assets folder
+
+  fs.promises.copyFile(path.join(webPageLoc, 'src/assets', expConfig.logo), path.join(coreDir, 'front-end/src/assets/images/quiz/', expConfig.logo))
+    .catch((e) => {
+      console.error(`Problem copying logo file for `, expConfig.shortName);
+      throw(e);
+    })
+
   return { moduleName, listAppendix: modListAppendix };
 };
 
@@ -333,6 +341,13 @@ export default async (experimentsDir, coreDir) => {
   } catch (e) { 
     console.error('Failed to include web pages in front end');
     throw e; 
+  }
+
+  //move logos to assets folder
+  try {
+    finalWebPages.map(FUBAR)
+  } catch (err) {
+
   }
 
   let installedWeb;
