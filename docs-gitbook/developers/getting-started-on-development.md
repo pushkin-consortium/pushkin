@@ -30,5 +30,5 @@ Currently, the most convenient way to test new version of Pushkin modules locall
 
 That is, modify the path of the Pushkin module to the local test version, so that the npm will find it locally rather than the npm library.
 
-    4. npm install all the dependencies, then you can write the test codes.
+1. npm install all the dependencies, then you can write the test codes.
 

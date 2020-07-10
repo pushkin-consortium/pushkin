@@ -12,5 +12,3 @@ For convenience, all the code is kept in the experiments folder as defined in `p
 * [Migrations](worker-component-migration-and-seed.md#experiment-migrations)
 * [Seeds](worker-component-migration-and-seed.md#experiment-seeds)
 
-
-

@@ -50,9 +50,9 @@ Note that `userEffect` is a React [lifecycle hook for functional components](htt
 
 In principle, this saga could be triggered elsewhere. One thing to keep track of is that because it is asyncronous, components \(including the header\) may load before the user has been set.
 
-### Generating UserIDs
+## Generating UserIDs
 
-#### Randomly-generated string
+### Randomly-generated string
 
 If authenticated with auth0 is not enabled, then the value of `props.userID` comes from a cookie. For that code, see `front-end/src/utils/session.js`. The purpose of the cookie is to enable the userID to persist across browser refreshes \(browser refresh re-initializes the Redux store.\) Maximum life of the cookie is 2 days. \(We aren’t in the business of tracking people without opt-in consent.\)
 
@@ -60,7 +60,7 @@ Note that if authentication is not enabled, then the value of `isAuthenticated` 
 
 Note that the action triggering the creation \(or checking\) of the cookie \(`getSessionUser()`\) is handled by a Redux Saga \(see `front-end/src/sagas`\).
 
-#### Auth0
+### Auth0
 
 If authentication is enabled, then userIDs can be supplied by auth0. We use code from the auth0 SPA quickstart, which is found in `front-end/src/utils/react-auth0-spa.js`. This code provides a component that wraps the entire application in `front-end/src/index.js`:
 
@@ -139,7 +139,7 @@ Finally, note that when users log out of auth0, the `userID` is set to `null`:
 
 This will trigger the assignment of a new `userID` via the cookie method.
 
-### Using UserIDs
+## Using UserIDs
 
 `userID` is automatically available to any component that is connected to the Redux store. This unfortunately does not include the quizzes themselves. Instead, the TakeQuiz component passes the entire Redux store as a prop:
 

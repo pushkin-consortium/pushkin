@@ -24,7 +24,7 @@ The API layer of a Pushkin project has two main jobs. The first job is taking th
 
 For example, developers can use `setPass()` method to assign which HTTP request to which message queue by giving some simple arguments. They can also use `setDirectUse()` if there is no need to use the rpc and message queue in their controller design. Pushkin also provides a quite useful method `setDefaultPasses()` to provide a typical controller design of experiments, which only need some message queue arguments.
 
-### setPass
+## setPass
 
 **Arguments:**
 
@@ -48,7 +48,7 @@ For example, developers can use `setPass()` method to assign which HTTP request 
 
 When an `httpmethod` is send to `/api/myexp/controllermountpath/route`, send an RPC call of `rpcMethod` through `queue` to a worker listening on the backend. This makes is easy for worker methods to be mapped to API endpoint URLS. When attached to a core API, this controller endpoint returns the data sent back by the worker to the client.
 
-### setDefaultPasses
+## setDefaultPasses
 
 **Arguments:**
 
@@ -74,7 +74,7 @@ Enable the default endpoints a simple experiment would use. This makes it possib
 > * ‘/stimulusResponse’, ‘insertStimulusResponse’, writeQueue, ‘post’
 > * ‘/endExperiment’, ‘endExperiment’, taskQueue, ‘post’
 
-### setDirectUse
+## setDirectUse
 
 **Arguments:**
 
@@ -94,7 +94,7 @@ Enable the default endpoints a simple experiment would use. This makes it possib
 
 Applies this function to an API endpoint. The handler function is directly attached to an Express Router and should therefore take three arguments for the request, response, and next paramaters respectively.
 
-### getConnFunction
+## getConnFunction
 
 **Arguments:** None
 

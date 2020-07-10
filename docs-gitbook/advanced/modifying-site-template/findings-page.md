@@ -1,6 +1,6 @@
 # Findings Page
 
-### Add a Findings Card
+## Add a Findings Card
 
 To add a card in the findings page, open `FindingsData.js` located in `components/Findings`, it should be an array of objects look like this:
 
@@ -34,11 +34,11 @@ You can edit the five properties: title, image, description, link and url in eac
 
 To add a external link, set link property to `true` and fill the url property. Then a Read More button will appear in the findings card.
 
-### CardGroup
+## CardGroup
 
 The `<CardGroup>` component renders cards as a single, attached element with equal width and height columns. We wrapped card components in `<CardGroup>` inside a `<Container>` in findings page.
 
-### Align Card Vertically in CardGroup
+## Align Card Vertically in CardGroup
 
 Use two `<Col>` components wrapped in one `<Row>` inside cards:
 

@@ -29,13 +29,13 @@ The first line imports the API and the following three create an api. After exec
 
 The Core-API part‘s main jobs are taking the controllers the developers build, using it in Express App, and starting the server. The processes are quite standardized. When developers finish their design of controllers, they can require the controllers as modules then use `usePushkinController()` method to actually use the controllers in their server. Pushkin will take charge of packaging the custom experiments.
 
-### init
+## init
 
 **Arguments:** None
 
 **Returns:** Promise, in which the connection to message queue is built. Once the connection succeeds, the Promise will be resolved and developers can define what to do next.
 
-### useController
+## useController
 
 **Arguments:**
 
@@ -51,7 +51,7 @@ The Core-API part‘s main jobs are taking the controllers the developers build,
 
 An encapsulated method of Express app.use\(route, controller\). Use it to add controller/request handling method to certain endpoint.
 
-### usePushkinController
+## usePushkinController
 
 **Arguments:**
 
@@ -67,7 +67,7 @@ An encapsulated method of Express app.use\(route, controller\). Use it to add co
 
 The Pushkin will package the experiments that users develop and move it to `./pushkin`. For the API part, the pushkin will load and require the experiment’s controllers. With this method, the Pushkin-API will nest the Express router app for this experiment at the route /api/\[exp\], where \[exp\] is the path for the experiment in question.
 
-### start
+## start
 
 **Arguments:** None
 

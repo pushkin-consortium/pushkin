@@ -7,6 +7,7 @@
 * [Quickstart](getting-started/quickstart.md)
 * [Templates](getting-started/templates.md)
 * [Deploying to AWS](getting-started/deploying-to-aws.md)
+* [Tutorial: Simple experiment](getting-started/tutorial-simple-experiment.md)
 
 ## Advanced
 

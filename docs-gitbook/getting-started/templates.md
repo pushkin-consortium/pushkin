@@ -20,5 +20,3 @@ These lists are hard-coded into the CLI. If you want access to more recently rel
 $ npm update -g pushkin-cli
 ```
 
-
-

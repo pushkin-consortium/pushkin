@@ -2,7 +2,7 @@
 
 The pushkin site template uses [React-Bootstrap](https://react-bootstrap.github.io/) as its front end UI library. It is a complete re-implementation of the Bootstrap components using React. It has no dependency on either bootstrap.js or jQuery.
 
-### Import Libraries
+## Import Libraries
 
 You should import individual components like: `react-bootstrap/Button` rather than the entire library. Doing so pulls in only the specific components that you use, which can significantly reduce the amount of code you end up sending to the client:
 
@@ -13,7 +13,7 @@ import Button from 'react-bootstrap/Button';
 import { Button } from 'react-bootstrap';
 ```
 
-### Inline Styling
+## Inline Styling
 
 In React, inline styles are not specified as a string. Instead they are specified with an object whose key is the camelCased version of the style name, and whose value is the style’s value, usually a string:
 
@@ -45,7 +45,7 @@ React lets you add CSS inline, written as attributes and passed to elements:
 <Container className="p-0" fluid style={styles.container}>
 ```
 
-### Spacing
+## Spacing
 
 React Bootstrap spacing is a utility which assigns responsive margin or padding classes to elements to modify its display position.
 
@@ -96,7 +96,7 @@ It means `marginLeft` is 2 and `marginRight` is 2 as well.
 
 It means margins of all sides \(left, right, top, bottom\) are 4.
 
-### LinkContainer
+## LinkContainer
 
 `<LinkContainer>` is a component of [react-router-bootstrap](https://github.com/react-bootstrap/react-router-bootstrap). Wrap your React Bootstrap element in a `<LinkContainer>` to make it behave like a React Router `<Link>` `<LinkContainer>` accepts same parameters as React Router’s `<NavLink>`
 

@@ -77,6 +77,5 @@ Note that before any of this happens, `prep` actually goes through and deletes a
 
 Syntax: `pushkin dev`
 
-Start the development server. This just runs `docker-compose -f pushkin/docker-compose.dev.yml up --build --remove-orphans;`, saving you the trouble of remembering the syntax. Unfortunately, you also don’t see any of the output from docker, so if there are errors, you won’t know.  
-
+Start the development server. This just runs `docker-compose -f pushkin/docker-compose.dev.yml up --build --remove-orphans;`, saving you the trouble of remembering the syntax. Unfortunately, you also don’t see any of the output from docker, so if there are errors, you won’t know.
 

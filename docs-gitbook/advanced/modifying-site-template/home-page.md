@@ -1,6 +1,6 @@
 # Home Page
 
-### Add a Quiz
+## Add a Quiz
 
 To add a quiz, run `pushkin experiment basic yourQuizName`. This will create a pushkin experiment template experiment in the `experiments/` folder.
 
@@ -54,7 +54,7 @@ export default [
 
 Then the new quiz card will be automatically added to the home page.
 
-### Jumbotron
+## Jumbotron
 
 [The Jumbotron](https://react-bootstrap.github.io/components/jumbotron/) is a lightweight, flexible component that can optionally extend the entire viewport to showcase key content on your site.
 
@@ -77,11 +77,11 @@ Then the new quiz card will be automatically added to the home page.
 
 It includes a link to the feedback page, an archor tag wrapped in `<LinkContainer>` component.
 
-### CardDeck
+## CardDeck
 
 The `<CardDeck>` creates a grid of cards that are of equal height and width. The layout will automatically adjust as you insert more cards. We recommend putting every 3 cards in a card deck. Quizzes are wrapped in card decks in `Home.js` located in `pushkin/front-end/src/pages`.
 
-### Card
+## Card
 
 [Bootstrap’s cards](https://react-bootstrap.netlify.app/components/cards/) provide a flexible and extensible content container with multiple variants and options:
 
