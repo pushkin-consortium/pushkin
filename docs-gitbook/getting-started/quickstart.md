@@ -96,7 +96,7 @@ $ sudo apt update
 $ sudo apt upgrade
 ```
 
-(For more on package management with apt, you can see the documentation [here](https://ubuntu.com/server/docs/package-management). To learn more about the basics of the Linux command line, you can follow [this tutorial](https://ubuntu.com/tutorials/command-line-for-beginners#1-overview). 
+(For more on package management with apt, you can see the documentation [here](https://ubuntu.com/server/docs/package-management). To learn more about the basics of the Linux command line, you can follow [this tutorial](https://ubuntu.com/tutorials/command-line-for-beginners#1-overview).) 
 
 To be able to install the latest version of node, you will first have to uninstall gpg and install gnupg1 instead, as detailed [here](https://stackoverflow.com/questions/46673717/gpg-cant-connect-to-the-agent-ipc-connect-call-failed). The commands are copied below for convenience:
 
@@ -146,7 +146,10 @@ $ pushkin --help
 You should get a list of commands with some documentation for each.
 We'll be going through the critical ones below.
 
-TODO: Edit Ubuntu Docker installation instructions below for WSL.
+Next, install Docker Engine [using these instructions](https://docs.docker.com/engine/install/ubuntu/) and then follow [these post-installation instructions](https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user) to manage Docker as a non-root user. (The rest of the post-installation instructions can be ignored.)
+
+Finally, follow [these instructions](https://docs.docker.com/compose/install/#install-compose-on-linux-systems) to install Docker Compose.
+
 
 ### Creating a basic new Pushkin site
 
