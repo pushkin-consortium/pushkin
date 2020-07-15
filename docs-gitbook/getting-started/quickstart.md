@@ -6,6 +6,7 @@ description: Start here to build a basic Pushkin site and experiment.
 
 ## Skip to section
 
+* [Installing Pushkin and dependencies](quickstart.md#installing-pushkin-dependencies)
 * [Creating a basic new Pushkin site](quickstart.md#creating-basic-new-pushkin-site)
 * [Making an experiment](quickstart.md#making-an-experiment)
 * [Setting up logins](quickstart.md#setting-up-logins)
@@ -13,10 +14,9 @@ description: Start here to build a basic Pushkin site and experiment.
 * [Updating](quickstart.md#updating)
 * [Starting over](quickstart.md#starting-over)
 
-### Creating a basic new Pushkin site
+### Installing Pushkin and dependencies 
 
-All instructions are for working on a Mac. If you figure out how to install Pushkin on Windows, please update the documentation and submit a pull request!
-
+#### macOS
 If you don’t have [Homebrew](https://brew.sh/), install it. Then run the following:
 
 ```bash
@@ -38,6 +38,58 @@ $ pushkin --help
 You should get a list of commands with some documentation for each. We’ll be going through the critical ones below.
 
 Next, install [Docker](https://docs.docker.com/install/).
+
+
+#### Ubuntu Linux
+These instructions are for deploying Pushkin on Ubuntu Linux. They were created using Ubuntu 18.04 and the `apt` package manager but should generalize to other Linux distributions and package managers.
+
+First, ensure that you have curl installed, as this will be necessary to download Node. If it is not installed, it can be installed using the following commands:
+
+```bash
+$ sudo apt update
+$ sudo apt install curl
+```
+
+To install the latest version of `Node.js`, follow  [these instructions at NodeSource](https://github.com/nodesource/distributions/blob/master/README.md#installation-instructions). The instructions are copied below for convenience, but it is best to follow the link in case their instructions change in the future.
+
+```bash
+$ curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
+$ sudo apt install -y nodejs
+```
+
+Next, install the pushkin-cli package globally.
+
+```bash
+$ npm install -g pushkin-cli
+```
+
+If you get the error `Missing write access to /usr/lib/node_modules`, follow [the instructions here](https://stackoverflow.com/a/41395398) (copied below for convenience) to create a `npm` directory that does not require root access.
+
+``` bash
+$ mkdir ~/.npm-global
+$ echo -e "export NPM_CONFIG_PREFIX=~/.npm-global\nexport PATH=\$PATH:~/.npm-global/bin" >> ~/.bashrc
+```
+
+Now, re-run the previous command to install the pushkin-cli package.
+
+Confirm that pushkin-cli is installed by running
+
+``` bash
+$ pushkin --help
+```
+
+You should get a list of commands with some documentation for each.
+We'll be going through the critical ones below.
+
+Next, install Docker Engine [using these instructions](https://docs.docker.com/engine/install/ubuntu/) and then follow [these post-installation instructions](https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user) to manage Docker as a non-root user. (The rest of the post-installation instructions can be ignored.)
+
+Finally, follow [these instructions](https://docs.docker.com/compose/install/#install-compose-on-linux-systems) to install Docker Compose.
+
+
+#### Windows
+
+
+### Creating a basic new Pushkin site
 
 Make sure Docker is running.
 
