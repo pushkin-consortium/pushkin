@@ -1,2 +1,2 @@
-# pushkin-exptemplates-basic
-Basic jsPsych experiment with a "hello world" timeline.
+# pushkin-exptemplates-lexical
+Basic jsPsych lexical decisions experiment
