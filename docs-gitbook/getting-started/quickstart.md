@@ -86,8 +86,67 @@ Next, install Docker Engine [using these instructions](https://docs.docker.com/e
 Finally, follow [these instructions](https://docs.docker.com/compose/install/#install-compose-on-linux-systems) to install Docker Compose.
 
 
-#### Windows
+#### Windows 10
+This setup depends on the Windows Subsystem for Linux (WSL) 2. [This tutorial](https://docs.microsoft.com/en-us/windows/wsl/install-win10) explains how to install WSL 2 and install a Linux distribution from the Microsoft Store. We recommend using Ubuntu 18.04, but Ubuntu 20.04 will likely work as well. It is very important that you [set your distribution to WSL 2](https://docs.microsoft.com/en-us/windows/wsl/install-win10#set-your-distribution-version-to-wsl-1-or-wsl-2). 
 
+After this has installed, open up the Ubuntu terminal and run the following commands to update your Ubuntu packages. This (and other commands with `sudo` in front of them will prompt you to give the Ubuntu password you set up when you installed it. It will also prompt you to respond with `y` and press ENTER to confirm that you would like to install or update software. 
+
+```bash
+$ sudo apt update
+$ sudo apt upgrade
+```
+
+(For more on package management with apt, you can see the documentation [here](https://ubuntu.com/server/docs/package-management). To learn more about the basics of the Linux command line, you can follow [this tutorial](https://ubuntu.com/tutorials/command-line-for-beginners#1-overview). 
+
+To be able to install the latest version of node, you will first have to uninstall gpg and install gnupg1 instead, as detailed [here](https://stackoverflow.com/questions/46673717/gpg-cant-connect-to-the-agent-ipc-connect-call-failed). The commands are copied below for convenience:
+
+```bash
+$ sudo apt remove gpg
+$ sudo apt install gnupg1
+```
+
+Next, ensure that you have curl installed, as this will also be necessary to download Node. If it is not installed, it can be installed using the following commands:
+
+```bash
+$ sudo apt update
+$ sudo apt install curl
+```
+
+To install the latest version of `Node.js`, follow  [these instructions at
+NodeSource](https://github.com/nodesource/distributions/blob/master/README.md#installation-instructions). The instructions are copied below for convenience, but it is best to follow the link in case their instructions change in the future.
+
+```bash
+$ curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
+$ sudo apt install -y nodejs
+```
+
+Next, install the pushkin-cli package globally.
+
+```bash
+$ npm install -g pushkin-cli
+```
+
+If you get the error `Missing write access to /usr/lib/node_modules`, follow [the instructions here](https://stackoverflow.com/a/41395398) (copied below for convenience) to create a `npm` directory that does not require root access.
+
+``` bash
+$ mkdir ~/.npm-global
+$ echo -e "export NPM_CONFIG_PREFIX=~/.npm-global\nexport PATH=\$PATH:~/.npm-global/bin" >> ~/.bashrc
+```
+
+You will now need to reboot your machine. 
+Once you have rebooted, re-run the previous command to install the pushkin-cli package. 
+
+
+Confirm that pushkin-cli is installed by running
+
+``` bash
+$ pushkin --help
+```
+
+You should get a list of commands with some documentation for each.
+We'll be going through the critical ones below.
+
+TODO: Edit Ubuntu Docker installation instructions below for WSL.
 
 ### Creating a basic new Pushkin site
 
