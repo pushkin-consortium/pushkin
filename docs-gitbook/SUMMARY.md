@@ -7,7 +7,7 @@
 * [Quickstart](getting-started/quickstart.md)
 * [Templates](getting-started/templates.md)
 * [Deploying to AWS](getting-started/deploying-to-aws.md)
-* [Tutorial: Simple experiment](getting-started/tutorial-simple-experiment.md)
+* [Tutorial: Simple Experiment](getting-started/tutorial-simple-experiment.md)
 
 ## Advanced
 
@@ -28,6 +28,7 @@
   * [Findings Page](advanced/modifying-site-template/findings-page.md)
   * [About Page](advanced/modifying-site-template/about-page.md)
   * [Feedback Page](advanced/modifying-site-template/feedback-page.md)
+* [Modifying Experiment Templates](advanced/modifying-experiment-templates.md)
 * [Testing Pushkin with Jest](advanced/testing-pushkin-with-jest.md)
 
 ## Developers
