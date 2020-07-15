@@ -6,7 +6,7 @@ description: Start here to build a basic Pushkin site and experiment.
 
 ## Skip to section
 
-* [Installing Pushkin and dependencies](quickstart.md#installing-pushkin-dependencies)
+* [Installing Pushkin and dependencies](quickstart.md#installing-pushkin-and-dependencies)
 * [Creating a basic new Pushkin site](quickstart.md#creating-basic-new-pushkin-site)
 * [Making an experiment](quickstart.md#making-an-experiment)
 * [Setting up logins](quickstart.md#setting-up-logins)
