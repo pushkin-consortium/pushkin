@@ -2,7 +2,7 @@ experimentName: &fullName 'pushkintemplate'
 shortName: &shortName 'pushkintemplate' # This should be unique as its used for urls, etc.
 apiControllers: # The default export from each of these locations will be attached to a pushkin API
   - mountPath: *shortName
-    location: 'api_controllers'
+    location: 'api controllers'
     name: 'mycontroller'
 worker:
   location: 'worker'
@@ -18,7 +18,7 @@ worker:
       - "DB_URL=test_db"
       - "DB_NAME=test_db"
 webPage:
-  location: 'web_page'
+  location: 'web page'
 migrations:
   location: 'migrations'
 seeds:
