@@ -39,57 +39,10 @@ You should get a list of commands with some documentation for each. We’ll be g
 
 Next, install [Docker](https://docs.docker.com/install/).
 
-
-#### Ubuntu Linux
-These instructions are for deploying Pushkin on Ubuntu Linux. They were created using Ubuntu 18.04 and the `apt` package manager but should generalize to other Linux distributions and package managers.
-
-First, ensure that you have curl installed, as this will be necessary to download Node. If it is not installed, it can be installed using the following commands:
-
-```bash
-$ sudo apt update
-$ sudo apt install curl
-```
-
-To install the latest version of `Node.js`, follow  [these instructions at NodeSource](https://github.com/nodesource/distributions/blob/master/README.md#installation-instructions). The instructions are copied below for convenience, but it is best to follow the link in case their instructions change in the future.
-
-```bash
-$ curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
-$ sudo apt install -y nodejs
-```
-
-Next, install the pushkin-cli package globally.
-
-```bash
-$ npm install -g pushkin-cli
-```
-
-If you get the error `Missing write access to /usr/lib/node_modules`, follow [the instructions here](https://stackoverflow.com/a/41395398) (copied below for convenience) to create a `npm` directory that does not require root access.
-
-``` bash
-$ mkdir ~/.npm-global
-$ echo -e "export NPM_CONFIG_PREFIX=~/.npm-global\nexport PATH=\$PATH:~/.npm-global/bin" >> ~/.bashrc
-```
-
-Now, re-run the previous command to install the pushkin-cli package.
-
-Confirm that pushkin-cli is installed by running
-
-``` bash
-$ pushkin --help
-```
-
-You should get a list of commands with some documentation for each.
-We'll be going through the critical ones below.
-
-Next, install Docker Engine [using these instructions](https://docs.docker.com/engine/install/ubuntu/) and then follow [these post-installation instructions](https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user) to manage Docker as a non-root user. (The rest of the post-installation instructions can be ignored.)
-
-Finally, follow [these instructions](https://docs.docker.com/compose/install/#install-compose-on-linux-systems) to install Docker Compose.
-
-
 #### Windows 10
-This setup depends on the Windows Subsystem for Linux (WSL) 2. [This tutorial](https://docs.microsoft.com/en-us/windows/wsl/install-win10) explains how to install WSL 2 and install a Linux distribution from the Microsoft Store. We recommend using Ubuntu 18.04, but Ubuntu 20.04 will likely work as well. It is very important that you [set your distribution to WSL 2](https://docs.microsoft.com/en-us/windows/wsl/install-win10#set-your-distribution-version-to-wsl-1-or-wsl-2). 
+This setup depends on the Windows Subsystem for Linux (WSL) 2. [This tutorial](https://docs.microsoft.com/en-us/windows/wsl/install-win10) explains how to configure WSL 2 and install a Linux distribution from the Microsoft Store. We recommend using Ubuntu 18.04. Make sure you [set your distribution to WSL 2](https://docs.microsoft.com/en-us/windows/wsl/install-win10#set-your-distribution-version-to-wsl-1-or-wsl-2), or this tutorial will not work. 
 
-After this has installed, open up the Ubuntu terminal and run the following commands to update your Ubuntu packages. This (and other commands with `sudo` in front of them will prompt you to give the Ubuntu password you set up when you installed it. It will also prompt you to respond with `y` and press ENTER to confirm that you would like to install or update software. 
+After this has installed, open up the Ubuntu terminal and run the following commands to update your Ubuntu packages. This (and other commands with `sudo` in front of them) will prompt you to give the Ubuntu password you set up when you installed it. It will also prompt you to respond with `y` and press ENTER to confirm that you would like to install or update software. 
 
 ```bash
 $ sudo apt update
@@ -104,16 +57,19 @@ To be able to install the latest version of node, you will first have to uninsta
 $ sudo apt remove gpg
 $ sudo apt install gnupg1
 ```
+From here, you can follow the instructions below for Ubuntu Linux to finish the installation.
 
-Next, ensure that you have curl installed, as this will also be necessary to download Node. If it is not installed, it can be installed using the following commands:
+#### Ubuntu Linux
+These instructions were created using Ubuntu 18.04 and the apt package manager but should generalize to other Linux distributions and package managers.
+
+First, ensure that you have curl installed, as this will be necessary to download Node. If it is not installed, it can be installed using the following commands:
 
 ```bash
 $ sudo apt update
 $ sudo apt install curl
 ```
 
-To install the latest version of `Node.js`, follow  [these instructions at
-NodeSource](https://github.com/nodesource/distributions/blob/master/README.md#installation-instructions). The instructions are copied below for convenience, but it is best to follow the link in case their instructions change in the future.
+To install the latest version of Node.js , follow [these instructions at NodeSource](https://github.com/nodesource/distributions/blob/master/README.md#installation-instructions). The instructions are copied below for convenience, but it is best to follow the link in case their instructions change in the future.
 
 ```bash
 $ curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
@@ -132,10 +88,9 @@ If you get the error `Missing write access to /usr/lib/node_modules`, follow [th
 $ mkdir ~/.npm-global
 $ echo -e "export NPM_CONFIG_PREFIX=~/.npm-global\nexport PATH=\$PATH:~/.npm-global/bin" >> ~/.bashrc
 ```
+(Note: If you are using the Windows Subsystem for Linux, you will need to reboot your computer before continuing.)
 
-You will now need to reboot your machine. 
-Once you have rebooted, re-run the previous command to install the pushkin-cli package. 
-
+Now re-run the previous `npm install` command to install the pushkin-cli package.
 
 Confirm that pushkin-cli is installed by running
 
@@ -143,8 +98,7 @@ Confirm that pushkin-cli is installed by running
 $ pushkin --help
 ```
 
-You should get a list of commands with some documentation for each.
-We'll be going through the critical ones below.
+You should get a list of commands with some documentation for each. We'll be going through the critical ones below.
 
 Next, install Docker Engine [using these instructions](https://docs.docker.com/engine/install/ubuntu/) and then follow [these post-installation instructions](https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user) to manage Docker as a non-root user. (The rest of the post-installation instructions can be ignored.)
 
@@ -153,9 +107,17 @@ Finally, follow [these instructions](https://docs.docker.com/compose/install/#in
 
 ### Creating a basic new Pushkin site
 
-Make sure Docker is running.
+Make sure Docker is running. On macOS, a Docker icon should show up in the menu bar at the top of the screen. On Ubuntu and WSL, you can run the command `docker info` or `sudo systemctl is-active docker` to check whether it is running. If it is not, you can run `dockerd` to start it.
 
-Then, open a terminal and move to an empty directory in which to setup Pushkin.
+Then, if it is not open already, open a terminal window. Then you can create an empty directory called `pushkin_quickstart` (although in principle it could have any name) and move to this directory using the following commands:
+
+```bash
+$ mkdir pushkin_quickstart
+$ cd pushkin_quickstart/
+```
+(For more on basic terminal commands, you can check out [this blog post](https://medium.com/@grace.m.nolan/terminal-for-beginners-e492ba10902a).)
+
+You will be installing your first pushkin site the in the directory you just created.
 
 ```bash
 $ pushkin install site
