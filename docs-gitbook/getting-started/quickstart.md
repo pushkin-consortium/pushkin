@@ -40,9 +40,13 @@ You should get a list of commands with some documentation for each. We’ll be g
 Next, install [Docker](https://docs.docker.com/install/).
 
 #### Windows 10
-This setup depends on the Windows Subsystem for Linux (WSL) 2. [This tutorial](https://docs.microsoft.com/en-us/windows/wsl/install-win10) explains how to configure WSL 2 and install a Linux distribution from the Microsoft Store. We recommend using Ubuntu 18.04. Make sure you [set your distribution to WSL 2](https://docs.microsoft.com/en-us/windows/wsl/install-win10#set-your-distribution-version-to-wsl-1-or-wsl-2), or this tutorial will not work. 
+This setup depends on the Windows Subsystem for Linux (WSL) 2.[This tutorial](https://docs.microsoft.com/en-us/windows/wsl/install-win10) explains how to configure WSL 2 and install a Linux distribution from the Microsoft Store. We recommend using Ubuntu 18.04. Make sure you [set your distribution to WSL 2](https://docs.microsoft.com/en-us/windows/wsl/install-win10#set-your-distribution-version-to-wsl-1-or-wsl-2), or this tutorial will not work.
 
-After this has installed, open up the Ubuntu terminal and run the following commands to update your Ubuntu packages. This (and other commands with `sudo` in front of them) will prompt you to give the Ubuntu password you set up when you installed it. It will also prompt you to respond with `y` and press ENTER to confirm that you would like to install or update software. 
+As the tutorial details, you will need Windows 10 version 2004 to be able to use WSL 2. If you follow the instructions in the tutorial and cannot update to version 2004, [these steps](https://www.bleepingcomputer.com/news/microsoft/windows-10-2004-update-not-offered-heres-how-to-get-it-now/) may be able to help.
+
+After you have enabled WSL 2 and installed Ubuntu, you will probably also want to enable copy and paste in the terminal by right-clicking on the terminal window, selecting /Properties/ and following [these instructions](https://devblogs.microsoft.com/commandline/copy-and-paste-arrives-for-linuxwsl-consoles/).
+
+Next, run the following commands in the Ubuntu terminal to update your Ubuntu packages. This (and other commands with `sudo` in front of them) will prompt you to give the Ubuntu password you set up when you installed it. It will also prompt you to respond with `y` and press ENTER to confirm that you would like to install or update software. 
 
 ```bash
 $ sudo apt update
