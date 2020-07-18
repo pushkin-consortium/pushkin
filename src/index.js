@@ -107,10 +107,20 @@ const killLocal = async () => {
   moveToProjectRoot();
   try {
     await compose.stop({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml'})
+  } catch (err) {
+    console.error('Problem with stopping docker: ', err)
+    process.exit();
+  }
+  try {
     await compose.rm({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml'})
+  } catch (err) {
+    console.error('Problem with removing docker containers: ', err)
+    process.exit();
+  }
+  try {
     await exec(`docker volume rm pushkin_test_db_volume pushkin_message_queue_volume; docker images -a | grep "pushkin*" | awk '{print $3}' | xargs docker rmi -f`)    
   } catch (err) {
-    console.error('Problem with killing docker: ', err)
+    console.error('Problem with removing volumes and images docker: ', err)
     process.exit();
   }
   console.log('done')
