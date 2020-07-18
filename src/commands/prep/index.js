@@ -124,12 +124,12 @@ async function cleanUpFiles(coreDir) {
   const cleanedAPIPackages = apiPackages.map((x) => cleanPackages(path.join(coreDir, 'api/tempPackages'),x));
   const cleanedWebPackages = webPackages.map((x) => cleanPackages(path.join(coreDir, 'front-end/tempPackages'),x));
 
+  await Promise.all([cleanedAPI, cleanedWeb, cleanedAPIPackages, cleanedWebPackages]);
   // used to remove workers from main docker compose file
   // I don't think this goes here anymore. Only needed for actually deleting an experiment.
-
-  const writeAPI = fs.promises.writeFile(controllersJsonFile, JSON.stringify([]), 'utf8').catch((err) => console.error(err))
+  const writeAPI = fs.promises.writeFile(path.join(coreDir, 'api/src/controllers.json'), JSON.stringify([]), 'utf8').catch((err) => console.error(err))
   const writeWeb = fs.promises.writeFile(webPageAttachListFile, 'export default [\n];', 'utf8').catch((err) => console.error(err))
-  return await Promise.all([cleanedAPI, cleanedWeb, cleanedAPIPackages, cleanedWebPackages, writeAPI, writeWeb]);
+  return await Promise.all([writeAPI, writeWeb])
 };
 
 
@@ -371,7 +371,7 @@ export default async (experimentsDir, coreDir) => {
     compFile.services[workService.serviceName] = workService.serviceContent;
   });
   let newCompData;
-  try { 
+  try {
     fs.writeFileSync(composeFileLoc, jsYaml.safeDump(compFile), 'utf8');
   } catch (e) { 
     console.error('Failed to create new compose file', e); 
