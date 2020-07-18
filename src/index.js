@@ -107,7 +107,7 @@ const killLocal = async () => {
   moveToProjectRoot();
   try {
     await compose.stop({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml'})
-    await compose.rm({cwd: path.join(process.cwd(), 'pushkin')})
+    await compose.rm({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml'})
     await exec(`docker volume rm pushkin_test_db_volume pushkin_message_queue_volume; docker images -a | grep "pushkin*" | awk '{print $3}' | xargs docker rmi -f`)    
   } catch (err) {
     console.error('Problem with killing docker: ', err)
