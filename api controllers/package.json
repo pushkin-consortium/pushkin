@@ -13,6 +13,7 @@
   "author": "L3",
   "license": "MIT",
   "dependencies": {
+    "build-if-changed": "^1.5.5",
     "pushkin-api": "^1.2.0"
   },
   "devDependencies": {
