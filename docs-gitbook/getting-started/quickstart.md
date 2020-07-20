@@ -30,7 +30,7 @@ Install the pushkin-cli package globally.
 $ npm install -g pushkin-cli
 ```
 
-Confirm that pushkin-cli is installed by running
+Confirm that pushkin-cli is installed by running:
 
 ```bash
 $ pushkin --help
@@ -41,14 +41,11 @@ You should get a list of commands with some documentation for each. We’ll be g
 Next, install [Docker](https://docs.docker.com/install/).
 
 #### Windows 10
+We are eventually hoping to be able to use [the Windows Subsystem for Linux (WSL)](https://docs.microsoft.com/en-us/windows/wsl/) to deploy Pushkin on Windows. This setup is not currently working reliably, however, so we suggest that Windows users create a Ubuntu virtual machine and follow the Ubuntu instructions to try out and test Pushkin. When Microsoft releases a fix that solves the problem, we will update our documentation with Windows-specific instructions. 
 
-This setup depends on the Windows Subsystem for Linux \(WSL\) 2.[This tutorial](https://docs.microsoft.com/en-us/windows/wsl/install-win10) explains how to configure WSL 2 and install a Linux distribution from the Microsoft Store. We recommend using Ubuntu 18.04. Make sure you [set your distribution to WSL 2](https://docs.microsoft.com/en-us/windows/wsl/install-win10#set-your-distribution-version-to-wsl-1-or-wsl-2), or this tutorial will not work.
+You can follow [this tutorial](https://www.freecodecamp.org/news/how-to-install-ubuntu-with-oracle-virtualbox/) to set up your Ubuntu virtual machine on Windows 10. We recommend using Ubuntu 18.04.
 
-As the tutorial details, you will need Windows 10 version 2004 to be able to use WSL 2. If you follow the instructions in the tutorial and cannot update to version 2004, [these steps](https://www.bleepingcomputer.com/news/microsoft/windows-10-2004-update-not-offered-heres-how-to-get-it-now/) may be able to help.
-
-After you have enabled WSL 2 and installed Ubuntu, you will probably also want to enable copy and paste in the terminal by right-clicking on the terminal window, selecting _Properties_ and following [these instructions](https://devblogs.microsoft.com/commandline/copy-and-paste-arrives-for-linuxwsl-consoles/).
-
-Next, run the following commands in the Ubuntu terminal to update your Ubuntu packages. This \(and other commands with `sudo` in front of them\) will prompt you to give the Ubuntu password you set up when you installed it. It will also prompt you to respond with `y` and press ENTER to confirm that you would like to install or update software.
+Once you have configured your virtual machine and installed Ubuntu, open the Ubuntu Terminal by pressing CTRL and typing 'terminal' and ENTER or by using the keyboard shortcut CTRL+ALT+T. Once you have opened the terminal, run the following commands to update your Ubuntu packages. This (and other commands with `sudo` in front of them) will prompt you to give the Ubuntu password you set up when you installed it. It will also prompt you to respond with `y` and press ENTER to confirm that you would like to install or update any software packages. 
 
 ```bash
 $ sudo apt update
@@ -56,13 +53,6 @@ $ sudo apt upgrade
 ```
 
 \(For more on package management with apt, you can see the documentation [here](https://ubuntu.com/server/docs/package-management). To learn more about the basics of the Linux command line, you can follow [this tutorial](https://ubuntu.com/tutorials/command-line-for-beginners#1-overview).\)
-
-To be able to install the latest version of node, you will first have to uninstall gpg and install gnupg1 instead, as detailed [here](https://stackoverflow.com/questions/46673717/gpg-cant-connect-to-the-agent-ipc-connect-call-failed). The commands are copied below for convenience:
-
-```bash
-$ sudo apt remove gpg
-$ sudo apt install gnupg1
-```
 
 From here, you can follow the instructions below for Ubuntu Linux to finish the installation.
 
@@ -115,7 +105,7 @@ Finally, follow [these instructions](https://docs.docker.com/compose/install/#in
 
 ### Creating a basic new Pushkin site
 
-Make sure Docker is running. On macOS, a Docker icon should show up in the menu bar at the top of the screen. On Ubuntu and WSL, you can run the command `docker info` or `sudo systemctl is-active docker` to check whether it is running. If it is not, you can run `dockerd` to start it.
+Make sure Docker is running by running the command `docker info`; if it is not, you can run `dockerd` or `sudo dockerd` to start it.
 
 Then, if it is not open already, open a terminal window. Then you can create an empty directory called `pushkin_quickstart` \(although in principle it could have any name\) and move to this directory using the following commands:
 
@@ -156,9 +146,9 @@ To create a new experiment from the boilerplate template Pushkin provides, run
 $ pushkin install experiment
 ```
 
-Choose a ‘basic’ experiment. When prompted, name your experiment ‘Vocab’. Repeat the process to add ‘basic’ experiments called ‘Mind’ and ‘WhichEnglish’ as well.
+Choose a ‘basic’ experiment. When prompted, name your experiment ‘vocab’. Repeat the process to add ‘basic’ experiments called ‘mind’ and ‘whichenglish’ as well.
 
-This will create a new folder in the experiments directory like
+This will create a new folder in the experiments directory like this:
 
 ```text
 └── vocab
@@ -184,7 +174,7 @@ This will create a new folder in the experiments directory like
     └── worker
 ```
 
-Each folder in here contains something unique to each experiment. There’s also a configuration file that allows us to define a full name for the experiment and specify what database to use, among other things.
+Each experiment has its own folder containing files specific to that experiment. Within this folder, each experiment also has a configuration file (`config.yaml`) that allows you to define a human-readable full name for the experiment (e.g., *Which English?* for `whichenglish`), specify a database to use, and make other customizations.
 
 Keeping all the files for an experiment within the same root folder is convenient for development, but not for actually deploying the website. To redistribute the experiment files to the right places, run:
 
@@ -199,7 +189,6 @@ In `config.js`, located at ./pushkin/front-end/src, set `useAuth` to `true` or `
 ```javascript
 useForum: false,
 useAuth: false,
-//Note that the forum won't work without authentication
 ```
 
 By default, Pushkin authenticates users using [Auth0](http://auth0.com/). This provides many features and better security than could be managed otherwise. It is free for open source projects \(contact [sales@auth0.com](mailto:sales%40auth0.com)\); otherwise it can be fairly pricey if you are hoping for a lot of users. To set up Auth0, use the following directions. \(Note that at some point, Auth0 will change up their website and these instructions may get out of date.\)
@@ -211,16 +200,18 @@ By default, Pushkin authenticates users using [Auth0](http://auth0.com/). This p
 
 Note that these URLs are used for development. When you launch the live version of your website, you will need to add your public URLs. Repeat the instructions above, replacing [http://localhost](http://localhost) with [https://YOUR-WEBSITE](https://YOUR-WEBSITE). For instance, for gameswithwords, the urls are `https://gameswithwords.org` and `https://gameswithwords/callback`.
 
-1. On the settings page, you will see a `Domain` \(something like `gameswithwords.auth0.com`\) and a `Client ID`. Edit `config.js` to match:
+On the settings page, you will see a `Domain` \(something like `gameswithwords.auth0.com`\) and a `Client ID`. Edit `config.js` to match:
 
 ```javascript
 authDomain: '<YOUR_AUTH0_DOMAIN>',
 authClientID: '<YOUR_AUTH0_CLIENT_ID>',
 ```
 
+Finally, run `pushkin prep` again since you have made a change to your code.
+
 ### Local testing
 
-Now, let’s look at your website! Make sure Docker is running, and then type
+Now, let’s look at your website! Make sure Docker is running by running the command `docker info`; if it is not, you can run `dockerd` or `sudo dockerd` to start it. Next, run:
 
 ```bash
 $ pushkin start;
