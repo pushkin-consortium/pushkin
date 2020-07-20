@@ -38,10 +38,12 @@ class quizComponent extends React.Component {
     this.setState({ experimentStarted: true });
 
     jsPsych.data.addProperties({ user_id: this.props.userID }); //See https://www.jspsych.org/core_library/jspsych-data/#jspsychdataaddproperties
-    await pushkin.connect('/api/grammaticality');
+    await pushkin.connect('/api/grammar');
     await pushkin.prepExperimentRun(this.props.userID);
     await pushkin.loadScripts([
       'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/plugins/jspsych-html-keyboard-response.js',
+      'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/plugins/jspsych-survey-likert.js',
+      'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/plugins/jspsych-html-slider-response.js',
     ]);
     const timeline = pushkin.setSaveAfterEachStimulus(timeline_basic);
     await jsPsych.init({
