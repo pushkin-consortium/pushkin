@@ -7,6 +7,7 @@ import util from 'util';
 import { execSync } from 'child_process'; // eslint-disable-line
 const exec = util.promisify(require('child_process').exec);
 import setupdb from '../setupdb/index.js';
+import pacMan from '../../pMan.js'; //which package manager is available?
 
 // give package unique name, package it, npm install on installDir, return module name
 const packAndInstall = async (packDir, installDir, packName) => {
@@ -35,33 +36,54 @@ const packAndInstall = async (packDir, installDir, packName) => {
 
     // package it up in tarball
     let stdout
+    let packMe = false // will keep track of whether we build anything needing moving
     try {
-      execSync('npm install', { cwd: packDir })
+      execSync(pacMan.concat(' install'), { cwd: packDir })
       if (packageJson.dependencies['build-if-changed'] == null) {
         console.log(packName, " does not have build-if-changed installed. Recommend installation for faster runs of prep.")
-        execSync('npm run build', { cwd: packDir })
+        execSync(pacMan.concat(' run build'), { cwd: packDir })
+        packMe = true;
       } else {
         console.log("Using build-if-changed for ",packName)
-        execSync('npx build-if-changed', { cwd: packDir })
+        stdout = execSync(pacMan.concat(' build-if-changed'), { cwd: packDir }).toString()
+        console.log(stdout);
+        if (stdout.search("No changes")>0) {
+          console.log("No changes. Building not necessary.")
+        } else {
+          packMe = true;
+         }
       }      
-      stdout = execSync('npm pack', { cwd: packDir })
     } catch (e) {
-      reject(new Error('Failed to build and pack'.concat(packName).concat(e)))
+      
     }
     console.log('Built package for ', packName)
-    console.log('stdout: ', stdout.toString().trim())
-    const packedFileName = stdout.toString().trim();
-    const packedFile = path.join(packDir, packedFileName);
-    const movePack = path.join(installDir, packName.concat('.tgz'));
-    try {
-      fs.renameSync(packedFile, movePack)
-      fs.unlinkSync(packageJsonPath)
-      fs.renameSync(packageJsonBackup, packageJsonPath)
-    } catch (e) {
-      reject(new Error('Ran into issues moving the packages for'.concat(packName).concat(e)))
+    if (packMe) {
+      let packedFileName
+      console.log("Packing up", packName)
+      try {
+        if (pacMan == "yarn") {
+          packedFileName = packName.concat(".tgz")
+          stdout = execSync((`yarn pack --filename ${packedFileName}`), { cwd: packDir })
+        } else {
+          //assuming this is npm
+          stdout = execSync(pacMan.concat(' pack'), { cwd: packDir })
+          packedFileName = stdout.toString().trim();
+        }
+      } catch (e) {
+        reject(new Error('Failed to pack binary: '.concat(packName).concat(e)))
+      }
+      const packedFile = path.join(packDir, packedFileName);
+      const movePack = path.join(installDir, packName.concat('.tgz'));
+      try {
+        fs.renameSync(packedFile, movePack)
+        fs.unlinkSync(packageJsonPath)
+        fs.renameSync(packageJsonBackup, packageJsonPath)
+      } catch (e) {
+        reject(new Error('Ran into issues moving the packages for'.concat(packName).concat(e)))
+      }      
+      console.log('Finished packing up', packName)
     }
 
-    console.log('Finished packing up', packName)
     resolve(packName)
   })
 };
@@ -99,40 +121,39 @@ async function cleanUpFiles(coreDir) {
   // reset api controllers
   console.log('reading controllersJsonFile')
   const oldContrList = JSON.parse(controllersJsonFile);
-  const cleanAPI = async (contr) => {
-    const moduleName = contr.name;
-    console.log(`Cleaning API controller ${contr.mountPath} (${moduleName})`);  
-    return exec(`npm uninstall ${moduleName} --save`, { cwd: path.join(coreDir, 'api') }).catch((err) => console.error(err))  
-  }
-  const cleanedAPI = oldContrList.map(cleanAPI); //https://stackoverflow.com/questions/31413749/node-js-promise-all-and-foreach
+//  const cleanAPI = async (contr) => {
+//    const moduleName = contr.name;
+//    console.log(`Cleaning API controller ${contr.mountPath} (${moduleName})`);  
+//    return exec(`${pacMan} uninstall ${moduleName} --save`, { cwd: path.join(coreDir, 'api') }).catch((err) => console.error(err))  
+//  }
+//  const cleanedAPI = oldContrList.map(cleanAPI); //https://stackoverflow.com/questions/31413749/node-js-promise-all-and-foreach
 
   // reset web page dependencies
-  let oldPages = [];
-    data.trim().split('\n').forEach((line) => {
-      const spaces = line.split(' ');
-      if (spaces[0] == 'import') oldPages.push(spaces[1]);
-    });
-  const cleanWeb = async (pageModule) => {
-    console.log(`Cleaning web page (${pageModule})`); 
-    return exec(`npm uninstall ${pageModule} --save`, { cwd: path.join(coreDir, 'front-end') }).catch((err) => console.error(err))  
-  }
-  const cleanedWeb = oldPages.map(cleanWeb); //https://stackoverflow.com/questions/31413749/node-js-promise-all-and-foreach
+//  let oldPages = [];
+//    data.trim().split('\n').forEach((line) => {
+//      const spaces = line.split(' ');
+//      if (spaces[0] == 'import') oldPages.push(spaces[1]);
+//    });
+//  const cleanWeb = async (pageModule) => {
+//    //not currently being used. May be useful later. 
+//    console.log(`Cleaning web page (${pageModule})`); 
+//    return exec(`${pacMan} uninstall ${pageModule} --save`, { cwd: path.join(coreDir, 'front-end') }).catch((err) => console.error(err))  
+//  }
+//  const cleanedWeb = oldPages.map(cleanWeb); //https://stackoverflow.com/questions/31413749/node-js-promise-all-and-foreach
 
 
   // remove tgz package files
-  console.log('Cleaning temporary files');
-  const cleanPackages = async (dir, tempPackage) => {
-    const maybeFile = path.join(dir, tempPackage);
-    return fs.lstatSync(maybeFile).isFile() ? 
-      fs.promises.unlink(maybeFile).catch((err) => console.error(`Problem removing old temporary file ${maybeFile}`, err)) :
-      new Promise((resolve, reject) => resolve('NA'))
-  }
-  const cleanedAPIPackages = apiPackages.map((x) => cleanPackages(path.join(coreDir, 'api/tempPackages'),x));
-  const cleanedWebPackages = webPackages.map((x) => cleanPackages(path.join(coreDir, 'front-end/tempPackages'),x));
+//  console.log('Cleaning temporary files');
+//  const cleanPackages = async (dir, tempPackage) => {
+//    const maybeFile = path.join(dir, tempPackage);
+//    return fs.lstatSync(maybeFile).isFile() ? 
+//      fs.promises.unlink(maybeFile).catch((err) => console.error(`Problem removing old temporary file ${maybeFile}`, err)) :
+//      new Promise((resolve, reject) => resolve('NA'))
+//  }
+//  const cleanedAPIPackages = apiPackages.map((x) => cleanPackages(path.join(coreDir, 'api/tempPackages'),x));
+//  const cleanedWebPackages = webPackages.map((x) => cleanPackages(path.join(coreDir, 'front-end/tempPackages'),x));
 
-  await Promise.all([cleanedAPI, cleanedWeb, cleanedAPIPackages, cleanedWebPackages]);
-  // used to remove workers from main docker compose file
-  // I don't think this goes here anymore. Only needed for actually deleting an experiment.
+//  await Promise.all([cleanedAPI, cleanedWeb, cleanedAPIPackages, cleanedWebPackages]);
   const writeAPI = fs.promises.writeFile(path.join(coreDir, 'api/src/controllers.json'), JSON.stringify([]), 'utf8').catch((err) => console.error(err))
   const writeWeb = fs.promises.writeFile(webPageAttachListFile, 'export default [\n];', 'utf8').catch((err) => console.error(err))
   return await Promise.all([writeAPI, writeWeb])
@@ -200,6 +221,7 @@ const readConfig = (expDir) => {
 // the main prep function for prepping all experiments
 export default async (experimentsDir, coreDir) => {
 
+  console.log("package manager: ",pacMan);
   console.log('Cleaning up old experiments');
   try {
     let cleanCore = await cleanUpFiles(coreDir); 
@@ -245,8 +267,12 @@ export default async (experimentsDir, coreDir) => {
   {
     let returnVal
     try {
-      await exec('npm install *', {cwd: path.join(where, 'tempPackages')})
-      returnVal = exec('npm run build', {cwd: where})
+      if (pacMan == 'yarn') {
+        await exec(pacMan.concat(' add ./tempPackages/*'), {cwd: where})
+      } else {
+        await exec(pacMan.concat(' install ./tempPackages/*'), {cwd: where})        
+      }
+      returnVal = exec(pacMan.concat(' run build'), {cwd: where})
     } catch (err) {
       throw err
     }
