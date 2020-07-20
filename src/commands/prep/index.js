@@ -54,8 +54,8 @@ const packAndInstall = async (packDir, installDir, packName) => {
          }
       }      
     } catch (e) {
-      
-    }
+       reject(new Error('Failed to build '.concat(packName).concat(e)))
+   }
     console.log('Built package for ', packName)
     if (packMe) {
       let packedFileName
