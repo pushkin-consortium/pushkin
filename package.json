@@ -17,20 +17,20 @@
     "author": "L3",
     "license": "MIT",
     "devDependencies": {
-        "@babel/cli": "^7.7.4",
-        "@babel/core": "^7.7.4",
-        "@babel/plugin-transform-async-to-generator": "^7.7.4",
-        "@babel/preset-env": "^7.7.4",
-        "babel-eslint": "^10.0.3",
-        "eslint": "^5.16.0"
+        "@babel/cli": "^7.10.5",
+        "@babel/core": "^7.10.5",
+        "@babel/plugin-transform-async-to-generator": "^7.10.4",
+        "@babel/preset-env": "^7.10.4",
+        "babel-eslint": "^10.1.0",
+        "eslint": "^7.5.0"
     },
     "dependencies": {
-        "amqplib": "^0.5.5",
-        "body-parser": "^1.18.3",
-        "cookie-session": "^2.0.0-beta.3",
-        "core-js": "^3.4.5",
+        "amqplib": "^0.6.0",
+        "body-parser": "^1.19.0",
+        "cookie-session": "^1.4.0",
+        "core-js": "^3.6.5",
         "express": "^4.17.1",
-        "regenerator-runtime": "^0.13.3",
-        "uuid": "^3.3.2"
+        "regenerator-runtime": "^0.13.5",
+        "uuid": "^8.2.0"
     }
 }
