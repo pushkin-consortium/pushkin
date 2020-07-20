@@ -1,6 +1,6 @@
-# Experiment Config Files
+# Experiment Config.yaml Files
 
-The config file provides information to the rest of Pushkin about the experiment. Below is a sample of what one might look like.
+The config.yaml file provides information to the rest of Pushkin about the experiment. Below is a sample of what one might look like.
 
 ```javascript
 experimentName: &fullName 'pushkintemplate Experiment'

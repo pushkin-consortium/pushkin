@@ -14,9 +14,10 @@ description: Start here to build a basic Pushkin site and experiment.
 * [Updating](quickstart.md#updating)
 * [Starting over](quickstart.md#starting-over)
 
-### Installing Pushkin and dependencies 
+### Installing Pushkin and dependencies
 
 #### macOS
+
 If you don’t have [Homebrew](https://brew.sh/), install it. Then run the following:
 
 ```bash
@@ -51,11 +52,12 @@ $ sudo apt update
 $ sudo apt upgrade
 ```
 
-(For more on package management with apt, you can see the documentation [here](https://ubuntu.com/server/docs/package-management). To learn more about the basics of the Linux command line, you can follow [this tutorial](https://ubuntu.com/tutorials/command-line-for-beginners#1-overview).) 
+\(For more on package management with apt, you can see the documentation [here](https://ubuntu.com/server/docs/package-management). To learn more about the basics of the Linux command line, you can follow [this tutorial](https://ubuntu.com/tutorials/command-line-for-beginners#1-overview).\)
 
 From here, you can follow the instructions below for Ubuntu Linux to finish the installation.
 
 #### Ubuntu Linux
+
 These instructions were created using Ubuntu 18.04 and the apt package manager but should generalize to other Linux distributions and package managers.
 
 First, ensure that you have curl installed, as this will be necessary to download Node. If it is not installed, it can be installed using the following commands:
@@ -78,40 +80,41 @@ Next, install the pushkin-cli package globally.
 $ npm install -g pushkin-cli
 ```
 
-If you get the error `Missing write access to /usr/lib/node_modules`, follow [the instructions here](https://stackoverflow.com/a/41395398) (copied below for convenience) to create a `npm` directory that does not require root access.
+If you get the error `Missing write access to /usr/lib/node_modules`, follow [the instructions here](https://stackoverflow.com/a/41395398) \(copied below for convenience\) to create a `npm` directory that does not require root access.
 
-``` bash
+```bash
 $ mkdir ~/.npm-global
 $ echo -e "export NPM_CONFIG_PREFIX=~/.npm-global\nexport PATH=\$PATH:~/.npm-global/bin" >> ~/.bashrc
 ```
-(Note: If you are using the Windows Subsystem for Linux, you will need to reboot your computer before continuing.)
+
+\(Note: If you are using the Windows Subsystem for Linux, you will need to reboot your computer before continuing.\)
 
 Now re-run the previous `npm install` command to install the pushkin-cli package.
 
 Confirm that pushkin-cli is installed by running
 
-``` bash
+```bash
 $ pushkin --help
 ```
 
 You should get a list of commands with some documentation for each. We'll be going through the critical ones below.
 
-Next, install Docker Engine [using these instructions](https://docs.docker.com/engine/install/ubuntu/) and then follow [these post-installation instructions](https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user) to manage Docker as a non-root user. (The rest of the post-installation instructions can be ignored.)
+Next, install Docker Engine [using these instructions](https://docs.docker.com/engine/install/ubuntu/) and then follow [these post-installation instructions](https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user) to manage Docker as a non-root user. \(The rest of the post-installation instructions can be ignored.\)
 
 Finally, follow [these instructions](https://docs.docker.com/compose/install/#install-compose-on-linux-systems) to install Docker Compose.
-
 
 ### Creating a basic new Pushkin site
 
 Make sure Docker is running by running the command `docker info`; if it is not, you can run `dockerd` or `sudo dockerd` to start it.
 
-Then, if it is not open already, open a terminal window. Then you can create an empty directory called `pushkin_quickstart` (although in principle it could have any name) and move to this directory using the following commands:
+Then, if it is not open already, open a terminal window. Then you can create an empty directory called `pushkin_quickstart` \(although in principle it could have any name\) and move to this directory using the following commands:
 
 ```bash
 $ mkdir pushkin_quickstart
 $ cd pushkin_quickstart/
 ```
-(For more on basic terminal commands, you can check out [this blog post](https://medium.com/@grace.m.nolan/terminal-for-beginners-e492ba10902a).)
+
+\(For more on basic terminal commands, you can check out [this blog post](https://medium.com/@grace.m.nolan/terminal-for-beginners-e492ba10902a).\)
 
 You will be installing your first pushkin site the in the directory you just created.
 
