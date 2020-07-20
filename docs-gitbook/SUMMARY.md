@@ -13,7 +13,7 @@
 
 * [Pushkin CLI](advanced/pushkin-cli.md)
 * [Experiment Structure](advanced/experiment-structure/README.md)
-  * [Experiment Config Files](advanced/experiment-structure/experiment-config-files.md)
+  * [Experiment Config.yaml Files](advanced/experiment-structure/experiment-config-files.md)
   * [Experiment Web Page Component](advanced/experiment-structure/experiment-web-page-component.md)
   * [Worker Component, Migration, and Seed](advanced/experiment-structure/worker-component-migration-and-seed.md)
 * [Pushkin Client](advanced/pushkin-client.md)
