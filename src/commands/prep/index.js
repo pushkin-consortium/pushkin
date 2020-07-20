@@ -37,7 +37,13 @@ const packAndInstall = async (packDir, installDir, packName) => {
     let stdout
     try {
       execSync('npm install', { cwd: packDir })
-      execSync('npm run build', { cwd: packDir })
+      if (packageJson.dependencies['build-if-changed'] == null) {
+        console.log(packName, " does not have build-if-changed installed. Recommend installation for faster runs of prep.")
+        execSync('npm run build', { cwd: packDir })
+      } else {
+        console.log("Using build-if-changed for ",packName)
+        execSync('npx build-if-changed', { cwd: packDir })
+      }      
       stdout = execSync('npm pack', { cwd: packDir })
     } catch (e) {
       reject(new Error('Failed to build and pack'.concat(packName).concat(e)))
