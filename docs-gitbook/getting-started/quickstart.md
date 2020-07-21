@@ -81,7 +81,15 @@ $ curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
 $ echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
 $ sudo apt update && sudo apt install yarn
 ```
+To allow Yarn to install pushkin-cli globally, run the following steps, based on [this StackExchange solution](https://stackoverflow.com/a/53879534).
 
+Run the following:
+
+```bash
+$ yarn config set prefix ~/.yarn
+$ echo 'export PATH="$PATH:`yarn global bin`"' >> ~/.bashrc
+$ source ~/.bashrc
+```
 
 Next, install the pushkin-cli package globally.
 
