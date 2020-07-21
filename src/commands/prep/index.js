@@ -44,7 +44,8 @@ const packAndInstall = async (packDir, installDir, packName) => {
         packMe = true;
       } else {
         console.log("Using build-if-changed for ",packName)
-        stdout = execSync(pacMan.concat(' build-if-changed'), { cwd: packDir }).toString()
+        const pacRunner = (pacMan == 'yarn') ? 'yarn' : 'npx'
+        stdout = execSync(pacRunner.concat(' build-if-changed'), { cwd: packDir }).toString()
         console.log(stdout);
         if (stdout.search("No changes")>0) {
           console.log("No changes. Building not necessary.")
@@ -283,7 +284,8 @@ export default async (experimentsDir, coreDir) => {
         execSync(pacMan.concat(' run build'), { cwd: where })
       } else {
         console.log("Using build-if-changed for", where)
-        returnVal = exec(pacMan.concat(' run build'), {cwd: where}).toString()
+        const pacRunner = (pacMan == 'yarn') ? 'yarn' : 'npx'
+        returnVal = exec(pacRunner.concat(' build-if-changed'), {cwd: where}).toString()
         console.log(returnVal);
         if (returnVal.search("No changes")>0) {
           console.log("No changes. Building not necessary.")
