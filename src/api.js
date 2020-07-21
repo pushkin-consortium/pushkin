@@ -1,6 +1,6 @@
 import express from 'express';
 import amqp from 'amqplib';
-import uuid from 'uuid/v4';
+import { v4 as uuid } from 'uuid';
 import bodyParser from 'body-parser';
 import cookieSession from 'cookie-session';
 
