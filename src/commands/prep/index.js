@@ -2,7 +2,6 @@ import path from 'path';
 //import { promises as fs } from 'fs';
 import fs from 'fs';
 import jsYaml from 'js-yaml';
-import uuid from 'uuid/v4';
 import util from 'util';
 import { execSync } from 'child_process'; // eslint-disable-line
 const exec = util.promisify(require('child_process').exec);
@@ -266,13 +265,32 @@ export default async (experimentsDir, coreDir) => {
   const installAndBuild = async (where) =>
   {
     let returnVal
+    let packageJson;
+    try {
+      packageJson = JSON.parse(fs.readFileSync(path.join(where,'package.json'), 'utf8'));
+    } catch (e) {
+      console.error('Failed to parse package.json')
+      throw e
+    }
     try {
       if (pacMan == 'yarn') {
         await exec(pacMan.concat(' add ./tempPackages/*'), {cwd: where})
       } else {
         await exec(pacMan.concat(' install ./tempPackages/*'), {cwd: where})        
       }
-      returnVal = exec(pacMan.concat(' run build'), {cwd: where})
+      if (packageJson.dependencies['build-if-changed'] == null) {
+        console.log(where, " does not have build-if-changed installed. Recommend installation for faster runs of prep.")
+        execSync(pacMan.concat(' run build'), { cwd: where })
+      } else {
+        console.log("Using build-if-changed for", where)
+        returnVal = exec(pacMan.concat(' run build'), {cwd: where}).toString()
+        console.log(returnVal);
+        if (returnVal.search("No changes")>0) {
+          console.log("No changes. Building not necessary.")
+        } else {
+          console.log("rebuilt ", where)
+         }
+      }           
     } catch (err) {
       throw err
     }

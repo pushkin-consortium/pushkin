@@ -24,7 +24,7 @@
     "@babel/core": "^7.10.5",
     "@babel/preset-env": "^7.10.4",
     "babel-eslint": "^10.1.0",
-    "eslint": "^6.8.0",
+    "eslint": "^7.5.0",
     "eslint-config-airbnb-base": "^14.2.0",
     "eslint-plugin-import": "^2.22.0"
   },
@@ -32,20 +32,19 @@
     "adm-zip": "^0.4.16",
     "balanced-match": "^1.0.0",
     "command-line-args": "^5.1.1",
-    "commander": "^5.1.0",
+    "commander": "^6.0.0",
     "core-js": "^3.6.5",
     "corejs": "^1.0.0",
     "docker-compose": "^0.23.5",
     "got": "^11.5.1",
     "inquirer": "^7.3.2",
     "js-yaml": "^3.14.0",
-    "knex": "^0.20.15",
-    "pg": "^7.18.2",
+    "knex": "^0.21.2",
+    "pg": "^8.3.0",
     "regenerator-runtime": "^0.13.5",
-    "replace-in-file": "^3.4.4",
+    "replace-in-file": "^6.1.0",
     "shelljs": "^0.8.4",
     "superagent": "^5.3.1",
-    "tar": "^4.4.13",
-    "uuid": "^3.4.0"
+    "tar": "^6.0.2"
   }
 }
