@@ -2042,10 +2042,10 @@ proxy-addr@~2.0.5:
     forwarded "~0.1.2"
     ipaddr.js "1.9.1"
 
-pushkin-api@^1.5.1:
-  version "1.5.1"
-  resolved "https://registry.yarnpkg.com/pushkin-api/-/pushkin-api-1.5.1.tgz#da9965c0ccd44bd46d261d667a51dee43ceaf260"
-  integrity sha512-4vxa1RvMqwXRuEqrwIjmsPZI0SUbZ/pr+mDukezq2DPmMtEfjBrU2UX+jJ2OZrl7sfOtHTA3IbD9KnBbaf6IlA==
+pushkin-api@^1.5.2:
+  version "1.5.2"
+  resolved "https://registry.yarnpkg.com/pushkin-api/-/pushkin-api-1.5.2.tgz#712b7baf9a0f67f484d741cdc8d809a25b19c1f2"
+  integrity sha512-xtsb9A65U6p9BY+Ix6RAb97JPKdXvSEV29H8WiURSV47DmBt+QUHV15KU6XxNM3NkUiOIlLISQaQkqSnfFvYBg==
   dependencies:
     amqplib "^0.6.0"
     body-parser "^1.19.0"

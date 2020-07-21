@@ -14,7 +14,7 @@
   "license": "MIT",
   "dependencies": {
     "build-if-changed": "^1.5.5",
-    "pushkin-api": "^1.5.1"
+    "pushkin-api": "^1.5.2"
   },
   "devDependencies": {
     "@babel/cli": "^7.10.5",
