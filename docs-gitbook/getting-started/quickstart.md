@@ -74,24 +74,22 @@ $ curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
 $ sudo apt install -y nodejs
 ```
 
+You will next want to install the Yarn package manager. Official instructions (copied below for convenience) are available [here](https://classic.yarnpkg.com/en/docs/install/#debian-stable).
+
+```bash
+$ curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
+$ echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
+$ sudo apt update && sudo apt install yarn
+```
+
+
 Next, install the pushkin-cli package globally.
 
 ```bash
-$ npm install -g pushkin-cli
+$ yarn global add pushkin-cli
 ```
 
-If you get the error `Missing write access to /usr/lib/node_modules`, follow [the instructions here](https://stackoverflow.com/a/41395398) \(copied below for convenience\) to create a `npm` directory that does not require root access.
-
-```bash
-$ mkdir ~/.npm-global
-$ echo -e "export NPM_CONFIG_PREFIX=~/.npm-global\nexport PATH=\$PATH:~/.npm-global/bin" >> ~/.bashrc
-```
-
-\(Note: If you are using the Windows Subsystem for Linux, you will need to reboot your computer before continuing.\)
-
-Now re-run the previous `npm install` command to install the pushkin-cli package.
-
-Confirm that pushkin-cli is installed by running
+Confirm that pushkin-cli is installed by running:
 
 ```bash
 $ pushkin --help
@@ -99,9 +97,65 @@ $ pushkin --help
 
 You should get a list of commands with some documentation for each. We'll be going through the critical ones below.
 
-Next, install Docker Engine [using these instructions](https://docs.docker.com/engine/install/ubuntu/) and then follow [these post-installation instructions](https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user) to manage Docker as a non-root user. \(The rest of the post-installation instructions can be ignored.\)
+Next, install Docker Engine [using these instructions](https://docs.docker.com/engine/install/ubuntu/) (copied below for convenience). 
 
-Finally, follow [these instructions](https://docs.docker.com/compose/install/#install-compose-on-linux-systems) to install Docker Compose.
+```bash
+$ sudo apt update
+$ sudo apt install apt-transport-https ca-certificates curl gnupg-agent software-properties-common
+$ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+```
+Verify the fingerprint of the key by running this command:
+
+```bash
+$ sudo apt-key fingerprint 0EBFCD88
+```
+
+Your output should look like this:
+
+```bash
+pub   rsa4096 2017-02-22 [SCEA]
+      9DC8 5822 9FC7 DD38 854A  E2D8 8D81 803C 0EBF CD88
+uid           [ unknown] Docker Release (CE deb) <docker@docker.com>
+sub   rsa4096 2017-02-22 [S]
+
+```
+
+Next, add the repository and install Docker Engine.
+
+```bash
+$ sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+$ sudo apt update
+$ sudo apt install docker-ce docker-ce-cli containerd.io
+```
+Check that Docker Engine has been installed correctly by running:
+
+```bash
+$ sudo docker run hello-world
+```
+If Docker Engine installed correctly, this should generate some output, including:
+
+```bash
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+```
+
+Next,  follow [these post-installation instructions](https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user) (copied below for convenience) to manage Docker as a non-root user. \(The rest of the post-installation instructions can be ignored.\)
+
+```bash
+$ sudo groupadd docker
+$ sudo usermod -aG docker $USER
+$ newgrp docker 
+$ docker run hello-world
+```
+
+Finally, follow [these instructions](https://docs.docker.com/compose/install/#install-compose-on-linux-systems) (copied below for convenience) to install Docker Compose.
+
+```bash
+$ sudo curl -L "https://github.com/docker/compose/releases/download/1.26.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+$ sudo chmod +x /usr/local/bin/docker-compose
+$ docker-compose --version
+```
+
 
 ### Creating a basic new Pushkin site
 
