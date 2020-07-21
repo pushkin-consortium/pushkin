@@ -82,7 +82,6 @@ const initExperiment = async (expDir, expName) => {
   };
   try {
     const results = await replace(options)
-    console.log('Replacement results:', results);
   }
   catch (error) {
     console.error('Error occurred:', error);

@@ -27,7 +27,7 @@ export const promiseFolderInit = async (initDir, dir) => {
   const { stdout, stderr } = await exec(pacMan.concat(' install'), { cwd: path.join(initDir, dir) }) //this may not work on Windows
   if (stderr) console.log(stderr);
   console.log(`Building ${dir}`);
-  const { stdout2, stderr2 } = await exec(pacMan.concat('npm run build'), { cwd: path.join(initDir, dir) }) //this may not work on Windows
+  const { stdout2, stderr2 } = await exec(pacMan.concat(' run build'), { cwd: path.join(initDir, dir) }) //this may not work on Windows
   if (stderr2) {
     console.log(stderr2)
   }
@@ -72,8 +72,8 @@ export async function getPushkinSite(initDir, templateName) {
     zipball_url = JSON.parse(response.body).assets[0].browser_download_url;
     console.log(zipball_url)
   } catch (error) {
-    console.log(error.response.body);
-    throw new Error('Problem parsing github JSON');
+    console.error('Problem parsing github JSON',error);
+    throw new Error(error);
   }
   sa
     .get(zipball_url)
