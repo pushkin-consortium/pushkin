@@ -50,6 +50,8 @@ You should get a list of commands with some documentation for each. We’ll be g
 
 Next, install [Docker](https://docs.docker.com/install/).
 
+![](../.gitbook/assets/ezgif.com-video-to-gif-5-.gif)
+
 #### Windows 10
 
 We are eventually hoping to be able to use [the Windows Subsystem for Linux \(WSL\)](https://docs.microsoft.com/en-us/windows/wsl/) to deploy Pushkin on Windows. This setup is not currently working reliably, however, so we suggest that Windows users create a Ubuntu virtual machine and follow the Ubuntu instructions to try out and test Pushkin. When Microsoft releases a fix that solves the problem, we will update our documentation with Windows-specific instructions.
