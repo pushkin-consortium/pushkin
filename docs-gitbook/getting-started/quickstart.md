@@ -18,23 +18,27 @@ description: Start here to build a basic Pushkin site and experiment.
 
 #### macOS
 
-If you don’t have [Homebrew](https://brew.sh/), install it. If you do not have Xcode installed yet, this will prompt you to install it as well.
+1.\) If you don’t have [Homebrew](https://brew.sh/), install it. If you do not have Xcode installed yet, this installation will prompt you to install it as well.
 
 ![](../.gitbook/assets/ezgif.com-video-to-gif.gif)
 
-Then run the following:
+2.\) Then run the following to get yarn, which will let you download Pushkin:
 
 ```bash
 $ brew install yarn
 ```
 
-Install the pushkin-cli package globally.
+![](../.gitbook/assets/ezgif.com-video-to-gif-2-.gif)
+
+3.\) Install the pushkin-cli package globally.
 
 ```bash
 $ yarn global add pushkin-cli
 ```
 
-Confirm that pushkin-cli is installed by running:
+![](../.gitbook/assets/ezgif.com-video-to-gif-3-.gif)
+
+4.\) Confirm that pushkin-cli is installed by running:
 
 ```bash
 $ pushkin --help
