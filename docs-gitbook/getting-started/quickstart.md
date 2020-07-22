@@ -18,16 +18,18 @@ description: Start here to build a basic Pushkin site and experiment.
 
 #### macOS
 
-If you don’t have [Homebrew](https://brew.sh/), install it. Then run the following:
+If you don’t have [Homebrew](https://brew.sh/), install it. If you do not have Xcode installed yet, this will prompt you to install it as well.
+
+Then run the following:
 
 ```bash
-$ brew install Node
+$ brew install yarn
 ```
 
 Install the pushkin-cli package globally.
 
 ```bash
-$ npm install -g pushkin-cli
+$ yarn global add pushkin-cli
 ```
 
 Confirm that pushkin-cli is installed by running:
@@ -41,11 +43,12 @@ You should get a list of commands with some documentation for each. We’ll be g
 Next, install [Docker](https://docs.docker.com/install/).
 
 #### Windows 10
-We are eventually hoping to be able to use [the Windows Subsystem for Linux (WSL)](https://docs.microsoft.com/en-us/windows/wsl/) to deploy Pushkin on Windows. This setup is not currently working reliably, however, so we suggest that Windows users create a Ubuntu virtual machine and follow the Ubuntu instructions to try out and test Pushkin. When Microsoft releases a fix that solves the problem, we will update our documentation with Windows-specific instructions. 
+
+We are eventually hoping to be able to use [the Windows Subsystem for Linux \(WSL\)](https://docs.microsoft.com/en-us/windows/wsl/) to deploy Pushkin on Windows. This setup is not currently working reliably, however, so we suggest that Windows users create a Ubuntu virtual machine and follow the Ubuntu instructions to try out and test Pushkin. When Microsoft releases a fix that solves the problem, we will update our documentation with Windows-specific instructions.
 
 You can follow [this tutorial](https://www.freecodecamp.org/news/how-to-install-ubuntu-with-oracle-virtualbox/) to set up your Ubuntu virtual machine on Windows 10. We recommend using Ubuntu 18.04.
 
-Once you have configured your virtual machine and installed Ubuntu, open the Ubuntu Terminal by pressing CTRL and typing 'terminal' and ENTER or by using the keyboard shortcut CTRL+ALT+T. Once you have opened the terminal, run the following commands to update your Ubuntu packages. This (and other commands with `sudo` in front of them) will prompt you to give the Ubuntu password you set up when you installed it. It will also prompt you to respond with `y` and press ENTER to confirm that you would like to install or update any software packages. 
+Once you have configured your virtual machine and installed Ubuntu, open the Ubuntu Terminal by pressing CTRL and typing 'terminal' and ENTER or by using the keyboard shortcut CTRL+ALT+T. Once you have opened the terminal, run the following commands to update your Ubuntu packages. This \(and other commands with `sudo` in front of them\) will prompt you to give the Ubuntu password you set up when you installed it. It will also prompt you to respond with `y` and press ENTER to confirm that you would like to install or update any software packages.
 
 ```bash
 $ sudo apt update
@@ -74,13 +77,14 @@ $ curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
 $ sudo apt install -y nodejs
 ```
 
-You will next want to install the Yarn package manager. Official instructions (copied below for convenience) are available [here](https://classic.yarnpkg.com/en/docs/install/#debian-stable).
+You will next want to install the Yarn package manager. Official instructions \(copied below for convenience\) are available [here](https://classic.yarnpkg.com/en/docs/install/#debian-stable).
 
 ```bash
 $ curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
 $ echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
 $ sudo apt update && sudo apt install yarn
 ```
+
 To allow Yarn to install pushkin-cli globally, run the following steps, based on [this StackExchange solution](https://stackoverflow.com/a/53879534).
 
 Run the following:
@@ -105,13 +109,14 @@ $ pushkin --help
 
 You should get a list of commands with some documentation for each. We'll be going through the critical ones below.
 
-Next, install Docker Engine [using these instructions](https://docs.docker.com/engine/install/ubuntu/) (copied below for convenience). 
+Next, install Docker Engine [using these instructions](https://docs.docker.com/engine/install/ubuntu/) \(copied below for convenience\).
 
 ```bash
 $ sudo apt update
 $ sudo apt install apt-transport-https ca-certificates curl gnupg-agent software-properties-common
 $ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
 ```
+
 Verify the fingerprint of the key by running this command:
 
 ```bash
@@ -125,7 +130,6 @@ pub   rsa4096 2017-02-22 [SCEA]
       9DC8 5822 9FC7 DD38 854A  E2D8 8D81 803C 0EBF CD88
 uid           [ unknown] Docker Release (CE deb) <docker@docker.com>
 sub   rsa4096 2017-02-22 [S]
-
 ```
 
 Next, add the repository and install Docker Engine.
@@ -135,11 +139,13 @@ $ sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ub
 $ sudo apt update
 $ sudo apt install docker-ce docker-ce-cli containerd.io
 ```
+
 Check that Docker Engine has been installed correctly by running:
 
 ```bash
 $ sudo docker run hello-world
 ```
+
 If Docker Engine installed correctly, this should generate some output, including:
 
 ```bash
@@ -147,7 +153,7 @@ Hello from Docker!
 This message shows that your installation appears to be working correctly.
 ```
 
-Next,  follow [these post-installation instructions](https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user) (copied below for convenience) to manage Docker as a non-root user. \(The rest of the post-installation instructions can be ignored.\)
+Next, follow [these post-installation instructions](https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user) \(copied below for convenience\) to manage Docker as a non-root user. \(The rest of the post-installation instructions can be ignored.\)
 
 ```bash
 $ sudo groupadd docker
@@ -156,14 +162,13 @@ $ newgrp docker
 $ docker run hello-world
 ```
 
-Finally, follow [these instructions](https://docs.docker.com/compose/install/#install-compose-on-linux-systems) (copied below for convenience) to install Docker Compose.
+Finally, follow [these instructions](https://docs.docker.com/compose/install/#install-compose-on-linux-systems) \(copied below for convenience\) to install Docker Compose.
 
 ```bash
 $ sudo curl -L "https://github.com/docker/compose/releases/download/1.26.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
 $ sudo chmod +x /usr/local/bin/docker-compose
 $ docker-compose --version
 ```
-
 
 ### Creating a basic new Pushkin site
 
@@ -236,7 +241,7 @@ This will create a new folder in the experiments directory like this:
     └── worker
 ```
 
-Each experiment has its own folder containing files specific to that experiment. Within this folder, each experiment also has a configuration file (`config.yaml`) that allows you to define a human-readable full name for the experiment (e.g., *Which English?* for `whichenglish`), specify a database to use, and make other customizations.
+Each experiment has its own folder containing files specific to that experiment. Within this folder, each experiment also has a configuration file \(`config.yaml`\) that allows you to define a human-readable full name for the experiment \(e.g., _Which English?_ for `whichenglish`\), specify a database to use, and make other customizations.
 
 Keeping all the files for an experiment within the same root folder is convenient for development, but not for actually deploying the website. To redistribute the experiment files to the right places, run:
 
