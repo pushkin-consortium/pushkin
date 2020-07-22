@@ -48,7 +48,7 @@ $ pushkin --help
 
 You should get a list of commands with some documentation for each. We’ll be going through the critical ones below.
 
-Next, install [Docker](https://docs.docker.com/install/).
+5. Next, install [Docker](https://docs.docker.com/install/).
 
 ![](../.gitbook/assets/ezgif.com-video-to-gif-5-.gif)
 
