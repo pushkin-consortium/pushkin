@@ -1,10 +1,10 @@
 // Example stimuli
 
 const stimArray = [
-    { sentence_grammatical: 'This is a sentence', sentence_ungrammatical: 'This a sentence' },
-    { sentence_grammatical: 'He went to the park last night.', sentence_ungrammatical: 'He went the park last night' },
-    { sentence_grammatical: 'The cow is jumping.', sentence_ungrammatical: 'The cow are jumping.' },
-    { sentence_grammatical: 'Which friend did she meet with?', sentence_ungrammatical: 'Which friend she meet with did?' }
+    { sentence: 'An initial sentence. This is a second sentence.+I saw+the teacher+with eyeglasses+on.+' },
+    { sentence: 'An initial sentence. We saw the wooden board in two.' },
+    { sentence: 'An initial sentence. They said last Monday there would be an exam.' },
+    { sentence: 'An initial sentence. The mysterious bark turned out to be from a tree native to New Zealand.' }
 ]
 
 export default stimArray;
