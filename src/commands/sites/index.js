@@ -8,6 +8,8 @@ import * as compose from 'docker-compose'
 const exec = util.promisify(require('child_process').exec);
 import { templates } from './templates.js';
 const shell = require('shelljs');
+import pacMan from '../../pMan.js';  //which package manager is available?
+
 
 export function listSiteTemplates() {
     return new Promise((resolve, reject) => {
@@ -22,10 +24,10 @@ export function listSiteTemplates() {
 
 export const promiseFolderInit = async (initDir, dir) => {
   console.log(`Installing npm dependencies for ${dir}`);
-  const { stdout, stderr } = await exec('npm install', { cwd: path.join(initDir, dir) }) //this may not work on Windows
+  const { stdout, stderr } = await exec(pacMan.concat(' install'), { cwd: path.join(initDir, dir) }) //this may not work on Windows
   if (stderr) console.log(stderr);
   console.log(`Building ${dir}`);
-  const { stdout2, stderr2 } = await exec('npm run build', { cwd: path.join(initDir, dir) }) //this may not work on Windows
+  const { stdout2, stderr2 } = await exec(pacMan.concat(' run build'), { cwd: path.join(initDir, dir) }) //this may not work on Windows
   if (stderr2) {
     console.log(stderr2)
   }
@@ -70,8 +72,8 @@ export async function getPushkinSite(initDir, templateName) {
     zipball_url = JSON.parse(response.body).assets[0].browser_download_url;
     console.log(zipball_url)
   } catch (error) {
-    console.log(error.response.body);
-    throw new Error('Problem parsing github JSON');
+    console.error('Problem parsing github JSON',error);
+    throw new Error(error);
   }
   sa
     .get(zipball_url)
