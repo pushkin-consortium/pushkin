@@ -20,6 +20,8 @@ description: Start here to build a basic Pushkin site and experiment.
 
 If you don’t have [Homebrew](https://brew.sh/), install it. If you do not have Xcode installed yet, this will prompt you to install it as well.
 
+![](../.gitbook/assets/ezgif.com-video-to-gif.gif)
+
 Then run the following:
 
 ```bash
@@ -37,6 +39,8 @@ Confirm that pushkin-cli is installed by running:
 ```bash
 $ pushkin --help
 ```
+
+![](../.gitbook/assets/ezgif.com-video-to-gif-1-.gif)
 
 You should get a list of commands with some documentation for each. We’ll be going through the critical ones below.
 
