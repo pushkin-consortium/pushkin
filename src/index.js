@@ -15,9 +15,12 @@ import setupdb from './commands/setupdb/index.js';
 import * as compose from 'docker-compose'
 import { Command } from 'commander'
 import inquirer from 'inquirer'
+const version = require("../package.json").version
+
 
 const program = new Command();
-program.version('0.0.1');
+program.version(version);
+
 
 const moveToProjectRoot = () => {
   // better checking to make sure this is indeed a pushkin project would be goodf
