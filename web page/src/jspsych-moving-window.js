@@ -1,6 +1,7 @@
 /*
-   Example plugin template
+   Moving window / self-paced reading plugin template
    Created by Josh de Leeuw
+   Adapted by Constance Bainbridge
  */
 
 jsPsych.plugins["moving-window"] = (function () {
@@ -11,7 +12,7 @@ jsPsych.plugins["moving-window"] = (function () {
         name: "moving-window",
         parameters: {
             words: {
-                type: jsPsych.plugins.parameterType.STRING, // BOOL, STRING, INT, FLOAT, FUNCTION, KEYCODE, SELECT, HTML_STRING, IMAGE, AUDIO, VIDEO, OBJECT, COMPLEX
+                type: jsPsych.plugins.parameterType.STRING,
                 default: undefined
             },
             key: {
@@ -20,7 +21,7 @@ jsPsych.plugins["moving-window"] = (function () {
             },
             rate: {
                 type: jsPsych.plugins.parameterType.STRING,
-                default: 'word moving' // options are "word" (show word by word), "chunk" (chunks of words), and "sentence" - multiple sentences, with the final one done either word by word or chunk by chunk. To make sentence word by word, set to "sentence word", to make sentence chunk by chunk set to "sentence chunk". Sentence alone defaults to "sentence word".
+                default: 'word moving' // options are "word" (show word by word), "chunk" (chunks of words), and "sentence" - multiple sentences display in full, with the final one a target sentence done either word by word or chunk by chunk. To make sentence word by word, set to "sentence word", to make sentence chunk by chunk set to "sentence chunk". Sentence alone defaults to "sentence word".
             }
         }
     }
@@ -35,31 +36,16 @@ jsPsych.plugins["moving-window"] = (function () {
 
 
         // create a function for generating the stimulus with moving window
-        var n_sentences;
-        var sentence_array = [];
-        // if (trial.rate.includes('sentence')) {
-        //   // Logic for sentence mode
-        //   console.log('Sentence mode')
-        //   var sentence_list = trial.words.split('.');
-        //   console.log('list of sentences: 1-' + sentence_list[0] + ' 2-' + sentence_list[1] + ' 3-' + sentence_list[2] + '.');
-        //   n_sentences = sentence_list.length;
-        //   for (let i = 0; i < n_sentences - 2; i++) {
-        //     console.log('Sentennjfnea ' + sentence_list[i])
-        //     sentence_array.push(sentence_list[i])
-        //   }
-        //   sentence_array.push(sentence_list[n_sentences - 2]);
-        //   console.log('the final sentence array?: ' + sentence_array);
-        //   return sentence_array
-
-
         function create_moving_window(words, position) {
+
             if (trial.rate.includes('sentence')) {
+                // Sentence setting logic
                 var sentence_holder = words.split('.');
                 n_sentences = sentence_holder.length;
-                let target_sentence = sentence_holder[n_sentences - 2];
-
+                var target_sentence = sentence_holder[n_sentences - 2];
 
                 if (trial.rate.includes('word')) {
+                    // Sentence - word-by-word setting logic
                     n_words = target_sentence.split(' ').length;
                     var word_list = target_sentence.split(' ');
                     var stimulus = word_list.map(function (word, index) {
@@ -69,12 +55,12 @@ jsPsych.plugins["moving-window"] = (function () {
                             return "-".repeat(word.length);
                         }
                     }).join(' ')
-                    let sentence_pre = sentence_holder.splice(0, n_sentences - 2);
-                    let sentence_pre2 = sentence_pre.join('.')
-                    console.log('sentnecenajk nsdfbjasdbjkbBKJDJKFHKB: ' + sentence_pre2)
+                    var sentence_pre = sentence_holder.splice(0, n_sentences - 2);
+                    var sentence_pre2 = sentence_pre.join('.')
                     return sentence_pre2 + '.' + stimulus + '.';
 
                 } else if (trial.rate.includes('chunk')) {
+                    // Sentence - chunk-by-chunk setting logic
                     n_words = target_sentence.split('+').length;
                     var word_list = target_sentence.split('+');
                     var stimulus = word_list.map(function (word, index) {
@@ -86,16 +72,15 @@ jsPsych.plugins["moving-window"] = (function () {
                             return "-".repeat(word.length);
                         }
                     }).join(' ')
-                    let sentence_pre = sentence_holder.splice(0, n_sentences - 2);
-                    let sentence_pre2 = sentence_pre.join('.')
-                    console.log('sentnecenajk nsdfbjasdbjkbBKJDJKFHKB: ' + sentence_pre2)
+                    var sentence_pre = sentence_holder.splice(0, n_sentences - 2);
+                    var sentence_pre2 = sentence_pre.join('.')
                     return sentence_pre2 + '.' + stimulus + '.';
                 }
 
 
             } else {
-                // Logic for word-by-word, not sentence mode
                 if (trial.rate.includes('word')) {
+                    // Logic for word-by-word setting, not sentence mode
                     n_words = trial.words.split(' ').length;
                     var word_list = words.split(' ');
                     var stimulus = word_list.map(function (word, index) {
@@ -106,8 +91,9 @@ jsPsych.plugins["moving-window"] = (function () {
                         }
                     }).join(' ')
                     return stimulus;
+
                 } else if (trial.rate.includes('chunk')) {
-                    // Logic for chunks, not sentence mode
+                    // Logic for chunk-by-chunk setting, not sentence mode
                     n_words = trial.words.split('+').length;
                     var word_list = words.split('+');
                     var stimulus = word_list.map(function (word, index) {
@@ -125,9 +111,63 @@ jsPsych.plugins["moving-window"] = (function () {
         }
 
 
-        // create a function for showing the stimulus and collecting the response
+        // create a function for generating the stimulus with separate pages per target stim piece
+        function create_separate_window(words, position) {
+
+            if (trial.rate.includes('sentence')) {
+                // Sentence setting logic
+                var sentence_holder = words.split('.');
+                n_sentences = sentence_holder.length;
+                var target_sentence = sentence_holder[n_sentences - 2];
+                target_sentence = target_sentence.substr(1);
+                target_sentence = target_sentence + '.';
+
+                if (trial.rate.includes('word')) {
+                    // Sentence - word-by-word setting logic
+                    var word_list = target_sentence.split(' ');
+                    var sentence_pre = sentence_holder.splice(0, n_sentences - 2);
+                    var sentence_pre2 = sentence_pre.map(x => x + '.');
+                    var total_list = sentence_pre2.concat(word_list);
+                    n_words = total_list.length;
+                    return total_list[position];
+
+                } else if (trial.rate.includes('chunk')) {
+                    // Sentence - chunk-by-chunk setting logic
+                    var word_list = target_sentence.split('+');
+                    var sentence_pre = sentence_holder.splice(0, n_sentences - 2);
+                    var sentence_pre2 = sentence_pre.map(x => x + '.');
+                    var total_list = sentence_pre2.concat(word_list);
+                    n_words = total_list.length;
+                    return total_list[position];
+
+                }
+
+
+            } else {
+                // Logic for word-by-word setting, not sentence mode
+                if (trial.rate.includes('word')) {
+
+                    n_words = trial.words.split(' ').length;
+                    var word_list = words.split(' ');
+                    return word_list[position];
+                } else if (trial.rate.includes('chunk')) {
+
+                    // Logic for chunk-by-chunk setting, not sentence mode
+                    n_words = trial.words.split('+').length;
+                    var word_list = words.split('+');
+                    return word_list[position];
+                }
+            }
+        }
+
+
+        // create a function for showing the stimulus and collecting the response, with logic for separate page presentation or moving window
         function show_stimulus(position) {
-            display_element.innerHTML = '<p style="font-size: 24px; font-family:monospace;">' + create_moving_window(trial.words, position) + '</p>';
+            if (trial.rate.includes('separate')) {
+                display_element.innerHTML = '<p>' + create_separate_window(trial.words, position) + '</p>';
+            } else {
+                display_element.innerHTML = '<p>' + create_moving_window(trial.words, position) + '</p>';
+            }
 
             jsPsych.pluginAPI.getKeyboardResponse({
                 callback_function: after_response,

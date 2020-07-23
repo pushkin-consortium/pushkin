@@ -15,7 +15,7 @@ Options for displayRate:
 
 const experimentConfig = {
     fontColor: "black",
-    fontSize: "18px",
+    fontSize: "24px",
     fontFamily: "'Open Sans', 'Arial', sans-serif",
     displayType: "moving",
     displayRate: "word",

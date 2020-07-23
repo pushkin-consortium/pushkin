@@ -42,8 +42,6 @@ class quizComponent extends React.Component {
     await pushkin.prepExperimentRun(this.props.userID);
     await pushkin.loadScripts([
       'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/plugins/jspsych-html-keyboard-response.js',
-      'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/plugins/jspsych-survey-likert.js',
-      'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/plugins/jspsych-html-slider-response.js',
     ]);
     const timeline = pushkin.setSaveAfterEachStimulus(timeline_basic);
     await jsPsych.init({
