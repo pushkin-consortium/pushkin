@@ -174,8 +174,17 @@ async function main() {
   program
     .command('start')
     .description('Starts local deploy for debugging purposes. To start only the front end (no databases), see the manual.')
-    .action(() => {
+    .option('-nc, --nocache', 'Rebuild all images from scratch, without using the cache.', false)
+    .action(async (options) => {
       moveToProjectRoot();
+      if (options.nocache){
+        try {
+          await compose.buildAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: true, commandOptions: ["--no-cache"]})    
+        } catch (e) {
+          console.error("Problem rebuilding docker images");
+          throw e;
+        }
+      }
       compose.upAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: true})
         .then(
           out => { console.log(out.out, 'Starting. You may not be able to load localhost for a minute or two.')},
