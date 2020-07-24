@@ -13,7 +13,7 @@ description: Start here to build a basic Pushkin site and experiment.
 * [Updating](quickstart.md#updating)
 * [Starting over](quickstart.md#starting-over)
 
-If you haven't installed pushkin-cli and its dependencies, start [here]() first.
+**If you haven't installed pushkin-cli and its dependencies, start [here](../installing-pushkin-and-dependencies/README.md) first.**
 
 ### Creating a basic new Pushkin site
 

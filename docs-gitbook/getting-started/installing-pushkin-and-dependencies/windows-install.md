@@ -32,4 +32,6 @@ $ sudo apt upgrade
 
 \(For more on package management with apt, you can see the documentation [here](https://ubuntu.com/server/docs/package-management). To learn more about the basics of the Linux command line, you can follow [this tutorial](https://ubuntu.com/tutorials/command-line-for-beginners#1-overview).\)
 
+### Next steps
+
 From here, you can follow the instructions for [Ubuntu Linux](ubuntu-install.md) to finish the installation.

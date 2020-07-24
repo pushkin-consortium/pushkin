@@ -9,7 +9,7 @@ These instructions were created using Ubuntu 18.04 and the apt package manager b
 ## Skip to section
 
 * [Install curl](ubuntu-install.md#install-curl)
-* [Install Node.js](ubuntu-install.md#install-node-js)
+* [Install Node.js](ubuntu-install.md#install-nodejs)
 * [Install and configure Yarn](ubuntu-install.md#install-and-configure-yarn)
 * [Install pushkin-cli](ubuntu-install.md#install-pushkin-cli)
 * [Install and configure Docker Engine](ubuntu-install.md#install-and-configure-docker-engine)
