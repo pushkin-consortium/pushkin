@@ -1,4 +1,4 @@
-<img src="/web page/src/assets/pushkin_w_text.png" height="400" width="450">
+<img src="/web page/src/assets/pushkin_bw_w_text.png" height="400" width="450">
 
-# pushkin-exptemplates-lexical
-Basic jsPsych grammaticality judgement experiment
+# pushkin-exptemplates-reading
+Basic jsPsych self-paced reading experiment
