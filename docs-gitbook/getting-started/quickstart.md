@@ -18,37 +18,47 @@ description: Start here to build a basic Pushkin site and experiment.
 
 #### macOS
 
-If you don’t have [Homebrew](https://brew.sh/), install it. Then run the following:
+1.\) If you don’t have [Homebrew](https://brew.sh/), install it. If you do not have Xcode installed yet, this installation will prompt you to install it as well.
+
+![](../.gitbook/assets/ezgif.com-video-to-gif.gif)
+
+2.\) Then run the following to get yarn, which will let you download Pushkin:
 
 ```bash
-$ brew install Node
+$ brew install yarn
 ```
 
-Install the pushkin-cli package globally.
+![](../.gitbook/assets/ezgif.com-video-to-gif-2-.gif)
+
+3.\) Install the pushkin-cli package globally.
 
 ```bash
-$ npm install -g pushkin-cli
+$ yarn global add pushkin-cli
 ```
 
-Confirm that pushkin-cli is installed by running
+![](../.gitbook/assets/ezgif.com-video-to-gif-3-.gif)
+
+4.\) Confirm that pushkin-cli is installed by running:
 
 ```bash
 $ pushkin --help
 ```
 
+![](../.gitbook/assets/ezgif.com-video-to-gif-1-.gif)
+
 You should get a list of commands with some documentation for each. We’ll be going through the critical ones below.
 
-Next, install [Docker](https://docs.docker.com/install/).
+5. Next, install [Docker](https://docs.docker.com/install/).
+
+![](../.gitbook/assets/ezgif.com-video-to-gif-5-.gif)
 
 #### Windows 10
 
-This setup depends on the Windows Subsystem for Linux \(WSL\) 2.[This tutorial](https://docs.microsoft.com/en-us/windows/wsl/install-win10) explains how to configure WSL 2 and install a Linux distribution from the Microsoft Store. We recommend using Ubuntu 18.04. Make sure you [set your distribution to WSL 2](https://docs.microsoft.com/en-us/windows/wsl/install-win10#set-your-distribution-version-to-wsl-1-or-wsl-2), or this tutorial will not work.
+We are eventually hoping to be able to use [the Windows Subsystem for Linux \(WSL\)](https://docs.microsoft.com/en-us/windows/wsl/) to deploy Pushkin on Windows. This setup is not currently working reliably, however, so we suggest that Windows users create a Ubuntu virtual machine and follow the Ubuntu instructions to try out and test Pushkin. When Microsoft releases a fix that solves the problem, we will update our documentation with Windows-specific instructions.
 
-As the tutorial details, you will need Windows 10 version 2004 to be able to use WSL 2. If you follow the instructions in the tutorial and cannot update to version 2004, [these steps](https://www.bleepingcomputer.com/news/microsoft/windows-10-2004-update-not-offered-heres-how-to-get-it-now/) may be able to help.
+You can follow [this tutorial](https://www.freecodecamp.org/news/how-to-install-ubuntu-with-oracle-virtualbox/) to set up your Ubuntu virtual machine on Windows 10. We recommend using Ubuntu 18.04.
 
-After you have enabled WSL 2 and installed Ubuntu, you will probably also want to enable copy and paste in the terminal by right-clicking on the terminal window, selecting _Properties_ and following [these instructions](https://devblogs.microsoft.com/commandline/copy-and-paste-arrives-for-linuxwsl-consoles/).
-
-Next, run the following commands in the Ubuntu terminal to update your Ubuntu packages. This \(and other commands with `sudo` in front of them\) will prompt you to give the Ubuntu password you set up when you installed it. It will also prompt you to respond with `y` and press ENTER to confirm that you would like to install or update software.
+Once you have configured your virtual machine and installed Ubuntu, open the Ubuntu Terminal by pressing CTRL and typing 'terminal' and ENTER or by using the keyboard shortcut CTRL+ALT+T. Once you have opened the terminal, run the following commands to update your Ubuntu packages. This \(and other commands with `sudo` in front of them\) will prompt you to give the Ubuntu password you set up when you installed it. It will also prompt you to respond with `y` and press ENTER to confirm that you would like to install or update any software packages.
 
 ```bash
 $ sudo apt update
@@ -56,13 +66,6 @@ $ sudo apt upgrade
 ```
 
 \(For more on package management with apt, you can see the documentation [here](https://ubuntu.com/server/docs/package-management). To learn more about the basics of the Linux command line, you can follow [this tutorial](https://ubuntu.com/tutorials/command-line-for-beginners#1-overview).\)
-
-To be able to install the latest version of node, you will first have to uninstall gpg and install gnupg1 instead, as detailed [here](https://stackoverflow.com/questions/46673717/gpg-cant-connect-to-the-agent-ipc-connect-call-failed). The commands are copied below for convenience:
-
-```bash
-$ sudo apt remove gpg
-$ sudo apt install gnupg1
-```
 
 From here, you can follow the instructions below for Ubuntu Linux to finish the installation.
 
@@ -76,6 +79,9 @@ First, ensure that you have curl installed, as this will be necessary to downloa
 $ sudo apt update
 $ sudo apt install curl
 ```
+ 
+![](../.gitbook/assets/ubuntu1.gif)
+
 
 To install the latest version of Node.js , follow [these instructions at NodeSource](https://github.com/nodesource/distributions/blob/master/README.md#installation-instructions). The instructions are copied below for convenience, but it is best to follow the link in case their instructions change in the future.
 
@@ -83,39 +89,120 @@ To install the latest version of Node.js , follow [these instructions at NodeSou
 $ curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
 $ sudo apt install -y nodejs
 ```
+![](../.gitbook/assets/ubuntu2.gif)
+
+You will next want to install the Yarn package manager. Official instructions \(copied below for convenience\) are available [here](https://classic.yarnpkg.com/en/docs/install/#debian-stable).
+
+```bash
+$ curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
+$ echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
+$ sudo apt update && sudo apt install yarn
+```
+![](../.gitbook/assets/ubuntu3.gif)
+
+To allow Yarn to install pushkin-cli globally, run the following steps, based on [this StackExchange solution](https://stackoverflow.com/a/53879534).
+
+Run the following:
+
+```bash
+$ yarn config set prefix ~/.yarn
+$ echo 'export PATH="$PATH:`yarn global bin`"' >> ~/.bashrc
+$ source ~/.bashrc
+```
+![](../.gitbook/assets/ubuntu4.gif)
 
 Next, install the pushkin-cli package globally.
 
 ```bash
-$ npm install -g pushkin-cli
+$ yarn global add pushkin-cli
 ```
+![](../.gitbook/assets/ubuntu5.gif)
 
-If you get the error `Missing write access to /usr/lib/node_modules`, follow [the instructions here](https://stackoverflow.com/a/41395398) \(copied below for convenience\) to create a `npm` directory that does not require root access.
-
-```bash
-$ mkdir ~/.npm-global
-$ echo -e "export NPM_CONFIG_PREFIX=~/.npm-global\nexport PATH=\$PATH:~/.npm-global/bin" >> ~/.bashrc
-```
-
-\(Note: If you are using the Windows Subsystem for Linux, you will need to reboot your computer before continuing.\)
-
-Now re-run the previous `npm install` command to install the pushkin-cli package.
-
-Confirm that pushkin-cli is installed by running
+Confirm that pushkin-cli is installed by running:
 
 ```bash
 $ pushkin --help
 ```
+![](../.gitbook/assets/ubuntu6.gif)
 
 You should get a list of commands with some documentation for each. We'll be going through the critical ones below.
 
-Next, install Docker Engine [using these instructions](https://docs.docker.com/engine/install/ubuntu/) and then follow [these post-installation instructions](https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user) to manage Docker as a non-root user. \(The rest of the post-installation instructions can be ignored.\)
+Next, install Docker Engine [using these instructions](https://docs.docker.com/engine/install/ubuntu/) \(copied below for convenience\).
 
-Finally, follow [these instructions](https://docs.docker.com/compose/install/#install-compose-on-linux-systems) to install Docker Compose.
+```bash
+$ sudo apt update
+$ sudo apt install apt-transport-https ca-certificates curl gnupg-agent software-properties-common
+$ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+```
+
+![](../.gitbook/assets/ubuntu7.gif)
+
+Verify the fingerprint of the key by running this command:
+
+```bash
+$ sudo apt-key fingerprint 0EBFCD88
+```
+
+Your output should look like this:
+
+```bash
+pub   rsa4096 2017-02-22 [SCEA]
+      9DC8 5822 9FC7 DD38 854A  E2D8 8D81 803C 0EBF CD88
+uid           [ unknown] Docker Release (CE deb) <docker@docker.com>
+sub   rsa4096 2017-02-22 [S]
+```
+
+![](../.gitbook/assets/ubuntu8.gif)
+
+Next, add the repository and install Docker Engine.
+
+```bash
+$ sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+$ sudo apt update
+$ sudo apt install docker-ce docker-ce-cli containerd.io
+```
+
+![](../.gitbook/assets/ubuntu9.gif)
+
+Check that Docker Engine has been installed correctly by running:
+
+```bash
+$ sudo docker run hello-world
+```
+
+If Docker Engine installed correctly, this should generate some output, including:
+
+```bash
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+```
+
+![](../.gitbook/assets/ubuntu10.gif)
+
+Next, follow [these post-installation instructions](https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user) \(copied below for convenience\) to manage Docker as a non-root user. \(The rest of the post-installation instructions can be ignored.\)
+
+```bash
+$ sudo groupadd docker
+$ sudo usermod -aG docker $USER
+$ newgrp docker 
+$ docker run hello-world
+```
+
+![](../.gitbook/assets/ubuntu11.gif)
+
+Finally, follow [these instructions](https://docs.docker.com/compose/install/#install-compose-on-linux-systems) \(copied below for convenience\) to install Docker Compose.
+
+```bash
+$ sudo curl -L "https://github.com/docker/compose/releases/download/1.26.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+$ sudo chmod +x /usr/local/bin/docker-compose
+$ docker-compose --version
+```
+
+![](../.gitbook/assets/ubuntu12.gif)
 
 ### Creating a basic new Pushkin site
 
-Make sure Docker is running. On macOS, a Docker icon should show up in the menu bar at the top of the screen. On Ubuntu and WSL, you can run the command `docker info` or `sudo systemctl is-active docker` to check whether it is running. If it is not, you can run `dockerd` to start it.
+Make sure Docker is running by running the command `docker info`; if it is not, you can run `dockerd` or `sudo dockerd` to start it.
 
 Then, if it is not open already, open a terminal window. Then you can create an empty directory called `pushkin_quickstart` \(although in principle it could have any name\) and move to this directory using the following commands:
 
@@ -156,9 +243,9 @@ To create a new experiment from the boilerplate template Pushkin provides, run
 $ pushkin install experiment
 ```
 
-Choose a ‘basic’ experiment. When prompted, name your experiment ‘Vocab’. Repeat the process to add ‘basic’ experiments called ‘Mind’ and ‘WhichEnglish’ as well.
+Choose a ‘basic’ experiment. When prompted, name your experiment ‘vocab’. Repeat the process to add ‘basic’ experiments called ‘mind’ and ‘whichenglish’ as well.
 
-This will create a new folder in the experiments directory like
+This will create a new folder in the experiments directory like this:
 
 ```text
 └── vocab
@@ -184,7 +271,7 @@ This will create a new folder in the experiments directory like
     └── worker
 ```
 
-Each folder in here contains something unique to each experiment. There’s also a configuration file that allows us to define a full name for the experiment and specify what database to use, among other things.
+Each experiment has its own folder containing files specific to that experiment. Within this folder, each experiment also has a configuration file \(`config.yaml`\) that allows you to define a human-readable full name for the experiment \(e.g., _Which English?_ for `whichenglish`\), specify a database to use, and make other customizations.
 
 Keeping all the files for an experiment within the same root folder is convenient for development, but not for actually deploying the website. To redistribute the experiment files to the right places, run:
 
@@ -199,7 +286,6 @@ In `config.js`, located at ./pushkin/front-end/src, set `useAuth` to `true` or `
 ```javascript
 useForum: false,
 useAuth: false,
-//Note that the forum won't work without authentication
 ```
 
 By default, Pushkin authenticates users using [Auth0](http://auth0.com/). This provides many features and better security than could be managed otherwise. It is free for open source projects \(contact [sales@auth0.com](mailto:sales%40auth0.com)\); otherwise it can be fairly pricey if you are hoping for a lot of users. To set up Auth0, use the following directions. \(Note that at some point, Auth0 will change up their website and these instructions may get out of date.\)
@@ -211,16 +297,18 @@ By default, Pushkin authenticates users using [Auth0](http://auth0.com/). This p
 
 Note that these URLs are used for development. When you launch the live version of your website, you will need to add your public URLs. Repeat the instructions above, replacing [http://localhost](http://localhost) with [https://YOUR-WEBSITE](https://YOUR-WEBSITE). For instance, for gameswithwords, the urls are `https://gameswithwords.org` and `https://gameswithwords/callback`.
 
-1. On the settings page, you will see a `Domain` \(something like `gameswithwords.auth0.com`\) and a `Client ID`. Edit `config.js` to match:
+On the settings page, you will see a `Domain` \(something like `gameswithwords.auth0.com`\) and a `Client ID`. Edit `config.js` to match:
 
 ```javascript
 authDomain: '<YOUR_AUTH0_DOMAIN>',
 authClientID: '<YOUR_AUTH0_CLIENT_ID>',
 ```
 
+Finally, run `pushkin prep` again since you have made a change to your code.
+
 ### Local testing
 
-Now, let’s look at your website! Make sure Docker is running, and then type
+Now, let’s look at your website! Make sure Docker is running by running the command `docker info`; if it is not, you can run `dockerd` or `sudo dockerd` to start it. Next, run:
 
 ```bash
 $ pushkin start;
