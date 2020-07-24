@@ -32,3 +32,11 @@ That is, modify the path of the Pushkin module to the local test version, so tha
 
 1. npm install all the dependencies, then you can write the test codes.
 
+## Creating new versions of templates
+In order to update site and experiment templates, Pushkin-CLI looks for the latest release. To create a release, 
+
+* Download the repo as a zip file. (You could use your local copy, but you have to make sure to exclude all the node_packages and build folders; easier to just download clean.)
+* Go into terminal and unzip the file (`unzip [filename]`).
+* Then cd into the folder and run `zip -r Archive.zip *`.
+* Then go to Github and make a new version. In choosing a release number, be sure to use semantic versioning (there's a link from the 'make a release' page). Be sure to attach Archive.zip.
+
