@@ -15,9 +15,12 @@ import setupdb from './commands/setupdb/index.js';
 import * as compose from 'docker-compose'
 import { Command } from 'commander'
 import inquirer from 'inquirer'
+const version = require("../package.json").version
+
 
 const program = new Command();
-program.version('0.0.1');
+program.version(version);
+
 
 const moveToProjectRoot = () => {
   // better checking to make sure this is indeed a pushkin project would be goodf
@@ -171,8 +174,17 @@ async function main() {
   program
     .command('start')
     .description('Starts local deploy for debugging purposes. To start only the front end (no databases), see the manual.')
-    .action(() => {
+    .option('-nc, --nocache', 'Rebuild all images from scratch, without using the cache.', false)
+    .action(async (options) => {
       moveToProjectRoot();
+      if (options.nocache){
+        try {
+          await compose.buildAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: true, commandOptions: ["--no-cache"]})    
+        } catch (e) {
+          console.error("Problem rebuilding docker images");
+          throw e;
+        }
+      }
       compose.upAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: true})
         .then(
           out => { console.log(out.out, 'Starting. You may not be able to load localhost for a minute or two.')},
@@ -210,6 +222,7 @@ async function main() {
       } catch (err) {
         console.err(err);
       }
+      return;
     })
 
    program.parseAsync(process.argv);

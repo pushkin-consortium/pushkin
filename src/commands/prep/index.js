@@ -448,13 +448,14 @@ export default async (experimentsDir, coreDir) => {
     console.error(err);
     process.exit();
   }
-  try {
-    rebuildingServices = exec(`docker-compose -f pushkin/docker-compose.dev.yml build --no-cache --parallel server api`);
-  } catch (err) {
-    console.error('Problem with building local docker images for front-end and/or api. ', err);
-    process.exit();
-  }
+//  try {
+//    rebuildingServices = exec(`docker-compose -f pushkin/docker-compose.dev.yml build --no-cache --parallel server api`);
+//  } catch (err) {
+//    console.error('Problem with building local docker images for front-end and/or api. ', err);
+//    process.exit();
+//  }
 
-  console.log('Rebuilding local docker images. This will take some time. You will need to check Docker to see when it is done, since Docker and Node do not play well together.')
-  return await Promise.all([settingUpDB, rebuildingServices])
+//  console.log('Rebuilding local docker images. This will take some time. You will need to check Docker to see when it is done, since Docker and Node do not play well together.')
+//  return await Promise.all([settingUpDB, rebuildingServices])
+  return await Promise.all([settingUpDB])
 };
