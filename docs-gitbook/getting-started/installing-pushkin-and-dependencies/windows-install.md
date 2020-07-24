@@ -31,11 +31,13 @@ Head to the [AWS EC2 console](https://console.aws.amazon.com/ec2/) and, in the l
 
 ![](../../.gitbook/assets/2.gif)
 
-Click on the *Launch Instance* button. In the left sidebar, click the *Free tier only* checkbox. Then, scroll down to **Ubuntu Server 18.04 LTS** and click *Select*.
-
-![](../../.gitbook/assets/3.gif)
+Click on the *Launch Instance* button. In the left sidebar, click the *Free tier only* checkbox. 
 
 ![](../../.gitbook/assets/4.gif)
+
+Then, scroll down to **Ubuntu Server 18.04 LTS** and click *Select*.
+
+![](../../.gitbook/assets/3.gif)
 
 On the next page, click *Review and launch* in the bottom-right corner.
 
@@ -53,9 +55,9 @@ Click **Launch** then create a new key pair and give it a name, (e.g., "pushkin-
 
 ![](../../.gitbook/assets/8.gif)
 
-![](../../.gitbook/assets/9.gif)
-
 Once the key has downloaded, press **Launch Instance**.
+
+![](../../.gitbook/assets/9.gif)
 
 Next, in the box that says "Your instances are now launching," click the instance ID, which will be an alphanumeric string.
 
