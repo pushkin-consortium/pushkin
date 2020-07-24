@@ -222,6 +222,7 @@ async function main() {
       } catch (err) {
         console.err(err);
       }
+      return;
     })
 
    program.parseAsync(process.argv);
