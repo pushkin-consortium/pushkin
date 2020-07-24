@@ -79,6 +79,9 @@ First, ensure that you have curl installed, as this will be necessary to downloa
 $ sudo apt update
 $ sudo apt install curl
 ```
+ 
+![](../.gitbook/assets/Ubuntu_1.gif)
+
 
 To install the latest version of Node.js , follow [these instructions at NodeSource](https://github.com/nodesource/distributions/blob/master/README.md#installation-instructions). The instructions are copied below for convenience, but it is best to follow the link in case their instructions change in the future.
 
@@ -86,6 +89,7 @@ To install the latest version of Node.js , follow [these instructions at NodeSou
 $ curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
 $ sudo apt install -y nodejs
 ```
+![](../.gitbook/assets/Ubuntu_2.gif)
 
 You will next want to install the Yarn package manager. Official instructions \(copied below for convenience\) are available [here](https://classic.yarnpkg.com/en/docs/install/#debian-stable).
 
@@ -94,6 +98,7 @@ $ curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
 $ echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
 $ sudo apt update && sudo apt install yarn
 ```
+![](../.gitbook/assets/Ubuntu_3.gif)
 
 To allow Yarn to install pushkin-cli globally, run the following steps, based on [this StackExchange solution](https://stackoverflow.com/a/53879534).
 
@@ -104,18 +109,21 @@ $ yarn config set prefix ~/.yarn
 $ echo 'export PATH="$PATH:`yarn global bin`"' >> ~/.bashrc
 $ source ~/.bashrc
 ```
+![](../.gitbook/assets/Ubuntu_4.gif)
 
 Next, install the pushkin-cli package globally.
 
 ```bash
 $ yarn global add pushkin-cli
 ```
+![](../.gitbook/assets/Ubuntu_5.gif)
 
 Confirm that pushkin-cli is installed by running:
 
 ```bash
 $ pushkin --help
 ```
+![](../.gitbook/assets/Ubuntu_6.gif)
 
 You should get a list of commands with some documentation for each. We'll be going through the critical ones below.
 
@@ -126,6 +134,8 @@ $ sudo apt update
 $ sudo apt install apt-transport-https ca-certificates curl gnupg-agent software-properties-common
 $ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
 ```
+
+![](../.gitbook/assets/Ubuntu_7.gif)
 
 Verify the fingerprint of the key by running this command:
 
@@ -142,6 +152,8 @@ uid           [ unknown] Docker Release (CE deb) <docker@docker.com>
 sub   rsa4096 2017-02-22 [S]
 ```
 
+![](../.gitbook/assets/Ubuntu_8.gif)
+
 Next, add the repository and install Docker Engine.
 
 ```bash
@@ -149,6 +161,8 @@ $ sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ub
 $ sudo apt update
 $ sudo apt install docker-ce docker-ce-cli containerd.io
 ```
+
+![](../.gitbook/assets/Ubuntu_9.gif)
 
 Check that Docker Engine has been installed correctly by running:
 
@@ -163,6 +177,8 @@ Hello from Docker!
 This message shows that your installation appears to be working correctly.
 ```
 
+![](../.gitbook/assets/Ubuntu_10.gif)
+
 Next, follow [these post-installation instructions](https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user) \(copied below for convenience\) to manage Docker as a non-root user. \(The rest of the post-installation instructions can be ignored.\)
 
 ```bash
@@ -172,6 +188,8 @@ $ newgrp docker
 $ docker run hello-world
 ```
 
+![](../.gitbook/assets/Ubuntu_11.gif)
+
 Finally, follow [these instructions](https://docs.docker.com/compose/install/#install-compose-on-linux-systems) \(copied below for convenience\) to install Docker Compose.
 
 ```bash
@@ -179,6 +197,8 @@ $ sudo curl -L "https://github.com/docker/compose/releases/download/1.26.2/docke
 $ sudo chmod +x /usr/local/bin/docker-compose
 $ docker-compose --version
 ```
+
+![](../.gitbook/assets/Ubuntu_12.gif)
 
 ### Creating a basic new Pushkin site
 
