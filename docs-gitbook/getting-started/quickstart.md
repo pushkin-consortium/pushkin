@@ -6,7 +6,6 @@ description: Start here to build a basic Pushkin site and experiment.
 
 ## Skip to section
 
-* [Installing Pushkin and dependencies](quickstart.md#installing-pushkin-and-dependencies)
 * [Creating a basic new Pushkin site](quickstart.md#creating-basic-new-pushkin-site)
 * [Making an experiment](quickstart.md#making-an-experiment)
 * [Setting up logins](quickstart.md#setting-up-logins)
@@ -14,191 +13,7 @@ description: Start here to build a basic Pushkin site and experiment.
 * [Updating](quickstart.md#updating)
 * [Starting over](quickstart.md#starting-over)
 
-### Installing Pushkin and dependencies
-
-#### macOS
-
-1.\) If you don’t have [Homebrew](https://brew.sh/), install it. If you do not have Xcode installed yet, this installation will prompt you to install it as well.
-
-![](../.gitbook/assets/ezgif.com-video-to-gif.gif)
-
-2.\) Then run the following to get yarn, which will let you download Pushkin:
-
-```bash
-$ brew install yarn
-```
-
-![](../.gitbook/assets/ezgif.com-video-to-gif-2-.gif)
-
-3.\) Install the pushkin-cli package globally.
-
-```bash
-$ yarn global add pushkin-cli
-```
-
-![](../.gitbook/assets/ezgif.com-video-to-gif-3-.gif)
-
-4.\) Confirm that pushkin-cli is installed by running:
-
-```bash
-$ pushkin --help
-```
-
-![](../.gitbook/assets/ezgif.com-video-to-gif-1-.gif)
-
-You should get a list of commands with some documentation for each. We’ll be going through the critical ones below.
-
-5. Next, install [Docker](https://docs.docker.com/install/).
-
-![](../.gitbook/assets/ezgif.com-video-to-gif-5-.gif)
-
-#### Windows 10
-
-We are eventually hoping to be able to use [the Windows Subsystem for Linux \(WSL\)](https://docs.microsoft.com/en-us/windows/wsl/) to deploy Pushkin on Windows. This setup is not currently working reliably, however, so we suggest that Windows users create a Ubuntu virtual machine and follow the Ubuntu instructions to try out and test Pushkin. When Microsoft releases a fix that solves the problem, we will update our documentation with Windows-specific instructions.
-
-You can follow [this tutorial](https://www.freecodecamp.org/news/how-to-install-ubuntu-with-oracle-virtualbox/) to set up your Ubuntu virtual machine on Windows 10. We recommend using Ubuntu 18.04.
-
-Once you have configured your virtual machine and installed Ubuntu, open the Ubuntu Terminal by pressing CTRL and typing 'terminal' and ENTER or by using the keyboard shortcut CTRL+ALT+T. Once you have opened the terminal, run the following commands to update your Ubuntu packages. This \(and other commands with `sudo` in front of them\) will prompt you to give the Ubuntu password you set up when you installed it. It will also prompt you to respond with `y` and press ENTER to confirm that you would like to install or update any software packages.
-
-```bash
-$ sudo apt update
-$ sudo apt upgrade
-```
-
-\(For more on package management with apt, you can see the documentation [here](https://ubuntu.com/server/docs/package-management). To learn more about the basics of the Linux command line, you can follow [this tutorial](https://ubuntu.com/tutorials/command-line-for-beginners#1-overview).\)
-
-From here, you can follow the instructions below for Ubuntu Linux to finish the installation.
-
-#### Ubuntu Linux
-
-These instructions were created using Ubuntu 18.04 and the apt package manager but should generalize to other Linux distributions and package managers.
-
-First, ensure that you have curl installed, as this will be necessary to download Node. If it is not installed, it can be installed using the following commands:
-
-```bash
-$ sudo apt update
-$ sudo apt install curl
-```
- 
-![](../.gitbook/assets/ubuntu1.gif)
-
-
-To install the latest version of Node.js , follow [these instructions at NodeSource](https://github.com/nodesource/distributions/blob/master/README.md#installation-instructions). The instructions are copied below for convenience, but it is best to follow the link in case their instructions change in the future.
-
-```bash
-$ curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
-$ sudo apt install -y nodejs
-```
-![](../.gitbook/assets/ubuntu2.gif)
-
-You will next want to install the Yarn package manager. Official instructions \(copied below for convenience\) are available [here](https://classic.yarnpkg.com/en/docs/install/#debian-stable).
-
-```bash
-$ curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
-$ echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
-$ sudo apt update && sudo apt install yarn
-```
-![](../.gitbook/assets/ubuntu3.gif)
-
-To allow Yarn to install pushkin-cli globally, run the following steps, based on [this StackExchange solution](https://stackoverflow.com/a/53879534).
-
-Run the following:
-
-```bash
-$ yarn config set prefix ~/.yarn
-$ echo 'export PATH="$PATH:`yarn global bin`"' >> ~/.bashrc
-$ source ~/.bashrc
-```
-![](../.gitbook/assets/ubuntu4.gif)
-
-Next, install the pushkin-cli package globally.
-
-```bash
-$ yarn global add pushkin-cli
-```
-![](../.gitbook/assets/ubuntu5.gif)
-
-Confirm that pushkin-cli is installed by running:
-
-```bash
-$ pushkin --help
-```
-![](../.gitbook/assets/ubuntu6.gif)
-
-You should get a list of commands with some documentation for each. We'll be going through the critical ones below.
-
-Next, install Docker Engine [using these instructions](https://docs.docker.com/engine/install/ubuntu/) \(copied below for convenience\).
-
-```bash
-$ sudo apt update
-$ sudo apt install apt-transport-https ca-certificates curl gnupg-agent software-properties-common
-$ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-```
-
-![](../.gitbook/assets/ubuntu7.gif)
-
-Verify the fingerprint of the key by running this command:
-
-```bash
-$ sudo apt-key fingerprint 0EBFCD88
-```
-
-Your output should look like this:
-
-```bash
-pub   rsa4096 2017-02-22 [SCEA]
-      9DC8 5822 9FC7 DD38 854A  E2D8 8D81 803C 0EBF CD88
-uid           [ unknown] Docker Release (CE deb) <docker@docker.com>
-sub   rsa4096 2017-02-22 [S]
-```
-
-![](../.gitbook/assets/ubuntu8.gif)
-
-Next, add the repository and install Docker Engine.
-
-```bash
-$ sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-$ sudo apt update
-$ sudo apt install docker-ce docker-ce-cli containerd.io
-```
-
-![](../.gitbook/assets/ubuntu9.gif)
-
-Check that Docker Engine has been installed correctly by running:
-
-```bash
-$ sudo docker run hello-world
-```
-
-If Docker Engine installed correctly, this should generate some output, including:
-
-```bash
-Hello from Docker!
-This message shows that your installation appears to be working correctly.
-```
-
-![](../.gitbook/assets/ubuntu10.gif)
-
-Next, follow [these post-installation instructions](https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user) \(copied below for convenience\) to manage Docker as a non-root user. \(The rest of the post-installation instructions can be ignored.\)
-
-```bash
-$ sudo groupadd docker
-$ sudo usermod -aG docker $USER
-$ newgrp docker 
-$ docker run hello-world
-```
-
-![](../.gitbook/assets/ubuntu11.gif)
-
-Finally, follow [these instructions](https://docs.docker.com/compose/install/#install-compose-on-linux-systems) \(copied below for convenience\) to install Docker Compose.
-
-```bash
-$ sudo curl -L "https://github.com/docker/compose/releases/download/1.26.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-$ sudo chmod +x /usr/local/bin/docker-compose
-$ docker-compose --version
-```
-
-![](../.gitbook/assets/ubuntu12.gif)
+**If you haven't installed pushkin-cli and its dependencies, start [here](installing-pushkin-and-dependencies/README.md) first.**
 
 ### Creating a basic new Pushkin site
 
@@ -235,7 +50,7 @@ This sets up a skeleton website in the current folder and sets up a development 
 
 Most of the stuff in the pushkin folder won’t need to be edited at all, with the exception of the website \(in the front-end folder\).
 
-### Making an Experiment
+### Making an experiment
 
 To create a new experiment from the boilerplate template Pushkin provides, run
 
