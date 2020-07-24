@@ -6,7 +6,7 @@
 
 * [Installing Pushkin and dependencies](getting-started/installing-pushkin-and-dependencies/README.md)
   * [macOS](getting-started/installing-pushkin-and-dependencies/macos-install.md)
-  * [Windows](getting-started/installing-pushkin-and-dependencies/windows-install.md)
+  * [Windows 10](getting-started/installing-pushkin-and-dependencies/windows-install.md)
   * [Ubuntu Linux](getting-started/installing-pushkin-and-dependencies/ubuntu-install.md)
 * [Quickstart](getting-started/quickstart.md)
 * [Templates](getting-started/templates.md)
