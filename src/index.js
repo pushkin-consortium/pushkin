@@ -58,9 +58,21 @@ const handleViewConfig = async (what) => {
 
 const handleUpdateDB = async () => {
   moveToProjectRoot();
-  const config = await loadConfig(path.join(process.cwd(), 'pushkin.yaml'));
-  console.log('loaded Pushkin config file')
-  return await setupdb(config.databases, path.join(process.cwd(), config.experimentsDir));
+  let settingUpDB, config;
+  try {
+     config = await loadConfig(path.join(process.cwd(), 'pushkin.yaml'));
+  } catch (err) {
+    console.log('Could not load pushkin.yaml');
+    throw err
+  }
+
+  try {
+    settingUpDB = await setupdb(config.databases, path.join(process.cwd(), config.experimentsDir));
+  } catch (err) {
+    console.error(err);
+    process.exit();
+  }
+  return settingUpDB;
 }
 
 const handlePrep = async () => {
@@ -169,7 +181,18 @@ async function main() {
   program
     .command('prep')
     .description('Prepares local copy for local testing. This step includes running migrations, so be sure you have read the documentation on how that works.')
-    .action(handlePrep)
+    .option('-nm, --nomigrations', 'Do not run migrations. Be sure database structure has not changed!', false)
+    .action(async (options) => {
+      let awaits
+      if (options.nomigrations){
+        //only running prep
+        awaits = [handlePrep()]
+      } else {
+        //running prep and updated DB
+        awaits = [handlePrep(), handleUpdateDB()];
+      }
+      return await Promise.all(awaits);
+    })
 
   program
     .command('start')
@@ -184,12 +207,18 @@ async function main() {
           console.error("Problem rebuilding docker images");
           throw e;
         }
+        compose.upAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: true})
+          .then(
+            out => { console.log(out.out, 'Starting. You may not be able to load localhost for a minute or two.')},
+            err => { console.log('something went wrong:', err.message)}
+          );
+      } else {
+        compose.upAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: true, commandOptions: ["--build"]})
+          .then(
+            out => { console.log(out.out, 'Starting. You may not be able to load localhost for a minute or two.')},
+            err => { console.log('something went wrong:', err.message)}
+          );        
       }
-      compose.upAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: true})
-        .then(
-          out => { console.log(out.out, 'Starting. You may not be able to load localhost for a minute or two.')},
-          err => { console.log('something went wrong:', err.message)}
-        );
       //exec('docker-compose -f pushkin/docker-compose.dev.yml up --build --remove-orphans;');
       return;      
     })
