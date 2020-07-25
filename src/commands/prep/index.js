@@ -430,32 +430,5 @@ export default async (experimentsDir, coreDir) => {
     process.exit()
   }
 
-  console.log('Installing packages. This may take a few minutes.')
-  let anotherAwait = await Promise.all([installedApi, installedWeb])
-
-  let settingUpDB, rebuildingServices, config;
-  try {
-     config = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'pushkin.yaml')));
-  } catch (err) {
-    if (err.code === 'ENOENT') {
-      console.log('File not found!');
-    }
-    throw err
-  }
-  try {
-    settingUpDB = setupdb(config.databases, experimentsDir);
-  } catch (err) {
-    console.error(err);
-    process.exit();
-  }
-//  try {
-//    rebuildingServices = exec(`docker-compose -f pushkin/docker-compose.dev.yml build --no-cache --parallel server api`);
-//  } catch (err) {
-//    console.error('Problem with building local docker images for front-end and/or api. ', err);
-//    process.exit();
-//  }
-
-//  console.log('Rebuilding local docker images. This will take some time. You will need to check Docker to see when it is done, since Docker and Node do not play well together.')
-//  return await Promise.all([settingUpDB, rebuildingServices])
-  return await Promise.all([settingUpDB])
+  return;
 };
