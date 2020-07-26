@@ -106,12 +106,12 @@ const handleInstall = async (what) => {
         { type: 'list', name: 'experiments', choices: expList, default: 0, message: 'Which site template do you want to use?'}
         ]).then(answers => {
           let expType = answers.experiments
-          console.log(expType)
           inquirer.prompt([
             { type: 'input', name: 'name', message: 'What do you want to call your experiment?'}]).then(async (answers) => {
+              const longName = answers.name
+              const shortName = longName.replace(/[^\w\s]/g, "").replace(/ /g,"_");
               let config = await loadConfig('pushkin.yaml');
-              console.log(expType)
-              getExpTemplate(path.join(process.cwd(), config.experimentsDir), expType, answers.name)
+              getExpTemplate(path.join(process.cwd(), config.experimentsDir), expType, longName, shortName, process.cwd())
             })
       })
   } 

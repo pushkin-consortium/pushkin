@@ -7,6 +7,7 @@ import got from 'got';
 import * as compose from 'docker-compose'
 const exec = util.promisify(require('child_process').exec);
 import { templates } from './templates.js';
+import { execSync } from 'child_process'; // eslint-disable-line
 const shell = require('shelljs');
 import pacMan from '../../pMan.js';  //which package manager is available?
 
@@ -23,17 +24,22 @@ export function listSiteTemplates() {
 }
 
 export const promiseFolderInit = async (initDir, dir) => {
-  console.log(`Installing npm dependencies for ${dir}`);
-  const { stdout, stderr } = await exec(pacMan.concat(' install'), { cwd: path.join(initDir, dir) }) //this may not work on Windows
-  if (stderr) console.log(stderr);
-  console.log(`Building ${dir}`);
-  const { stdout2, stderr2 } = await exec(pacMan.concat(' run build'), { cwd: path.join(initDir, dir) }) //this may not work on Windows
-  if (stderr2) {
-    console.log(stderr2)
-  }
-  console.log(`${dir} is built`);
   return new Promise ((resolve, reject) => {
-    resolve("built")
+    console.log(`Installing dependencies for ${dir}`);
+    try {
+      exec(pacMan.concat(' install'), { cwd: path.join(initDir, dir) })
+        .then(() => {
+          console.log(`Building ${dir}`);
+          exec(pacMan.concat(' run build'), { cwd: path.join(initDir, dir) })
+            .then(() => {
+              console.log(`${dir} is built`);
+              resolve("built")              
+            })
+        })
+    } catch(e) {
+      console.error('Problem installing dependencies for ${dir}')
+      throw(e)
+    }
   })
 }
 
