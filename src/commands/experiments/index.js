@@ -28,7 +28,7 @@ export function listExpTemplates() {
 }
 
 
-const promiseExpFolderInit = async (initDir, dir, coreDir, modName, buildPath) => {
+const promiseExpFolderInit = async (initDir, dir, rootDir, modName, buildPath) => {
   //Similar to 'promiseFolderInit' in sites/index.js.
   //Modified to take advantage of yalc (not relevant for sites)
   return new Promise ((resolve, reject) => {
@@ -43,7 +43,7 @@ const promiseExpFolderInit = async (initDir, dir, coreDir, modName, buildPath) =
               exec('yalc publish', { cwd: path.join(initDir, dir) })
                 .then(() => {
                   console.log(`${modName} is published locally via yalc`);
-                  exec('yalc add '.concat(modName), { cwd: path.join(coreDir, buildPath) })
+                  exec('yalc add '.concat(modName), { cwd: path.join(rootDir, buildPath) })
                     .then(() => {
                       console.log(`${modName} added to build cycle via yalc`);                  
                       resolve("built")
@@ -58,7 +58,7 @@ const promiseExpFolderInit = async (initDir, dir, coreDir, modName, buildPath) =
   })
 }
 
-export async function getExpTemplate(experimentsDir, templateName, longName, newExpName, coreDir) {
+export async function getExpTemplate(experimentsDir, templateName, longName, newExpName, rootDir) {
   if (!isValidExpName(newExpName)) {
     console.error(`'${newExpName}' is not a valid name. Names must start with a letter and can only contain alphanumeric characters.`);
     return;
@@ -105,11 +105,11 @@ export async function getExpTemplate(experimentsDir, templateName, longName, new
       await zip.extractAllTo(newDir, true);
       await fs.promises.unlink('temp.zip');
       shell.rm('-rf','__MACOSX');
-      await initExperiment(newDir, newExpName, longName, coreDir);
+      await initExperiment(newDir, newExpName, longName, rootDir);
     })
 }
 
-const initExperiment = async (expDir, expName, longName, coreDir) => {
+const initExperiment = async (expDir, expName, longName, rootDir) => {
   const options = {
     files: expDir.concat('/**/*.*'),
     from: /pushkintemplate/g,
@@ -134,13 +134,13 @@ const initExperiment = async (expDir, expName, longName, coreDir) => {
   try {
     fs.writeFileSync(path.join(expDir, 'config.yaml'), jsYaml.safeDump(expConfig), 'utf8');
   }
-  const apiPromise = promiseExpFolderInit(expDir, expConfig.apiControllers.location, coreDir, expName.concat('_api'), 'pushkin/api').catch((err) => { console.error(err); });
-  const webPromise = promiseExpFolderInit(expDir, expConfig.webPage.location, coreDir, expName.concat('_web'), 'pushkin/front-end').catch((err) => { console.error(err); });
+  const apiPromise = promiseExpFolderInit(expDir, expConfig.apiControllers.location, rootDir, expName.concat('_api'), 'pushkin/api').catch((err) => { console.error(err); });
+  const webPromise = promiseExpFolderInit(expDir, expConfig.webPage.location, rootDir, expName.concat('_web'), 'pushkin/front-end').catch((err) => { console.error(err); });
   //note that Worker uses a different function, because it doesn't need yalc; it's published straight to Docker
   const workerPromise = promiseFolderInit(expDir, 'worker').catch((err) => { console.error(err); });
 
   // write out new compose file with worker service
-  const composeFileLoc = path.join(path.join(coreDir, 'pushkin'), 'docker-compose.dev.yml');
+  const composeFileLoc = path.join(path.join(rootDir, 'pushkin'), 'docker-compose.dev.yml');
   let compFile;
   try { 
     compFile = jsYaml.safeLoad(fs.readFileSync(composeFileLoc), 'utf8'); 
@@ -168,18 +168,18 @@ const initExperiment = async (expDir, expName, longName, coreDir) => {
 
   await Promise.all([apiPromise, webPromise])
 
-  FUBAR
   //Handle API includes
   //Need to read in controllers.json and append a controller to it.
-    const controllersJsonFile = await fs.promises.readFile(path.join(coreDir, 'api/src/controllers.json'))
+  const controllersJsonFile = await JSON.parse(fs.promises.readFile(path.join(rootDir, 'pushkin/api/src/controllers.json')))
     .catch((e) => {
       console.error('Failed to load api/src/controllers.json', e);
       process.exit()
     })
-  const writeAPI = fs.promises.writeFile(path.join(coreDir, 'api/src/controllers.json'), JSON.stringify([]), 'utf8').catch((err) => console.error(err))
+  if (controllersJsonFile[])
+  const writeAPI = fs.promises.writeFile(path.join(rootDir, 'pushkin/api/src/controllers.json'), JSON.stringify([]), 'utf8').catch((err) => console.error(err))
 
   try {
-    fs.writeFileSync(path.join(coreDir, 'api/src/controllers.json'), JSON.stringify(finalControllers), 'utf8')
+    fs.writeFileSync(path.join(rootDir, 'pushkin/api/src/controllers.json'), JSON.stringify(finalControllers), 'utf8')
   } catch (err) {
     console.error(`Failed to write api controllers list`)
     throw err;
