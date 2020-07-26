@@ -5,7 +5,6 @@ import jsYaml from 'js-yaml';
 import util from 'util';
 import { execSync } from 'child_process'; // eslint-disable-line
 const exec = util.promisify(require('child_process').exec);
-import setupdb from '../setupdb/index.js';
 import pacMan from '../../pMan.js'; //which package manager is available?
 
 // give package unique name, package it, npm install on installDir, return module name
@@ -58,12 +57,12 @@ const prepApi = async (expDir, controller) => {
     console.log(`Started loading API controller for ${controller.mountPath}`);
     let moduleName;
     try {
-      moduleName = publishLocalPackage(fullContrLoc, controller.mountPath.concat('_api'))
+      publishLocalPackage(fullContrLoc, controller.mountPath.concat('_api'))
     } catch (e) {
       console.error(`Problem publishing api for`.concat(controller.mountPath));
       throw e;
     }
-    return moduleName;
+    resolve(moduleName);
   })
 }
 
@@ -78,22 +77,22 @@ const prepWeb = async (expDir, expConfig, coreDir) => {
     console.error(`Failed on publishing web page: ${err}`);
     throw err;
   }
-  console.log(`Loaded web page for ${expConfig.shortName} (${moduleName})`);
-  // this must be one line
-  const modListAppendix = `{ fullName: '${expConfig.experimentName}', 
-    shortName: '${expConfig.shortName}', 
+  console.log(`Loaded web page for ${expConfig.experimentName} (${moduleName})`);
+  const modListAppendix = "{ fullName: `".concat(expConfig.experimentName).concat("`,") 
+    .concat(`shortName: '${expConfig.shortName}', 
     module: ${moduleName}, logo: '${expConfig.logo}', 
     tagline: '${expConfig.tagline}', 
     duration: '${expConfig.duration}', 
-    text: '${expConfig.text}' }`;
-  // move logo to assets folder
+    text: '${expConfig.text}' }`);
 
+  // move logo to assets folder
   fs.promises.copyFile(path.join(webPageLoc, 'src/assets', expConfig.logo), path.join(coreDir, 'front-end/src/assets/images/quiz/', expConfig.logo))
     .catch((e) => {
       console.error(`Problem copying logo file for `, expConfig.shortName);
       throw(e);
     })
 
+  console.log(`Added ${expConfig.experimentName} to experiments.js`)
   return { moduleName, listAppendix: modListAppendix };
 };
 
@@ -138,9 +137,9 @@ export default async (experimentsDir, coreDir) => {
   }
 
   const expDirs = fs.readdirSync(experimentsDir);
-  let contrListAppendix;
+  let preppedAPI;
   try {
-    contrListAppendix = Promise.all(expDirs.map(prepAPIWrapper))
+    preppedAPI = Promise.all(expDirs.map(prepAPIWrapper))
   } catch (err) {
     console.error(err);
     process.exit();
@@ -194,19 +193,19 @@ export default async (experimentsDir, coreDir) => {
         console.error(err);
         reject(new Error(`Failed to read experiment config file for `.concat(exp).concat(err)))
       }
-      let WebPageIncludes;
+      let webPageIncludes;
       try {
-        WebPageIncludes = prepWeb(expDir, expConfig, coreDir)
+        webPageIncludes = prepWeb(expDir, expConfig, coreDir)
       } catch (err) {
         reject(new Error(`Unable to prep web page for `.concat(exp)))
       }
-      resolve(WebPageIncludes)
+      resolve(webPageIncludes)
     })
   }
 
   let webPageIncludes;
   try {
-    WebPageIncludes = Promise.all(expDirs.map(prepWebWrapper))
+    webPageIncludes = Promise.all(expDirs.map(prepWebWrapper))
   } catch (err) {
     console.error(err);
     process.exit();
@@ -226,18 +225,26 @@ export default async (experimentsDir, coreDir) => {
     const workerConfig = expConfig.worker;
     const workerName = `${exp}_worker`.toLowerCase(); //Docker names must all be lower case
     const workerLoc = path.join(expDir, workerConfig.location);
-    return exec(`docker build ${workerLoc} -t ${workerName}`);
+    let workerBuild
+    try {
+      workerBuild = exec(`docker build ${workerLoc} -t ${workerName}`)
+    } catch(e) {
+      console.error(`Problem building worker for ${exp}`)
+      throw (e)
+    }
+    return workerBuild;
   }
 
-  let WorkerIncludes;
+  let preppedWorkers;
   try {
-    WorkerIncludes = Promise.all(expDirs.map(prepWorkerWrapper))
+    preppedWorkers = Promise.all(expDirs.map(prepWorkerWrapper))
   } catch (err) {
     console.error(err);
-    process.exit();
+    throw(err);
   }
 
-  const tempAwait = await Promise.all([WorkerIncludes, WebPageIncludes, contrListAppendix])
+
+const tempAwait = await Promise.all([webPageIncludes, preppedAPI])
 
   // Deal with Web page includes
   let finalWebPages = tempAwait[1]
@@ -245,6 +252,7 @@ export default async (experimentsDir, coreDir) => {
   let bottom
   let toWrite
   try {
+console.log("Writing out experiments.js")
     top = finalWebPages.map((include) => {return `import ${include.moduleName} from '${include.moduleName}';\n`})
     top = top.join('')
     bottom = finalWebPages.map((include) => {return `${include.listAppendix}\n`}).join(',')
@@ -256,21 +264,24 @@ export default async (experimentsDir, coreDir) => {
   }
 
   //Finally, install pushkin/api and pushkin/front-end
-  //Note that this cannot run until the individual experiments have been rebuilt
+  //Note that this cannot run until the individual apis and webpages for all experiments have been rebuilt
+  //Nothing depends on the workers, though, so we can defer that await until later
   let installedApi
   try {
-    installedApi = exec(pacMan.concat(' install'), { cwd: path.join(coreDir, 'api') })
+    console.log("Installing combined API")
+    installedApi = exec(pacMan.concat(' install'), { cwd: path.join(coreDir, 'api') }).then(console.log("Installed combined API"))
   } catch (err) {
     console.error('Problem installing and buiding combined API')
     throw err
   }
   let installedWeb;
   try {
-    installedWeb = exec(pacMan.concat(' install'), { cwd: path.join(coreDir, 'front-end') })
+    console.log("Installing combined front-end")
+    installedWeb = exec(pacMan.concat(' install'), { cwd: path.join(coreDir, 'front-end') }).then(console.log("Installed combined front-end"))
   } catch (err) {
     console.error('Problem installing and buiding combined front-end')
     throw err
   }
 
-  return await Promise.all([installedApi, installedWeb]);
+  return Promise.all([installedApi, installedWeb, preppedWorkers]);
 };

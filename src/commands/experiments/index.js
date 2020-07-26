@@ -46,7 +46,7 @@ const promiseExpFolderInit = async (initDir, dir, rootDir, modName, buildPath) =
                   exec('yalc add '.concat(modName), { cwd: path.join(rootDir, buildPath) })
                     .then(() => {
                       console.log(`${modName} added to build cycle via yalc`);                  
-                      resolve("built")
+                      resolve(modName)
                     })
                 })
             })
@@ -130,9 +130,12 @@ const initExperiment = async (expDir, expName, longName, rootDir) => {
     console.error(`Failed to read experiment config file for `.concat(exp));
     throw err;
   }
-  expConfig.fullName = longName;
+  expConfig.experimentName = longName;
   try {
     fs.writeFileSync(path.join(expDir, 'config.yaml'), jsYaml.safeDump(expConfig), 'utf8');
+  } catch (e) {
+    console.error("Unable to update config.yaml");
+    throw e
   }
   const apiPromise = promiseExpFolderInit(expDir, expConfig.apiControllers.location, rootDir, expName.concat('_api'), 'pushkin/api').catch((err) => { console.error(err); });
   const webPromise = promiseExpFolderInit(expDir, expConfig.webPage.location, rootDir, expName.concat('_web'), 'pushkin/front-end').catch((err) => { console.error(err); });
@@ -166,24 +169,29 @@ const initExperiment = async (expDir, expName, longName, rootDir) => {
     process.exit()
   }
 
-  await Promise.all([apiPromise, webPromise])
+  const contName = await apiPromise //Need this to write api controllers list
 
   //Handle API includes
   //Need to read in controllers.json and append a controller to it.
-  const controllersJsonFile = await JSON.parse(fs.promises.readFile(path.join(rootDir, 'pushkin/api/src/controllers.json')))
-    .catch((e) => {
-      console.error('Failed to load api/src/controllers.json', e);
-      process.exit()
-    })
-  if (controllersJsonFile[])
-  const writeAPI = fs.promises.writeFile(path.join(rootDir, 'pushkin/api/src/controllers.json'), JSON.stringify([]), 'utf8').catch((err) => console.error(err))
-
+  let controllersJsonFile
   try {
-    fs.writeFileSync(path.join(rootDir, 'pushkin/api/src/controllers.json'), JSON.stringify(finalControllers), 'utf8')
-  } catch (err) {
-    console.error(`Failed to write api controllers list`)
-    throw err;
+    controllersJsonFile = JSON.parse(fs.readFileSync(path.join(rootDir, 'pushkin/api/src/controllers.json')))
+  } catch(e) {
+    console.error('Failed to load api/src/controllers.json');
+    throw e
+  }
+  if (controllersJsonFile.hasOwnProperty(contName)){
+    console.error("There is already an API controller by the name of ", expName)
+    throw new Error("Problem adding API controller to controller list.")
+  }
+  controllersJsonFile[contName] = "api/".concat(contName)
+  try {
+   fs.writeFileSync(path.join(rootDir, 'pushkin/api/src/controllers.json'), JSON.stringify(controllersJsonFile), 'utf8')
+  } catch (e) {
+    console.error("Couldn't write controllers list");
+    throw e
   }
 
+  return await webPromise
 };
 

@@ -160,7 +160,12 @@ async function main() {
     .description(`Install template website ('site') or experiment ('experiment').`)
     .action((what) => {
       if (what == 'site' | what == 'experiment'){
-        handleInstall(what)  
+        try {
+          handleInstall(what)  
+        } catch(e) {
+          console.error(e)
+          process.exit()
+        }
       }else{
         console.error(`Command not recognized. Run 'pushkin --help' for help.`)
       }
@@ -184,12 +189,17 @@ async function main() {
     .option('-nm, --nomigrations', 'Do not run migrations. Be sure database structure has not changed!', false)
     .action(async (options) => {
       let awaits
-      if (options.nomigrations){
-        //only running prep
-        awaits = [handlePrep()]
-      } else {
-        //running prep and updated DB
-        awaits = [handlePrep(), handleUpdateDB()];
+      try{
+        if (options.nomigrations){
+          //only running prep
+          awaits = [handlePrep()]
+        } else {
+          //running prep and updated DB
+          awaits = [handlePrep(), handleUpdateDB()];
+        }
+      } catch (e) {
+        console.error(e)
+        process.exit();
       }
       return await Promise.all(awaits);
     })
