@@ -113,6 +113,26 @@ export default async (experimentsDir, coreDir) => {
 
   console.log("package manager: ",pacMan);
 
+  const cleanWeb = async (coreDir) => {
+    console.log(`resetting experiments.js`); 
+    const webPageAttachListFile = path.join(coreDir, 'front-end/src/experiments.js');
+    let cleanedWeb
+    try {
+      cleanedWeb = fs.promises.writeFile(path.join(coreDir, 'front-end/src/experiments.js'), `[]`, 'utf8')      
+    } catch (e) {
+      console.error('Problem overwriting experiments.js')
+      throw e
+    }
+    return cleanedWeb;
+  }
+
+  let cleanedWeb
+  try {
+    cleanedWeb = cleanWeb(coreDir);
+  } catch (e) {
+    throw e
+  }
+
   const prepAPIWrapper = (exp) => {
     console.log(`Started prepping API for`, exp);
     return new Promise((resolve, reject) => {
@@ -244,15 +264,15 @@ export default async (experimentsDir, coreDir) => {
   }
 
 
-const tempAwait = await Promise.all([webPageIncludes, preppedAPI])
+const tempAwait = await Promise.all([webPageIncludes, preppedAPI, cleanedWeb])
 
   // Deal with Web page includes
-  let finalWebPages = tempAwait[1]
+  let finalWebPages = tempAwait[0]
   let top
   let bottom
   let toWrite
   try {
-console.log("Writing out experiments.js")
+    console.log("Writing out experiments.js")
     top = finalWebPages.map((include) => {return `import ${include.moduleName} from '${include.moduleName}';\n`})
     top = top.join('')
     bottom = finalWebPages.map((include) => {return `${include.listAppendix}\n`}).join(',')

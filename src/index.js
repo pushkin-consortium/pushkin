@@ -212,7 +212,7 @@ async function main() {
       moveToProjectRoot();
       if (options.nocache){
         try {
-          await compose.buildAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: true, commandOptions: ["--no-cache"]})    
+          await compose.buildAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: true, commandOptions: ["--no-cache", "--remove-orphans"]})    
         } catch (e) {
           console.error("Problem rebuilding docker images");
           throw e;
