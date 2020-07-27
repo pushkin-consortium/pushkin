@@ -6,14 +6,3 @@
 Pushkin's documentation has moved!
 ===================================
 Please visit https://languagelearninglab.gitbook.io/pushkin/ to see the latest documentation.
-
-.. toctree::
-   :maxdepth: 2
-   :caption: 
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`search`
