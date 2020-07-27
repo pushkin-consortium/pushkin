@@ -115,10 +115,10 @@ export default async (experimentsDir, coreDir) => {
 
   const cleanWeb = async (coreDir) => {
     console.log(`resetting experiments.js`); 
-    const webPageAttachListFile = path.join(coreDir, 'front-end/src/experiments.js');
+    const webPageAttachListFile = path.join(coreDir, 'front-end/experiments.js');
     let cleanedWeb
     try {
-      cleanedWeb = fs.promises.writeFile(path.join(coreDir, 'front-end/src/experiments.js'), `[]`, 'utf8')      
+      cleanedWeb = fs.promises.writeFile(path.join(coreDir, 'front-end/experiments.js'), `[]`, 'utf8')      
     } catch (e) {
       console.error('Problem overwriting experiments.js')
       throw e
@@ -277,7 +277,7 @@ const tempAwait = await Promise.all([webPageIncludes, preppedAPI, cleanedWeb])
     top = top.join('')
     bottom = finalWebPages.map((include) => {return `${include.listAppendix}\n`}).join(',')
     toWrite = top.concat(`export default [\n`).concat(bottom).concat(`];`)
-    fs.writeFileSync(path.join(coreDir, 'front-end/src/experiments.js'), toWrite, 'utf8')
+    fs.writeFileSync(path.join(coreDir, 'front-end/experiments.js'), toWrite, 'utf8')
   } catch (e) { 
     console.error('Failed to include web pages in front end');
     throw e; 
