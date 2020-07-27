@@ -184,7 +184,7 @@ const initExperiment = async (expDir, expName, longName, rootDir) => {
     console.error("There is already an API controller by the name of ", expName)
     throw new Error("Problem adding API controller to controller list.")
   }
-  controllersJsonFile[contName] = "api/".concat(contName)
+  controllersJsonFile[contName] = "api/".concat(expName)
   try {
    fs.writeFileSync(path.join(rootDir, 'pushkin/api/src/controllers.json'), JSON.stringify(controllersJsonFile), 'utf8')
   } catch (e) {

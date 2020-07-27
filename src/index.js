@@ -212,18 +212,18 @@ async function main() {
       moveToProjectRoot();
       if (options.nocache){
         try {
-          await compose.buildAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: true, commandOptions: ["--no-cache", "--remove-orphans"]})    
+          await compose.buildAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: true, commandOptions: ["--no-cache"]})    
         } catch (e) {
           console.error("Problem rebuilding docker images");
           throw e;
         }
-        compose.upAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: true})
+        compose.upAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: true, commandOptions: ["--remove-orphans"]})
           .then(
             out => { console.log(out.out, 'Starting. You may not be able to load localhost for a minute or two.')},
             err => { console.log('something went wrong:', err.message)}
           );
       } else {
-        compose.upAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: true, commandOptions: ["--build"]})
+        compose.upAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: true, commandOptions: ["--build","--remove-orphans"]})
           .then(
             out => { console.log(out.out, 'Starting. You may not be able to load localhost for a minute or two.')},
             err => { console.log('something went wrong:', err.message)}
