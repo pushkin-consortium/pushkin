@@ -24,9 +24,8 @@ First, ensure that you have curl installed, as this will be necessary to downloa
 $ sudo apt update
 $ sudo apt install curl
 ```
- 
-![](../../.gitbook/assets/ubuntu1.gif)
 
+![](../../.gitbook/assets/ubuntu1.gif)
 
 ### Install Node.js
 
@@ -36,6 +35,7 @@ To install the latest version of Node.js , follow [these instructions at NodeSou
 $ curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
 $ sudo apt install -y nodejs
 ```
+
 ![](../../.gitbook/assets/ubuntu2.gif)
 
 ### Install and configure Yarn
@@ -47,6 +47,7 @@ $ curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
 $ echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
 $ sudo apt update && sudo apt install yarn
 ```
+
 ![](../../.gitbook/assets/ubuntu3.gif)
 
 To allow Yarn to install pushkin-cli globally, run the following steps, based on [this StackExchange solution](https://stackoverflow.com/a/53879534).
@@ -58,6 +59,7 @@ $ yarn config set prefix ~/.yarn
 $ echo 'export PATH="$PATH:`yarn global bin`"' >> ~/.bashrc
 $ source ~/.bashrc
 ```
+
 ![](../../.gitbook/assets/ubuntu4.gif)
 
 ### Install pushkin-cli
@@ -67,6 +69,7 @@ Next, install the pushkin-cli package globally.
 ```bash
 $ yarn global add pushkin-cli
 ```
+
 ![](../../.gitbook/assets/ubuntu5.gif)
 
 Confirm that pushkin-cli is installed by running:
@@ -78,7 +81,6 @@ $ pushkin --help
 You should get a list of commands with some documentation for each.
 
 ![](../../.gitbook/assets/ubuntu6.gif)
-
 
 ### Install and configure Docker Engine
 
@@ -157,7 +159,7 @@ $ docker-compose --version
 
 ![](../../.gitbook/assets/ubuntu12.gif)
 
-
 ### Next steps
 
 Great! You're all done. Head over [here](../quickstart.md) to build a basic Pushkin site and experiment.
+

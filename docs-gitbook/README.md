@@ -5,7 +5,7 @@
 ## Table of contents
 
 * Getting Started
-  * [Installing Pushkin and dependencies](getting-started/installing-pushkin-and-dependencies/README.md)
+  * [Installing Pushkin and dependencies](getting-started/installing-pushkin-and-dependencies/)
     * [macOS](getting-started/installing-pushkin-and-dependencies/macos-install.md)
     * [Windows 10](getting-started/installing-pushkin-and-dependencies/windows-install.md)
     * [Ubuntu Linux](getting-started/installing-pushkin-and-dependencies/ubuntu-install.md)
@@ -56,6 +56,4 @@
   * [About Page](advanced/modifying-site-template/about-page.md)
   * [Feedback Page](advanced/modifying-site-template/feedback-page.md)
 * [Testing Pushkin with Jest](advanced/testing-pushkin-with-jest.md)
-
-
 
