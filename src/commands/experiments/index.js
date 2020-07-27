@@ -16,15 +16,8 @@ import pacMan from '../../pMan.js'; //which package manager is available?
 // This may be overly restrictive in some cases
 const isValidExpName = (name) => (/^([a-zA-Z])([a-zA-Z0-9_])*$/.test(name));
 
-export function listExpTemplates() {
-    return new Promise((resolve, reject) => {
-    try { 
-      resolve(templates.map((t) => (t.name)));
-    } catch (e) { 
-      console.error(`Something is wrong with experiments/templates.js, error: ${e}`); 
-      process.exit(); 
-    }
-  })
+export async function listExpTemplates() {
+  return templates
 }
 
 
@@ -58,7 +51,7 @@ const promiseExpFolderInit = async (initDir, dir, rootDir, modName, buildPath) =
   })
 }
 
-export async function getExpTemplate(experimentsDir, templateName, longName, newExpName, rootDir) {
+export async function getExpTemplate(experimentsDir, url, longName, newExpName, rootDir) {
   if (!isValidExpName(newExpName)) {
     console.error(`'${newExpName}' is not a valid name. Names must start with a letter and can only contain alphanumeric characters.`);
     return;
@@ -71,26 +64,26 @@ export async function getExpTemplate(experimentsDir, templateName, longName, new
   }
 
   // download files
-  let url;
-  for (const val in templates) {
-    if (templates[val].name == templateName) {
-      url = templates[val].url;
-    }
-  }
   if (!url) {
-    console.error('Unable to download from specified site. Make sure your internet is on. If it is on but this error repeats, ask for help on the Pushkin forum.');
+    console.error('Problem with URL for download.');
     return;
   }
   fs.mkdirSync(newDir);
   console.log(`retrieving from ${url}`);
   console.log('be patient...');
-  let zipball_url;
+  let response
   try {
-    const response = await got(url);
-    zipball_url = JSON.parse(response.body).assets[0].browser_download_url;
+    response = await got(url);
   } catch (error) {
-    console.log(error.response.body);
-    throw new Error('Problem parsing github JSON');
+    console.error('Unable to download from specified site. Make sure your internet is on. If it is on but this error repeats, ask for help on the Pushkin forum.');
+    throw error
+  }
+  let zipball_url
+  try {
+    zipball_url = JSON.parse(response.body).assets[0].browser_download_url;
+  } catch(e) {
+    console.error('Problem parsing github JSON');
+    throw e
   }
   sa
     .get(zipball_url)
@@ -184,7 +177,7 @@ const initExperiment = async (expDir, expName, longName, rootDir) => {
     console.error("There is already an API controller by the name of ", expName)
     throw new Error("Problem adding API controller to controller list.")
   }
-  controllersJsonFile[contName] = "api/".concat(expName)
+  controllersJsonFile[contName] = expName
   try {
    fs.writeFileSync(path.join(rootDir, 'pushkin/api/src/controllers.json'), JSON.stringify(controllersJsonFile), 'utf8')
   } catch (e) {

@@ -15,6 +15,7 @@ import setupdb from './commands/setupdb/index.js';
 import * as compose from 'docker-compose'
 import { Command } from 'commander'
 import inquirer from 'inquirer'
+import got from 'got';
 const version = require("../package.json").version
 
 
@@ -91,30 +92,70 @@ const handlePrep = async () => {
   return;  
 }
 
+const getVersions = async (url) => {
+  console.log(url)
+  let response
+  let body
+  let verList = {}
+  try {
+    const response = await got(url);
+    body = JSON.parse(response.body)
+    console.log(url)
+    body.forEach((r) => {
+      verList[r.tag_name] = r.url;
+    })
+  } catch (error) {
+    console.error('Problem parsing github JSON');
+    throw error;
+  }
+  return verList
+}
+
 const handleInstall = async (what) => {
-  if (what == 'site'){
-    const siteList = await listSiteTemplates();
-    inquirer
-      .prompt([
-        { type: 'list', name: 'sites', choices: siteList, default: 0, message: 'Which site template do you want to use?'}
-        ]).then(answers => getPushkinSite(process.cwd(),answers.sites))
-  } else {
-    //definitely experiment then
-    moveToProjectRoot()
-    const expList = await listExpTemplates();
-    inquirer.prompt([
-        { type: 'list', name: 'experiments', choices: expList, default: 0, message: 'Which site template do you want to use?'}
+  try {
+    if (what == 'site') {
+      const siteList = await listSiteTemplates();
+      inquirer.prompt([
+          { type: 'list', name: 'sites', choices: Object.keys(siteList), default: 0, message: 'Which site template do you want to use?'}
         ]).then(answers => {
-          let expType = answers.experiments
-          inquirer.prompt([
-            { type: 'input', name: 'name', message: 'What do you want to call your experiment?'}]).then(async (answers) => {
-              const longName = answers.name
-              const shortName = longName.replace(/[^\w\s]/g, "").replace(/ /g,"_");
-              let config = await loadConfig('pushkin.yaml');
-              getExpTemplate(path.join(process.cwd(), config.experimentsDir), expType, longName, shortName, process.cwd())
+          let siteType = answers.sites
+          getVersions(siteList[siteType])
+          .then((verList) => {
+            inquirer.prompt(
+              [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version? (Recommend:'.concat(Object.keys(verList)[0]).concat(')')}]
+            ).then(answers => getPushkinSite(process.cwd(),verList[answers.version]))
+          })
+        })
+    } else {
+      //definitely experiment then
+      moveToProjectRoot()
+      const expList = await listExpTemplates();
+      inquirer.prompt(
+        [{ type: 'list', name: 'experiments', choices: Object.keys(expList), default: 0, message: 'Which site template do you want to use?'}]
+      ).then(answers => {
+        let expType = answers.experiments
+        getVersions(expList[expType])
+        .then((verList) => {
+          inquirer.prompt(
+            [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version? (Recommend:'.concat(Object.keys(verList)[0]).concat(')')}]
+          ).then(answers => {
+            let ver = answers.version
+            const url = verList[ver]
+            inquirer.prompt(
+              [{ type: 'input', name: 'name', message: 'What do you want to call your experiment?'}]
+            ).then(async (answers) => {
+                const longName = answers.name
+                const shortName = longName.replace(/[^\w\s]/g, "").replace(/ /g,"_");
+                let config = await loadConfig('pushkin.yaml');
+                getExpTemplate(path.join(process.cwd(), config.experimentsDir), url, longName, shortName, process.cwd())
             })
+          })
+        })
       })
-  } 
+    }
+  } catch(e) {
+    throw e
+  }
 }
 
 const killLocal = async () => {

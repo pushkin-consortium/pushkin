@@ -1,3 +1,3 @@
-export const templates = [
-  { name: 'default', url: 'https://api.github.com/repos/pushkin-consortium/pushkin-sitetemplates-default/releases/latest' },
-];
+export const templates = {
+   'default':'https://api.github.com/repos/pushkin-consortium/pushkin-sitetemplates-default/releases'
+};

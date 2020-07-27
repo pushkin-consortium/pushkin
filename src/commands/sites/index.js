@@ -13,14 +13,7 @@ import pacMan from '../../pMan.js';  //which package manager is available?
 
 
 export function listSiteTemplates() {
-    return new Promise((resolve, reject) => {
-    try { 
-      resolve(templates.map((t) => (t.name)));
-    } catch (e) { 
-      console.error(`Something is wrong with sites/templates.js, error: ${e}`); 
-      process.exit(); 
-    }
-  })
+  return templates;
 }
 
 export const promiseFolderInit = async (initDir, dir) => {
@@ -43,7 +36,7 @@ export const promiseFolderInit = async (initDir, dir) => {
   })
 }
 
-export async function getPushkinSite(initDir, templateName) {
+export async function getPushkinSite(initDir, url) {
   process.chdir(initDir); // Node command to change directory
 
   const newDirs = ['pushkin', 'experiments'];
@@ -60,26 +53,21 @@ export async function getPushkinSite(initDir, templateName) {
   });
 
   // download files
-  let url;
-  for (const val in templates) {
-    if (templates[val].name == templateName) {
-      url = templates[val].url;
-    }
-  }
   if (!url) {
-    console.error('Unable to download from specified site. Make sure your internet is on. If it is on but this error repeats, ask for help on the Pushkin forum.');
+    console.error('URL is not well-defined.');
     return;
   }
   console.log(`retrieving from ${url}`);
   console.log('be patient...');
   let zipball_url;
+  let response
   try {
-    const response = await got(url);
+    response = await got(url);
     zipball_url = JSON.parse(response.body).assets[0].browser_download_url;
     console.log(zipball_url)
   } catch (error) {
-    console.error('Problem parsing github JSON',error);
-    throw new Error(error);
+    console.error('Unable to download from specified site. Make sure your internet is on. If it is on but this error repeats, ask for help on the Pushkin forum.');
+    throw error;
   }
   sa
     .get(zipball_url)
