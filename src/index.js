@@ -251,6 +251,12 @@ async function main() {
     .option('-nc, --nocache', 'Rebuild all images from scratch, without using the cache.', false)
     .action(async (options) => {
       moveToProjectRoot();
+      try {
+        fs.copyFileSync('pushkin/front-end/src/experiments.js', 'pushkin/front-end/experiments.js');
+      } catch (e) {
+        console.error("Couldn't copy experiments.js. Make sure it exists and is in the right place.")
+        process.exit();
+      }
       if (options.nocache){
         try {
           await compose.buildAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: true, commandOptions: ["--no-cache"]})    
@@ -260,7 +266,9 @@ async function main() {
         }
         compose.upAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: true, commandOptions: ["--remove-orphans"]})
           .then(
-            out => { console.log(out.out, 'Starting. You may not be able to load localhost for a minute or two.')},
+            out => { 
+              console.log(out.out, 'Starting. You may not be able to load localhost for a minute or two.')
+            },
             err => { console.log('something went wrong:', err.message)}
           );
       } else {

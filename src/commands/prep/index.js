@@ -115,6 +115,12 @@ export default async (experimentsDir, coreDir) => {
 
   const cleanWeb = async (coreDir) => {
     console.log(`resetting experiments.js`); 
+    try {
+      fs.unlink(path.join(coreDir, 'front-end/experiments.js'));
+    } catch (e) {
+      //These extra experiments.js files are created when doing a local test deploy
+      //If it doesn't exist, that's just fine
+    }
     const webPageAttachListFile = path.join(coreDir, 'front-end/src/experiments.js');
     let cleanedWeb
     try {
