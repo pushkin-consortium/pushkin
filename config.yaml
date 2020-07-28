@@ -1,9 +1,9 @@
 experimentName: &fullName 'pushkintemplate'
 shortName: &shortName 'pushkintemplate' # This should be unique as its used for urls, etc.
 apiControllers: # The default export from each of these locations will be attached to a pushkin API
-  - mountPath: *shortName
-    location: 'api controllers'
-    name: 'mycontroller'
+  mountPath: *shortName
+  location: 'api controllers'
+  name: 'mycontroller'
 worker:
   location: 'worker'
   service: # what to add as a service in main compose file

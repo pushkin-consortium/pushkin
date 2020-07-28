@@ -3,6 +3,8 @@
    Created by Josh de Leeuw
    Adapted by Constance Bainbridge
  */
+import jsPsych from 'pushkin-jspsych';
+
 
 jsPsych.plugins["moving-window"] = (function () {
 
