@@ -4,5 +4,5 @@
    contain the root `toctree` directive.
 
 Pushkin's documentation has moved!
-===================================	===================================
+===================================
 Please visit https://languagelearninglab.gitbook.io/pushkin/ to see the latest documentation.
