@@ -20,7 +20,7 @@ export const promiseFolderInit = async (initDir, dir) => {
   return new Promise ((resolve, reject) => {
     console.log(`Installing dependencies for ${dir}`);
     try {
-      exec(pacMan.concat(' install'), { cwd: path.join(initDir, dir) })
+      exec(pacMan.concat(' install --mutex network'), { cwd: path.join(initDir, dir) })
         .then(() => {
           console.log(`Building ${dir}`);
           exec(pacMan.concat(' run build'), { cwd: path.join(initDir, dir) })

@@ -29,7 +29,7 @@ const publishLocalPackage = async (modDir, modName) => {
     }
     console.log(`Installing dependencies for ${modDir}`);
     try {
-      exec(pacMan.concat(' install'), { cwd: modDir })
+      exec(pacMan.concat(' install --mutex network'), { cwd: modDir })
         .then(() => {
           console.log(`Building ${modName} from ${modDir}`);
           exec(buildCmd, { cwd: modDir })
@@ -116,10 +116,14 @@ export default async (experimentsDir, coreDir) => {
   const cleanWeb = async (coreDir) => {
     console.log(`resetting experiments.js`); 
     try {
-      fs.unlink(path.join(coreDir, 'front-end/experiments.js'));
+      if (fs.existsSync(path.join(coreDir, 'front-end/experiments.js'))) {
+        //These extra experiments.js files are created when doing a local test deploy
+        //If it doesn't exist, that's just fine
+        fs.unlinkSync(path.join(coreDir, 'front-end/experiments.js'));
+        console.log("Cleaned up front-end/experiments.js")        
+      }
     } catch (e) {
-      //These extra experiments.js files are created when doing a local test deploy
-      //If it doesn't exist, that's just fine
+      console.error(e)
     }
     const webPageAttachListFile = path.join(coreDir, 'front-end/src/experiments.js');
     let cleanedWeb
@@ -182,11 +186,6 @@ export default async (experimentsDir, coreDir) => {
       throw e
     }
     try {
-      if (pacMan == 'yarn') {
-        await exec(pacMan.concat(' add ./tempPackages/*'), {cwd: where})
-      } else {
-        await exec(pacMan.concat(' install ./tempPackages/*'), {cwd: where})        
-      }
       if (packageJson.dependencies['build-if-changed'] == null) {
         console.log(where, " does not have build-if-changed installed. Recommend installation for faster runs of prep.")
         execSync(pacMan.concat(' run build'), { cwd: where })
