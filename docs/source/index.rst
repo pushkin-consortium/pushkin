@@ -3,27 +3,6 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Pushkin's documentation! (TEST)
-===================================
-"Getting Started" will get a very simple demo site up and running. The remaining pages explain how to customize your website. Instructions are geared towards someone who has at least some familiarity with javascript and react. Sections intended for more experienced programmers who need to understand the guts of Pushkin are labeled "DEV".
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-
-   quickstart/index
-   development/development
-   cli/pushkin_cli
-   experiments/experiment_structure
-   client/pushkin_client
-   api/pushkin_api
-   usernames/index
-   sitetemplate/index
-   testing/testing
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`search`
+Pushkin's documentation has moved!
+===================================	===================================
+Please visit https://languagelearninglab.gitbook.io/pushkin/ to see the latest documentation.
