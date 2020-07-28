@@ -28,9 +28,9 @@ $ brew install yarn
 
 ![](../../.gitbook/assets/ezgif.com-video-to-gif-2-%20%281%29.gif)
 
-### Install yalc
+### Install Yalc
 
-Install yalc.
+Install Yalc globally.
 
 ```bash
 $ yarn global add yalc
@@ -40,7 +40,7 @@ $ yarn global add yalc
 
 ### Install pushkin-cli
 
-Install the pushkin-cli package globally.
+Install pushkin-cli package globally.
 
 ```bash
 $ yarn global add pushkin-cli

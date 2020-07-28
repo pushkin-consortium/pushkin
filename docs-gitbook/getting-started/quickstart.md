@@ -17,9 +17,9 @@ description: Start here to build a basic Pushkin site and experiment.
 
 ### Creating a basic new Pushkin site
 
-Make sure Docker is running by running the command `docker info`; if it is not, you can run `dockerd` or `sudo dockerd` to start it.
+Make sure Docker is running by running the command `docker info`; if it isn't, you can run `dockerd` or `sudo dockerd` to start it.
 
-Then, if it is not open already, open a terminal window. Then you can create an empty directory called `pushkin_quickstart` \(although in principle it could have any name\) and move to this directory using the following commands:
+Open a terminal window. Create an empty directory (e.g., `pushkin_quickstart`) and enter this directory using the following commands:
 
 ```bash
 $ mkdir pushkin_quickstart
@@ -28,7 +28,7 @@ $ cd pushkin_quickstart/
 
 \(For more on basic terminal commands, you can check out [this blog post](https://medium.com/@grace.m.nolan/terminal-for-beginners-e492ba10902a).\)
 
-You will be installing your first pushkin site the in the directory you just created.
+Install your first pushkin site the in the directory you just created:
 
 ```bash
 $ pushkin install site
@@ -36,7 +36,7 @@ $ pushkin install site
 
 You will be asked to select a site template to use. Choose ‘default’.
 
-This sets up a skeleton website in the current folder and sets up a development database. Once that finishes, you should have a directory tree that looks something like this:
+This sets up a skeleton website in the current folder and a development database. Once the command finishes, you should have a directory tree like this:
 
 ```text
 ├── experiments
@@ -48,7 +48,7 @@ This sets up a skeleton website in the current folder and sets up a development 
 └── pushkin.yaml
 ```
 
-Most of the stuff in the pushkin folder won’t need to be edited at all, with the exception of the website \(in the front-end folder\).
+The files in the `pushkin` folder won’t need to be edited at all except those in the `front-end` folder.
 
 ### Making an experiment
 
@@ -86,7 +86,7 @@ This will create a new folder in the experiments directory like this:
     └── worker
 ```
 
-Each experiment has its own folder containing files specific to that experiment. Within this folder, each experiment also has a configuration file \(`config.yaml`\) that allows you to define a human-readable full name for the experiment \(e.g., _Which English?_ for `whichenglish`\), specify a database to use, and make other customizations.
+Each experiment has its own folder. Within this experiment-specific folder, there is also configuration file \(`config.yaml`\), which allows you to define a human-readable full name for the experiment \(e.g., _Which English?_ for `whichenglish`\), specify a database to use, and make other customizations.
 
 Keeping all the files for an experiment within the same root folder is convenient for development, but not for actually deploying the website. To redistribute the experiment files to the right places, run:
 
@@ -103,14 +103,19 @@ useForum: false,
 useAuth: false,
 ```
 
-By default, Pushkin authenticates users using [Auth0](http://auth0.com/). This provides many features and better security than could be managed otherwise. It is free for open source projects \(contact [sales@auth0.com](mailto:sales%40auth0.com)\); otherwise it can be fairly pricey if you are hoping for a lot of users. To set up Auth0, use the following directions. \(Note that at some point, Auth0 will change up their website and these instructions may get out of date.\)
+By default, Pushkin authenticates users using [Auth0](https://auth0.com/). This provides more features and better security than could be managed otherwise. It is free for open source projects \(contact [sales@auth0.com](mailto:sales%40auth0.com)\); otherwise it can be expensive if you are hoping for a lot of users. To set up Auth0, use the following directions. \(Note that at some point, Auth0 will change up their website and these instructions may get out of date.\)
 
 1. Go to auth0.com and create an Auth0 account.
 2. Go to the _Applications_ section of the Auth0 dashboard and click _Create Application_.
 3. Give your application and a name. Select _Single Page Web App_ as your application type. Click _Create_.
 4. Choose the _Settings_ tab. In _Allowed Callback URLs_, add `http://localhost/`. In _Allowed Logout URLs_, add `http://localhost`. In _Allowed Web Origins_, also add `http://localhost`. Click the _Save Changes_ button.
 
-Note that these URLs are used for development. When you launch the live version of your website, you will need to add your public URLs. Repeat the instructions above, replacing [http://localhost](http://localhost) with [https://YOUR-WEBSITE](https://YOUR-WEBSITE). For instance, for gameswithwords, the urls are `https://gameswithwords.org` and `https://gameswithwords/callback`.
+Note that these URLs are used for development. When you launch the live version of your website, you will need to add your public URLs. Repeat the instructions above, replacing [http://localhost](http://localhost) with [https://YOUR-WEBSITE](https://YOUR-WEBSITE). For instance, for gameswithwords, the URLs are `https://gameswithwords.org` and `https://gameswithwords/callback`.
+
+If you are using an AWS EC2 instance, navigate to the IPv4 Public IP of your instance instead of localhost. This can be found in the AWS EC2 console.
+
+![](../.gitbook/assets/38.gif)
+
 
 On the settings page, you will see a `Domain` \(something like `gameswithwords.auth0.com`\) and a `Client ID`. Edit `config.js` to match:
 
@@ -119,7 +124,7 @@ authDomain: '<YOUR_AUTH0_DOMAIN>',
 authClientID: '<YOUR_AUTH0_CLIENT_ID>',
 ```
 
-Finally, run `pushkin prep` again since you have made a change to your code.
+Run `pushkin prep` again since you have made a change to your code.
 
 ### Local testing
 
@@ -150,5 +155,5 @@ $ pushkin start
 
 ### Starting over
 
-The great thing about Docker is that it saves your work. \(Read up on Docker to see what I mean.\) The bad thing is that it saves your work. Simply editing your code locally may not change what Docker thinks the code is. So if you are updating something but it’s not showing up in your website or if you are getting error messages from Docker … ideally, you should read up on Docker. However, as a fail-safe, run pushkin kill to delete all your pushkin-specific code in Docker. Then just run pushkin prep again. This will take a while, but should address any Docker-specific problems. If you really need a fresh Docker install, run pushkin armageddon, which will completely clean Docker.
+The great thing about Docker is that it saves your work. \(Read up on Docker to see what I mean.\) The bad thing is that it saves your work. Simply editing your code locally may not change what Docker thinks the code is. If you are updating something but it’s not showing up in your website or if you are getting error messages from Docker … ideally, you should read up on Docker. However, as a fail-safe, run `pushkin kill` to delete all your Pushkin-specific code in Docker. Then just run `pushkin prep` again. This will take a while but should address any Docker-specific problems. If you really need a fresh Docker install, run `pushkin armageddon`, which will completely clean Docker.
 

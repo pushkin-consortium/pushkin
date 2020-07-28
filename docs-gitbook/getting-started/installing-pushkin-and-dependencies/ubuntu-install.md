@@ -4,13 +4,14 @@ description: Start here to build install Pushkin and its dependencies on Ubuntu 
 
 # Ubuntu Linux
 
-These instructions were created using Ubuntu 18.04 and the apt package manager but should generalize to other Linux distributions and package managers.
+These instructions were created using Ubuntu 18.04 and the apt package manager. They should generalize to other Linux distributions and package managers, however.
 
 ## Skip to section
 
 * [Install curl](ubuntu-install.md#install-curl)
 * [Install Node.js](ubuntu-install.md#install-nodejs)
 * [Install and configure Yarn](ubuntu-install.md#install-and-configure-yarn)
+* [Install Yalc](ubuntu-install.md#install-yalc)
 * [Install pushkin-cli](ubuntu-install.md#install-pushkin-cli)
 * [Install and configure Docker Engine](ubuntu-install.md#install-and-configure-docker-engine)
 * [Install and configure Docker Compose](ubuntu-install.md#install-and-configure-docker-compose)
@@ -18,7 +19,7 @@ These instructions were created using Ubuntu 18.04 and the apt package manager b
 
 ### Install curl
 
-First, ensure that you have curl installed, as this will be necessary to download Node. If it is not installed, it can be installed using the following commands:
+First, ensure that you have curl installed, as this will be necessary to download Node.js. If it isn't installed, you can install it using the following commands:
 
 ```bash
 $ sudo apt update
@@ -29,7 +30,7 @@ $ sudo apt install curl
 
 ### Install Node.js
 
-To install the latest version of Node.js , follow [these instructions at NodeSource](https://github.com/nodesource/distributions/blob/master/README.md#installation-instructions). The instructions are copied below for convenience, but it is best to follow the link in case their instructions change in the future.
+To install the latest version of Node.js , follow [these instructions at NodeSource](https://github.com/nodesource/distributions/blob/master/README.md#installation-instructions). They are copied below for your convenience, but you should follow the link in case their instructions have changed.
 
 ```bash
 $ curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
@@ -50,7 +51,7 @@ $ sudo apt update && sudo apt install yarn
 
 ![](../../.gitbook/assets/ubuntu3.gif)
 
-To allow Yarn to install pushkin-cli globally, run the following steps, based on [this StackExchange solution](https://stackoverflow.com/a/53879534).
+To allow Yarn to install pushkin-cli globally, run the following steps, based on [this Stack Overflow solution](https://stackoverflow.com/questions/40317578/yarn-global-command-not-working/53879534#53879534).
 
 Run the following:
 
@@ -61,6 +62,15 @@ $ source ~/.bashrc
 ```
 
 ![](../../.gitbook/assets/ubuntu4.gif)
+
+### Install Yalc
+
+Install Yalc globally.
+
+```bash
+$ yarn global add yalc
+```
+![](../../.gitbook/assets/ubuntu13.gif)
 
 ### Install pushkin-cli
 
@@ -121,7 +131,7 @@ $ sudo apt install docker-ce docker-ce-cli containerd.io
 
 ![](../../.gitbook/assets/ubuntu9.gif)
 
-Check that Docker Engine has been installed correctly by running:
+Check that Docker Engine is installed correctly by running:
 
 ```bash
 $ sudo docker run hello-world
@@ -136,7 +146,7 @@ This message shows that your installation appears to be working correctly.
 
 ![](../../.gitbook/assets/ubuntu10.gif)
 
-Next, follow [these post-installation instructions](https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user) \(copied below for convenience\) to manage Docker as a non-root user. \(The rest of the post-installation instructions can be ignored.\)
+Next, follow [these post-installation instructions](https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user) \(copied below for convenience\) to manage Docker as a non-root user. \(You can ignore the rest of the post-installation instructions.\)
 
 ```bash
 $ sudo groupadd docker
@@ -149,7 +159,7 @@ $ docker run hello-world
 
 ### Install and configure Docker Compose
 
-Finally, follow [these instructions](https://docs.docker.com/compose/install/#install-compose-on-linux-systems) \(copied below for convenience\) to install Docker Compose.
+Follow [these instructions](https://docs.docker.com/compose/install/#install-compose-on-linux-systems) \(copied below for convenience\) to install Docker Compose.
 
 ```bash
 $ sudo curl -L "https://github.com/docker/compose/releases/download/1.26.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
