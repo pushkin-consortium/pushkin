@@ -112,7 +112,7 @@ By default, Pushkin authenticates users using [Auth0](https://auth0.com/). This 
 
 Note that these URLs are used for development. When you launch the live version of your website, you will need to add your public URLs. Repeat the instructions above, replacing [http://localhost](http://localhost) with [https://YOUR-WEBSITE](https://YOUR-WEBSITE). For instance, for gameswithwords, the URLs are `https://gameswithwords.org` and `https://gameswithwords/callback`.
 
-If you are using an AWS EC2 instance, navigate to the IPv4 Public IP of your instance instead of localhost. This can be found in the AWS EC2 console.
+If you are using an AWS EC2 instance, navigate to the IPv4 Public IP address of your instance instead of `http://localhost`. This can be found in the AWS EC2 console.
 
 ![](../.gitbook/assets/38.gif)
 
@@ -134,7 +134,7 @@ Now, let’s look at your website! Make sure Docker is running by running the co
 $ pushkin start;
 ```
 
-Now browse to `http://localhost` to see the stub website.
+Now browse to `http://localhost` (or your IPv4 Public IP address) to see the stub website.
 
 When you are done looking at your website, stop it by running:
 

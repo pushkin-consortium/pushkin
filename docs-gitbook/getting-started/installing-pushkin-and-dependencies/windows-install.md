@@ -153,13 +153,13 @@ Use the UP arrow key to select `install the package maintainer's version` and pr
 
 ### Managing your AWS instance
 
-## Remember to stop your instance
+#### Remember to stop your instance
 
 To avoid incurring charges on AWS's Free Tier, always shut down your AWS EC2 instance when you're done using it. To do this, go to the AWS EC2 console, right-click on your instance, expand *Instance State*, and select **Stop**. When a dialog box appears, click **Yes, Stop**. 
 
 ![](../../.gitbook/assets/33.gif)
 
-## How to restart your instance
+#### How to restart your instance
 To restart your instance, go to the AWS EC2 console, right-click on your instance, expand *Instance State*, and select **Start**. 
 
 ![](../../.gitbook/assets/32.gif)
