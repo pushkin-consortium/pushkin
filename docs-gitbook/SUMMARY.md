@@ -32,7 +32,10 @@
   * [Findings Page](advanced/modifying-site-template/findings-page.md)
   * [About Page](advanced/modifying-site-template/about-page.md)
   * [Feedback Page](advanced/modifying-site-template/feedback-page.md)
-* [Modifying Experiment Templates](advanced/modifying-experiment-templates.md)
+* [Modifying Experiment Templates](advanced/modifying-experiment-templates/README.md)
+  * [Lexical decision template](advanced/modifying-experiment-templates/lexical-decision-template.md)
+  * [Grammaticality judgement template](advanced/modifying-experiment-templates/grammaticality-judgement-template.md)
+  * [Self-paced reading template](advanced/modifying-experiment-templates/self-paced-reading-template.md)
 * [Testing Pushkin with Jest](advanced/testing-pushkin-with-jest.md)
 
 ## Developers
