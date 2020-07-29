@@ -1,4 +1,4 @@
 # Deploying to AWS
 
-{PLACEHOLDER}
+Coming soon!
 
