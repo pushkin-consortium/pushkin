@@ -1,5 +1,11 @@
 # Modifying Experiment Templates
 
+## Skip to section
+
+* [Current templates](./#current-templates)
+* [General settings and editing content](./#general-settings-and-editing-content)
+* [Adding custom jsPsych plugins](./#adding-custom-jspsych-plugins)
+
 To install an experiment template, type in the following command, then select the desired template when prompted. Typically, you will want to select the most recent version.
 
 ```bash
@@ -41,4 +47,12 @@ Add text to this file that you want on your consent page.
 ### debrief.js
 
 Add text to this file for debrief information at the end of the experiment.
+
+## Adding custom jsPsych plugins
+
+The native jsPsych plugins currently get added to the index.js of an experiment, accessing the files on CDN online. If you build a custom plugin, you will need to:
+
+1. Add the plugin file to the `web page/src` folder of the experiment
+2. Import jsPsych into the top of the custom plugin file like so: `import jsPsych from 'pushkin-jspsych';`
+3. Add the plugin towards the top of your experiment.js file like so: `require("./jspsych-moving-window.js");`
 
