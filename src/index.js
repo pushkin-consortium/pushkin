@@ -15,6 +15,7 @@ import setupdb from './commands/setupdb/index.js';
 import * as compose from 'docker-compose'
 import { Command } from 'commander'
 import inquirer from 'inquirer'
+import got from 'got';
 const version = require("../package.json").version
 
 
@@ -58,9 +59,21 @@ const handleViewConfig = async (what) => {
 
 const handleUpdateDB = async () => {
   moveToProjectRoot();
-  const config = await loadConfig(path.join(process.cwd(), 'pushkin.yaml'));
-  console.log('loaded Pushkin config file')
-  return await setupdb(config.databases, path.join(process.cwd(), config.experimentsDir));
+  let settingUpDB, config;
+  try {
+     config = await loadConfig(path.join(process.cwd(), 'pushkin.yaml'));
+  } catch (err) {
+    console.log('Could not load pushkin.yaml');
+    throw err
+  }
+
+  try {
+    settingUpDB = await setupdb(config.databases, path.join(process.cwd(), config.experimentsDir));
+  } catch (err) {
+    console.error(err);
+    process.exit();
+  }
+  return settingUpDB;
 }
 
 const handlePrep = async () => {
@@ -79,30 +92,70 @@ const handlePrep = async () => {
   return;  
 }
 
+const getVersions = async (url) => {
+  console.log(url)
+  let response
+  let body
+  let verList = {}
+  try {
+    const response = await got(url);
+    body = JSON.parse(response.body)
+    console.log(url)
+    body.forEach((r) => {
+      verList[r.tag_name] = r.url;
+    })
+  } catch (error) {
+    console.error('Problem parsing github JSON');
+    throw error;
+  }
+  return verList
+}
+
 const handleInstall = async (what) => {
-  if (what == 'site'){
-    const siteList = await listSiteTemplates();
-    inquirer
-      .prompt([
-        { type: 'list', name: 'sites', choices: siteList, default: 0, message: 'Which site template do you want to use?'}
-        ]).then(answers => getPushkinSite(process.cwd(),answers.sites))
-  } else {
-    //definitely experiment then
-    moveToProjectRoot()
-    const expList = await listExpTemplates();
-    inquirer.prompt([
-        { type: 'list', name: 'experiments', choices: expList, default: 0, message: 'Which site template do you want to use?'}
+  try {
+    if (what == 'site') {
+      const siteList = await listSiteTemplates();
+      inquirer.prompt([
+          { type: 'list', name: 'sites', choices: Object.keys(siteList), default: 0, message: 'Which site template do you want to use?'}
         ]).then(answers => {
-          let expType = answers.experiments
-          console.log(expType)
-          inquirer.prompt([
-            { type: 'input', name: 'name', message: 'What do you want to call your experiment?'}]).then(async (answers) => {
-              let config = await loadConfig('pushkin.yaml');
-              console.log(expType)
-              getExpTemplate(path.join(process.cwd(), config.experimentsDir), expType, answers.name)
+          let siteType = answers.sites
+          getVersions(siteList[siteType])
+          .then((verList) => {
+            inquirer.prompt(
+              [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version? (Recommend:'.concat(Object.keys(verList)[0]).concat(')')}]
+            ).then(answers => getPushkinSite(process.cwd(),verList[answers.version]))
+          })
+        })
+    } else {
+      //definitely experiment then
+      moveToProjectRoot()
+      const expList = await listExpTemplates();
+      inquirer.prompt(
+        [{ type: 'list', name: 'experiments', choices: Object.keys(expList), default: 0, message: 'Which site template do you want to use?'}]
+      ).then(answers => {
+        let expType = answers.experiments
+        getVersions(expList[expType])
+        .then((verList) => {
+          inquirer.prompt(
+            [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version? (Recommend:'.concat(Object.keys(verList)[0]).concat(')')}]
+          ).then(answers => {
+            let ver = answers.version
+            const url = verList[ver]
+            inquirer.prompt(
+              [{ type: 'input', name: 'name', message: 'What do you want to call your experiment?'}]
+            ).then(async (answers) => {
+                const longName = answers.name
+                const shortName = longName.replace(/[^\w\s]/g, "").replace(/ /g,"_");
+                let config = await loadConfig('pushkin.yaml');
+                getExpTemplate(path.join(process.cwd(), config.experimentsDir), url, longName, shortName, process.cwd())
             })
+          })
+        })
       })
-  } 
+    }
+  } catch(e) {
+    throw e
+  }
 }
 
 const killLocal = async () => {
@@ -148,7 +201,12 @@ async function main() {
     .description(`Install template website ('site') or experiment ('experiment').`)
     .action((what) => {
       if (what == 'site' | what == 'experiment'){
-        handleInstall(what)  
+        try {
+          handleInstall(what)  
+        } catch(e) {
+          console.error(e)
+          process.exit()
+        }
       }else{
         console.error(`Command not recognized. Run 'pushkin --help' for help.`)
       }
@@ -169,7 +227,23 @@ async function main() {
   program
     .command('prep')
     .description('Prepares local copy for local testing. This step includes running migrations, so be sure you have read the documentation on how that works.')
-    .action(handlePrep)
+    .option('-nm, --nomigrations', 'Do not run migrations. Be sure database structure has not changed!', false)
+    .action(async (options) => {
+      let awaits
+      try{
+        if (options.nomigrations){
+          //only running prep
+          awaits = [handlePrep()]
+        } else {
+          //running prep and updated DB
+          awaits = [handlePrep(), handleUpdateDB()];
+        }
+      } catch (e) {
+        console.error(e)
+        process.exit();
+      }
+      return await Promise.all(awaits);
+    })
 
   program
     .command('start')
@@ -177,6 +251,12 @@ async function main() {
     .option('-nc, --nocache', 'Rebuild all images from scratch, without using the cache.', false)
     .action(async (options) => {
       moveToProjectRoot();
+      try {
+        fs.copyFileSync('pushkin/front-end/src/experiments.js', 'pushkin/front-end/experiments.js');
+      } catch (e) {
+        console.error("Couldn't copy experiments.js. Make sure it exists and is in the right place.")
+        process.exit();
+      }
       if (options.nocache){
         try {
           await compose.buildAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: true, commandOptions: ["--no-cache"]})    
@@ -184,12 +264,20 @@ async function main() {
           console.error("Problem rebuilding docker images");
           throw e;
         }
+        compose.upAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: true, commandOptions: ["--remove-orphans"]})
+          .then(
+            out => { 
+              console.log(out.out, 'Starting. You may not be able to load localhost for a minute or two.')
+            },
+            err => { console.log('something went wrong:', err.message)}
+          );
+      } else {
+        compose.upAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: true, commandOptions: ["--build","--remove-orphans"]})
+          .then(
+            out => { console.log(out.out, 'Starting. You may not be able to load localhost for a minute or two.')},
+            err => { console.log('something went wrong:', err.message)}
+          );        
       }
-      compose.upAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: true})
-        .then(
-          out => { console.log(out.out, 'Starting. You may not be able to load localhost for a minute or two.')},
-          err => { console.log('something went wrong:', err.message)}
-        );
       //exec('docker-compose -f pushkin/docker-compose.dev.yml up --build --remove-orphans;');
       return;      
     })

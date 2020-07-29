@@ -5,175 +5,65 @@ import jsYaml from 'js-yaml';
 import util from 'util';
 import { execSync } from 'child_process'; // eslint-disable-line
 const exec = util.promisify(require('child_process').exec);
-import setupdb from '../setupdb/index.js';
 import pacMan from '../../pMan.js'; //which package manager is available?
 
 // give package unique name, package it, npm install on installDir, return module name
-const packAndInstall = async (packDir, installDir, packName) => {
+const publishLocalPackage = async (modDir, modName) => {
   return new Promise((resolve, reject) => {
-    // backup the package json
-    console.log('packDir: ', packDir)
-    const packageJsonPath = path.join(packDir, 'package.json');
-    const packageJsonBackup = path.join(packDir, 'package.json.bak');
-    try { 
-      fs.copyFileSync(packageJsonPath, packageJsonBackup); 
-    } catch (e) { 
-      reject(new Error('Failed to backup package.json'.concat(e))); 
-    }
+    console.log('modDir: ', modDir)
+    const packageJsonPath = path.join(modDir, 'package.json');
     let packageJson;
     try {
       packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
     } catch (e) {
       reject(new Error('Failed to parse package.json'.concat(e)))
     }
-    packageJson.name = packName;
-    try {
-      fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson), 'utf8')
-    } catch (e) {
-      reject(new Error('Failed to rewrite package.json'.concat(e)))
+    let buildCmd
+    if (packageJson.dependencies['build-if-changed'] == null) {
+      console.log(modName, " does not have build-if-changed installed. Recommend installation for faster runs of prep.")
+      buildCmd = pacMan.concat(' run build')
+    } else {
+      console.log("Using build-if-changed for ",modName)
+      const pacRunner = (pacMan == 'yarn') ? 'yarn' : 'npx'
+      buildCmd = pacRunner.concat(' build-if-changed')
     }
-
-    // package it up in tarball
-    let stdout
-    let packMe = false // will keep track of whether we build anything needing moving
+    console.log(`Installing dependencies for ${modDir}`);
     try {
-      execSync(pacMan.concat(' install'), { cwd: packDir })
-      if (packageJson.dependencies['build-if-changed'] == null) {
-        console.log(packName, " does not have build-if-changed installed. Recommend installation for faster runs of prep.")
-        execSync(pacMan.concat(' run build'), { cwd: packDir })
-        packMe = true;
-      } else {
-        console.log("Using build-if-changed for ",packName)
-        const pacRunner = (pacMan == 'yarn') ? 'yarn' : 'npx'
-        stdout = execSync(pacRunner.concat(' build-if-changed'), { cwd: packDir }).toString()
-        console.log(stdout);
-        if (stdout.search("No changes")>0) {
-          console.log("No changes. Building not necessary.")
-        } else {
-          packMe = true;
-         }
-      }      
+      exec(pacMan.concat(' install --mutex network'), { cwd: modDir })
+        .then(() => {
+          console.log(`Building ${modName} from ${modDir}`);
+          exec(buildCmd, { cwd: modDir })
+            .then(() => {
+              console.log(`${modName} is built`);
+              exec('yalc publish --push', { cwd: modDir })
+                .then(() => {
+                  console.log(`${modName} is published locally via yalc`);
+                  resolve(modName)
+                })
+            })
+        })
     } catch (e) {
-       reject(new Error('Failed to build '.concat(packName).concat(e)))
-   }
-    console.log('Built package for ', packName)
-    if (packMe) {
-      let packedFileName
-      console.log("Packing up", packName)
-      try {
-        if (pacMan == "yarn") {
-          packedFileName = packName.concat(".tgz")
-          stdout = execSync((`yarn pack --filename ${packedFileName}`), { cwd: packDir })
-        } else {
-          //assuming this is npm
-          stdout = execSync(pacMan.concat(' pack'), { cwd: packDir })
-          packedFileName = stdout.toString().trim();
-        }
-      } catch (e) {
-        reject(new Error('Failed to pack binary: '.concat(packName).concat(e)))
-      }
-      const packedFile = path.join(packDir, packedFileName);
-      const movePack = path.join(installDir, packName.concat('.tgz'));
-      try {
-        fs.renameSync(packedFile, movePack)
-        fs.unlinkSync(packageJsonPath)
-        fs.renameSync(packageJsonBackup, packageJsonPath)
-      } catch (e) {
-        reject(new Error('Ran into issues moving the packages for'.concat(packName).concat(e)))
-      }      
-      console.log('Finished packing up', packName)
+      console.error(`Problem updating ${modName}`)
+      throw(e)
     }
-
-    resolve(packName)
   })
 };
 
 
-
-async function cleanUpFiles(coreDir) {
-  // reset controllers, web pages, workers to be included in main build
-
-  console.log('loading files...')
-
-  const apiPackages = await fs.promises.readdir(path.join(coreDir, 'api/tempPackages'))
-    .catch((e) => {
-      console.error(`Failed to find api/tempPackages`, e);
-      process.exit()
-    })
-  const webPackages = await fs.promises.readdir(path.join(coreDir, 'front-end/tempPackages'))
-    .catch((e) => {
-      console.error(`Failed to find front-end/tempPackages`, e);
-      process.exit()
-    })
-  const controllersJsonFile = await fs.promises.readFile(path.join(coreDir, 'api/src/controllers.json'))
-    .catch((e) => {
-      console.error('Failed to load api/src/controllers.json', e);
-      process.exit()
-    })
-  const webPageAttachListFile = path.join(coreDir, 'front-end/src/experiments.js');
-  const data = await fs.promises.readFile(webPageAttachListFile, 'utf8')
-    .catch((e) => {
-      console.error(`Failed to load ${webPageAttachListFile}`, e);
-      process.exit()
-    })
-  await Promise.all([apiPackages, webPackages, controllersJsonFile, data]);
-
-  // reset api controllers
-  console.log('reading controllersJsonFile')
-  const oldContrList = JSON.parse(controllersJsonFile);
-//  const cleanAPI = async (contr) => {
-//    const moduleName = contr.name;
-//    console.log(`Cleaning API controller ${contr.mountPath} (${moduleName})`);  
-//    return exec(`${pacMan} uninstall ${moduleName} --save`, { cwd: path.join(coreDir, 'api') }).catch((err) => console.error(err))  
-//  }
-//  const cleanedAPI = oldContrList.map(cleanAPI); //https://stackoverflow.com/questions/31413749/node-js-promise-all-and-foreach
-
-  // reset web page dependencies
-//  let oldPages = [];
-//    data.trim().split('\n').forEach((line) => {
-//      const spaces = line.split(' ');
-//      if (spaces[0] == 'import') oldPages.push(spaces[1]);
-//    });
-//  const cleanWeb = async (pageModule) => {
-//    //not currently being used. May be useful later. 
-//    console.log(`Cleaning web page (${pageModule})`); 
-//    return exec(`${pacMan} uninstall ${pageModule} --save`, { cwd: path.join(coreDir, 'front-end') }).catch((err) => console.error(err))  
-//  }
-//  const cleanedWeb = oldPages.map(cleanWeb); //https://stackoverflow.com/questions/31413749/node-js-promise-all-and-foreach
-
-
-  // remove tgz package files
-//  console.log('Cleaning temporary files');
-//  const cleanPackages = async (dir, tempPackage) => {
-//    const maybeFile = path.join(dir, tempPackage);
-//    return fs.lstatSync(maybeFile).isFile() ? 
-//      fs.promises.unlink(maybeFile).catch((err) => console.error(`Problem removing old temporary file ${maybeFile}`, err)) :
-//      new Promise((resolve, reject) => resolve('NA'))
-//  }
-//  const cleanedAPIPackages = apiPackages.map((x) => cleanPackages(path.join(coreDir, 'api/tempPackages'),x));
-//  const cleanedWebPackages = webPackages.map((x) => cleanPackages(path.join(coreDir, 'front-end/tempPackages'),x));
-
-//  await Promise.all([cleanedAPI, cleanedWeb, cleanedAPIPackages, cleanedWebPackages]);
-  const writeAPI = fs.promises.writeFile(path.join(coreDir, 'api/src/controllers.json'), JSON.stringify([]), 'utf8').catch((err) => console.error(err))
-  const writeWeb = fs.promises.writeFile(webPageAttachListFile, 'export default [\n];', 'utf8').catch((err) => console.error(err))
-  return await Promise.all([writeAPI, writeWeb])
-};
-
-
 // prepare a single experiment's api controllers
-const prepApi = async (expDir, controllerConfigs, coreDir) => {
-  return Promise.all(controllerConfigs.map(async (controller) => {
+const prepApi = async (expDir, controller) => {
+  return new Promise((resolve, reject) => {
     const fullContrLoc = path.join(expDir, controller.location);
     console.log(`Started loading API controller for ${controller.mountPath}`);
     let moduleName;
     try {
-      moduleName = await packAndInstall(fullContrLoc, path.join(coreDir, 'api/tempPackages'), controller.mountPath.concat('_api'))
+      publishLocalPackage(fullContrLoc, controller.mountPath.concat('_api'))
     } catch (e) {
-      console.error(`Problem packing and installing api for`.concat(controller.mountPath));
+      console.error(`Problem publishing api for`.concat(controller.mountPath));
       throw e;
     }
-    return ({ name: moduleName, mountPath: controller.mountPath });
-  }))
+    resolve(moduleName);
+  })
 }
 
 // prepare a single experiment's web page
@@ -182,31 +72,31 @@ const prepWeb = async (expDir, expConfig, coreDir) => {
   console.log(`Started loading web page for ${expConfig.shortName}`);
   let moduleName
   try {
-    moduleName = await packAndInstall(webPageLoc, path.join(coreDir, 'front-end/tempPackages'), expConfig.shortName.concat('_web'))
+    moduleName = await publishLocalPackage(webPageLoc, expConfig.shortName.concat('_web'))
   } catch (err) {
-    console.error(`Failed on prepping web page: ${err}`);
+    console.error(`Failed on publishing web page: ${err}`);
     throw err;
   }
-  console.log(`Loaded web page for ${expConfig.shortName} (${moduleName})`);
-  // this must be one line
-  const modListAppendix = `{ fullName: '${expConfig.experimentName}', 
-    shortName: '${expConfig.shortName}', 
+  console.log(`Loaded web page for ${expConfig.experimentName} (${moduleName})`);
+  const modListAppendix = "{ fullName: `".concat(expConfig.experimentName).concat("`,") 
+    .concat(`shortName: '${expConfig.shortName}', 
     module: ${moduleName}, logo: '${expConfig.logo}', 
     tagline: '${expConfig.tagline}', 
     duration: '${expConfig.duration}', 
-    text: '${expConfig.text}' }`;
-  // move logo to assets folder
+    text: '${expConfig.text}' }`);
 
+  // move logo to assets folder
   fs.promises.copyFile(path.join(webPageLoc, 'src/assets', expConfig.logo), path.join(coreDir, 'front-end/src/assets/images/quiz/', expConfig.logo))
     .catch((e) => {
       console.error(`Problem copying logo file for `, expConfig.shortName);
       throw(e);
     })
 
+  console.log(`Added ${expConfig.experimentName} to experiments.js`)
   return { moduleName, listAppendix: modListAppendix };
 };
 
-const readConfig = (expDir) => {
+export const readConfig = (expDir) => {
   const expConfigPath = path.join(expDir, 'config.yaml');
   try {
     return jsYaml.safeLoad(fs.readFileSync(path.join(expDir, 'config.yaml')));
@@ -222,14 +112,36 @@ const readConfig = (expDir) => {
 export default async (experimentsDir, coreDir) => {
 
   console.log("package manager: ",pacMan);
-  console.log('Cleaning up old experiments');
-  try {
-    let cleanCore = await cleanUpFiles(coreDir); 
-  } catch (e) {
-    console.error(`Problem cleaning old files:`, e);
-    process.exit();
+
+  const cleanWeb = async (coreDir) => {
+    console.log(`resetting experiments.js`); 
+    try {
+      if (fs.existsSync(path.join(coreDir, 'front-end/experiments.js'))) {
+        //These extra experiments.js files are created when doing a local test deploy
+        //If it doesn't exist, that's just fine
+        fs.unlinkSync(path.join(coreDir, 'front-end/experiments.js'));
+        console.log("Cleaned up front-end/experiments.js")        
+      }
+    } catch (e) {
+      console.error(e)
+    }
+    const webPageAttachListFile = path.join(coreDir, 'front-end/src/experiments.js');
+    let cleanedWeb
+    try {
+      cleanedWeb = fs.promises.writeFile(path.join(coreDir, 'front-end/src/experiments.js'), `[]`, 'utf8')      
+    } catch (e) {
+      console.error('Problem overwriting experiments.js')
+      throw e
+    }
+    return cleanedWeb;
   }
-  console.log(`Cleaned up old experiments.`)
+
+  let cleanedWeb
+  try {
+    cleanedWeb = cleanWeb(coreDir);
+  } catch (e) {
+    throw e
+  }
 
   const prepAPIWrapper = (exp) => {
     console.log(`Started prepping API for`, exp);
@@ -245,7 +157,7 @@ export default async (experimentsDir, coreDir) => {
       }
       let preppedApi;
       try {
-        preppedApi = prepApi(expDir, expConfig.apiControllers, coreDir);
+        preppedApi = prepApi(expDir, expConfig.apiControllers);
       } catch (err) {
         console.error('Something wrong with prepping API', err)
         reject(new Error(`Unable to prep api for `.concat(exp)))
@@ -255,9 +167,9 @@ export default async (experimentsDir, coreDir) => {
   }
 
   const expDirs = fs.readdirSync(experimentsDir);
-  let contrListAppendix;
+  let preppedAPI;
   try {
-    contrListAppendix = Promise.all(expDirs.map(prepAPIWrapper))
+    preppedAPI = Promise.all(expDirs.map(prepAPIWrapper))
   } catch (err) {
     console.error(err);
     process.exit();
@@ -274,11 +186,6 @@ export default async (experimentsDir, coreDir) => {
       throw e
     }
     try {
-      if (pacMan == 'yarn') {
-        await exec(pacMan.concat(' add ./tempPackages/*'), {cwd: where})
-      } else {
-        await exec(pacMan.concat(' install ./tempPackages/*'), {cwd: where})        
-      }
       if (packageJson.dependencies['build-if-changed'] == null) {
         console.log(where, " does not have build-if-changed installed. Recommend installation for faster runs of prep.")
         execSync(pacMan.concat(' run build'), { cwd: where })
@@ -311,26 +218,26 @@ export default async (experimentsDir, coreDir) => {
         console.error(err);
         reject(new Error(`Failed to read experiment config file for `.concat(exp).concat(err)))
       }
-      let WebPageIncludes;
+      let webPageIncludes;
       try {
-        WebPageIncludes = prepWeb(expDir, expConfig, coreDir)
+        webPageIncludes = prepWeb(expDir, expConfig, coreDir)
       } catch (err) {
         reject(new Error(`Unable to prep web page for `.concat(exp)))
       }
-      resolve(WebPageIncludes)
+      resolve(webPageIncludes)
     })
   }
 
-  let WebPageIncludes;
+  let webPageIncludes;
   try {
-    WebPageIncludes = Promise.all(expDirs.map(prepWebWrapper))
+    webPageIncludes = Promise.all(expDirs.map(prepWebWrapper))
   } catch (err) {
     console.error(err);
     process.exit();
   }
 
   const prepWorkerWrapper = async (exp) => {
-    console.log(`Started prepping worker for`, exp);
+    console.log(`Building worker for`, exp);
     const expDir = path.join(experimentsDir, exp)
     if (!fs.lstatSync(expDir).isDirectory()) resolve('');
     let expConfig;
@@ -341,50 +248,36 @@ export default async (experimentsDir, coreDir) => {
       throw err;
     }
     const workerConfig = expConfig.worker;
-    const workerService = workerConfig.service;
-    const workerName = `pushkinworker_${exp}`.toLowerCase(); //Docker names must all be lower case
+    const workerName = `${exp}_worker`.toLowerCase(); //Docker names must all be lower case
     const workerLoc = path.join(expDir, workerConfig.location);
-    const serviceContent = { ...workerService, image: workerName };
-    serviceContent.labels = { ...(serviceContent.labels || {}), isPushkinWorker: true };
-    await exec(`docker build ${workerLoc} -t ${workerName}`);
-    console.log( `Build image for worker `,exp)
-    return { serviceName: workerName, serviceContent };
+    let workerBuild
+    try {
+      workerBuild = exec(`docker build ${workerLoc} -t ${workerName}`)
+    } catch(e) {
+      console.error(`Problem building worker for ${exp}`)
+      throw (e)
+    }
+    return workerBuild;
   }
 
-  let WorkerIncludes;
+  let preppedWorkers;
   try {
-    WorkerIncludes = Promise.all(expDirs.map(prepWorkerWrapper))
+    preppedWorkers = Promise.all(expDirs.map(prepWorkerWrapper))
   } catch (err) {
     console.error(err);
-    process.exit();
+    throw(err);
   }
 
-  const tempAwait = await Promise.all([WorkerIncludes, WebPageIncludes, contrListAppendix])
-  let finalWorkers = tempAwait[0]
-  let finalWebPages = tempAwait[1]
-  let finalControllers = tempAwait[2].map((c) => c[0]);
 
-  //Handle API includes
-  try {
-    fs.writeFileSync(path.join(coreDir, 'api/src/controllers.json'), JSON.stringify(finalControllers), 'utf8')
-  } catch (err) {
-    console.error(`Failed to write api controllers list`)
-    throw err;
-  }
-
-  let installedApi
-  try {
-    installedApi = installAndBuild(path.join(coreDir, 'api'));
-  } catch (err) {
-    console.error('Problem installing and buiding combined API')
-    throw err
-  }
+const tempAwait = await Promise.all([webPageIncludes, preppedAPI, cleanedWeb])
 
   // Deal with Web page includes
+  let finalWebPages = tempAwait[0]
   let top
   let bottom
   let toWrite
   try {
+    console.log("Writing out experiments.js")
     top = finalWebPages.map((include) => {return `import ${include.moduleName} from '${include.moduleName}';\n`})
     top = top.join('')
     bottom = finalWebPages.map((include) => {return `${include.listAppendix}\n`}).join(',')
@@ -395,67 +288,25 @@ export default async (experimentsDir, coreDir) => {
     throw e; 
   }
 
-  //move logos to assets folder
+  //Finally, install pushkin/api and pushkin/front-end
+  //Note that this cannot run until the individual apis and webpages for all experiments have been rebuilt
+  //Nothing depends on the workers, though, so we can defer that await until later
+  let installedApi
   try {
-    finalWebPages.map(FUBAR)
+    console.log("Installing combined API")
+    installedApi = exec(pacMan.concat(' install'), { cwd: path.join(coreDir, 'api') }).then(console.log("Installed combined API"))
   } catch (err) {
-
+    console.error('Problem installing and buiding combined API')
+    throw err
   }
-
   let installedWeb;
   try {
-    installedWeb = installAndBuild(path.join(coreDir, 'front-end'));
+    console.log("Installing combined front-end")
+    installedWeb = exec(pacMan.concat(' install'), { cwd: path.join(coreDir, 'front-end') }).then(console.log("Installed combined front-end"))
   } catch (err) {
     console.error('Problem installing and buiding combined front-end')
     throw err
   }
 
-  // write out new compose file with worker services
-  const composeFileLoc = path.join(coreDir, 'docker-compose.dev.yml');
-  let compFile;
-  try { 
-    compFile = jsYaml.safeLoad(fs.readFileSync(composeFileLoc), 'utf8'); 
-  } catch (e) { 
-    console.error('Failed to load main docker compose file: ',e);
-    process.exit() 
-  }
-  finalWorkers.forEach((workService) => {
-    compFile.services[workService.serviceName] = workService.serviceContent;
-  });
-  let newCompData;
-  try {
-    fs.writeFileSync(composeFileLoc, jsYaml.safeDump(compFile), 'utf8');
-  } catch (e) { 
-    console.error('Failed to create new compose file', e); 
-    process.exit()
-  }
-
-  console.log('Installing packages. This may take a few minutes.')
-  let anotherAwait = await Promise.all([installedApi, installedWeb])
-
-  let settingUpDB, rebuildingServices, config;
-  try {
-     config = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'pushkin.yaml')));
-  } catch (err) {
-    if (err.code === 'ENOENT') {
-      console.log('File not found!');
-    }
-    throw err
-  }
-  try {
-    settingUpDB = setupdb(config.databases, experimentsDir);
-  } catch (err) {
-    console.error(err);
-    process.exit();
-  }
-//  try {
-//    rebuildingServices = exec(`docker-compose -f pushkin/docker-compose.dev.yml build --no-cache --parallel server api`);
-//  } catch (err) {
-//    console.error('Problem with building local docker images for front-end and/or api. ', err);
-//    process.exit();
-//  }
-
-//  console.log('Rebuilding local docker images. This will take some time. You will need to check Docker to see when it is done, since Docker and Node do not play well together.')
-//  return await Promise.all([settingUpDB, rebuildingServices])
-  return await Promise.all([settingUpDB])
+  return Promise.all([installedApi, installedWeb, preppedWorkers]);
 };

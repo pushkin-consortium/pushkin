@@ -7,37 +7,36 @@ import got from 'got';
 import * as compose from 'docker-compose'
 const exec = util.promisify(require('child_process').exec);
 import { templates } from './templates.js';
+import { execSync } from 'child_process'; // eslint-disable-line
 const shell = require('shelljs');
 import pacMan from '../../pMan.js';  //which package manager is available?
 
 
 export function listSiteTemplates() {
-    return new Promise((resolve, reject) => {
-    try { 
-      resolve(templates.map((t) => (t.name)));
-    } catch (e) { 
-      console.error(`Something is wrong with sites/templates.js, error: ${e}`); 
-      process.exit(); 
+  return templates;
+}
+
+export const promiseFolderInit = async (initDir, dir) => {
+  return new Promise ((resolve, reject) => {
+    console.log(`Installing dependencies for ${dir}`);
+    try {
+      exec(pacMan.concat(' install --mutex network'), { cwd: path.join(initDir, dir) })
+        .then(() => {
+          console.log(`Building ${dir}`);
+          exec(pacMan.concat(' run build'), { cwd: path.join(initDir, dir) })
+            .then(() => {
+              console.log(`${dir} is built`);
+              resolve("built")              
+            })
+        })
+    } catch(e) {
+      console.error('Problem installing dependencies for ${dir}')
+      throw(e)
     }
   })
 }
 
-export const promiseFolderInit = async (initDir, dir) => {
-  console.log(`Installing npm dependencies for ${dir}`);
-  const { stdout, stderr } = await exec(pacMan.concat(' install'), { cwd: path.join(initDir, dir) }) //this may not work on Windows
-  if (stderr) console.log(stderr);
-  console.log(`Building ${dir}`);
-  const { stdout2, stderr2 } = await exec(pacMan.concat(' run build'), { cwd: path.join(initDir, dir) }) //this may not work on Windows
-  if (stderr2) {
-    console.log(stderr2)
-  }
-  console.log(`${dir} is built`);
-  return new Promise ((resolve, reject) => {
-    resolve("built")
-  })
-}
-
-export async function getPushkinSite(initDir, templateName) {
+export async function getPushkinSite(initDir, url) {
   process.chdir(initDir); // Node command to change directory
 
   const newDirs = ['pushkin', 'experiments'];
@@ -54,26 +53,21 @@ export async function getPushkinSite(initDir, templateName) {
   });
 
   // download files
-  let url;
-  for (const val in templates) {
-    if (templates[val].name == templateName) {
-      url = templates[val].url;
-    }
-  }
   if (!url) {
-    console.error('Unable to download from specified site. Make sure your internet is on. If it is on but this error repeats, ask for help on the Pushkin forum.');
+    console.error('URL is not well-defined.');
     return;
   }
   console.log(`retrieving from ${url}`);
   console.log('be patient...');
   let zipball_url;
+  let response
   try {
-    const response = await got(url);
+    response = await got(url);
     zipball_url = JSON.parse(response.body).assets[0].browser_download_url;
     console.log(zipball_url)
   } catch (error) {
-    console.error('Problem parsing github JSON',error);
-    throw new Error(error);
+    console.error('Unable to download from specified site. Make sure your internet is on. If it is on but this error repeats, ask for help on the Pushkin forum.');
+    throw error;
   }
   sa
     .get(zipball_url)

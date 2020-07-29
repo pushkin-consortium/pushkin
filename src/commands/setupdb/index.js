@@ -111,7 +111,7 @@ export default async (coreDBs, mainExpDir) => {
       })
       return compose.stop({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml'})
       .then(
-        out => { console.log(out.out, 'done')},
+        out => { console.log(out.out, 'Database updated. Shutting down...')},
         err => { console.log('something went wrong:', err.message)}
       );
 
