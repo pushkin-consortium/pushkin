@@ -1,5 +1,17 @@
 # Modifying Experiment Templates
 
+To install an experiment template, type in the following command, then select the desired template when prompted. Typically, you will want to select the most recent version.
+
+```bash
+$ pushkin install experiment
+```
+
+Over time, new site and experiment templates are likely to be added. If you want access to more recently released templates, update your CLI:
+
+```bash
+$ yarn global upgrade pushkin-cli
+```
+
 ## Current templates
 
 * [Lexical decision template](lexical-decision-template.md)

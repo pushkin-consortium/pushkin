@@ -1,5 +1,17 @@
 # Modifying Site Template
 
+To download the default site template, use the following command, then select "default." Typically, you will want to select the most recent version.
+
+```bash
+$ pushkin install site
+```
+
+Over time, new site and experiment templates are likely to be added. If you want access to more recently released templates, update your CLI:
+
+```bash
+$ yarn global upgrade pushkin-cli
+```
+
 * [React Bootstrap](react-bootstrap.md)
   * [Import Libraries](react-bootstrap.md#import-libraries)
   * [Inline Styling](react-bootstrap.md#inline-styling)
