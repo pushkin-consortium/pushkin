@@ -26,7 +26,7 @@ $ sudo apt update
 $ sudo apt install curl
 ```
 
-![](../../.gitbook/assets/ubuntu1.gif)
+![](../../.gitbook/assets/ubuntu1%20%281%29.gif)
 
 ### Install Node.js
 
@@ -37,7 +37,7 @@ $ curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
 $ sudo apt install -y nodejs
 ```
 
-![](../../.gitbook/assets/ubuntu2.gif)
+![](../../.gitbook/assets/ubuntu2%20%281%29.gif)
 
 ### Install and configure Yarn
 
@@ -49,7 +49,7 @@ $ echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sour
 $ sudo apt update && sudo apt install yarn
 ```
 
-![](../../.gitbook/assets/ubuntu3.gif)
+![](../../.gitbook/assets/ubuntu3%20%281%29.gif)
 
 To allow Yarn to install pushkin-cli globally, run the following steps, based on [this Stack Overflow solution](https://stackoverflow.com/questions/40317578/yarn-global-command-not-working/53879534#53879534).
 
@@ -61,7 +61,7 @@ $ echo 'export PATH="$PATH:`yarn global bin`"' >> ~/.bashrc
 $ source ~/.bashrc
 ```
 
-![](../../.gitbook/assets/ubuntu4.gif)
+![](../../.gitbook/assets/ubuntu4%20%281%29.gif)
 
 ### Install Yalc
 
@@ -70,7 +70,8 @@ Install Yalc globally.
 ```bash
 $ yarn global add yalc
 ```
-![](../../.gitbook/assets/ubuntu13.gif)
+
+![](https://github.com/pushkin-consortium/pushkin/tree/ed8e59c86dfdd71e3662583683010b92cb95b39d/docs-gitbook/.gitbook/assets/ubuntu13.gif)
 
 ### Install pushkin-cli
 
@@ -80,7 +81,7 @@ Next, install the pushkin-cli package globally.
 $ yarn global add pushkin-cli
 ```
 
-![](../../.gitbook/assets/ubuntu5.gif)
+![](../../.gitbook/assets/ubuntu5%20%281%29.gif)
 
 Confirm that pushkin-cli is installed by running:
 
@@ -90,7 +91,7 @@ $ pushkin --help
 
 You should get a list of commands with some documentation for each.
 
-![](../../.gitbook/assets/ubuntu6.gif)
+![](../../.gitbook/assets/ubuntu6%20%281%29.gif)
 
 ### Install and configure Docker Engine
 
@@ -102,7 +103,7 @@ $ sudo apt install apt-transport-https ca-certificates curl gnupg-agent software
 $ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
 ```
 
-![](../../.gitbook/assets/ubuntu7.gif)
+![](../../.gitbook/assets/ubuntu7%20%281%29.gif)
 
 Verify the fingerprint of the key by running this command:
 
@@ -119,7 +120,7 @@ uid           [ unknown] Docker Release (CE deb) <docker@docker.com>
 sub   rsa4096 2017-02-22 [S]
 ```
 
-![](../../.gitbook/assets/ubuntu8.gif)
+![](../../.gitbook/assets/ubuntu8%20%281%29.gif)
 
 Next, add the repository and install Docker Engine.
 
@@ -129,7 +130,7 @@ $ sudo apt update
 $ sudo apt install docker-ce docker-ce-cli containerd.io
 ```
 
-![](../../.gitbook/assets/ubuntu9.gif)
+![](../../.gitbook/assets/ubuntu9%20%281%29.gif)
 
 Check that Docker Engine is installed correctly by running:
 
@@ -144,7 +145,7 @@ Hello from Docker!
 This message shows that your installation appears to be working correctly.
 ```
 
-![](../../.gitbook/assets/ubuntu10.gif)
+![](../../.gitbook/assets/ubuntu10%20%281%29.gif)
 
 Next, follow [these post-installation instructions](https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user) \(copied below for convenience\) to manage Docker as a non-root user. \(You can ignore the rest of the post-installation instructions.\)
 
@@ -155,7 +156,7 @@ $ newgrp docker
 $ docker run hello-world
 ```
 
-![](../../.gitbook/assets/ubuntu11.gif)
+![](../../.gitbook/assets/ubuntu11%20%281%29.gif)
 
 ### Install and configure Docker Compose
 
@@ -167,7 +168,7 @@ $ sudo chmod +x /usr/local/bin/docker-compose
 $ docker-compose --version
 ```
 
-![](../../.gitbook/assets/ubuntu12.gif)
+![](../../.gitbook/assets/ubuntu12%20%281%29.gif)
 
 ### Next steps
 

@@ -19,7 +19,7 @@ description: Start here to build a basic Pushkin site and experiment.
 
 Make sure Docker is running by running the command `docker info`; if it isn't, you can run `dockerd` or `sudo dockerd` to start it.
 
-Open a terminal window. Create an empty directory (e.g., `pushkin_quickstart`) and enter this directory using the following commands:
+Open a terminal window. Create an empty directory \(e.g., `pushkin_quickstart`\) and enter this directory using the following commands:
 
 ```bash
 $ mkdir pushkin_quickstart
@@ -116,7 +116,6 @@ If you are using an AWS EC2 instance, navigate to the IPv4 Public IP address of 
 
 ![](../.gitbook/assets/38.gif)
 
-
 On the settings page, you will see a `Domain` \(something like `gameswithwords.auth0.com`\) and a `Client ID`. Edit `config.js` to match:
 
 ```javascript
@@ -134,7 +133,7 @@ Now, let’s look at your website! Make sure Docker is running by running the co
 $ pushkin start;
 ```
 
-Now browse to `http://localhost` (or your IPv4 Public IP address) to see the stub website.
+Now browse to `http://localhost` \(or your IPv4 Public IP address\) to see the stub website.
 
 When you are done looking at your website, stop it by running:
 
