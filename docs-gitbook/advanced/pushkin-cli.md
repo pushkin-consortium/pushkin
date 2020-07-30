@@ -10,6 +10,7 @@
 * [kill](pushkin-cli.md#kill)
 * [armageddon](pushkin-cli.md#armageddon)
 * [updateDB](pushkin-cli.md#updatedb)
+* [help](pushkin-cli.md#help)
 
 The Pushkin command-line package is available via NPM. We highly recommend a global install in order to make working with Pushkin projects as easy as possible:
 
@@ -80,4 +81,10 @@ Complete reset of the local docker, including containers, volumes, and third-par
 Syntax: `pushkin updateDB`
 
 Runs migrations and seeds for experiments to update the database. This is set up to ensure experiments using the same database \(as defined in `pushkin.yaml`\) are migrated at the same time to avoid errors with the knex\_migrations table.
+
+### help
+
+Syntax: `pushkin help`
+
+Shows command options with short descriptions.
 
