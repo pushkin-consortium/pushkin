@@ -2,14 +2,15 @@
 
 ## Skip to section
 
+* [config](pushkin-cli.md#config)
 * [install site](pushkin-cli.md#site)
 * [install experiment](pushkin-cli.md#experiment)
+* [updateDB](pushkin-cli.md#updatedb)
 * [prep](pushkin-cli.md#prep)
 * [start](pushkin-cli.md#start)
 * [stop](pushkin-cli.md#stop)
 * [kill](pushkin-cli.md#kill)
 * [armageddon](pushkin-cli.md#armageddon)
-* [updateDB](pushkin-cli.md#updatedb)
 * [help](pushkin-cli.md#help)
 
 The Pushkin command-line package is available via NPM. We highly recommend a global install in order to make working with Pushkin projects as easy as possible:
@@ -22,6 +23,12 @@ Any subcommand that affects a specific project must be run from a folder inside 
 
 The CLI has the following subcommands:
 
+### config
+
+Syntax: `pushkin config [what]`
+
+View config file for `what` , replacing `what` with `site` or any of the installed experiments by name. Defaults to all.
+
 ### install site
 
 Syntax: `pushkin install site`
@@ -33,6 +40,12 @@ Downloads Pushkin site template. It first will prompt for which site template \(
 Syntax: `pushkin install experiment`
 
 Downloads an experiment template. First will prompt for which experiment template \(see current list [here](modifying-experiment-templates/#current-templates)\), then prompt for a version to be selected. Most often, the latest version will be the best option.
+
+### updateDB
+
+Syntax: `pushkin updateDB`
+
+Runs migrations and seeds for experiments to update the database. This is set up to ensure experiments using the same database \(as defined in `pushkin.yaml`\) are migrated at the same time to avoid errors with the knex\_migrations table. This is automatically run as part of `pushkin prep`
 
 ### prep
 
@@ -75,12 +88,6 @@ Removes all containers and volumes from local Docker, as well as pushkin-specifi
 Syntax: `pushkin armageddon`
 
 Complete reset of the local docker, including containers, volumes, and third-party images. Sometimes, if you having issues developing or seeing updates to your Pushkin project, it may be helpful to run this command to ensure docker isn't holding any problematic code or issues in containers/images. This may generate some error messages, which you can safely ignore.
-
-### updateDB
-
-Syntax: `pushkin updateDB`
-
-Runs migrations and seeds for experiments to update the database. This is set up to ensure experiments using the same database \(as defined in `pushkin.yaml`\) are migrated at the same time to avoid errors with the knex\_migrations table.
 
 ### help
 
