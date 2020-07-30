@@ -34,3 +34,16 @@ That is, modify the path of the Pushkin module to the local test version, so tha
 
 1. npm install all the dependencies, then you can write the test codes.
 
+## Pushkin jsPsych
+
+A slightly-modified version of the core [jsPsych](https://github.com/jspsych/jsPsych) script available on NPM under `pushkin-jspsych`.
+
+Global variables are removed and what would normally have been assigned to window.jsPsych is exported as the default export. It has all the same properties. It should be assigned to the window object by the page using it, like so:
+
+```text
+import jsPsych from 'pushkin-jspsych';
+window.jsPsych = jsPsych;
+```
+
+This prevents conflicts when multiple pages are using different versions of jsPsych. It also allows plugins to be used without any modification needed to suit this version.
+
