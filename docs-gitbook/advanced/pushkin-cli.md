@@ -10,7 +10,7 @@
 The Pushkin command-line package is available via NPM. We highly recommend a global install in order to make working with Pushkin projects as easy as possible:
 
 ```bash
-$ npm install -g pushkin-cli
+$ yarn global add pushkin-cli
 ```
 
 Any subcommand that affects a specific project must be run from a folder inside the project you wish to modify.
@@ -19,7 +19,7 @@ The CLI has the following subcommands:
 
 ### site
 
-Syntax: `pushkin site`
+Syntax: `pushkin install site`
 
 #### Options: `list`
 

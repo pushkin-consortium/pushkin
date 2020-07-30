@@ -2,7 +2,7 @@
 
 ## Add a Quiz
 
-To add a quiz, run `pushkin experiment basic yourQuizName`. This will create a pushkin experiment template experiment in the `experiments/` folder.
+To add a quiz, run `pushkin install experiment`. Select the experiment template of choice \([see this list for the options](../modifying-experiment-templates/#current-templates)\). This will create a pushkin experiment template in the `experiments/` folder.
 
 Open the `config.js` located in your experiment folder, modify the experiment name, shortName, logo, text etc.
 
