@@ -5,7 +5,11 @@
 * [install site](pushkin-cli.md#site)
 * [install experiment](pushkin-cli.md#experiment)
 * [prep](pushkin-cli.md#prep)
-* [dev](pushkin-cli.md#dev)
+* [start](pushkin-cli.md#start)
+* [stop](pushkin-cli.md#stop)
+* [kill](pushkin-cli.md#kill)
+* [armageddon](pushkin-cli.md#armageddon)
+* [updateDB](pushkin-cli.md#updatedb)
 
 The Pushkin command-line package is available via NPM. We highly recommend a global install in order to make working with Pushkin projects as easy as possible:
 
