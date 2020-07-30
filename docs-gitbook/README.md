@@ -1,6 +1,8 @@
 # Welcome!
 
-“Getting Started” will get a very simple demo site up and running. The remaining pages explain how to customize your website. Instructions are geared towards someone who has at least some familiarity with javascript and react. Sections intended for more experienced programmers who need to understand the guts of Pushkin are labeled “DEV”.
+“Getting Started” will get a very simple demo site up and running. The remaining pages explain how to customize your website. Instructions are geared towards someone who ideally has at least some familiarity with JavaScript and React. Sections intended for more experienced programmers who need to understand the guts of Pushkin are labeled under Developers. See the full Table of contents [here](./#table-of-contents).
+
+{% embed url="https://www.youtube.com/watch?v=Eam5dubRviQ&feature=youtu.be" caption="An intro into the utility and process of developing Pushkin" %}
 
 ## Table of contents
 
