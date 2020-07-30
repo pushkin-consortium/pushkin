@@ -2,8 +2,8 @@
 
 ## Skip to section
 
-* [site](pushkin-cli.md#site)
-* [experiment](pushkin-cli.md#experiment)
+* [install site](pushkin-cli.md#site)
+* [install experiment](pushkin-cli.md#experiment)
 * [prep](pushkin-cli.md#prep)
 * [dev](pushkin-cli.md#dev)
 
@@ -17,43 +17,17 @@ Any subcommand that affects a specific project must be run from a folder inside 
 
 The CLI has the following subcommands:
 
-### site
+### install site
 
 Syntax: `pushkin install site`
 
-#### Options: `list`
+Downloads Pushkin site template. It first will prompt for which site template \(currently only "default"\), then which version. Most often, the latest version will be the best option.
 
-Syntax: `pushkin site list`.
+### install experiment
 
-Returns a list of available site templates.
+Syntax: `pushkin install experiment`
 
-#### Options: `[template]`
-
-Syntax: `pushkin site default`.
-
-Downloads template site of type `template` into the current working directory. The example above retrieves the “default” template.
-
-### experiment
-
-Syntax: `pushkin experiment`
-
-#### Options: `list`
-
-Syntax: `pushkin experiment list`.
-
-Returns a list of available experiment templates.
-
-#### Options: `[template]`
-
-Syntax: `pushkin experiment basic`.
-
-Downloads experiment templateof type `template` into the `experiments` folder of your project. The example above retrieves the “default” template.
-
-#### setupdb
-
-Syntax: `pushkin setupdb`
-
-Runs migrations and seeds for experiments. Ensures experiments using the same database \(as defined in `pushkin.yaml`\) are migrated at the same time to avoid errors with the knex\_migrations table.
+Downloads an experiment template. First will prompt for which experiment template \(see current list [here](modifying-experiment-templates/#current-templates)\), then prompt for a version to be selected. Most often, the latest version will be the best option.
 
 ### prep
 
@@ -73,9 +47,33 @@ Finally, it updates `pushkin/front-end/src/experiments.js` to list each experime
 
 Note that before any of this happens, `prep` actually goes through and deletes all old tempPackages, cleans up the package.jsons and docker-compose-dev.yml and empties experiments.js. Thus, to delete an experiment, all you have to do is delete it’s folder from the experiment folder. \(Of course, that won’t get rid of the docker image for the worker, so you’ll need to clean those up by hand periodically.\)
 
-### dev
+### start
 
-Syntax: `pushkin dev`
+Syntax: `pushkin start`
 
-Start the development server. This just runs `docker-compose -f pushkin/docker-compose.dev.yml up --build --remove-orphans;`, saving you the trouble of remembering the syntax. Unfortunately, you also don’t see any of the output from docker, so if there are errors, you won’t know.
+Starts local deploy for debugging purposes.
+
+### stop
+
+Syntax: `pushkin stop`
+
+Stops the local deploy. This will not remove the local docker images. To do that, see documentation for [pushkin kill](pushkin-cli.md#kill) and [pushkin armageddon](pushkin-cli.md#armageddon).
+
+### kill
+
+Syntax: `pushkin kill`
+
+Removes all containers and volumes from local Docker, as well as pushkin-specific images. Sometimes, if you having issues developing or seeing updates to your Pushkin project, it may be helpful to run this command to ensure docker isn't holding any problematic code or issues in containers.
+
+### armageddon
+
+Syntax: `pushkin armageddon`
+
+Complete reset of the local docker, including containers, volumes, and third-party images. Sometimes, if you having issues developing or seeing updates to your Pushkin project, it may be helpful to run this command to ensure docker isn't holding any problematic code or issues in containers/images. This may generate some error messages, which you can safely ignore.
+
+### updateDB
+
+Syntax: `pushkin updateDB`
+
+Runs migrations and seeds for experiments to update the database. This is set up to ensure experiments using the same database \(as defined in `pushkin.yaml`\) are migrated at the same time to avoid errors with the knex\_migrations table.
 
