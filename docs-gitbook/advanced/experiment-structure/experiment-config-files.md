@@ -86,7 +86,7 @@ Path relative to config file the CLI will look for these files.
 
 ### location
 
-Path relative to config file the CLI will look for these files. If you aren’t seeding a database table, set this to `''`. Otherwise, if the folder pointed to by `location` is empty, `pushkin setupdb` will fail.
+Path relative to config file the CLI will look for these files. If you aren’t seeding a database table, set this to `''`. Otherwise, if the folder pointed to by `location` is empty, database setup will fail.
 
 ## database
 
