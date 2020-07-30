@@ -131,7 +131,7 @@ const handleInstall = async (what) => {
       moveToProjectRoot()
       const expList = await listExpTemplates();
       inquirer.prompt(
-        [{ type: 'list', name: 'experiments', choices: Object.keys(expList), default: 0, message: 'Which site template do you want to use?'}]
+        [{ type: 'list', name: 'experiments', choices: Object.keys(expList), default: 0, message: 'Which experiment template do you want to use?'}]
       ).then(answers => {
         let expType = answers.experiments
         getVersions(expList[expType])
