@@ -4,7 +4,7 @@ const stimArray = require('./stim').default;
 const debrief = require('./debrief.js').default;
 const consent = require('./consent.js').default;
 
-require("script-loader!./jspsych-moving-window.js");
+require("./jspsych-moving-window.js");
 
 const timeline = []
 
