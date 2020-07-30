@@ -15,6 +15,8 @@ There are a number of tutorials on Docker. For ongoing use, this [cheatsheet](ht
 
 ## Testing Pushkin Modules Locally
 
+The content on this page may be out of date - stay tuned for edits!
+
 Currently, the most convenient way to test new version of Pushkin modules locally is getting the tarball of the pushkin modules you modified and putting it into the node test project folder.
 
 1. If you have a node project for test the new version of Pushkin modules\(pushkin-api, pushkin-client, pushkin-worker, etc.\), create a folder in the project dir named “testPackages”.

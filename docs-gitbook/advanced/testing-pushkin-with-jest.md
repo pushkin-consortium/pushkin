@@ -1,5 +1,7 @@
 # Testing Pushkin with Jest
 
+The content on this page may be out of date - stay tuned for edits!
+
 [Jest](https://jestjs.io/en/) is a JavaScript library for creating, running, and structuring tests.
 
 Install Jest using `npm`:
