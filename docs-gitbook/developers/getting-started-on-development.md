@@ -15,6 +15,8 @@ There are a number of tutorials on Docker. For ongoing use, this [cheatsheet](ht
 
 ## Testing Pushkin Modules Locally
 
+For information on running tests with Jest, see [Testing Pushkin with Jest](https://languagelearninglab.gitbook.io/pushkin/advanced/testing-pushkin-with-jest)
+
 The content on this page may be out of date - stay tuned for edits!
 
 Currently, the most convenient way to test new version of Pushkin modules locally is getting the tarball of the pushkin modules you modified and putting it into the node test project folder.
@@ -46,4 +48,3 @@ window.jsPsych = jsPsych;
 ```
 
 This prevents conflicts when multiple pages are using different versions of jsPsych. It also allows plugins to be used without any modification needed to suit this version.
-
