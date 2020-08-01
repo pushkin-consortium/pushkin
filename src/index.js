@@ -10,6 +10,7 @@ import { execSync, exec } from 'child_process'; // eslint-disable-line
 // subcommands
 import { listExpTemplates, getExpTemplate,  } from './commands/experiments/index.js';
 import { listSiteTemplates, getPushkinSite, pushkinInit } from './commands/sites/index.js';
+import { awsInit, nameProject } from './commands/aws/index.js'
 import prep from './commands/prep/index.js';
 import setupdb from './commands/setupdb/index.js';
 import * as compose from 'docker-compose'
@@ -209,6 +210,41 @@ async function main() {
         }
       }else{
         console.error(`Command not recognized. Run 'pushkin --help' for help.`)
+      }
+    });
+
+  program
+    .command('aws <cmd>')
+    .description(`For working with AWS. Commands include:\n init: initialize an AWS deployment`)
+    .action((cmd) => {
+      moveToProjectRoot();
+      switch (cmd){
+        case 'init':
+          try {
+            execSync('aws --version')
+          } catch(e) {
+            console.error('Please install the AWS CLI before continuing.')
+            process.exit();
+          }
+
+          inquirer.prompt([
+              { type: 'input', name: 'name', message: 'Name your project'}
+            ]).then(answers => {
+              let projName = answers.name;
+              nameProject(projName)
+                .catch((e) => {
+                  console.error(e);
+                  process.exit();
+                })
+                .then((awsName) => {
+                  console.log(awsName)
+                  //FUBAR
+                  //Use UUID to 
+                })
+            })
+          break;
+        default: 
+          console.error("Command not recognized. For help, run 'pushkin help aws'.")
       }
     });
 
