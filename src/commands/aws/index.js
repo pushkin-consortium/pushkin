@@ -4,7 +4,7 @@ import path from 'path';
 import util from 'util';
 import pacMan from '../../pMan.js'; //which package manager is available?
 import { execSync } from 'child_process'; // eslint-disable-line
-import { policy, cloudfront } from './bpolicy.js'
+import { policy, cloudfront } from './awsConfigs.js'
 const exec = util.promisify(require('child_process').exec);
 
 const buildFE = function (projName) {
@@ -42,7 +42,12 @@ const buildFE = function (projName) {
 
 
 export async function awsInit(projName, awsName, useIAM) {
-  console.log("policy:", policy)
+  console.log("cloudfront:", cloudfront)
+  console.log(cloudfront.CallerReference)
+  console.log(cloudfront.DefaultCacheBehavior.TargetOriginId)
+  console.log(cloudfront.Origins.Items[0])
+  console.log(cloudfront.Origins.Items[0].Id)
+  console.log(cloudfront.Origins.Items[0].DomainName)
 
   //build front-end
   let builtWeb
