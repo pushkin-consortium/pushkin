@@ -10,7 +10,7 @@ import { execSync, exec } from 'child_process'; // eslint-disable-line
 // subcommands
 import { listExpTemplates, getExpTemplate,  } from './commands/experiments/index.js';
 import { listSiteTemplates, getPushkinSite, pushkinInit } from './commands/sites/index.js';
-import { awsInit, nameProject } from './commands/aws/index.js'
+import { awsInit, nameProject, addIAM } from './commands/aws/index.js'
 import prep from './commands/prep/index.js';
 import setupdb from './commands/setupdb/index.js';
 import * as compose from 'docker-compose'
@@ -159,6 +159,54 @@ const handleInstall = async (what) => {
   }
 }
 
+const inquirerPromise = async (type, name, message) => {
+  let answers = inquirer.prompt([ { type: 'input', name: 'name', message: 'Name your project'}])
+  return answers[name]
+}
+
+const handleAWSInit = async () => {
+    let projName;
+    let useIAM;
+    let awsName
+    let stdOut
+    try {
+      execSync('aws --version')
+    } catch(e) {
+      console.error('Please install the AWS CLI before continuing.')
+      process.exit();
+    }
+    try {
+      projName = await inquirer.prompt([ { type: 'input', name: 'name', message: 'Name your project'}])
+      console.log(projName.name)
+      awsName = await nameProject(projName.name)
+      console.log(awsName)
+    } catch(e) {
+      console.error(e)
+      process.exit()
+    }
+    try {
+      useIAM = await inquirer.prompt([{ type: 'input', name: 'iam', message: 'Provide your AWS IAM username that you want to use for managing this project.'}])
+      console.log(useIAM.iam)
+    } catch (e) {
+      console.error('Problem getting AWS IAM username.\n', e)
+      process.exit()
+    }
+    try {
+      stdOut = execSync(`aws configure list --profile ${useIAM.iam}`).toString()
+    } catch (e) {
+      console.error(`The IAM user ${useIAM.iam} is not configured on the AWS CLI. For more information see https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html`)
+      process.exit();
+    }
+    try {
+      addIAM(useIAM.iam) //this doesn't need to be synchronous      
+    } catch(e) {
+      console.error(e)
+      process.exit()
+    }
+    await awsInit(projName.name, awsName, useIAM.iam)
+    console.log("done")
+}
+
 const killLocal = async () => {
   console.log('Removing all containers and volumes, as well as pushkin images. To additionally remove third-party images, run `pushkin armageddon`.') 
   moveToProjectRoot();
@@ -216,32 +264,11 @@ async function main() {
   program
     .command('aws <cmd>')
     .description(`For working with AWS. Commands include:\n init: initialize an AWS deployment`)
-    .action((cmd) => {
+    .action(async (cmd) => {
       moveToProjectRoot();
       switch (cmd){
         case 'init':
-          try {
-            execSync('aws --version')
-          } catch(e) {
-            console.error('Please install the AWS CLI before continuing.')
-            process.exit();
-          }
-
-          inquirer.prompt([
-              { type: 'input', name: 'name', message: 'Name your project'}
-            ]).then(answers => {
-              let projName = answers.name;
-              nameProject(projName)
-                .catch((e) => {
-                  console.error(e);
-                  process.exit();
-                })
-                .then((awsName) => {
-                  console.log(awsName)
-                  //FUBAR
-                  //Use UUID to 
-                })
-            })
+          await handleAWSInit();
           break;
         default: 
           console.error("Command not recognized. For help, run 'pushkin help aws'.")
