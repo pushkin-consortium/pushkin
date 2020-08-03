@@ -73,5 +73,5 @@ description: >-
     * [Understanding the Front End](developers/getting-started-on-development.md#understanding-the-front-end)
     * [Understanding Docker](developers/getting-started-on-development.md#understanding-docker)
     * [Testing Pushkin Modules Locally](developers/getting-started-on-development.md#testing-pushkin-modules-locally)
-	* [Pushkin jsPsych](developers/getting-started-on-development#pushkin-jspsych)
+    * [Pushkin jsPsych](https://github.com/pushkin-consortium/pushkin/tree/423120801ce745e971a197dd80d762db002b1749/docs-gitbook/developers/getting-started-on-development/README.md#pushkin-jspsych)
 

@@ -32,7 +32,7 @@ Currently, the most convenient way to test new version of Pushkin modules locall
     }
 ```
 
-That is, modify the path of the Pushkin module to the local test version, so that Yarn will find it locally rather than in the npm repository. 
+That is, modify the path of the Pushkin module to the local test version, so that Yarn will find it locally rather than in the npm repository.
 
 After you `yarn add` all of the dependencies, you can write the test codes.
 
@@ -48,3 +48,4 @@ window.jsPsych = jsPsych;
 ```
 
 This prevents conflicts when multiple pages are using different versions of jsPsych. It also allows plugins to be used without any modification needed to suit this version.
+
