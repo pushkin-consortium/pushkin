@@ -34,7 +34,9 @@ Install your first pushkin site the in the directory you just created:
 $ pushkin install site
 ```
 
-You will be asked to select a site template to use. Choose ‘default’.
+You will be asked to select a site template to use. Choose *default*, then choose the recommended version (e.g., *v1.1.0*)
+
+(See example output for this command [here](sample_output/pushkin-install-site.md).)
 
 This sets up a skeleton website in the current folder and a development database. Once the command finishes, you should have a directory tree like this:
 
@@ -58,7 +60,9 @@ To create a new experiment from the boilerplate template Pushkin provides, run
 $ pushkin install experiment
 ```
 
-Choose a ‘basic’ experiment. When prompted, name your experiment ‘vocab’. Repeat the process to add ‘basic’ experiments called ‘mind’ and ‘whichenglish’ as well.
+Choose a *basic* experiment. When prompted, name your experiment `vocab` and choose the recommended version (e.g., *v3.0.0*). Repeat the process to add *basic* experiments called `mind` and `whichenglish` as well.
+
+(See example output for this command [here](sample_output/pushkin-install-experiment.md).)
 
 This will create a new folder in the experiments directory like this:
 
@@ -93,6 +97,7 @@ Keeping all the files for an experiment within the same root folder is convenien
 ```bash
 $ pushkin prep
 ```
+(See example output for this command [here](sample_output/pushkin-prep.md).)
 
 ### Setting up logins
 
@@ -132,6 +137,7 @@ Now, let’s look at your website! Make sure Docker is running by running the co
 ```bash
 $ pushkin start;
 ```
+(See example output for this command [here](sample_output/pushkin-start.md).)
 
 Now browse to `http://localhost` \(or your IPv4 Public IP address\) to see the stub website.
 
@@ -141,7 +147,7 @@ When you are done looking at your website, stop it by running:
 $ pushkin stop;
 ```
 
-If you don’t do that, the web server will keep running in Docker until you quit Docker or restart.
+If you don’t do that, the web server will keep running in Docker until you quit Docker or restart. When the command has finished running, it should output `done`.
 
 ### Updating
 
@@ -155,4 +161,3 @@ $ pushkin start
 ### Starting over
 
 The great thing about Docker is that it saves your work. \(Read up on Docker to see what I mean.\) The bad thing is that it saves your work. Simply editing your code locally may not change what Docker thinks the code is. If you are updating something but it’s not showing up in your website or if you are getting error messages from Docker … ideally, you should read up on Docker. However, as a fail-safe, run `pushkin kill` to delete all your Pushkin-specific code in Docker. Then just run `pushkin prep` again. This will take a while but should address any Docker-specific problems. If you really need a fresh Docker install, run `pushkin armageddon`, which will completely clean Docker.
-
