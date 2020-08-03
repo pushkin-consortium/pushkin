@@ -15,7 +15,7 @@ description: >-
     * [macOS](getting-started/installing-pushkin-and-dependencies/macos-install.md)
     * [Windows 10](getting-started/installing-pushkin-and-dependencies/windows-install.md)
     * [Ubuntu Linux](getting-started/installing-pushkin-and-dependencies/ubuntu-install.md)
-  * [Quickstart](getting-started/quickstart.md)
+  * [Quickstart](getting-started/quickstart/)
   * [Deploying to AWS](getting-started/deploying-to-aws.md)
   * [Tutorial: Simple Experiment](getting-started/tutorial-simple-experiment.md)
 * **Advanced**

@@ -6,14 +6,14 @@ description: Start here to build a basic Pushkin site and experiment.
 
 ## Skip to section
 
-* [Creating a basic new Pushkin site](quickstart.md#creating-basic-new-pushkin-site)
-* [Making an experiment](quickstart.md#making-an-experiment)
-* [Setting up logins](quickstart.md#setting-up-logins)
-* [Local testing](quickstart.md#local-testing)
-* [Updating](quickstart.md#updating)
-* [Starting over](quickstart.md#starting-over)
+* [Creating a basic new Pushkin site](./#creating-basic-new-pushkin-site)
+* [Making an experiment](./#making-an-experiment)
+* [Setting up logins](./#setting-up-logins)
+* [Local testing](./#local-testing)
+* [Updating](./#updating)
+* [Starting over](./#starting-over)
 
-**If you haven't installed pushkin-cli and its dependencies, start** [**here**](installing-pushkin-and-dependencies/) **first.**
+**If you haven't installed pushkin-cli and its dependencies, start** [**here**](../installing-pushkin-and-dependencies/) **first.**
 
 ### Creating a basic new Pushkin site
 
@@ -34,9 +34,9 @@ Install your first pushkin site the in the directory you just created:
 $ pushkin install site
 ```
 
-You will be asked to select a site template to use. Choose **default**, then choose the recommended version (e.g., **v1.1.0**).
+You will be asked to select a site template to use. Choose **default**, then choose the recommended version \(e.g., **v1.1.0**\).
 
-(See example output for this command [here](sample_output.md#example-output-for-pushkin-install-site).)
+\(See example output for this command [here](sample_output.md#example-output-for-pushkin-install-site).\)
 
 This sets up a skeleton website in the current folder and a development database. Once the command finishes, you should have a directory tree like this:
 
@@ -60,9 +60,9 @@ To create a new experiment from the boilerplate template Pushkin provides, run
 $ pushkin install experiment
 ```
 
-Choose a **basic** experiment. When prompted, name your experiment `vocab` and choose the recommended version (e.g., **v3.0.0**). Repeat the process to add **basic** experiments called `mind` and `whichenglish` as well.
+Choose a **basic** experiment. When prompted, name your experiment `vocab` and choose the recommended version \(e.g., **v3.0.0**\). Repeat the process to add **basic** experiments called `mind` and `whichenglish` as well.
 
-(See example output for this command [here](sample_output.md#example-output-for-pushkin-install-experiment).)
+\(See example output for this command [here](sample_output.md#example-output-for-pushkin-install-experiment).\)
 
 This will create a new folder in the experiments directory like this:
 
@@ -97,7 +97,8 @@ Keeping all the files for an experiment within the same root folder is convenien
 ```bash
 $ pushkin prep
 ```
-(See example output for this command [here](sample_output.md#example-output-for-pushkin-prep).)
+
+\(See example output for this command [here](sample_output.md#example-output-for-pushkin-prep).\)
 
 ### Setting up logins
 
@@ -119,7 +120,7 @@ Note that these URLs are used for development. When you launch the live version 
 
 If you are using an AWS EC2 instance, navigate to the IPv4 Public IP address of your instance instead of `http://localhost`. This can be found in the AWS EC2 console.
 
-![](../.gitbook/assets/38.gif)
+![](../../.gitbook/assets/38%20%281%29.gif)
 
 On the settings page, you will see a `Domain` \(something like `gameswithwords.auth0.com`\) and a `Client ID`. Edit `config.js` to match:
 
@@ -137,7 +138,8 @@ Now, let’s look at your website! Make sure Docker is running by running the co
 ```bash
 $ pushkin start;
 ```
-(See example output for this command [here](sample_output.md#example-output-for-pushkin-start).)
+
+\(See example output for this command [here](sample_output.md#example-output-for-pushkin-start).\)
 
 Now browse to `http://localhost` \(or your IPv4 Public IP address\) to see the stub website.
 
@@ -161,3 +163,4 @@ $ pushkin start
 ### Starting over
 
 The great thing about Docker is that it saves your work. \(Read up on Docker to see what I mean.\) The bad thing is that it saves your work. Simply editing your code locally may not change what Docker thinks the code is. If you are updating something but it’s not showing up in your website or if you are getting error messages from Docker … ideally, you should read up on Docker. However, as a fail-safe, run `pushkin kill` to delete all your Pushkin-specific code in Docker. Then just run `pushkin prep` again. This will take a while but should address any Docker-specific problems. If you really need a fresh Docker install, run `pushkin armageddon`, which will completely clean Docker.
+

@@ -66,5 +66,5 @@ Next, install [Docker](https://docs.docker.com/install/).
 
 ### Next steps
 
-Great! You're all done. Head over [here](../quickstart.md) to build a basic Pushkin site and experiment.
+Great! You're all done. Head over [here](../quickstart/) to build a basic Pushkin site and experiment.
 

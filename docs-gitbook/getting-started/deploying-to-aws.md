@@ -7,7 +7,7 @@
 3. \(Must do approx. 24 hrs in advance:\) Create an [Amazon Web Services](https://aws.amazon.com/free/?sc_channel=PS&sc_campaign=acquisition_US&sc_publisher=google&sc_medium=cloud_computing_b&sc_content=aws_url_e_control_q32016&sc_detail=amazon.%20web%20services&sc_category=cloud_computing&sc_segment=188908164670&sc_matchtype=e&sc_country=US&s_kwcid=AL!4422!3!188908164670!e!!g!!amazon.%20web%20services&ef_id=WUGhAAAAAHs2P1qP:20171016145411:s.) account.
 4. [Install](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html) and [configure](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html) the AWS CLI.
 
-**Note**: When configuring aws, be sure to specify `json` as your default output format:
+**Note**: When configuring AWS, be sure to specify `json` as your default output format:
 
 ```bash
 $ aws configure
@@ -59,7 +59,7 @@ In order to have encryption --- which you want! --- you need a certificate. You 
 3. Request a public certificate.
 4. Enter your domain preceded by an `*` \(thus 'gameswithwords.org' would be entered as `*.gameswithwords.org`\).
 5. If you registered your domain with AWS, use DNS validation. Otherwise, follow the instructions.
-6. Skip through the next couple steps, then create a CNAME record. This is simple if you used AWS for your odmain registration; otherwise, follow the instructions. ![](../.gitbook/assets/SSL.mov)
+6. Skip through the next couple steps, then create a CNAME record. This is simple if you used AWS for your domain registration; otherwise, follow the instructions. ![](../.gitbook/assets/SSL.mov)
 
 At this point, you wait for your certificate to be issued. Depending on how you registered your domain, this may take variable amounts of time. For us, it usually only takes a few minutes.
 

@@ -13,7 +13,6 @@ description: Example outputs for commands in the Quickstart tutorial
 
 ### Example output for `pushkin install site`
 
-
 ```text
 ? Which site template do you want to use? default
 https://api.github.com/repos/pushkin-consortium/pushkin-sitetemplates-default/releases
@@ -30,7 +29,6 @@ api is built
 Building front-end
 front-end is built
 ```
-
 
 ### Example output for `pushkin install experiment`
 
@@ -155,7 +153,6 @@ Setup databases successfully
 ```
 
 ### Example output for `pushkin start;`
-
 
 ```text
 Pulling message-queue (rabbitmq:3.6-management)...
@@ -484,3 +481,4 @@ Successfully built 486d4e9e9e6d
 Successfully tagged pushkin_server:latest
  Starting. You may not be able to load localhost for a minute or two.
 ```
+
