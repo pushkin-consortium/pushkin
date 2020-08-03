@@ -84,6 +84,14 @@ export async function getPushkinSite(initDir, url) {
         await fs.promises.rename('pushkin/pushkin.yaml.bak', './pushkin.yaml').catch((err) => { console.error(err); }),
         await fs.promises.rename('pushkin/config.js.bak', 'pushkin/front-end/src/config.js').catch((err) => { console.error(err); })
       ]);
+      try {
+        //Make sure files with passwords don't get tracked in github
+        fs.writeFileSync('.gitignore', 'pushkin.yaml');
+      } catch (e) {
+        console.error('Unable to update .gitignore when extracting pushkin.yaml')
+        throw e
+      }
+
       fs.promises.mkdir('experiments').catch((err) => { console.error(err); });
       if (fs.existsSync('__MACOSX')) {
         const shellresp = shell.rm('-rf','__MACOSX'); //fs doesn't have a stable directly removal function yet
