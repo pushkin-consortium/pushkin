@@ -51,5 +51,5 @@ Each object contains three properties: name, image and description. Edit the nam
 
 To add a profile picture of the team member. Copy the image file into the `assets/images/teamMember` folder.
 
-Then edit the image property in `People.js`, make sure the name of the image file and the image property match, including the extension name, like: `Josh.jpg`.
+Then edit the image property in `People.js`, making sure the name of the image file and the image property here match, including the extension name, like: `bob.jpg`.
 
