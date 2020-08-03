@@ -11,7 +11,7 @@ description: >-
 ## Table of contents
 
 * **Getting Started**
-  * \*\*\*\*[Installing Pushkin and dependencies](getting-started/installing-pushkin-and-dependencies/)
+  * [Installing Pushkin and dependencies](getting-started/installing-pushkin-and-dependencies/)
     * [macOS](getting-started/installing-pushkin-and-dependencies/macos-install.md)
     * [Windows 10](getting-started/installing-pushkin-and-dependencies/windows-install.md)
     * [Ubuntu Linux](getting-started/installing-pushkin-and-dependencies/ubuntu-install.md)
