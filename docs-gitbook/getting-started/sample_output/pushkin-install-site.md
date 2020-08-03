@@ -1,6 +1,5 @@
----
-description: Example output for `pushkin install site`
----
+### Example output for `pushkin install site`
+
 
 ```text
 ? Which site template do you want to use? default
