@@ -103,7 +103,7 @@ Complete reset of the local docker, including containers, volumes, and third-par
 
 ### help
 
-Syntax: `pushkin help`
+Syntax: `pushkin help [command]`
 
-Shows command options with short descriptions.
+Provides information on a specific pushkin command, you can add the command after help \(e.g. `pushkin help prep` to learn about the prep command and its options\). Defaults to a list of all commands and general information about each if no command specified.
 
