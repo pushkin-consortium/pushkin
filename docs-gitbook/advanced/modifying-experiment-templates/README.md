@@ -38,7 +38,7 @@ This file contains some settings you can customize for the experiment. Currently
 
 ### stim.js
 
-Stimuli are added using the stim.js file, which contains an array to put your stimuli information into.
+Stimuli are added using the stim.js file, which contains an array to put your stimuli information into. More details on editing the stimuli data for each specific experiment in their respective documentation pages.
 
 ### consent.js
 
