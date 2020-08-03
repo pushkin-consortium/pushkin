@@ -1,7 +1,4 @@
----
-description: Example output for `pushkin prep`
----
-
+### Example output for `pushkin prep`
 
 ```text
 package manager:  yarn

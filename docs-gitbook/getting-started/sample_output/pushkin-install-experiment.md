@@ -1,7 +1,4 @@
----
-description: Example output for `pushkin install experiment`
----
-
+### Example output for `pushkin install experiment`
 
 ```text
 ? Which experiment template do you want to use? basic

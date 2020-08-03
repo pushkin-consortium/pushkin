@@ -1,6 +1,5 @@
----
-description: Example output for `pushkin start;`
----
+### Example output for `pushkin start;`
+
 
 ```text
 Pulling message-queue (rabbitmq:3.6-management)...

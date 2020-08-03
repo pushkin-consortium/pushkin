@@ -34,7 +34,7 @@ Install your first pushkin site the in the directory you just created:
 $ pushkin install site
 ```
 
-You will be asked to select a site template to use. Choose *default*, then choose the recommended version (e.g., *v1.1.0*)
+You will be asked to select a site template to use. Choose **default**, then choose the recommended version (e.g., **v1.1.0**).
 
 (See example output for this command [here](sample_output/pushkin-install-site.md).)
 
@@ -60,7 +60,7 @@ To create a new experiment from the boilerplate template Pushkin provides, run
 $ pushkin install experiment
 ```
 
-Choose a *basic* experiment. When prompted, name your experiment `vocab` and choose the recommended version (e.g., *v3.0.0*). Repeat the process to add *basic* experiments called `mind` and `whichenglish` as well.
+Choose a **basic** experiment. When prompted, name your experiment `vocab` and choose the recommended version (e.g., **v3.0.0**). Repeat the process to add **basic** experiments called `mind` and `whichenglish` as well.
 
 (See example output for this command [here](sample_output/pushkin-install-experiment.md).)
 
