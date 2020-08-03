@@ -1,3 +1,159 @@
+---
+description: Example outputs for commands in the Quickstart tutorial
+---
+
+# Quickstart: Example Outputs
+
+## Skip to section
+
+* [Example output for `pushkin install site`](sample_output.md#example-output-for-pushkin-install-site)
+* [Example output for `pushkin install experiment`](sample_output.md#example-output-for-pushkin-install-experiment)
+* [Example output for `pushkin prep`](sample_output.md#example-output-for-pushkin-prep)
+* [Example output for `pushkin start;`](sample_output.md#example-output-for-pushkin-start)
+
+### Example output for `pushkin install site`
+
+
+```text
+? Which site template do you want to use? default
+https://api.github.com/repos/pushkin-consortium/pushkin-sitetemplates-default/releases
+https://api.github.com/repos/pushkin-consortium/pushkin-sitetemplates-default/releases
+? Which version? (Recommend:v1.1.0) v1.1.0
+retrieving from https://api.github.com/repos/pushkin-consortium/pushkin-sitetemplates-default/releases/29180115
+be patient...
+https://github.com/pushkin-consortium/pushkin-sitetemplates-default/releases/download/v1.1.0/Archive.zip
+finished downloading
+Installing dependencies for api
+Installing dependencies for front-end
+Building api
+api is built
+Building front-end
+front-end is built
+```
+
+
+### Example output for `pushkin install experiment`
+
+```text
+? Which experiment template do you want to use? basic
+https://api.github.com/repos/pushkin-consortium/pushkin-exptemplates-basic/releases
+https://api.github.com/repos/pushkin-consortium/pushkin-exptemplates-basic/releases
+? Which version? (Recommend:v3.0.0) v3.0.0
+? What do you want to call your experiment? vocab
+Making vocab in /home/parker/Desktop/pushkin_testing/experiments
+retrieving from https://api.github.com/repos/pushkin-consortium/pushkin-exptemplates-basic/releases/28951926
+be patient...
+finished downloading
+Installing dependencies for api controllers
+Installing dependencies for web page
+Installing dependencies for worker
+loaded compFile
+Building worker
+worker is built
+Building vocab_api from api controllers
+vocab_api is built
+vocab_api is published locally via yalc
+vocab_api added to build cycle via yalc
+Building vocab_web from web page
+vocab_web is built
+vocab_web is published locally via yalc
+vocab_web added to build cycle via yalc
+```
+
+### Example output for `pushkin prep`
+
+```text
+package manager:  yarn
+resetting experiments.js
+Started prepping API for vocab
+Started loading API controller for vocab
+modDir:  /home/parker/Desktop/pushkin_testing/experiments/vocab/api controllers
+Using build-if-changed for  vocab_api
+Installing dependencies for /home/parker/Desktop/pushkin_testing/experiments/vocab/api controllers
+Started prepping web page for vocab
+Started loading web page for vocab
+modDir:  /home/parker/Desktop/pushkin_testing/experiments/vocab/web page
+Using build-if-changed for  vocab_web
+Installing dependencies for /home/parker/Desktop/pushkin_testing/experiments/vocab/web page
+Building worker for vocab
+Waiting for database to start...
+Building vocab_api from /home/parker/Desktop/pushkin_testing/experiments/vocab/api controllers
+...
+Building vocab_web from /home/parker/Desktop/pushkin_testing/experiments/vocab/web page
+vocab_api is built
+vocab_api is published locally via yalc
+...
+vocab_web is built
+vocab_web is published locally via yalc
+Loaded web page for vocab (vocab_web)
+Added vocab to experiments.js
+Writing out experiments.js
+Installing combined API
+Installed combined API
+Installing combined front-end
+Installed combined front-end
+...
+...
+...
+...
+...
+...
+...
+...
+...
+...
+...
+...
+...
+...
+...
+...
+...
+...
+...
+...
+...
+...
+...
+...
+...
+...
+...
+...
+...
+...
+...
+...
+...
+...
+...
+...
+Map(1) {
+  'localtestdb' => [
+    {
+      migrations: '/home/parker/Desktop/pushkin_testing/users/migrations',
+      seeds: ''
+    },
+    {
+      migrations: '/home/parker/Desktop/pushkin_testing/experiments/vocab/migrations',
+      seeds: '/home/parker/Desktop/pushkin_testing/experiments/vocab'
+    }
+  ]
+}
+{
+  localtestdb: {
+    user: 'postgres',
+    pass: 'example',
+    url: 'localhost',
+    name: 'test_db'
+  }
+}
+starting migrations...
+FS-related option specified for migration configuration. This resets migrationSource to default FsMigrations
+Setup databases successfully
+ Database updated. Shutting down...
+```
+
 ### Example output for `pushkin start;`
 
 
