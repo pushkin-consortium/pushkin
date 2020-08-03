@@ -2,6 +2,11 @@
 
 To install this experiment template, use the command `pushkin install experiment`, then select **reading**.
 
+* [config info](self-paced-reading-template.md#config-js)
+* [stim info](../users-and-authentication.md#randomly-generated-string)
+
+![Self-paced reading experiment template, with the setting &quot;moving word&quot; \(see below for details\)](../../.gitbook/assets/ezgif.com-video-to-gif-7-.gif)
+
 ### config.js
 
 **displayType**: Setting for how target words or text are isolated. Option of either:
@@ -16,4 +21,8 @@ To install this experiment template, use the command `pushkin install experiment
 * "sentence word" for showing sentence by sentence. The last sentence in the stimulus automatically becomes the target sentence, with the words displayed one at a time.
 * "sentence chunk" for showing sentence by sentence. The last sentence in the stimulus automatically becomes the target sentence, with the chunks displayed one at a time - chunks must be separated by + signs.
 * "sentence" without word or chunk, it will default to word.
+
+### stim.js
+
+**sentence:** The sentence or text to be read. See above for details on how to note what chunks of words should be displayed together for self-paced reading display rate.
 
