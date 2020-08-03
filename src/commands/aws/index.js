@@ -4,7 +4,7 @@ import path from 'path';
 import util from 'util';
 import pacMan from '../../pMan.js'; //which package manager is available?
 import { execSync } from 'child_process'; // eslint-disable-line
-import { policy, cloudfront } from './awsConfigs.js'
+import { policy, cloudfront, dbConfig } from './awsConfigs.js'
 const exec = util.promisify(require('child_process').exec);
 
 const buildFE = function (projName) {
@@ -40,33 +40,7 @@ const buildFE = function (projName) {
   })
 }
 
-
-export async function awsInit(projName, awsName, useIAM) {
-  console.log("cloudfront:", cloudfront)
-  console.log(cloudfront.CallerReference)
-  console.log(cloudfront.DefaultCacheBehavior.TargetOriginId)
-  console.log(cloudfront.Origins.Items[0])
-  console.log(cloudfront.Origins.Items[0].Id)
-  console.log(cloudfront.Origins.Items[0].DomainName)
-
-  //build front-end
-  let builtWeb
-  try {
-    builtWeb = buildFE(projName)
-  } catch(e) {
-    throw e
-  }
-
-  console.log("Creating s3 bucket")
-  try {
-    execSync(`aws s3 mb s3://`.concat(awsName).concat(` --profile `).concat(useIAM))
-  } catch(e) {
-    console.error('Problem creating bucket for front-end')
-    throw e
-  }
-
-  await builtWeb; //need this before we sync! 
-
+const deployFrontEnd = async (projName, awsName, useIAM) => {
   console.log("Copying files to bucket")
   try {
     execSync(`aws s3 sync build/ s3://${awsName} --profile ${useIAM}`, {cwd: path.join(process.cwd(), 'pushkin/front-end')})
@@ -96,6 +70,88 @@ export async function awsInit(projName, awsName, useIAM) {
     console.log('Could not set up cloudfront.')
     throw e
   }
+
+  return
+}
+
+const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
+  console.log(`Creating ${dbType} database.`)
+
+  let dbName = projName.concat(dbType).replace(/[^\w\s]/g, "").replace(/ /g,"")
+  let myDBConfig = dbConfig;
+  myDBConfig.DBName = dbName
+  myDBConfig.DBInstanceIdentifier = dbName
+  myDBConfig.VpcSecurityGroupIds = [securityGroupID]
+  myDBConfig.MasterUserPassword = "FUBAR1234" //This had better get updated!
+  try {
+    execSync(`aws rds create-db-instance --cli-input-json '`.concat(JSON.stringify(myDBConfig)).concat(`' --profile `).concat(useIAM))
+  } catch(e) {
+    console.error('Unable to create database ${dbType}')
+    throw e
+  }
+}
+
+
+export async function awsInit(projName, awsName, useIAM) {
+
+  // //build front-end
+  // let builtWeb
+  // try {
+  //   builtWeb = buildFE(projName)
+  // } catch(e) {
+  //   throw e
+  // }
+
+  // console.log("Creating s3 bucket")
+  // try {
+  //   execSync(`aws s3 mb s3://`.concat(awsName).concat(` --profile `).concat(useIAM))
+  // } catch(e) {
+  //   console.error('Problem creating bucket for front-end')
+  //   throw e
+  // }
+
+  // await builtWeb; //need this before we sync! 
+
+  // let deployedFrontEnd
+  // try {
+  //   deployedFrontEnd = deployFrontEnd(projName, awsName, useIAM)
+  // } catch(e) {
+  //   console.error(`Failed to deploy front end`)
+  //   throw e
+  // }
+
+
+  console.log('Creating security group for databases')
+  let SGCreate = `aws ec2 create-security-group --group-name DatabaseGroup --description "For connecting to databases" --profile ${useIAM}`
+  let SGRule = `aws ec2 authorize-security-group-ingress --group-name DatabaseGroup --ip-permissions IpProtocol=tcp,FromPort=5432,ToPort=5432,Ipv6Ranges='[{CidrIpv6=::/0}]',IpRanges='[{CidrIp=0.0.0.0/0}]' --profile ${useIAM}`
+  let stdOut
+  try {
+    stdOut = execSync(SGCreate)
+    execSync(SGRule)
+  } catch(e) {
+    console.error(`Failed to create security group for databases`)
+    throw e
+  }
+  const securityGroupID = JSON.parse(stdOut.toString()).GroupId //remember security group in order to use later!
+
+  let initializedMainDB
+  try {
+    initializedMainDB = initDB('Main', securityGroupID, projName, awsName, useIAM)
+  } catch(e) {
+    console.error(`Failed to initialize main database`)
+    throw e
+  }
+  let initializedTransactionDB
+  try {
+    initializedTransactionDB = initDB('Transaction', securityGroupID, projName, awsName, useIAM)
+  } catch(e) {
+    console.error(`Failed to initialize transaction database`)
+    throw e
+  }
+
+  await Promise.all([initializedMainDB, initializedTransactionDB])
+  //await Promise.all([deployedFrontEnd, initializedMainDB, initializedTransactionDB])
+  return
 }
 
 

@@ -109,3 +109,31 @@ export const cloudfront = {
     "HttpVersion": "http2",
     "IsIPV6Enabled": true
 }
+
+export const dbConfig = {
+    "DBName": "FUBAR",
+    "DBInstanceIdentifier": "FUBAR1234",
+    "AllocatedStorage": 20,
+    "DBInstanceClass": "db.t2.micro",
+    "Engine": "postgres",
+    "MasterUsername": "postgres",
+    "VpcSecurityGroupIds": [
+        "FUBAR"
+    ],
+    "MasterUserPassword": "FUBAR",
+    "BackupRetentionPeriod": 7,
+    "Port": 5432,
+    "MultiAZ": true,
+    "AutoMinorVersionUpgrade": true,
+    "PubliclyAccessible": true,
+    "StorageType": "gp2",
+    "StorageEncrypted": false,
+    "CopyTagsToSnapshot": true,
+    "MonitoringInterval": 0,
+    "EnableIAMDatabaseAuthentication": true,
+    "EnableCloudwatchLogsExports": [
+        "postgresql", "upgrade"
+    ],
+    "DeletionProtection": true,
+    "MaxAllocatedStorage": 1000
+}

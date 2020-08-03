@@ -177,9 +177,7 @@ const handleAWSInit = async () => {
     }
     try {
       projName = await inquirer.prompt([ { type: 'input', name: 'name', message: 'Name your project'}])
-      console.log(projName.name)
       awsName = await nameProject(projName.name)
-      console.log(awsName)
     } catch(e) {
       console.error(e)
       process.exit()
