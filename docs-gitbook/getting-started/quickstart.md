@@ -36,7 +36,7 @@ $ pushkin install site
 
 You will be asked to select a site template to use. Choose **default**, then choose the recommended version (e.g., **v1.1.0**).
 
-(See example output for this command [here](sample_output/pushkin-install-site.md).)
+(See example output for this command [here](sample_output.md#example-output-for-pushkin-install-site).)
 
 This sets up a skeleton website in the current folder and a development database. Once the command finishes, you should have a directory tree like this:
 
@@ -62,7 +62,7 @@ $ pushkin install experiment
 
 Choose a **basic** experiment. When prompted, name your experiment `vocab` and choose the recommended version (e.g., **v3.0.0**). Repeat the process to add **basic** experiments called `mind` and `whichenglish` as well.
 
-(See example output for this command [here](sample_output/pushkin-install-experiment.md).)
+(See example output for this command [here](sample_output.md#example-output-for-pushkin-install-experiment).)
 
 This will create a new folder in the experiments directory like this:
 
@@ -97,7 +97,7 @@ Keeping all the files for an experiment within the same root folder is convenien
 ```bash
 $ pushkin prep
 ```
-(See example output for this command [here](sample_output/pushkin-prep.md).)
+(See example output for this command [here](sample_output.md#example-output-for-pushkin-prep).)
 
 ### Setting up logins
 
@@ -137,7 +137,7 @@ Now, let’s look at your website! Make sure Docker is running by running the co
 ```bash
 $ pushkin start;
 ```
-(See example output for this command [here](sample_output/pushkin-start.md).)
+(See example output for this command [here](sample_output.md#example-output-for-pushkin-start).)
 
 Now browse to `http://localhost` \(or your IPv4 Public IP address\) to see the stub website.
 
