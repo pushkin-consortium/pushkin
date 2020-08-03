@@ -4,8 +4,70 @@ import path from 'path';
 import util from 'util';
 import pacMan from '../../pMan.js'; //which package manager is available?
 import { execSync } from 'child_process'; // eslint-disable-line
-import { policy, cloudfront, dbConfig } from './awsConfigs.js'
+import { policy, cloudfront, dbConfig, setupTransactionDB } from './awsConfigs.js'
+import jsYaml from 'js-yaml';
 const exec = util.promisify(require('child_process').exec);
+
+const publishToDocker = function (DHID) {
+  console.log("Building API")
+  try {
+    execSync(`docker build -t ${DHID}/api:latest pushkin/api`, {cwd: process.cwd()})
+  } catch(e) {
+    console.error(`Problem building API`)
+    throw e
+  }
+  console.log("Pushkin API to DockerHub")
+  let pushedAPI
+  try {
+    pushedAPI = exec(`docker push ${DHID}/api:latest`, {cwd: process.cwd()})
+  } catch(e) {
+    console.error(`Couldn't push API to DockerHub`)
+    throw e
+  }
+
+  let docker_compose
+  try {
+    docker_compose = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'pushkin/docker-compose.dev.yml'), 'utf8'));
+  } catch(e) {
+    console.error('Failed to load the docker-compose. That is extremely odd.')
+    throw e
+  }
+
+  const pushWorkers = async (s) => {
+    const service = docker_compose.services[s]
+    if (service.labels == null) {
+      // not a worker
+      return ''
+    }
+    if (service.labels.isPushkinWorker != true) {
+      // not a worker
+      return ''
+    }
+
+    console.log(`Building ${s}`)
+    try {
+      execSync(`docker tag ${service.image} ${DHID}/${service.image}:latest`)
+    } catch(e) {
+      console.error(`Unable to tag image ${service.image}`)
+      throw e
+    }
+    try {
+      return exec(`docker push ${DHID}/${service.image}`)
+    } catch(e) {
+      throw e
+    }
+  }
+
+ 
+  let pushedWorkers
+  try {
+    pushedWorkers = Object.keys(docker_compose.services).map(pushWorkers)
+  } catch (e) {
+    throw e
+  }
+  
+  return Promise.all([pushedAPI, pushedWorkers])
+}
 
 const buildFE = function (projName) {
   return new Promise ((resolve, reject) => {
@@ -76,6 +138,7 @@ const deployFrontEnd = async (projName, awsName, useIAM) => {
 
 const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
   console.log(`Creating ${dbType} database.`)
+  let stdOut
 
   let dbName = projName.concat(dbType).replace(/[^\w\s]/g, "").replace(/ /g,"")
   let myDBConfig = dbConfig;
@@ -84,42 +147,113 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
   myDBConfig.VpcSecurityGroupIds = [securityGroupID]
   myDBConfig.MasterUserPassword = "FUBAR1234" //This had better get updated!
   try {
-    execSync(`aws rds create-db-instance --cli-input-json '`.concat(JSON.stringify(myDBConfig)).concat(`' --profile `).concat(useIAM))
+    stdOut = execSync(`aws rds create-db-instance --cli-input-json '`.concat(JSON.stringify(myDBConfig)).concat(`' --profile `).concat(useIAM)).toString()
   } catch(e) {
     console.error('Unable to create database ${dbType}')
     throw e
   }
+  console.log(stdOut)
+
+  console.log(`Database ${dbType} created. Adding to local config definitions.`)
+  let pushkinConfig = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'pushkin.yaml'), 'utf8'))
+  if (pushkinConfig.databases.production == null) {
+    // initialize
+    pushkinConfig.databases.production = [];
+  }
+  pushkinConfig.databases.production[dbType] = {
+    "name": dbName, 
+    "endpoint": stdOut.Endpoint, 
+    "username": myDBConfig.MasterUsername, 
+    "password": myDBConfig.MasterUserPassword}
+
+  fs.writeFileSync(path.join(process.cwd(), 'pushkin.yaml'), jsYaml.safeDump(pushkinConfig), 'utf8')
+  
+  return stdOut.Endpoint
 }
 
+const setupECS = async (projName, awsName, useIAM) => {
 
-export async function awsInit(projName, awsName, useIAM) {
+  console.log("Configuring ECS CLI")
+  let aws_access_key_id
+  let aws_secret_access_key
+  try {
+    aws_access_key_id = execSync(`aws configure get aws_access_key_id --profile ${useIAM}`).toString()
+    aws_secret_access_key = execSync(`aws configure get aws_secret_access_key --profile ${useIAM}`).toString()
+  } catch (e) {
+    console.error(`Unable to load AWS credentials for ${useIAM}. Are you sure you have this profile configured for the AWS CLI?`)
+    throw e
+  }
+  console.log(aws_access_key_id)
+  console.log(aws_secret_access_key)
 
-  // //build front-end
-  // let builtWeb
-  // try {
-  //   builtWeb = buildFE(projName)
-  // } catch(e) {
-  //   throw e
-  // }
+  const ECSName = projName.replace(/[^\w\s]/g, "").replace(/ /g,"");
+  const setProfile = `ecs-cli configure profile --profile-name ${useIAM} --access-key ${aws_access_key_id} --secret-key ${aws_secret_access_key}`.replace(/(\r\n|\n|\r)/gm," ")
+  console.log(setProfile)
+  try {
+    //not necessary if already set up, but doesn't seem to hurt anything
+    execSync(setProfile)
+  } catch (e) {
+    console.error(`Unable to set up profile ${useIAM} for ECS CLI.`)
+    throw e
+  }
 
-  // console.log("Creating s3 bucket")
-  // try {
-  //   execSync(`aws s3 mb s3://`.concat(awsName).concat(` --profile `).concat(useIAM))
-  // } catch(e) {
-  //   console.error('Problem creating bucket for front-end')
-  //   throw e
-  // }
+  try {
+    //Probably we should check if there is already a configuration with this name and ask before replacing.
+    execSync(`ecs-cli configure --cluster ${ECSName} --default-launch-type EC2 --region us-east-1 --config-name ${ECSName}`)
+  } catch (e) {
+    console.error(`Unables to configure cluster ${ECSName}.`)
+    throw e
+  }
 
-  // await builtWeb; //need this before we sync! 
+  return
+}
 
-  // let deployedFrontEnd
-  // try {
-  //   deployedFrontEnd = deployFrontEnd(projName, awsName, useIAM)
-  // } catch(e) {
-  //   console.error(`Failed to deploy front end`)
-  //   throw e
-  // }
+export async function awsInit(projName, awsName, useIAM, DHID) {
 
+  //pushing stuff to DockerHub
+  console.log('Publishing images to DockerHub')
+  let publishedToDocker
+  try {
+    publishedToDocker = publishToDocker(DHID);
+  } catch(e) {
+    console.error('Unable to publish images to DockerHub')
+    throw e
+  }
+
+  await publishedToDocker
+  process.exit();
+  //build front-end
+  let builtWeb
+  try {
+    builtWeb = buildFE(projName)
+  } catch(e) {
+    throw e
+  }
+
+  console.log("Creating s3 bucket")
+  try {
+    execSync(`aws s3 mb s3://`.concat(awsName).concat(` --profile `).concat(useIAM))
+  } catch(e) {
+    console.error('Problem creating bucket for front-end')
+    throw e
+  }
+
+  await builtWeb; //need this before we sync! 
+
+  let deployedFrontEnd
+  try {
+    deployedFrontEnd = deployFrontEnd(projName, awsName, useIAM)
+  } catch(e) {
+    console.error(`Failed to deploy front end`)
+    throw e
+  }
+
+  let configuredECS
+  try {
+    configuredECS = setupECS(projName, awsName, useIAM);
+  } catch(e) {
+    throw e
+  }
 
   console.log('Creating security group for databases')
   let SGCreate = `aws ec2 create-security-group --group-name DatabaseGroup --description "For connecting to databases" --profile ${useIAM}`
@@ -150,7 +284,7 @@ export async function awsInit(projName, awsName, useIAM) {
   }
 
   await Promise.all([initializedMainDB, initializedTransactionDB])
-  //await Promise.all([deployedFrontEnd, initializedMainDB, initializedTransactionDB])
+  //await Promise.all([deployedFrontEnd, initializedMainDB, initializedTransactionDB, configuredECS])
   return
 }
 

@@ -137,3 +137,10 @@ export const dbConfig = {
     "DeletionProtection": true,
     "MaxAllocatedStorage": 1000
 }
+
+export const setupTransactionDB = 
+    `create table transactions (
+    id  SERIAL PRIMARY KEY,
+    query TEXT not null,
+    bindings TEXT
+    )`

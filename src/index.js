@@ -165,10 +165,19 @@ const inquirerPromise = async (type, name, message) => {
 }
 
 const handleAWSInit = async () => {
+
+    const config = await loadConfig(path.join(process.cwd(), 'pushkin.yaml'))
+
+    if (config.DockerHubID == null) {
+      console.error(`Your DockerHub ID has not been configured. Please be sure you have a valid DockerHub ID and then run 'pushkin setDockerHub'.`)
+      process.exit()
+    }
+    
     let projName;
     let useIAM;
     let awsName
     let stdOut
+
     try {
       execSync('aws --version')
     } catch(e) {
@@ -201,7 +210,7 @@ const handleAWSInit = async () => {
       console.error(e)
       process.exit()
     }
-    await awsInit(projName.name, awsName, useIAM.iam)
+    await awsInit(projName.name, awsName, useIAM.iam, config.DockerHubID)
     console.log("done")
 }
 
@@ -266,7 +275,12 @@ async function main() {
       moveToProjectRoot();
       switch (cmd){
         case 'init':
-          await handleAWSInit();
+          try {
+            await handleAWSInit();
+          } catch(e) {
+            console.error(e)
+            process.exit();
+          }
           break;
         default: 
           console.error("Command not recognized. For help, run 'pushkin help aws'.")
@@ -278,6 +292,32 @@ async function main() {
     .description(`Primarily for development. Don't use.`)
     .action(() => {
       pushkinInit();
+    })
+
+  program
+    .command('setDockerHub')
+    .description(`Set (or change) your DockerHub ID. This must be run before deploying to AWS.`)
+    .action(() => {
+      moveToProjectRoot();
+      inquirer.prompt([
+          { type: 'input', name: 'ID', message: 'What is your DockerHub ID?'}
+        ]).then(async (answers) => {
+          let config
+          try {
+            config = await loadConfig(path.join(process.cwd(), 'pushkin.yaml'));
+          } catch(e) {
+            console.error(e)
+            process.exit();
+          }
+          config.DockerHubID = answers.ID;
+          try {
+            fs.writeFileSync(path.join(process.cwd(), 'pushkin.yaml'), jsYaml.safeDump(config))
+          } catch (e) {
+            console.error('Unable to rewrite pushkin.yaml.')
+            console.error(e)
+            process.exit()
+          }
+        })
     })
 
   program
