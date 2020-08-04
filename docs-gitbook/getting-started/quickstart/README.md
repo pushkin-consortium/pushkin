@@ -137,7 +137,7 @@ If you are using an AWS EC2 instance, navigate to the IPv4 Public IP address of 
 
 ![](../../.gitbook/assets/38%20%281%29.gif)
 
-On the settings page, you will see a `Domain` \(something like `gameswithwords.auth0.com`\) and a `Client ID`. Edit `config.js` to match:
+On the settings page, you will see a `Domain` \(something like `gameswithwords.auth0.com`\) and a `Client ID`. Edit `pushkin/front-end/src/config.js` to match:
 
 ```javascript
 authDomain: '<YOUR_AUTH0_DOMAIN>',
