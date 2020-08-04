@@ -26,6 +26,8 @@ $ mkdir pushkin_quickstart
 $ cd pushkin_quickstart/
 ```
 
+![](../../.gitbook/assets/quickstart_1.gif)
+
 \(For more on basic terminal commands, you can check out [this blog post](https://medium.com/@grace.m.nolan/terminal-for-beginners-e492ba10902a).\)
 
 Install your first pushkin site the in the directory you just created:
@@ -35,6 +37,8 @@ $ pushkin install site
 ```
 
 You will be asked to select a site template to use. Choose **default**, then choose the recommended version \(e.g., **v1.1.0**\).
+
+![](../../.gitbook/assets/quickstart_2.gif)
 
 \(See example output for this command [here](sample_output.md#example-output-for-pushkin-install-site).\)
 
@@ -61,6 +65,8 @@ $ pushkin install experiment
 ```
 
 Choose a **basic** experiment. When prompted, name your experiment `vocab` and choose the recommended version \(e.g., **v3.0.0**\). Repeat the process to add **basic** experiments called `mind` and `whichenglish` as well.
+
+![](../../.gitbook/assets/quickstart_3.gif)
 
 \(See example output for this command [here](sample_output.md#example-output-for-pushkin-install-experiment).\)
 
@@ -98,6 +104,8 @@ Keeping all the files for an experiment within the same root folder is convenien
 $ pushkin prep
 ```
 
+![](../../.gitbook/assets/quickstart_4.gif)
+
 \(See example output for this command [here](sample_output.md#example-output-for-pushkin-prep).\)
 
 ### Setting up logins
@@ -111,10 +119,17 @@ useAuth: false,
 
 By default, Pushkin authenticates users using [Auth0](https://auth0.com/). This provides more features and better security than could be managed otherwise. It is free for open source projects \(contact [sales@auth0.com](mailto:sales%40auth0.com)\); otherwise it can be expensive if you are hoping for a lot of users. To set up Auth0, use the following directions. \(Note that at some point, Auth0 will change up their website and these instructions may get out of date.\)
 
-1. Go to auth0.com and create an Auth0 account.
-2. Go to the _Applications_ section of the Auth0 dashboard and click _Create Application_.
-3. Give your application and a name. Select _Single Page Web App_ as your application type. Click _Create_.
+Go to auth0.com and create an Auth0 account.
+
+![](../../.gitbook/assets/auth0_1.gif)
+
+Go to the _Applications_ section of the Auth0 dashboard and click _Create Application_. Give your application and a name. Select _Single Page Web App_ as your application type. Click _Create_.
+
+![](../../.gitbook/assets/auth0_2.gif)
+
 4. Choose the _Settings_ tab. In _Allowed Callback URLs_, add `http://localhost/`. In _Allowed Logout URLs_, add `http://localhost`. In _Allowed Web Origins_, also add `http://localhost`. Click the _Save Changes_ button.
+
+![](../../.gitbook/assets/auth0_3.gif)
 
 Note that these URLs are used for development. When you launch the live version of your website, you will need to add your public URLs. Repeat the instructions above, replacing [http://localhost](http://localhost) with [https://YOUR-WEBSITE](https://YOUR-WEBSITE). For instance, for gameswithwords, the URLs are `https://gameswithwords.org` and `https://gameswithwords/callback`.
 
@@ -128,6 +143,7 @@ On the settings page, you will see a `Domain` \(something like `gameswithwords.a
 authDomain: '<YOUR_AUTH0_DOMAIN>',
 authClientID: '<YOUR_AUTH0_CLIENT_ID>',
 ```
+![](../../.gitbook/assets/auth0_4.gif)
 
 Run `pushkin prep` again since you have made a change to your code.
 
@@ -139,15 +155,20 @@ Now, let’s look at your website! Make sure Docker is running by running the co
 $ pushkin start;
 ```
 
+![](../../.gitbook/assets/quickstart_5.gif)
+
 \(See example output for this command [here](sample_output.md#example-output-for-pushkin-start).\)
 
 Now browse to `http://localhost` \(or your IPv4 Public IP address\) to see the stub website.
+
+![](../../.gitbook/assets/quickstart_6.gif)
 
 When you are done looking at your website, stop it by running:
 
 ```bash
 $ pushkin stop;
 ```
+![](../../.gitbook/assets/quickstart_7.gif)
 
 If you don’t do that, the web server will keep running in Docker until you quit Docker or restart. When the command has finished running, it should output `done`.
 
