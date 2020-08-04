@@ -52,7 +52,7 @@ You can buy domains many places, but there is some convenience to doing it throu
 
 ### Set up an SSL certificate
 
-In order to have encryption---which you want!---you need a certificate. You can get this for free through AWS, though it's particularly easy to set this up if you registered your domain through AWS as well:
+In order to have encryption&mdash;which you want!&mdash;you need a certificate. You can get this for free through AWS, though it's particularly easy to set this up if you registered your domain through AWS as well:
 
 1. First make sure you are in the US-East-1 zone. \(We [read that this matters](https://medium.com/dailyjs/a-guide-to-deploying-your-react-app-with-aws-s3-including-https-a-custom-domain-a-cdn-and-58245251f081), though we haven't confirmed this.\)
 2. In the AWS Certificate Manager, select "Provision Certificate"
