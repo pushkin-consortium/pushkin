@@ -1,4 +1,4 @@
-# Modifying Experiment Templates
+# Using Experiment Templates
 
 ## Skip to section
 

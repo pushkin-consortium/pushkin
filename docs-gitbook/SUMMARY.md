@@ -16,7 +16,7 @@
 ## Advanced
 
 * [Pushkin CLI](advanced/pushkin-cli.md)
-* [Modifying Experiment Templates](advanced/modifying-experiment-templates/README.md)
+* [Using Experiment Templates](advanced/modifying-experiment-templates/README.md)
   * [Lexical decision template](advanced/modifying-experiment-templates/lexical-decision-template.md)
   * [Grammaticality judgement template](advanced/modifying-experiment-templates/grammaticality-judgement-template.md)
   * [Self-paced reading template](advanced/modifying-experiment-templates/self-paced-reading-template.md)
