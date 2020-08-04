@@ -48,6 +48,8 @@ You can buy domains many places, but there is some convenience to doing it throu
 
 ![](../.gitbook/assets/DomainPurchase.png)
 
+Cheaper domains on AWS currently cost around $12/yr, but if you would like a trendier domain, you can expect to pay more. Students may be able to get a free domain through [NameCheap for Education](https://nc.me/).
+
 ### Set up an SSL certificate
 
 In order to have encryption&mdash;which you want!&mdash;you need a certificate. You can get this for free through AWS, though it's particularly easy to set this up if you registered your domain through AWS as well:
