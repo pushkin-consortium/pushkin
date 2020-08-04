@@ -6,3 +6,6 @@ In cases where your database does not successfully get set up, it's possible tha
 
 If Postgres is running on port 5432, run the following to clear it: `sudo pkill -u postgres`
 
+### homebrew install not working
+
+Homebrew is not compatible with some shells such as tcsh, try using bash or xsh instead.
