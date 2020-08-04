@@ -36,7 +36,7 @@ Install your first pushkin site the in the directory you just created:
 $ pushkin install site
 ```
 
-You will be asked to select a site template to use. Choose **default**, then choose the recommended version \(e.g., **v1.1.0**\).
+You will be asked to select a site template to use. Choose **default**, then choose the recommended version.
 
 ![](../../.gitbook/assets/quickstart_2.gif)
 
@@ -46,12 +46,16 @@ This sets up a skeleton website in the current folder and a development database
 
 ```text
 ├── experiments
+├── LICENSE
 ├── pushkin
-   ├── api
-   ├── docker-compose.dev.yml
-   ├── front-end
-   └── util
-└── pushkin.yaml
+│   ├── api
+│   ├── docker-compose.dev.yml
+│   └── front-end
+├── pushkin.yaml
+├── README.md
+└── users
+    ├── config.yaml
+    └── migrations
 ```
 
 The files in the `pushkin` folder won’t need to be edited at all except those in the `front-end` folder.
@@ -64,7 +68,7 @@ To create a new experiment from the boilerplate template Pushkin provides, run
 $ pushkin install experiment
 ```
 
-Choose a **basic** experiment. When prompted, name your experiment `vocab` and choose the recommended version \(e.g., **v3.0.0**\). Repeat the process to add **basic** experiments called `mind` and `whichenglish` as well.
+Choose a **basic** experiment. When prompted, name your experiment `vocab` and choose the recommended version. Repeat the process to add **basic** experiments called `mind` and `whichenglish` as well.
 
 ![](../../.gitbook/assets/quickstart_3.gif)
 
@@ -76,22 +80,25 @@ This will create a new folder in the experiments directory like this:
 └── vocab
     ├── api controllers
     ├── config.yaml
+    ├── LICENSE
     ├── migrations
-    ├── seeds
+    ├── README.md
     ├── web page
     └── worker
 └── mind
     ├── api controllers
     ├── config.yaml
+    ├── LICENSE
     ├── migrations
-    ├── seeds
+    ├── README.md
     ├── web page
     └── worker
 └── whichenglish
     ├── api controllers
     ├── config.yaml
+    ├── LICENSE
     ├── migrations
-    ├── seeds
+    ├── README.md
     ├── web page
     └── worker
 ```
