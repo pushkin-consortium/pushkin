@@ -8,8 +8,7 @@ If Postgres is running on port 5432, run the following to clear it: `sudo pkill 
 
 ### Cannot start service server: Ports are not available: listen tcp 0.0.0.0:80: bind: address already in use
 
-You must have Port 80 open to run your Pushkin site locally, so make sure you aren't running any other web servers there before running `pushkin prep`. If you encounter this error, you can find what is clogging your Port 80 using the command: `lsof -i tcp:80`. The output should look something like this:
-![](../../.gitbook/assets/ls_output.png)
+You must have Port 80 open to run your Pushkin site locally, so make sure you aren't running any other web servers there before running `pushkin prep`. If you encounter this error, you can find what is clogging your Port 80 using the command: `lsof -i tcp:80`.
 
 Then to clear the port, run the following (replacing `<PID>` with the PID(s) listed from the lsof command above): `kill -9 <PID>`
 
