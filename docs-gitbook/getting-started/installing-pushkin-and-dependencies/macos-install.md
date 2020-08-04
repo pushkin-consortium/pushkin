@@ -18,6 +18,8 @@ If you don’t have [Homebrew](https://brew.sh/), install it. If you do not have
 
 ![](../../.gitbook/assets/ezgif.com-video-to-gif%20%281%29%20%281%29.gif)
 
+Note that Homebrew requires a 64-bit Intel CPU, macOS High Sierra /(10.13/) or higher, Command Line Tools /(CLT/) for Xcode, and a Bourne-compatible shell for installation like bash or zsh.
+
 ### Install Yarn
 
 Then run the following to get Yarn, which will let you download Pushkin:
