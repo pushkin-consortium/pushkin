@@ -1,10 +1,10 @@
 # Experiment Web Page Component
 
-This houses the front-end component of an experiment. A package.json file describes the data here, which is packaged by the CLI and attached to the core website under the location defined by the experiment’s config file. Pushkin uses React for the front end. Experiment web pages are mounted as React components and given the full size of the screen.
+This houses the front-end component of an experiment. Dependencies are in the yarn.lock or package.json files, which are packaged by the CLI and attached to the core website using the shortName defined by the experiment’s config.yaml file. Pushkin uses React for the front end. Experiment web pages are mounted as React components and given the full size of the screen under the header and navigation bar.
 
 ## Recommended Structure
 
-As long as the webpage folder contains an ‘index.js’ file that includes all your experiment code, you should be set. It is not even necessary for this to use jsPsych. However, we recommend building on top of an experiment template. Most have the same structure, including in the `/src` folder two files \(`experiments.js` and `index.js`\) and a folder \(`/assets`\). `experiments.js` contains a jsPsych timeline. `index.js` is essentially a wrapper around the timeline. The core functionality of interest is here:
+As long as the webpage folder contains an `index.js` file in `web page/src` that includes all your experiment code, you should be set. It is not even necessary for this to use jsPsych. However, we recommend building on top of an experiment template. Most have the same structure, including in the `/src` folder two files \(`experiments.js` and `index.js`\) and a folder \(`/assets`\). `experiments.js` contains a jsPsych timeline. `index.js` is essentially a wrapper around the timeline. The core functionality of interest is here:
 
 ```javascript
       async startExperiment() {
@@ -42,13 +42,13 @@ Finally, when the timeline finishes `endExperiment()` will be called. In the tem
 
 The `assets` folder should contain any static assets that will be imported by React.
 
-Note that this method of importation won’t work for files referenced by jsPsych. jsPsych timelines are not compiled by React, and so by the time jsPsych runs, the files on the server are no longer accessible. However, create-react-app provides a nifty workaround: `process.env.PUBLIC_URL` will point to the folder `/front-end/src/public` during runtime. This, this jsPsych snippet will work, so long as the PNGs in question are in the public folder:
+Note that this method of importation won’t work for files referenced by jsPsych. jsPsych timelines are not compiled by React, and so by the time jsPsych runs, the files on the server are no longer accessible. However, create-react-app provides a nifty workaround: `process.env.PUBLIC_URL` will point to the folder `/front-end/src/public` during runtime.
 
 ## Customizing the client
+
+{ This section is a work in progress! }
 
 If you need to extend the client with custom API calls, etc., you should extend the defaultClient class. For instance, rather than loading the pushkin client directly:
 
 You would first extend it, adding any additional methods you need:
-
-{PLACEHOLDER}
 

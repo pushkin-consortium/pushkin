@@ -1,6 +1,6 @@
-# Experiment Config Files
+# Experiment Config.yaml Files
 
-The config file provides information to the rest of Pushkin about the experiment. Below is a sample of what one might look like.
+The config.yaml file provides information to the rest of Pushkin about the experiment. Below is a sample of what one might look like.
 
 ```javascript
 experimentName: &fullName 'pushkintemplate Experiment'
@@ -30,6 +30,7 @@ seeds:
   location: 'seeds'
 database: 'localtestdb'
 logo: 'logo512.png'
+text: 'Enter your experiment description here.'
 tagline: 'Be a citizen scientist! Try this quiz.'
 duration: ''
 ```
@@ -86,13 +87,20 @@ Path relative to config file the CLI will look for these files.
 
 ### location
 
-Path relative to config file the CLI will look for these files. If you aren’t seeding a database table, set this to `''`. Otherwise, if the folder pointed to by `location` is empty, `pushkin setupdb` will fail.
+Path relative to config file the CLI will look for these files. If you aren’t seeding a database table, set this to `''`. Otherwise, if the folder pointed to by `location` is empty, database setup will fail.
 
 ## database
 
 A reference to a key defined in the core Pushkin config file. Experiments can share databases. The CLI will use this database to migrate and seed experiment data files. It is not used as connection information for any of the modules running the experiment, since these may or may not be inside containers and cannot use the same connection details as the CLI.
 
-## logo, tagline, duration, other
+## logo, text, tagline, duration, other
 
-You may find it useful to include information about your experiment here that can be used by `front-end` to describe the experiment to potential subjects. For instance, the default pushkin site template uses `logo`, `tagline`, and `duration`, which are self-explanatory. Note that no path is given for the logo because the default pushkin site template assumes this is in `front-end/src/img`.
+You may find it useful to include information about your experiment here that can be used by `front-end` to describe the experiment to potential subjects. For instance, the default pushkin site template uses:
+
+* `logo`: Image to be used as the logo for the experiment. The logo images should be stored in `pushkin/front-end/src/assets/images/quiz`.
+* `text`: The experiment description to be displayed for users to determine what quiz to play.
+* `tagline`: This is the description that shows when a quiz is shared via social media/email.
+* `duration`: The average length of the experiment to give users an idea of the time commitment.
+
+Note that no path is given for the logo because the default pushkin site template assumes this is in `front-end/src/img`.
 

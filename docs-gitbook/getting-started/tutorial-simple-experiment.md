@@ -1,16 +1,16 @@
-# Tutorial: Simple experiment
+# Tutorial: Simple Experiment
 
 ## Summary of tutorial content
 
-Pushkin’s modularity means that, in principle, you could probably use any javascript-based experiment engine to write your expeirments. However, we highly recommend using [jsPsych](https://www.jspsych.org/). Pushkin has only been extensively tested with jsPsych, and all the documentation currently assumes you are using jsPsych.
+Pushkin’s modularity means that, in principle, you could probably use any javascript-based experiment engine to write your experiments. However, we highly recommend using [jsPsych](https://www.jspsych.org/). Pushkin has only been extensively tested with jsPsych, and all the documentation currently assumes you are using jsPsych.
 
-The tutorial below starts with a simple lexical decision task written in vanilla jsPsych. The tutorial below explains how to modify this code to run on Pushkin.
+The tutorial below starts with a simple lexical decision task written in vanilla jsPsych. The tutorial below explains how to modify this code to run on Pushkin. **This is a recommended tutorial for learning the ropes, but a more complete experiment template for lexical decisions is available to install through Pushkin \(**[**read more**](../advanced/modifying-experiment-templates/lexical-decision-template.md)**\)"**
 
 If you are not familiar with jsPsych, please consult the [documentation](https://www.jspsych.org/) first. We recommend you also walk through some of the tutorials.
 
 ### Initial code
 
-Below, we will adapt a simple lexical decision experiment. The original code can be found [here](https://github.com/jodeleeuw/bigcog-lexical-decision/). This repository consists of the base jsPsych installation and a single HTML file:
+Below, we will adapt a simple lexical decision experiment. The original code can be found [here](https://github.com/jodeleeuw/bigcog-lexical-decision/). This repository consists of the base jsPsych installation and a single HTML file. We will be extracting the experiment code from the HTML file only:
 
 ```markup
 <!DOCTYPE html>
@@ -153,12 +153,16 @@ Below, we will adapt a simple lexical decision experiment. The original code can
 
 ### Move the timeline
 
-Navigate to your pushkin project and create a new stub experiment:
+Navigate to your pushkin project and create a new stub experiment, selecting "basic" for your template, selecting the latest release, and naming your experiment "lex":
+
+```bash
+pushkin install experiment
+```
 
 You should now have a folder `experiments/lex` with the following content:
 
 ```text
-└── myexp
+└── lex
     ├── api controllers
     ├── config.yaml
     ├── migrations
@@ -190,7 +194,7 @@ timeline.push(hello_trial);
 export default timeline;
 ```
 
-From the jsPsych tutorial, copy everything between `var timeline = []` and `jsPsych.init({`. Use this code to replace the code in `new/web page/src/experiment.js` that is between `const timeline = []` and `export default timeline`. Note that the definition of the timeline and the exports still need to be in your file!
+From the jsPsych lexical experiment HTML file, copy everything between `var timeline = []` and `jsPsych.init({`. Use this code to replace the code in `/experiments/lex/web page/src/experiment.js` that is between `const timeline = []` and `export default timeline`. Note that the definition of the timeline and the exports still need to be in your file!
 
 ### Import plugins
 
@@ -209,6 +213,8 @@ async startExperiment() {
 ```
 
 This loads the `jspsych-html-keyboard-response.js` plugin provided with jsPsych v. 6.0.4. This is hosteed by jsdelivr, which for reasons of its own provides access to javascript files from github repositories. Any version of any official jsPsych plugin can be loaded this way. For more information, see [the jsdelivr documentation](https://www.jsdelivr.com/?docs=gh).
+
+Note: if you would like to include custom jsPsych plugins, read [this page](../advanced/modifying-experiment-templates/#adding-custom-jspsych-plugins) to learn more.
 
 ### Static assets
 

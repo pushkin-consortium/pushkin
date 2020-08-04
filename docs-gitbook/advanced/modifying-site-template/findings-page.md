@@ -2,35 +2,41 @@
 
 ## Add a Findings Card
 
-To add a card in the findings page, open `FindingsData.js` located in `components/Findings`, it should be an array of objects look like this:
+To add a card in the findings page, open `FindingsData.js` located in `components/Findings`. You should see an array of objects that looks like this:
 
 ```javascript
 const findingsData = [
   {
-    title: 'Englishes of the World',
-    image: 'EnglishesOfTheWorld.jpg',
-    description: 'How do your grammar intuitions depend on when and where you learned English? Participants took a short grammar quiz, which we are using to understand how grammar differs in different parts of the English-speaking world (USA, Ireland, Australia, etc.). We are also investigating how grammar is different for people who learn English later in life: Do they make different mistakes if their first language is German as opposed to Japanese?',
+    id: 1,
+    title: 'Finding 1',
+    image: 'stock1.jpeg',
+    description:
+      'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. A scelerisque purus semper eget duis at tellus at. Ultrices sagittis orci a scelerisque purus. Aliquet eget sit amet tellus cras adipiscing enim. Lorem dolor sed viverra ipsum nunc aliquet. Sagittis orci a scelerisque purus semper. Pulvinar etiam non quam lacus suspendisse faucibus. Id porta nibh venenatis cras sed felis eget. Vitae sapien pellentesque habitant morbi tristique. Platea dictumst quisque sagittis purus sit amet volutpat. Pharetra et ultrices neque ornare aenean euismod elementum nisi quis. Nulla aliquet enim tortor at auctor urna nunc id cursus. Curabitur gravida arcu ac tortor dignissim.Habitasse platea dictumst quisque sagittis purus sit amet. Porttitor leo a diam sollicitudin tempor id eu nisl. Aenean vel elit scelerisque mauris pellentesque pulvinar pellentesque habitant. Varius duis at consectetur lorem donec massa. Molestie nunc non blandit massa enim nec dui.',
     link: true,
-    url: 'https://www.google.com/',
+    url: 'https://www.google.com/'
   },
   {
-    title: 'The king frightened the page because he...',
-    image: 'FrightenedKing.jpeg',
-    description: 'This experiment was one in a line of pronoun experiments, most of which were run on Amazon Mechanical Turk. Early summaries of the findings can be found here and here. This experiment was bundled into a larger paper on pronouns which will be published somewhere in 2013/2014. You can read a description of the paper, and find a link to the paper here.',
+    id: 2,
+    title: 'Finding 2',
+    image: 'stock2.jpeg',
+    description:
+      'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. A scelerisque purus semper eget duis at tellus at. Ultrices sagittis orci a scelerisque purus. Aliquet eget sit amet tellus cras adipiscing enim. Lorem dolor sed viverra ipsum nunc aliquet. Sagittis orci a scelerisque purus semper. Pulvinar etiam non quam lacus suspendisse faucibus. Id porta nibh venenatis cras sed felis eget. Vitae sapien pellentesque habitant morbi tristique. Platea dictumst quisque sagittis purus sit amet volutpat. Pharetra et ultrices neque ornare aenean euismod elementum nisi quis. Nulla aliquet enim tortor at auctor urna nunc id cursus. Curabitur gravida arcu ac tortor dignissim.Habitasse platea dictumst quisque sagittis purus sit amet. Porttitor leo a diam sollicitudin tempor id eu nisl. Aenean vel elit scelerisque mauris pellentesque pulvinar pellentesque habitant. Varius duis at consectetur lorem donec massa. Molestie nunc non blandit massa enim nec dui.',
     link: false,
-    url: '',
+    url: ''
   },
   {
-    title: 'Birth Order and Love',
-    image: 'BirthOrder.jpeg',
-    description: "Pop psychology assures us that your birth order (oldest, middle, youngest, only) has a major effect on your personality. Many books have been written on the subject. It might surprise you, then, that scientists are not only not sure how birth order affects personality, they are divided on the question of whether birth order has any effect on personality. In this study, we asked people about their own birth order and the birth order of their best friends and significant others, as well as the birth order of their parents. It turns out that people are slightly more likely to have a close friend or significant other/spouse of the same birth order. We think this suggests that birth order does in fact affect personality, though no doubt the debate will continue. It's important that the method we used -- especially the use of the Internet -- avoided some of the typical confounds of birth order studies.",
+    id: 3,
+    title: 'Finding 3',
+    image: 'stock3.jpeg',
+    description:
+      'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. A scelerisque purus semper eget duis at tellus at. Ultrices sagittis orci a scelerisque purus. Aliquet eget sit amet tellus cras adipiscing enim. Lorem dolor sed viverra ipsum nunc aliquet. Sagittis orci a scelerisque purus semper. Pulvinar etiam non quam lacus suspendisse faucibus. Id porta nibh venenatis cras sed felis eget. Vitae sapien pellentesque habitant morbi tristique. Platea dictumst quisque sagittis purus sit amet volutpat. Pharetra et ultrices neque ornare aenean euismod elementum nisi quis. Nulla aliquet enim tortor at auctor urna nunc id cursus. Curabitur gravida arcu ac tortor dignissim.Habitasse platea dictumst quisque sagittis purus sit amet. Porttitor leo a diam sollicitudin tempor id eu nisl. Aenean vel elit scelerisque mauris pellentesque pulvinar pellentesque habitant. Varius duis at consectetur lorem donec massa. Molestie nunc non blandit massa enim nec dui.',
     link: false,
-    url: '',
-  },
-]
+    url: ''
+  }
+];
 ```
 
-You can edit the five properties: title, image, description, link and url in each object, in order to change the content in each findings card.
+You can edit five of the properties: **title**, **image**, **description**, **link**, and **url** in each object, in order to change the content in each findings card. You can add more by copy and pasting from { through }, making sure that you have a comma after } any time there is another { following.
 
 To add a external link, set link property to `true` and fill the url property. Then a Read More button will appear in the findings card.
 
