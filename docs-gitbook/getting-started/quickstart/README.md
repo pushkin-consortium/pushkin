@@ -184,7 +184,7 @@ If you don’t do that, the web server will keep running in Docker until you qui
 Every time you update code or add an experiment, you’ll need to run pushkin prep again:
 
 ```bash
-$ docker-compose -f pushkin/docker-compose.dev.yml start test_db
+$ pushkin prep
 $ pushkin start
 ```
 
