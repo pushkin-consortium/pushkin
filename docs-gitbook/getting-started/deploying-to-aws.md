@@ -28,8 +28,8 @@ $ aws configure list-profiles
 To see the Access Key ID and Secret Access Key for a given profile, run the following, where `[profile]` is replaced with the name of the profile you want to use:
 
 ```bash
-$ get configure get aws_access_key_id --profile [profile]
-$ get configure get aws_secret_access_key --profile [profile]
+$ aws configure get aws_access_key_id --profile [profile]
+$ aws configure get aws_secret_access_key --profile [profile]
 ```
 
 <!---
