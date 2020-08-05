@@ -2,6 +2,9 @@
 
 ## Front-end
 
+* **HTML** - A basic building block of websites, most HTML in the Pushkin site lives in conjunction with React tags.
+* **CSS** - How stylings for website are often declared. Pushkin currently uses a combination of CSS and JS to set the stylings.
+* **JavaScript** - A basic building block for website functionality. JavaScript is crucial to the Pushkin structure, and is the basis of many of the other building blocks, such as React and Node.
 * **React** - A JavaScript-based library for building interactive user interfaces and Single-Page Applications (SPA)
 * **React-Router** - Handles navigation components for setting your page URLs in your SPA.
 * **Aphrodite** - Adds JavaScript-based styling (to update CSS) for React components. Currently, this is used to customize hover styling for the QUizTile icons and buttons, but can be imported into other components to add more control over the styling via JavaScript.
