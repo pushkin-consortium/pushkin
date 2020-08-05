@@ -16,6 +16,8 @@ import * as compose from 'docker-compose'
 import { Command } from 'commander'
 import inquirer from 'inquirer'
 import got from 'got';
+const shell = require('shelljs');
+
 const version = require("../package.json").version
 
 
@@ -74,6 +76,13 @@ const handleUpdateDB = async () => {
     process.exit();
   }
   return settingUpDB;
+}
+
+// For removing any .DS_Store files if present.
+const removeDS = () => {
+  console.log('Removing any .DS_Store files, if present.')
+  shell.rm('-rf', '*/.DS_Store');
+  shell.rm('-rf', './.DS_Store');
 }
 
 const handlePrep = async () => {
@@ -230,8 +239,9 @@ async function main() {
     .option('-nm, --nomigrations', 'Do not run migrations. Be sure database structure has not changed!', false)
     .action(async (options) => {
       let awaits
-      try{
-        if (options.nomigrations){
+      removeDS()
+      try {
+        if (options.nomigrations) {
           //only running prep
           awaits = [handlePrep()]
         } else {
@@ -318,4 +328,3 @@ async function main() {
 
 main();
 //program.parseAsync(process.argv);
- 
