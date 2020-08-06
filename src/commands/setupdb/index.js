@@ -7,7 +7,7 @@ import * as compose from 'docker-compose'
 
 const shell = require('shelljs');
 
-export default async (coreDBs, mainExpDir) => {
+export async function setupdb(coreDBs, mainExpDir) {
   // load up all migrations for same dbs to be run at same time (knex requires this)
   const dbPromise = compose.upOne('test_db', {cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml'})
     .then((resp) => resp, err => console.log('something went wrong starting database container:', err))
@@ -82,7 +82,7 @@ export default async (coreDBs, mainExpDir) => {
         const seedDirs = migAndSeedDirs.map((i) => i.seeds);
         const pg = knex({
           client: 'pg',
-          version: '7.2',
+          version: '11',
           connection: {
             host: dbInfo.url,
             user: dbInfo.user,
@@ -124,4 +124,34 @@ export default async (coreDBs, mainExpDir) => {
     const dbStarted = await wait(); //this variable doesn't get used.
 
   // migrate and seed for each database
+}
+
+export async function setupTransactionsDB(dbInfo, useIAM){
+  console.log(`Creating transactions table in transactions database`)
+
+  let createdTable;
+  try {
+    const pg = knex({
+      client: 'pg',
+      version: '11',
+      connection: {
+        host: dbInfo.endpoint,
+        user: dbInfo.username,
+        password: dbInfo.password,
+        database: dbInfo.name,
+      },
+    });
+
+    createdTable = pg.schema.createTable('transactions', function (table) {
+      table.increments();
+      table.string('query', 800).notNullable();
+      table.string('bindings');
+      table.timestamps();
+    })
+  } catch (e) {
+    console.error(`Failed to setup transactions table in transactionsDB`)
+    throw e
+  }
+
+  return createdTable
 }

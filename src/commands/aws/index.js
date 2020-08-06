@@ -4,9 +4,12 @@ import path from 'path';
 import util from 'util';
 import pacMan from '../../pMan.js'; //which package manager is available?
 import { execSync } from 'child_process'; // eslint-disable-line
-import { policy, cloudfront, dbConfig, setupTransactionDB } from './awsConfigs.js'
 import jsYaml from 'js-yaml';
+import { policy, cloudfront, dbConfig, rabbitTask, apiTask, workerTask } from './awsConfigs.js'
+import { setupTransactionsDB } from '../setupdb/index.js';
+import inquirer from 'inquirer'
 const exec = util.promisify(require('child_process').exec);
+const mkdir = util.promisify(require('fs').mkdir);
 
 const publishToDocker = function (DHID) {
   console.log("Building API")
@@ -140,39 +143,324 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
   console.log(`Creating ${dbType} database.`)
   let stdOut
 
+  const dbPassword = Math.random().toString() //Pick random password for database
+
   let dbName = projName.concat(dbType).replace(/[^\w\s]/g, "").replace(/ /g,"")
   let myDBConfig = dbConfig;
   myDBConfig.DBName = dbName
   myDBConfig.DBInstanceIdentifier = dbName
   myDBConfig.VpcSecurityGroupIds = [securityGroupID]
-  myDBConfig.MasterUserPassword = "FUBAR1234" //This had better get updated!
+  myDBConfig.MasterUserPassword = dbPassword //This had better get updated!
   try {
-    stdOut = execSync(`aws rds create-db-instance --cli-input-json '`.concat(JSON.stringify(myDBConfig)).concat(`' --profile `).concat(useIAM)).toString()
+    stdOut = await exec(`aws rds create-db-instance --cli-input-json '`.concat(JSON.stringify(myDBConfig)).concat(`' --profile `).concat(useIAM))
   } catch(e) {
     console.error('Unable to create database ${dbType}')
     throw e
   }
-  console.log(stdOut)
 
   console.log(`Database ${dbType} created. Adding to local config definitions.`)
-  let pushkinConfig = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'pushkin.yaml'), 'utf8'))
-  if (pushkinConfig.databases.production == null) {
-    // initialize
-    pushkinConfig.databases.production = [];
+  let pushkinConfig
+  try {
+    stdOut = await fs.promises.readFile(path.join(process.cwd(), 'pushkin.yaml'), 'utf8')
+    pushkinConfig = jsYaml.safeLoad(stdOut)
+  } catch (e) {
+    console.error(`Couldn't load pushkin.yaml`)
+    throw e
   }
-  pushkinConfig.databases.production[dbType] = {
-    "name": dbName, 
-    "endpoint": stdOut.Endpoint, 
-    "username": myDBConfig.MasterUsername, 
-    "password": myDBConfig.MasterUserPassword}
 
-  fs.writeFileSync(path.join(process.cwd(), 'pushkin.yaml'), jsYaml.safeDump(pushkinConfig), 'utf8')
+  // Would have made sense for local databases and production databases to be nested within 'databases'
+  // But poor planning prevents that. And we'd like to avoid breaking changes, so...
+  if (pushkinConfig.productionDBs == null) {
+    // initialize
+    pushkinConfig.productionDBs = {};
+  }
+
+   try {
+    // should hang until instance is available
+    console.log(`Waiting for ${dbType} to spool up. This may take a while...`)
+    stdOut = await exec(`aws rds wait db-instance-available --db-instance-identifier ${dbName} --profile ${useIAM}`)
+    console.log("Transactions DB is spooled up!")
+  } catch (e) {
+    console.error(`Problem waiting for transactionDB to spool up.`)
+    throw e
+  }
+
+  let transactionsEndpoint
+  try {
+     stdOut = await exec(`aws rds describe-db-instances --db-instance-identifier ${dbName} --profile ${useIAM}`)
+     transactionsEndpoint = JSON.parse(stdOut.stdout);
+    console.log("Transactions DB is spooled up!")
+  } catch (e) {
+    console.error(`Problem waiting for transactionDB to spool up.`)
+    throw e
+  }
   
-  return stdOut.Endpoint
+  const newDB = {
+    "type": dbType,
+    "name": dbName, 
+    "endpoint": transactionsEndpoint.DBInstances[0].Endpoint.Address, 
+    "username": myDBConfig.MasterUsername, 
+    "password": myDBConfig.MasterUserPassword,
+    "port": myDBConfig.Port
+  }
+
+  pushkinConfig.productionDBs[dbType] = newDB;
+
+  try {
+    stdOut = await fs.promises.writeFile(path.join(process.cwd(), 'pushkin.yaml'), jsYaml.safeDump(pushkinConfig), 'utf8')
+    console.log(`Successfully updated pushkin.yaml with ${dbName}.`)
+  } catch(e) {
+    throw e
+  }
+  
+  return newDB
+}
+
+
+const getDBInfo = function() => {
+  let pushkinConfig
+  try {
+    pushkinConfig = await jsYaml.safeLoad(fs.promises.readFile(path.join(process.cwd(), 'pushkin.yaml'), 'utf8'))
+  } catch (e) {
+    console.error(`Couldn't load pushkin.yaml`)
+    throw e
+  }
+  if (pushkinConfig.productionDBs.length < 2 ) {
+    throw new Error(`Production DBs have not been set up. Check Pushkin.yaml.`)
+  }
+  let dbsByType
+  pushkinConfig.productionDBs.forEach((d) => {
+    dbTypesByName[d.type] = {
+      "name": d.name,
+      "username": d.username,
+      "password": d.password,
+      "port": d.port,
+      "endpoint": d.endpoint
+    }
+  })
+
+  return dbsByType
+}
+
+
+const ecsTaskCreator = async (projName, awsName, useIAM, DHID) => {
+  let mkTaskDir
+  try {
+    if (fs.existsSync(path.join(process.cwd(), 'ECStasks'))) {
+      //nothing
+    } else {
+      console.log('Making ECSTasks folder')
+      await mkdir(path.join(process.cwd(), 'ECStasks'))
+    }
+  } catch (e) {
+    console.error(`Problem with ECSTasks folder`)
+    throw e
+  }
+
+  const ecsCompose = async (yaml, task, name) => {
+
+    // Get database information from pushkin.yaml
+
+    try {
+      await fs.promises.writeFile(path.join(process.cwd(), 'ECStasks', yaml), jsYaml.safeDump(task), 'utf8');
+    } catch (e) {
+      console.error(`Unable to write ${yaml}`)
+      throw e
+    }
+    let compose
+    try {
+      compose = exec(`ecs-cli compose -f ${yaml} -p ${name} create`, { cwd: path.join(process.cwd(), "ECStasks")})
+    } catch (e) {
+      console.error(`Failed to run ecs-cli compose on ${yaml}`)
+      throw e
+    }
+    return compose
+  }
+
+  const rabbitPW = Math.random().toString();
+  const rabbitCookie = uuid();
+  const rabbitAddress = "amqp://".concat(awsName).concat(":").concat(rabbitPW).concat("@localhost:5672")
+  rabbitTask.services['message-queue'].environment.RABBITMQ_DEFAULT_USER = awsName;
+  rabbitTask.services['message-queue'].environment.RABBITMQ_PASSWORD = rabbitPW;
+  rabbitTask.services['message-queue'].environment.RABBITMQ_COOKIE = rabbitCookie;
+  apiTask.services['api'].environment.AMPQ_ADDRESS = rabbitAddress;
+  apiTask.services['api'].image = `${DHID}/api:latest`
+
+  let docker_compose
+  try {
+    docker_compose = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'pushkin/docker-compose.dev.yml'), 'utf8'));
+  } catch(e) {
+    console.error('Failed to load the docker-compose. That is extremely odd.')
+    throw e
+  }
+
+  let workerList = []
+  try {
+    Object.keys(docker_compose.services).forEach((s) => {
+      if ( docker_compose.services[s].labels != null && docker_compose.services[s].labels.isPushkinWorker ) {
+        workerList.push(s)
+      } 
+    })
+  } catch (e) {
+    throw e
+  }
+
+  const dbInfoByTask = getDBInfo();
+
+  let composedRabbit
+  let composedAPI
+  let composedWorkers
+  try {
+    composedRabbit = ecsCompose('rabbitTask.yml', rabbitTask, 'message-queue')
+    composedRabbit = ecsCompose('apiTask.yml', apiTask, 'api')
+    composedWorkers = workerList.map((w) => {
+      const yaml = w.concat('.yml')
+      const name = w;
+      let task = {}
+      let expName = w.split("_worker")[0]
+      task.version = workerTask.version;
+      task.services = {};
+      task.services[w] = {}
+      task.services[w].image = `${DHID}/${w}:latest`
+      task.services[w].mem_limit = workerTask.services.EXPERIMENT_NAME.mem_limit
+      //Note that "DB_USER", "DB_NAME", "DB_PASS", "DB_URL" are redundant with "DB_SMARTURL"
+      //For simplicity, newer versions of pushkin-worker will expect DB_SMARTURL
+      //However, existing deploys won't have that. So both sets of information are maintained
+      //for backwards compatibility, at least for the time being. 
+      task.services[w].environment = {
+        "AMPQ_ADDRESS" : rabbitAddress,
+        "QUEUE": expName,
+        "DB_USER": dbInfoByTask['Main'].username,
+        "DB_NAME": dbInfoByTask['Main'].name,
+        "DB_PASS": dbInfoByTask['Main'].password,
+        "DB_URL": dbInfoByTask['Main'].endpoint,
+        "DB_SMARTURL": `postgres://${dbInfoByTask['Main'].username}:${dbInfoByTask['Main'].password}@${dbInfoByTask['Main'].endpoint}:/${dbInfoByTask['Main'].port}/${dbInfoByTask['Main'].name}`,
+        "TRANSACTION_DATABASE_URL": `postgres://${dbInfoByTask['Transaction'].username}:${dbInfoByTask['Transaction'].password}@${dbInfoByTask['Transaction'].endpoint}:/${dbInfoByTask['Transaction'].port}/${dbInfoByTask['Transaction'].name}`
+      }
+      task.services[w].command = workerTask.services["EXPERIMENT_NAME"].command
+      ecsCompose(yaml, task, name)
+    })
+  } catch (e) {
+    throw e
+  }
+
+  return Promise.all([composedRabbit, composedAPI, composedWorkers]);
 }
 
 const setupECS = async (projName, awsName, useIAM) => {
+  console.log(`Starting ECS setup`)
+  let temp
 
+  const chooseCertificate = async(useIAM) => {
+    console.log('Setting up SSL for load-balancer')
+    let temp
+    try {
+      temp = await exec(`aws acm list-certificates --profile ${useIAM}`)
+    } catch(e) {
+      console.error(`Unable to get list of SSL certificates`)
+    }
+    let certificates = {}
+    JSON.parse(temp.stdout).CertificateSummaryList.forEach((c) => {
+      certificates[c.DomainName] = c.CertificateArn
+    })
+
+    return new Promise((resolve, reject) => {
+      console.log(`Choosing...`)
+      inquirer.prompt(
+          [{ type: 'list', name: 'certificate', choices: Object.keys(certificates), default: 0, 
+          message: 'Which SSL certificate would you like to use for your site?' }]
+        ).then((answers) => {
+          resolve(certificates[answers.certificate])
+        })
+      })     
+  }
+  let choseCertificate
+  try {
+    choseCertificate = chooseCertificate(useIAM)
+  } catch (e) {
+    throw e
+  }
+
+  //make security group for load balancer. Start this process early, though it doesn't take super long.
+  // const makeBalancerGroup = async(useIAM) => {
+  //   console.log(`Creating security group for load balancer`)
+  //   let SGCreate = `aws ec2 create-security-group --group-name BalancerGroup --description "For the load balancer" --profile ${useIAM}`
+  //   let SGRule1 = `aws ec2 authorize-security-group-ingress --group-name BalancerGroup --ip-permissions IpProtocol=tcp,FromPort=80,ToPort=80,Ipv6Ranges='[{CidrIpv6=::/0}]',IpRanges='[{CidrIp=0.0.0.0/0}]' --profile ${useIAM}`
+  //   let SGRule2 = `aws ec2 authorize-security-group-ingress --group-name BalancerGroup --ip-permissions IpProtocol=tcp,FromPort=443,ToPort=443,Ipv6Ranges='[{CidrIpv6=::/0}]',IpRanges='[{CidrIp=0.0.0.0/0}]' --profile ${useIAM}`
+  //   let stdOut
+  //   try {
+  //     stdOut = await exec(SGCreate)
+  //     await Promise.all([exec(SGRule1), exec(SGRule2)])
+  //   } catch(e) {
+  //     console.error(`Failed to create security group for load balancer`)
+  //     throw e
+  //   }
+  //   return JSON.parse(stdOut.toString()).GroupId //remember security group in order to use later!
+  // }
+   let madeBalancerGroup
+  // try {
+  //   madeBalancerGroup = makeBalancerGroup(useIAM) //start this process early. Will use much later. 
+  // } catch(e) {
+  //   throw e
+  // }
+
+  //need one subnet per availability zone in region. Region is based on region for the profile.
+  //Start this process early to use later. 
+  const foundSubnets = new Promise((resolve, reject) => {
+    console.log(`Retrieving subnets for AWS zone`)
+    exec(`aws ec2 describe-subnets --profile ${useIAM}`)
+    .catch((e) => {
+      console.error(`Failed to retrieve available subnets.`)
+      reject(e)
+    })
+    .then((sns) => {
+      let subnets = {}
+      JSON.parse(sns.stdout).Subnets.forEach((subnet) => {
+        subnets[subnet.AvailabilityZone] = subnet.SubnetId
+      })
+      resolve(subnets)      
+    })
+  })
+
+  //CLI uses the default VPC by default. Retrieve the ID.
+  const getVPC = async (useIAM) => {
+    console.log('getting default VPC')
+    try {
+      temp = await exec(`aws ec2 describe-vpcs --profile ${useIAM}`)
+    } catch (e) {
+      console.error(`Unable to find VPC`)
+      throw e
+    }
+    let useVPC
+    JSON.parse(temp.stdout).Vpcs.forEach((v) => {
+      if (v.IsDefault == true) {
+        useVPC = v.VpcId
+      }
+    })
+    console.log('Default VPC: ', useVPC)
+    return useVPC
+  }
+  let gotVPC
+  try {
+    gotVPC = getVPC(useIAM)
+  } catch(e) {
+    throw e
+  }
+
+  let mkTaskDir
+  try {
+    if (fs.existsSync(path.join(process.cwd(), 'ECStasks'))) {
+      //nothing
+    } else {
+      console.log('Making ECSTasks folder')
+      await mkdir(path.join(process.cwd(), 'ECStasks'))
+    }
+  } catch (e) {
+    console.error(`Problem with ECSTasks folder`)
+    throw e
+  }
+
+  //Everything past here requires the ECS CLI having been set up  
   console.log("Configuring ECS CLI")
   let aws_access_key_id
   let aws_secret_access_key
@@ -191,26 +479,86 @@ const setupECS = async (projName, awsName, useIAM) => {
   console.log(setProfile)
   try {
     //not necessary if already set up, but doesn't seem to hurt anything
-    execSync(setProfile)
+    temp = await exec(setProfile)
   } catch (e) {
     console.error(`Unable to set up profile ${useIAM} for ECS CLI.`)
     throw e
   }
+  console.log(`ECS CLI configured`)
 
+  let createdECSTasks
   try {
-    //Probably we should check if there is already a configuration with this name and ask before replacing.
-    execSync(`ecs-cli configure --cluster ${ECSName} --default-launch-type EC2 --region us-east-1 --config-name ${ECSName}`)
-  } catch (e) {
-    console.error(`Unables to configure cluster ${ECSName}.`)
+    console.log('Creating ECS tasks')
+    createdECSTasks = ecsTaskCreator(projName, awsName, useIAM, 'jkhartshorne');
+  } catch(e) {
     throw e
   }
+
+  let launchedECS
+  try {
+    console.log('Launching ECS cluster')
+    //Probably we should check if there is already a configuration with this name and ask before replacing.
+    launchedECS = exec(`ecs-cli configure --cluster ${ECSName} --default-launch-type EC2 --region us-east-1 --config-name ${ECSName}`)
+  } catch (e) {
+    console.error(`Unable to configure cluster ${ECSName}.`)
+    throw e
+  }
+
+  const zones = await foundSubnets
+  let subnets
+  try {
+    subnets = Object.keys(zones).map((z) => zones[z])
+  } catch (e) {
+    console.error(`Problem extracting list of subnets in your zone from 'zones': `, zones)
+    throw e
+  }
+
+  console.log(`Creating application load balancer`)
+  const securityGroupID = await madeBalancerGroup
+
+  const loadBalancerName = ECSName.concat("Balancer")
+  let madeBalancer
+  try {
+    madeBalancer = exec(`aws elbv2 create-load-balancer --name ${loadBalancerName} --type application --scheme internet-facing --subnets ${subnets.join(' ')} --security-groups ${securityGroupID} --profile ${useIAM}`)
+  } catch (e) {
+    console.error(`Unable to create application load balancer`)
+    throw e
+  }
+
+  const myVPC = await gotVPC
+  try {
+    temp = await exec(`aws elbv2 create-target-group --name BalancerTargets --protocol HTTP --port 80 --vpc-id ${myVPC} --profile ${useIAM}`)
+  } catch(e) {
+    console.error(`Unable to create target group`)
+    throw e
+  }
+  const targGroupARN = JSON.parse(temp.stdout).TargetGroups[0].TargetGroupArn
+
+  temp = await madeBalancer //need this for the next step
+  const balancerARN = JSON.parse(temp.stdout).LoadBalancers[0].LoadBalancerArn
+  temp = await  exec(`aws elbv2 create-listener --load-balancer-arn ${balancerARN} --protocol HTTP --port 80  --default-actions Type=forward,TargetGroupArn=${targGroupARN} --profile ${useIAM}`)
+
+  const myCertificate = await choseCertificate //need this to set up HTTPS
+  let addedHTTPS
+  try {
+    addedHTTPS = exec(`aws elbv2 create-listener --load-balancer-arn ${balancerARN} --protocol HTTPS --port 443 --certificates CertificateArn=${myCertificate} --default-actions Type=forward,TargetGroupArn=${targGroupARN} --profile ${useIAM}`)
+    console.log(`Added HTTPS to load balancer`)
+  } catch (e) {
+    console.error(`Unable to add HTTPS to load balancer`)
+    throw e
+  }
+
+  await Promise.all([ launchedECS, addedHTTPS, createdECSTasks ])
+  console.log(`ECS cluster launched`)
+  console.log(`Added HTTPS to load balancer`)
+  console.log(`Created ECS task definitions`)
 
   return
 }
 
 export async function awsInit(projName, awsName, useIAM, DHID) {
 
-  //pushing stuff to DockerHub
+  pushing stuff to DockerHub
   console.log('Publishing images to DockerHub')
   let publishedToDocker
   try {
@@ -248,6 +596,7 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
     throw e
   }
 
+
   let configuredECS
   try {
     configuredECS = setupECS(projName, awsName, useIAM);
@@ -268,6 +617,8 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
   }
   const securityGroupID = JSON.parse(stdOut.toString()).GroupId //remember security group in order to use later!
 
+//  const securityGroupID = 'sg-0aa473800eb96748f'
+
   let initializedMainDB
   try {
     initializedMainDB = initDB('Main', securityGroupID, projName, awsName, useIAM)
@@ -283,18 +634,30 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
     throw e
   }
 
-  await Promise.all([initializedMainDB, initializedTransactionDB])
-  //await Promise.all([deployedFrontEnd, initializedMainDB, initializedTransactionDB, configuredECS])
+  const returnedPromises = await Promise.all([initializedTransactionDB, initializedMainDB]) //initializedTransactionsDB must be first in this list
+  await Promise.all([initializedTransactionDB, initializedMainDB, deployedFrontEnd, configuredECS])
+  const transactionDB = returnedPromises[0] //this is why it has to be first
+
+  let setupTransactionsTable
+  try {
+    setupTransactionsTable = setupTransactionsDB(transactionDB, useIAM);
+  } catch (e) {
+    throw e
+  }
+
+  await setupTransactionsTable
+
   return
 }
 
 
 export async function nameProject(projName) {
   let awsConfig = {}
+  let stdOut;
   awsConfig.name = projName;
   awsConfig.awsName = projName.replace(/[^\w\s]/g, "").replace(/ /g,"-").concat(uuid()).toLowerCase();
   try {
-    fs.writeFileSync(path.join(process.cwd(), 'awsConfig.js'), JSON.stringify(awsConfig), 'utf8');
+    stdOut = fs.writeFileSync(path.join(process.cwd(), 'awsConfig.js'), JSON.stringify(awsConfig), 'utf8');
   } catch(e) {
     console.error(`Could not write to the pushkin CLI's AWS config file. This is a very strange error. Please contact the dev team.`)
     throw e

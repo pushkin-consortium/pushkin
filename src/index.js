@@ -12,7 +12,7 @@ import { listExpTemplates, getExpTemplate,  } from './commands/experiments/index
 import { listSiteTemplates, getPushkinSite, pushkinInit } from './commands/sites/index.js';
 import { awsInit, nameProject, addIAM } from './commands/aws/index.js'
 import prep from './commands/prep/index.js';
-import setupdb from './commands/setupdb/index.js';
+import { setupdb } from './commands/setupdb/index.js';
 import * as compose from 'docker-compose'
 import { Command } from 'commander'
 import inquirer from 'inquirer'
@@ -193,7 +193,6 @@ const handleAWSInit = async () => {
     }
     try {
       useIAM = await inquirer.prompt([{ type: 'input', name: 'iam', message: 'Provide your AWS IAM username that you want to use for managing this project.'}])
-      console.log(useIAM.iam)
     } catch (e) {
       console.error('Problem getting AWS IAM username.\n', e)
       process.exit()
@@ -204,14 +203,17 @@ const handleAWSInit = async () => {
       console.error(`The IAM user ${useIAM.iam} is not configured on the AWS CLI. For more information see https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html`)
       process.exit();
     }
+    let addedIAM
     try {
-      addIAM(useIAM.iam) //this doesn't need to be synchronous      
+      addedIAM = addIAM(useIAM.iam) //this doesn't need to be synchronous      
     } catch(e) {
       console.error(e)
       process.exit()
     }
-    await awsInit(projName.name, awsName, useIAM.iam, config.DockerHubID)
+    await Promise.all([awsInit(projName.name, awsName, useIAM.iam, config.DockerHubID), addedIAM])
     console.log("done")
+
+    return
 }
 
 const killLocal = async () => {

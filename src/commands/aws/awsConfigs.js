@@ -116,6 +116,7 @@ export const dbConfig = {
     "AllocatedStorage": 20,
     "DBInstanceClass": "db.t2.micro",
     "Engine": "postgres",
+    "EngineVersion": "11",
     "MasterUsername": "postgres",
     "VpcSecurityGroupIds": [
         "FUBAR"
@@ -138,9 +139,64 @@ export const dbConfig = {
     "MaxAllocatedStorage": 1000
 }
 
-export const setupTransactionDB = 
-    `create table transactions (
-    id  SERIAL PRIMARY KEY,
-    query TEXT not null,
-    bindings TEXT
-    )`
+export const rabbitTask = {
+    "version": "2",
+    "services": {
+      "message-queue": {
+        "image": "rabbitmq:3.7-management",
+        "mem_limit": "512m",
+        "environment": {
+          "RABBITMQ_DEFAULT_USER": "RABBITMQ_USERNAME",
+          "RABBITMQ_DEFAULT_PASS": "RABBITMQ_PASSWORD",
+          "RABBITMQ_ERLANG_COOKIE": "RABBITMQ_COOKIE"
+      },
+        "ports": [
+          "5672:5672/tcp",
+          "4369:4369/tcp",
+          "15672:15672/tcp",
+          "25672:25672/tcp"
+        ]    
+      }
+    }
+}
+
+export const apiTask = {
+    'version': '2',
+    'services': {
+      'api': {
+        'image': 'DOCKERHUB_ID/api:latest',
+        'mem_limit': '128m',
+        'environment': {
+          "AMPQ_ADDRESS":"amqp://RABBITMQ_USERNAME:RABBITMQ_PASSWORD@localhost:5672",
+          'NODE_ENV':'production',
+          "PORT": 80
+          },
+        'command': [
+              'bash',
+              'dockerStart.sh'    
+        ],
+        "ports": [
+            "80:80/tcp"
+            ]
+        }
+    }
+}
+
+
+export const workerTask = {
+    "version": '2',
+    "services": {
+      "EXPERIMENT_NAME": {
+        "image": "DOCKERHUB_ID/EXPERIMENT_NAME:latest",
+        "mem_limit": "128m",
+        "environment": {
+          "AMPQ_ADDRESS": "amqp://RABBITMQ_USERNAME:RABBITMQ_PASSWORD@localhost:5672",
+          "QUEUE": "EXPERIMENT_NAME"
+        },
+        "command": [
+            "bash", 
+            "start.sh"
+        ]
+      }   
+    }
+}
