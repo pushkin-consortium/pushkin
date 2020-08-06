@@ -14,7 +14,7 @@ const db_pass = process.env.DB_PASS;
 const db_url = process.env.DB_URL;
 const db_name = process.env.DB_NAME;
 
-const db_conn_address = `postgres://${db_user}:${db_pass}@${db_url}/${db_name}`;
+const db_conn_address = process.env.DB_SMARTURL || `postgres://${db_user}:${db_pass}@${db_url}/${db_name}`;
 
 const worker = new pWorker(options);
 worker.init()
