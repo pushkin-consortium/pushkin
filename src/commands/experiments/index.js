@@ -154,7 +154,6 @@ const initExperiment = async (expDir, expName, longName, rootDir) => {
   const serviceContent = { ...workerService, image: workerName };
   serviceContent.labels = { ...(serviceContent.labels || {}), isPushkinWorker: true };
   compFile.services[workerName] = serviceContent;
-  let writeDC
   try {
     fs.writeFileSync(composeFileLoc, jsYaml.safeDump(compFile), 'utf8');
   } catch (e) { 

@@ -236,6 +236,7 @@ export default async (experimentsDir, coreDir) => {
     process.exit();
   }
 
+
   const prepWorkerWrapper = async (exp) => {
     console.log(`Building worker for`, exp);
     const expDir = path.join(experimentsDir, exp)
@@ -250,6 +251,21 @@ export default async (experimentsDir, coreDir) => {
     const workerConfig = expConfig.worker;
     const workerName = `${exp}_worker`.toLowerCase(); //Docker names must all be lower case
     const workerLoc = path.join(expDir, workerConfig.location);
+
+    let AMQP_ADDRESS
+    compFile.services[exp.concat("_worker").toLowerCase()].environment.forEach((e) => {
+      if (e.includes("AMQP_ADDRESS")) { 
+        AMQP_ADDRESS = e.split("=")[1] 
+      }
+    })    
+
+    compFile.services[exp.concat("_worker").toLowerCase()].environment = {} 
+    compFile.services[exp.concat("_worker").toLowerCase()].environment.AMQP_ADDRESS = AMQP_ADDRESS || 'amqp://message-queue:5672'
+    compFile.services[exp.concat("_worker").toLowerCase()].environment.DB_USER = pushkinYAML.databases.localtestdb.user
+    compFile.services[exp.concat("_worker").toLowerCase()].environment.DB_PASS = pushkinYAML.databases.localtestdb.pass
+    compFile.services[exp.concat("_worker").toLowerCase()].environment.DB_URL = pushkinYAML.databases.localtestdb.url
+    compFile.services[exp.concat("_worker").toLowerCase()].environment.DB_NAME = pushkinYAML.databases.localtestdb.name
+
     let workerBuild
     try {
       workerBuild = exec(`docker build ${workerLoc} -t ${workerName}`)
@@ -260,6 +276,21 @@ export default async (experimentsDir, coreDir) => {
     return workerBuild;
   }
 
+  // write out new compose file with worker service
+  const composeFileLoc = path.join(path.join(process.cwd(), 'pushkin'), 'docker-compose.dev.yml');
+  const pushkinYAMLFileLoc = path.join(process.cwd(), 'pushkin.yaml')
+  let compFile;
+  let pushkinYAML;
+  try { 
+    compFile = jsYaml.safeLoad(fs.readFileSync(composeFileLoc), 'utf8'); 
+    pushkinYAML = jsYaml.safeLoad(fs.readFileSync(pushkinYAMLFileLoc), 'utf8'); 
+    console.log('loaded compFile')
+  } catch (e) { 
+    console.error('Failed to load either pushkin.yaml or docker-compose.dev.yml');
+    throw e
+  }
+
+
   let preppedWorkers;
   try {
     preppedWorkers = Promise.all(expDirs.map(prepWorkerWrapper))
@@ -268,8 +299,7 @@ export default async (experimentsDir, coreDir) => {
     throw(err);
   }
 
-
-const tempAwait = await Promise.all([webPageIncludes, preppedAPI, cleanedWeb])
+  const tempAwait = await Promise.all([webPageIncludes, preppedAPI, cleanedWeb])
 
   // Deal with Web page includes
   let finalWebPages = tempAwait[0]
@@ -308,5 +338,15 @@ const tempAwait = await Promise.all([webPageIncludes, preppedAPI, cleanedWeb])
     throw err
   }
 
-  return Promise.all([installedApi, installedWeb, preppedWorkers]);
+  await preppedWorkers
+  try {
+    console.log(`updating docker-compose.dev.yml`)
+    fs.writeFileSync(composeFileLoc, jsYaml.safeDump(compFile), 'utf8');
+  } catch (e) { 
+    console.error('Failed to create new compose file', e); 
+    process.exit()
+  }
+
+
+  return Promise.all([installedApi, installedWeb]);
 };

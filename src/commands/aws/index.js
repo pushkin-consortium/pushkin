@@ -217,7 +217,7 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
 }
 
 
-const getDBInfo = function() => {
+const getDBInfo = async () => {
   let pushkinConfig
   try {
     pushkinConfig = await jsYaml.safeLoad(fs.promises.readFile(path.join(process.cwd(), 'pushkin.yaml'), 'utf8'))
@@ -280,9 +280,9 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID) => {
   const rabbitPW = Math.random().toString();
   const rabbitCookie = uuid();
   const rabbitAddress = "amqp://".concat(awsName).concat(":").concat(rabbitPW).concat("@localhost:5672")
-  rabbitTask.services['message-queue'].environment.RABBITMQ_DEFAULT_USER = awsName;
-  rabbitTask.services['message-queue'].environment.RABBITMQ_PASSWORD = rabbitPW;
-  rabbitTask.services['message-queue'].environment.RABBITMQ_COOKIE = rabbitCookie;
+  rabbitTask.services['message-queue'].environment.RABBITMQ_DEFAULT_USER = projName.replace(/[^\w\s]/g, "").replace(/ /g,"");
+  rabbitTask.services['message-queue'].environment.RABBITMQ_DEFAULT_PASSWORD = rabbitPW;
+  rabbitTask.services['message-queue'].environment.RABBITMQ_ERLANG_COOKIE = rabbitCookie;
   apiTask.services['api'].environment.AMPQ_ADDRESS = rabbitAddress;
   apiTask.services['api'].image = `${DHID}/api:latest`
 
@@ -305,7 +305,7 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID) => {
     throw e
   }
 
-  const dbInfoByTask = getDBInfo();
+  const dbInfoByTask = await getDBInfo();
 
   let composedRabbit
   let composedAPI
@@ -557,7 +557,7 @@ const setupECS = async (projName, awsName, useIAM) => {
 
 export async function awsInit(projName, awsName, useIAM, DHID) {
 
-  pushing stuff to DockerHub
+  //pushing stuff to DockerHub
   console.log('Publishing images to DockerHub')
   let publishedToDocker
   try {
