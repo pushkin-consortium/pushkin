@@ -20,6 +20,7 @@ $ yarn global upgrade pushkin-cli
 
 ## Current templates
 
+* [Basic template](../../getting-started/tutorial-simple-experiment.md) - follow link to see a tutorial adding an existing jsPsych experiment to a Basic pushkin template.
 * [Lexical decision template](lexical-decision-template.md)
 * [Grammaticality judgement template](grammaticality-judgement-template.md)
 * [Self-paced reading template](self-paced-reading-template.md)
