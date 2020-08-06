@@ -117,42 +117,44 @@ $ pushkin prep
 
 ### Setting up logins
 
-In `config.js`, located at ./pushkin/front-end/src, set `useAuth` to `true` or `false` depending on whether you want to have a login system or not. Note that you cannot use a forum without a login system:
+Coming soon!
 
-```javascript
-useForum: false,
-useAuth: false,
-```
+<!-- In `config.js`, located at `./pushkin/front-end/src`, set `useAuth` to `true` or `false` depending on whether you want to have a login system or not. Note that you cannot use a forum without a login system: -->
 
-By default, Pushkin authenticates users using [Auth0](https://auth0.com/). This provides more features and better security than could be managed otherwise. It is free for open source projects \(contact [sales@auth0.com](mailto:sales%40auth0.com)\); otherwise it can be expensive if you are hoping for a lot of users. To set up Auth0, use the following directions. \(Note that at some point, Auth0 will change up their website and these instructions may get out of date.\)
+<!-- ```javascript -->
+<!-- useForum: false, -->
+<!-- useAuth: false, -->
+<!-- ``` -->
 
-Go to auth0.com and create an Auth0 account.
+<!-- By default, Pushkin authenticates users using [Auth0](https://auth0.com/). This provides more features and better security than could be managed otherwise. It is free for open source projects \(contact [sales@auth0.com](mailto:sales%40auth0.com)\); otherwise it can be expensive if you are hoping for a lot of users. To set up Auth0, use the following directions. \(Note that at some point, Auth0 will change up their website and these instructions may get out of date.\) -->
 
-![](../../.gitbook/assets/auth0_1.gif)
+<!-- Go to auth0.com and create an Auth0 account. -->
 
-Go to the _Applications_ section of the Auth0 dashboard and click _Create Application_. Give your application and a name. Select _Single Page Web App_ as your application type. Click _Create_.
+<!-- ![](../../.gitbook/assets/auth0_1.gif) -->
 
-![](../../.gitbook/assets/auth0_2.gif)
+<!-- Go to the _Applications_ section of the Auth0 dashboard and click _Create Application_. Give your application and a name. Select _Single Page Web App_ as your application type. Click _Create_. -->
 
-4. Choose the _Settings_ tab. In _Allowed Callback URLs_, add `http://localhost/`. In _Allowed Logout URLs_, add `http://localhost`. In _Allowed Web Origins_, also add `http://localhost`. Click the _Save Changes_ button.
+<!-- ![](../../.gitbook/assets/auth0_2.gif) -->
 
-![](../../.gitbook/assets/auth0_3.gif)
+<!-- 4. Choose the _Settings_ tab. In _Allowed Callback URLs_, add `http://localhost/`. In _Allowed Logout URLs_, add `http://localhost`. In _Allowed Web Origins_, also add `http://localhost`. Click the _Save Changes_ button. -->
 
-Note that these URLs are used for development. When you launch the live version of your website, you will need to add your public URLs. Repeat the instructions above, replacing [http://localhost](http://localhost) with [https://YOUR-WEBSITE](https://YOUR-WEBSITE). For instance, for gameswithwords, the URLs are `https://gameswithwords.org` and `https://gameswithwords/callback`.
+<!-- ![](../../.gitbook/assets/auth0_3.gif) -->
 
-If you are using an AWS EC2 instance, navigate to the IPv4 Public IP address of your instance instead of `http://localhost`. This can be found in the AWS EC2 console.
+<!-- Note that these URLs are used for development. When you launch the live version of your website, you will need to add your public URLs. Repeat the instructions above, replacing [http://localhost](http://localhost) with [https://YOUR-WEBSITE](https://YOUR-WEBSITE). For instance, for gameswithwords, the URLs are `https://gameswithwords.org` and `https://gameswithwords/callback`. -->
 
-![](../../.gitbook/assets/38%20%281%29.gif)
+<!-- If you are using an AWS EC2 instance, navigate to the IPv4 Public IP address of your instance instead of `http://localhost`. This can be found in the AWS EC2 console. -->
 
-On the settings page, you will see a `Domain` \(something like `gameswithwords.auth0.com`\) and a `Client ID`. Edit `pushkin/front-end/src/config.js` to match:
+<!-- ![](../../.gitbook/assets/38%20%281%29.gif) -->
 
-```javascript
-authDomain: '<YOUR_AUTH0_DOMAIN>',
-authClientID: '<YOUR_AUTH0_CLIENT_ID>',
-```
-![](../../.gitbook/assets/auth0_4.gif)
+<!-- On the settings page, you will see a `Domain` \(something like `gameswithwords.auth0.com`\) and a `Client ID`. Edit `pushkin/front-end/src/config.js` to match: -->
 
-Run `pushkin prep` again since you have made a change to your code.
+<!-- ```javascript -->
+<!-- authDomain: '<YOUR_AUTH0_DOMAIN>', -->
+<!-- authClientID: '<YOUR_AUTH0_CLIENT_ID>', -->
+<!-- ``` -->
+<!-- ![](../../.gitbook/assets/auth0_4.gif) -->
+
+<!-- Run `pushkin prep` again since you have made a change to your code. -->
 
 ### Local testing
 
