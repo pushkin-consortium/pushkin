@@ -329,7 +329,6 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID) => {
       //for backwards compatibility, at least for the time being. 
       task.services[w].environment = {
         "AMPQ_ADDRESS" : rabbitAddress,
-        "QUEUE": expName,
         "DB_USER": dbInfoByTask['Main'].username,
         "DB_NAME": dbInfoByTask['Main'].name,
         "DB_PASS": dbInfoByTask['Main'].password,
