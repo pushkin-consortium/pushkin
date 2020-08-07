@@ -10,7 +10,12 @@
   * [Ubuntu Linux](getting-started/installing-pushkin-and-dependencies/ubuntu-install.md)
 * [Quickstart](getting-started/quickstart/README.md)
   * [Quickstart: Example Outputs](getting-started/quickstart/sample_output.md)
-* [Deploying to AWS](getting-started/deploying-to-aws.md)
+* [Deploying to AWS](getting-started/deploying-to-aws/README.md)
+  * [Install required software.](getting-started/deploying-to-aws/install-required-software.md)
+  * [Configure the AWS and ECS CLIs.](getting-started/deploying-to-aws/configure-aws-and-ecs-clis.md)
+  * [Register a domain.](getting-started/deploying-to-aws/domain-registration.md)
+
+
 * [Tutorial: Simple Experiment](getting-started/tutorial-simple-experiment.md)
 
 ## Advanced

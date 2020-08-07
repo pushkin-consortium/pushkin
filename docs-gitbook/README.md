@@ -16,7 +16,11 @@ description: >-
     * [Windows 10](getting-started/installing-pushkin-and-dependencies/windows-install.md)
     * [Ubuntu Linux](getting-started/installing-pushkin-and-dependencies/ubuntu-install.md)
   * [Quickstart](getting-started/quickstart/)
-  * [Deploying to AWS](getting-started/deploying-to-aws.md)
+  * [Deploying to AWS](getting-started/deploying-to-aws/README.md)
+    * [Install required software.](getting-started/deploying-to-aws/install-required-software.md)
+    * [Configure the AWS and ECS CLIs.](getting-started/deploying-to-aws/configure-aws-and-ecs-clis.md)
+    * [Register a domain.](getting-started/deploying-to-aws/domain-registration.md)
+
   * [Tutorial: Simple Experiment](getting-started/tutorial-simple-experiment.md)
 * **Advanced**
   * [Pushkin CLI](advanced/pushkin-cli.md)

@@ -4,7 +4,7 @@
 
 You can buy domains many places, but there is some convenience to doing it through AWS itself, which is reasonably priced:
 
-![](../.gitbook/assets/DomainPurchase.png)
+![](../../.gitbook/assets/DomainPurchase.png)
 
 Cheaper domains on AWS currently cost around $12/yr, but if you would like a trendier domain, you can expect to pay more. Students may be able to get a free domain through [NameCheap for Education](https://nc.me/).
 
