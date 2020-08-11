@@ -4,7 +4,7 @@ To install this experiment template, use the command `pushkin install experiment
 
 * [config info](lexical-decision-template.md#config-js)
 * [stim info](lexical-decision-template.md#stim-js)
-* [Example: Customizing a lexical decision experiment](lexical-decision-template.md#example-customizing-a-lexical-decision-example)
+* [Example: Customizing a lexical decision experiment](lexical-decision-template.md#example-customizing-a-lexical-decision-experiment)
 
 ![Lexical decision experiment template, with corrective response set to true.](../../.gitbook/assets/ezgif.com-video-to-gif-9-.gif)
 
@@ -24,7 +24,7 @@ When **correctiveFeedback** is set to true, the bounding box will change color t
 
 ## Example: Customizing a lexical decision experiment
 
-## Finding experiment files to modify
+### Finding experiment files to modify
 
 If you have installed an experiment using the lexical decision experiment template and called it `lex`, you should have a directory called `lex` in your experiments folder. This directory should be structured like this:
 
@@ -52,9 +52,9 @@ src
 └── stim.js
 ```
 
-## Modifying the experiment configuration and stimuli files
+### Modifying the experiment configuration and stimuli files
 
-### Modifying `config.js`
+#### Modifying `config.js`
 
 This file controls the aesthetics of your experiment, including font color, font size, and font family. If I wanted to set the font color to `red`, set the font size to `20px` and set the font family to a monospace, sans-serif font such as Courier New, I would modify `config.js` as follows:
 
@@ -91,7 +91,7 @@ export default experimentConfig;
 You can run `pushkin prep` and `pushkin start;` to see your changes. 
 
 
-### Modifying `stim.js`
+#### Modifying `stim.js`
 
 This file controls the stimuli presented to participants. It specifices not only (1) what two words should be presented on the screen (`word_1` and `word_2`), but also (2) whether both words are true words (`both_words`), and (3) whether the two words are related to each other (`related`). 
 
