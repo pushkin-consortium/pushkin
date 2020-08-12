@@ -73,7 +73,7 @@ export default experimentConfig;
 
 You'll notice that `'Courier New'` is not the only `fontFamily`'s only specification. This is because it's important to list backup fonts in case your preferred font can't be loaded. You can read more about this practice [here](https://discuss.codecademy.com/t/how-many-fallback-fonts-should-i-have/363586) and see other CSS font combination ideas [here](https://www.w3schools.com/cssref/css_websafe_fonts.asp). 
 
-You'll also notice that `correctiveFeedback` is set to `true`. Let's change this to `false` so that participants receive any feedback. Once you make this change, your final `config.js` should look like this:
+You'll also notice that `correctiveFeedback` is set to `true`. Let's change this to `false` so that participants don't receive any feedback. Once you make this change, your final `config.js` should look like this:
 
 ```javascript
 // Custom stylin'
