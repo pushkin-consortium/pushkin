@@ -4,7 +4,7 @@ To install this experiment template, use the command `pushkin install experiment
 
 * [config info](self-paced-reading-template.md#config-js)
 * [stim info](self-paced-reading-template.md#stim-js)
-* [Example: Customizing a self-paced reading experiment](lexical-decision-template.md#example-customizing-a-lexical-decision-experiment)
+* [Example: Customizing a self-paced reading experiment](self-paced-reading-template.md#example-customizing-a-self-paced-reading-experiment)
 
 ![Self-paced reading experiment template, with the setting &quot;moving word&quot; \(see below for details\)](../../.gitbook/assets/ezgif.com-video-to-gif-7-.gif)
 
