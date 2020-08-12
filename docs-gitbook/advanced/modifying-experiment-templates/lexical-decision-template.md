@@ -56,7 +56,7 @@ src
 
 #### Modifying `config.js`
 
-This file controls the aesthetics of your experiment, including font color, font size, and font family. If I wanted to set the font color to `red`, set the font size to `20px` and set the font family to a monospace, sans-serif font such as Courier New, I would modify `config.js` as follows:
+This file controls the aesthetics of your experiment, including font color, font size, and font family. If you wanted to set the font color to `red`, set the font size to `20px`, and set the font family to a monospace font such as Courier New, you would modify `config.js` as follows:
 
 ```javascript
 // Custom stylin'
@@ -73,7 +73,7 @@ export default experimentConfig;
 
 You'll notice that `'Courier New'` is not the only `fontFamily`'s only specification. This is because it's important to list backup fonts in case your preferred font can't be loaded. You can read more about this practice [here](https://discuss.codecademy.com/t/how-many-fallback-fonts-should-i-have/363586) and see other CSS font combination ideas [here](https://www.w3schools.com/cssref/css_websafe_fonts.asp). 
 
-You'll also notice that `correctiveFeedback` is set to `true`. Let's change this to `false` so that participants don't receive any feedback. Once you make this change, your final `config.js` should look like this:
+You'll also notice that `correctiveFeedback` is set to `true`. You can change this to `false` so that participants don't receive any feedback. Once you make this change, your final `config.js` should look like this:
 
 ```javascript
 // Custom stylin'
@@ -93,7 +93,7 @@ You can run `pushkin prep` and `pushkin start;` to see your changes.
 
 #### Modifying `stim.js`
 
-This file controls the stimuli presented to participants. It specifices not only (1) what two words should be presented on the screen (`word_1` and `word_2`), but also (2) whether both words are true words (`both_words`), and (3) whether the two words are related to each other (`related`). 
+This file controls the stimuli presented to participants. It specifies not only (1) what two words should be presented on the screen (`word_1` and `word_2`), but also (2) whether both words are true words (`both_words`), and (3) whether the two words are related to each other (`related`). 
 
 Say you have created the following table of stimuli for your experiment.
 
