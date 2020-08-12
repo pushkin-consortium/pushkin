@@ -115,12 +115,36 @@ const initExperiment = async (expDir, expName, longName, rootDir) => {
     console.error('Error occurred:', error);
   }
 
+
+  let files
+  try {
+    files = fs.readdirSync(path.join( expDir, "migrations" ))
+  } catch (e) {
+    console.error(`Could not read migrations folder`)
+    throw e
+  }
+  let oldMigrations
+  files.forEach((f) => {
+    if (f.search("create")) {
+      oldMigrations = f;
+    }
+  })
+  let newMigrations = oldMigrations.split("_create")[1]
+
+  let renamedMigrations
+  try {
+    fs.promises.rename(path.join( expDir, "migrations", oldMigrations), path.join( expDir, "migrations", expName.concat("_create").concat(newMigrations)))
+  } catch (e) {
+    console.error(`Failed to rename migrations file`)
+    throw e
+  }
+
   //now that names are updated, load config
   let expConfig;
   try {
     expConfig = readConfig(expDir);
   } catch (err) {
-    console.error(`Failed to read experiment config file for `.concat(exp));
+    console.error(`Failed to read experiment config file for `.concat(expName));
     throw err;
   }
   expConfig.experimentName = longName;
@@ -184,6 +208,6 @@ const initExperiment = async (expDir, expName, longName, rootDir) => {
     throw e
   }
 
-  return await webPromise
+  return await Promise.all([ webPromise, renamedMigrations])
 };
 

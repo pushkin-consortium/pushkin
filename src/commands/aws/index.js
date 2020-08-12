@@ -144,8 +144,27 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
   let stdOut
 
   const dbPassword = Math.random().toString() //Pick random password for database
-
   let dbName = projName.concat(dbType).replace(/[^\w\s]/g, "").replace(/ /g,"")
+
+  //First, check to see if database exists
+  try {
+     stdOut = await exec(`aws rds describe-db-instances --profile ${useIAM}`)
+  } catch (e) {
+    console.error(`Unable to get list of RDS databases`)
+    throw e
+  }
+  let foundDB = false;
+  JSON.parse(stdOut.stdout).DBInstances.forEach((db) => {
+    if (db.DBInstanceIdentifier == dbName.toLowerCase()) {
+      foundDB = true;
+    }
+  })
+  if (foundDB) {
+    console.log(`${dbName} already exists. If that surprises you, look into it.`)
+    //Could consider putting an optional break in here, make people acknowledge before going on.
+    return;
+  }
+
   let myDBConfig = dbConfig;
   myDBConfig.DBName = dbName
   myDBConfig.DBInstanceIdentifier = dbName
@@ -154,7 +173,7 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
   try {
     stdOut = await exec(`aws rds create-db-instance --cli-input-json '`.concat(JSON.stringify(myDBConfig)).concat(`' --profile `).concat(useIAM))
   } catch(e) {
-    console.error('Unable to create database ${dbType}')
+    console.error(`Unable to create database ${dbType}`)
     throw e
   }
 
@@ -179,9 +198,9 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
     // should hang until instance is available
     console.log(`Waiting for ${dbType} to spool up. This may take a while...`)
     stdOut = await exec(`aws rds wait db-instance-available --db-instance-identifier ${dbName} --profile ${useIAM}`)
-    console.log("Transactions DB is spooled up!")
+    console.log(`${dbType} is spooled up!`)
   } catch (e) {
-    console.error(`Problem waiting for transactionDB to spool up.`)
+    console.error(`Problem waiting for ${dbType} to spool up.`)
     throw e
   }
 
@@ -189,9 +208,8 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
   try {
      stdOut = await exec(`aws rds describe-db-instances --db-instance-identifier ${dbName} --profile ${useIAM}`)
      transactionsEndpoint = JSON.parse(stdOut.stdout);
-    console.log("Transactions DB is spooled up!")
   } catch (e) {
-    console.error(`Problem waiting for transactionDB to spool up.`)
+    console.error(`Problem getting ${dbType} endpoint.`)
     throw e
   }
   
@@ -203,8 +221,9 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
     "password": myDBConfig.MasterUserPassword,
     "port": myDBConfig.Port
   }
-
+console.log(`newDB: ${newDB}`)
   pushkinConfig.productionDBs[dbType] = newDB;
+console.log(`pushkinConfig: ${pushkinConfig}`)
 
   try {
     stdOut = await fs.promises.writeFile(path.join(process.cwd(), 'pushkin.yaml'), jsYaml.safeDump(pushkinConfig), 'utf8')
@@ -216,30 +235,39 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
   return newDB
 }
 
-
-const getDBInfo = async () => {
+const getDBInfo = async (n = 0) => {
+  if (n > 30) {
+    throw new Error(`Database creation timed out.`)
+  }
+  let temp
   let pushkinConfig
   try {
-    pushkinConfig = await jsYaml.safeLoad(fs.promises.readFile(path.join(process.cwd(), 'pushkin.yaml'), 'utf8'))
+    temp = await fs.promises.readFile(path.join(process.cwd(), 'pushkin.yaml'), 'utf8')
+    pushkinConfig = jsYaml.safeLoad(temp)
+    console.log(pushkinConfig)
   } catch (e) {
     console.error(`Couldn't load pushkin.yaml`)
     throw e
   }
-  if (pushkinConfig.productionDBs.length < 2 ) {
-    throw new Error(`Production DBs have not been set up. Check Pushkin.yaml.`)
+  if (pushkinConfig.productionDBs.length >= 2 ) {
+    let dbsByType
+    //fubar - just changed this to assume JSON. Might not be right.
+    Object.keys(pushkinConfig.productionDBs).forEach((d) => {
+      dbTypesByName[pushkinConfig.productionDBs[d].type] = {
+        "name": pushkinConfig.productionDBs[d].name,
+        "username": pushkinConfig.productionDBs[d].username,
+        "password": pushkinConfig.productionDBs[d].password,
+        "port": pushkinConfig.productionDBs[d].port,
+        "endpoint": pushkinConfig.productionDBs[d].endpoint
+      }
+    })
+    return dbsByType  
+  } else {
+    console.log(`Waiting for DB creation to complete...${n}`);
   }
-  let dbsByType
-  pushkinConfig.productionDBs.forEach((d) => {
-    dbTypesByName[d.type] = {
-      "name": d.name,
-      "username": d.username,
-      "password": d.password,
-      "port": d.port,
-      "endpoint": d.endpoint
-    }
-  })
 
-  return dbsByType
+  await new Promise(r => setTimeout(r, 30000));
+  const stillWaiting = await getDBInfo(n+1);
 }
 
 
@@ -260,7 +288,6 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID) => {
   const ecsCompose = async (yaml, task, name) => {
 
     // Get database information from pushkin.yaml
-
     try {
       await fs.promises.writeFile(path.join(process.cwd(), 'ECStasks', yaml), jsYaml.safeDump(task), 'utf8');
     } catch (e) {
@@ -346,7 +373,7 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID) => {
   return Promise.all([composedRabbit, composedAPI, composedWorkers]);
 }
 
-const setupECS = async (projName, awsName, useIAM) => {
+const setupECS = async (projName, awsName, useIAM, DHID) => {
   console.log(`Starting ECS setup`)
   let temp
 
@@ -380,28 +407,113 @@ const setupECS = async (projName, awsName, useIAM) => {
     throw e
   }
 
+  const makeSSH = async (useIAM) => {
+    let keyPairs
+    let foundPushkinKeyPair = false
+    try {
+      keyPairs = await exec(`aws ec2 describe-key-pairs --profile ${useIAM}`)
+    } catch (e) {
+      console.error(`Failed to get list of key pairs`)
+    }
+    JSON.parse(keyPairs.stdout).KeyPairs.forEach((k) => {
+    if (k.KeyName == 'my-pushkin-key-pair') {foundPushkinKeyPair = true}
+    })
+
+    if (foundPushkinKeyPair) {
+      console.log(`Pushkin key pair already exists. Skipping creation.`)
+      return
+    } else {
+      let keyPair
+      try {
+        console.error(`Making SSH key`)
+        keyPair = await exec(`aws ec2 create-key-pair --key-name my-pushkin-key-pair --query 'KeyMaterial' --profile ${useIAM} --output text > .pushkinKey`)
+        await exec(`chmod 400 .pushkinKey`)
+      } catch (e) {
+        console.error(`Problem creating AWS SSH key`)
+      }
+      return
+    }
+  }
+
+
+  let madeSSH = makeSSH(useIAM)
   //make security group for load balancer. Start this process early, though it doesn't take super long.
-  // const makeBalancerGroup = async(useIAM) => {
-  //   console.log(`Creating security group for load balancer`)
-  //   let SGCreate = `aws ec2 create-security-group --group-name BalancerGroup --description "For the load balancer" --profile ${useIAM}`
-  //   let SGRule1 = `aws ec2 authorize-security-group-ingress --group-name BalancerGroup --ip-permissions IpProtocol=tcp,FromPort=80,ToPort=80,Ipv6Ranges='[{CidrIpv6=::/0}]',IpRanges='[{CidrIp=0.0.0.0/0}]' --profile ${useIAM}`
-  //   let SGRule2 = `aws ec2 authorize-security-group-ingress --group-name BalancerGroup --ip-permissions IpProtocol=tcp,FromPort=443,ToPort=443,Ipv6Ranges='[{CidrIpv6=::/0}]',IpRanges='[{CidrIp=0.0.0.0/0}]' --profile ${useIAM}`
-  //   let stdOut
-  //   try {
-  //     stdOut = await exec(SGCreate)
-  //     await Promise.all([exec(SGRule1), exec(SGRule2)])
-  //   } catch(e) {
-  //     console.error(`Failed to create security group for load balancer`)
-  //     throw e
-  //   }
-  //   return JSON.parse(stdOut.toString()).GroupId //remember security group in order to use later!
-  // }
-   let madeBalancerGroup
-  // try {
-  //   madeBalancerGroup = makeBalancerGroup(useIAM) //start this process early. Will use much later. 
-  // } catch(e) {
-  //   throw e
-  // }
+  const makeBalancerGroup = async(useIAM) => {
+    console.log(`Creating security group for load balancer`)
+    let SGCreate = `aws ec2 create-security-group --group-name BalancerGroup --description "For the load balancer" --profile ${useIAM}`
+    let SGRule1 = `aws ec2 authorize-security-group-ingress --group-name BalancerGroup --ip-permissions IpProtocol=tcp,FromPort=80,ToPort=80,Ipv6Ranges='[{CidrIpv6=::/0}]',IpRanges='[{CidrIp=0.0.0.0/0}]' --profile ${useIAM}`
+    let SGRule2 = `aws ec2 authorize-security-group-ingress --group-name BalancerGroup --ip-permissions IpProtocol=tcp,FromPort=443,ToPort=443,Ipv6Ranges='[{CidrIpv6=::/0}]',IpRanges='[{CidrIp=0.0.0.0/0}]' --profile ${useIAM}`
+    let stdOut
+    try {
+      stdOut = await exec(SGCreate)
+      await Promise.all([exec(SGRule1), exec(SGRule2)])
+    } catch(e) {
+      console.error(`Failed to create security group for load balancer`)
+      throw e
+    }
+    return JSON.parse(stdOut.toString()).GroupId //remember security group in order to use later!
+  }
+
+  let securityGroups
+  try {
+    securityGroups = await exec(`aws ec2 describe-security-groups --profile trialPushkin`)
+  } catch (e) {
+    console.error(`Failed to retried list of security groups from aws`)
+    throw e
+  }
+  let foundBalancerGroup = false
+  let madeBalancerGroup
+  let BalancerSecurityGroupID
+  JSON.parse(securityGroups.stdout).SecurityGroups.forEach((g) => {
+    if (g.GroupName == 'BalancerGroup') {foundBalancerGroup = g.GroupId}
+    })
+  if (foundBalancerGroup)  {
+    console.log(`Security group 'BalancerGroup' already exists. Skipping create.`)
+    BalancerSecurityGroupID = foundBalancerGroup
+  } else {
+    try {
+      madeBalancerGroup = makeBalancerGroup(useIAM) //start this process early. Will use much later. 
+    } catch(e) {
+      throw e
+    }
+  }
+
+  //make security group for ECS cluster. Start this process early, though it doesn't take super long.
+  const makeECSGroup = async(useIAM) => {
+    console.log(`Creating security group for ECS cluster`)
+    let SGCreate = `aws ec2 create-security-group --group-name ECSGroup --description "For the ECS cluster" --profile ${useIAM}`
+    let SGRule1 = `aws ec2 authorize-security-group-ingress --group-name ECSGroup --ip-permissions IpProtocol=tcp,FromPort=80,ToPort=80,Ipv6Ranges='[{CidrIpv6=::/0}]',IpRanges='[{CidrIp=0.0.0.0/0}]' --profile ${useIAM}`
+    let SGRule2 = `aws ec2 authorize-security-group-ingress --group-name ECSGroup --ip-permissions IpProtocol=tcp,FromPort=22,ToPort=22,Ipv6Ranges='[{CidrIpv6=::/0}]',IpRanges='[{CidrIp=0.0.0.0/0}]' --profile ${useIAM}`
+    let SGRule3 = `aws ec2 authorize-security-group-ingress --group-name ECSGroup --ip-permissions IpProtocol=tcp,FromPort=1024,ToPort=65535,Ipv6Ranges='[{CidrIpv6=::/0}]',IpRanges='[{CidrIp=0.0.0.0/0}]' --profile ${useIAM}`
+    let SGRule4 = `aws ec2 authorize-security-group-egress --group-name ECSGroup --ip-permissions IpProtocol=-1,IpRanges='[{CidrIp=0.0.0.0/0}]' --profile ${useIAM}`
+    let stdOut
+    try {
+      stdOut = await exec(SGCreate)
+      await Promise.all([exec(SGRule1), exec(SGRule2), exec(SGRule3), exec(SGRule4)])
+    } catch(e) {
+      console.error(`Failed to create security group for load balancer`)
+      throw e
+    }
+    return JSON.parse(stdOut.toString()).GroupId //remember security group in order to use later!
+  }
+
+  let ecsSecurityGroupID;
+  let foundECSGroup = false
+  let madeECSGroup
+  JSON.parse(securityGroups.stdout).SecurityGroups.forEach((g) => {
+    if (g.GroupName == 'ECSGroup') {foundECSGroup = g.GroupId}
+    })
+  if (foundECSGroup)  {
+    console.log(`Security group 'foundECSGroup' already exists. Skipping create.`)
+    ecsSecurityGroupID = foundECSGroup
+  } else {
+    try {
+      madeECSGroup = makeECSGroup(useIAM) //start this process early. Will use much later. 
+    } catch(e) {
+      throw e
+    }
+  }
+
 
   //need one subnet per availability zone in region. Region is based on region for the profile.
   //Start this process early to use later. 
@@ -488,21 +600,13 @@ const setupECS = async (projName, awsName, useIAM) => {
   let createdECSTasks
   try {
     console.log('Creating ECS tasks')
-    createdECSTasks = ecsTaskCreator(projName, awsName, useIAM, 'jkhartshorne');
+    createdECSTasks = ecsTaskCreator(projName, awsName, useIAM, DHID);
   } catch(e) {
     throw e
   }
 
   let launchedECS
-  try {
-    console.log('Launching ECS cluster')
-    //Probably we should check if there is already a configuration with this name and ask before replacing.
-    launchedECS = exec(`ecs-cli configure --cluster ${ECSName} --default-launch-type EC2 --region us-east-1 --config-name ${ECSName}`)
-  } catch (e) {
-    console.error(`Unable to configure cluster ${ECSName}.`)
-    throw e
-  }
-
+  await madeSSH //need this shortly
   const zones = await foundSubnets
   let subnets
   try {
@@ -512,19 +616,34 @@ const setupECS = async (projName, awsName, useIAM) => {
     throw e
   }
 
-  console.log(`Creating application load balancer`)
-  const securityGroupID = await madeBalancerGroup
+  if (!ecsSecurityGroupID) {
+    //If we didn't find one, we must be making it
+    console.log("Waiting for ecsSecurityGroupID")
+    ecsSecurityGroupID = await madeECSGroup
+  }
+  const myVPC = await gotVPC
+  try {
+    console.log('Launching ECS cluster')
+    //Probably we should check if there is already a configuration with this name and ask before replacing.
+    //launchedECS = exec(`ecs-cli configure --cluster ${ECSName} --default-launch-type EC2 --region us-east-1 --config-name ${ECSName}`)
+    launchedECS = exec(`ecs-cli up --keypair my-pushkin-key-pair --capability-iam --size 1 --instance-type t2.small --cluster ${ECSName} --security-group ${ecsSecurityGroupID} --vpc ${myVPC} --subnets ${subnets.join(' ')} --ecs-profile ${useIAM} --force`)
+  } catch (e) {
+    console.error(`Unable to launch cluster ${ECSName}.`)
+    throw e
+  }
 
+  console.log(`Creating application load balancer`)
+  if (!foundBalancerGroup) {BalancerSecurityGroupID = await madeBalancerGroup}
+console.log(`FUBAR. BalancerSecurityGroupID: ${BalancerSecurityGroupID}`)
   const loadBalancerName = ECSName.concat("Balancer")
   let madeBalancer
   try {
-    madeBalancer = exec(`aws elbv2 create-load-balancer --name ${loadBalancerName} --type application --scheme internet-facing --subnets ${subnets.join(' ')} --security-groups ${securityGroupID} --profile ${useIAM}`)
+    madeBalancer = exec(`aws elbv2 create-load-balancer --name ${loadBalancerName} --type application --scheme internet-facing --subnets ${subnets.join(' ')} --security-groups ${BalancerSecurityGroupID} --profile ${useIAM}`)
   } catch (e) {
     console.error(`Unable to create application load balancer`)
     throw e
   }
 
-  const myVPC = await gotVPC
   try {
     temp = await exec(`aws elbv2 create-target-group --name BalancerTargets --protocol HTTP --port 80 --vpc-id ${myVPC} --profile ${useIAM}`)
   } catch(e) {
@@ -556,7 +675,8 @@ const setupECS = async (projName, awsName, useIAM) => {
 }
 
 export async function awsInit(projName, awsName, useIAM, DHID) {
-
+  getDBInfo()
+  let temp
   //pushing stuff to DockerHub
   console.log('Publishing images to DockerHub')
   let publishedToDocker
@@ -568,7 +688,7 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
   }
 
   await publishedToDocker
-  process.exit();
+
   //build front-end
   let builtWeb
   try {
@@ -598,25 +718,45 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
 
   let configuredECS
   try {
-    configuredECS = setupECS(projName, awsName, useIAM);
+    configuredECS = setupECS(projName, awsName, useIAM, DHID);
   } catch(e) {
     throw e
   }
 
-  console.log('Creating security group for databases')
-  let SGCreate = `aws ec2 create-security-group --group-name DatabaseGroup --description "For connecting to databases" --profile ${useIAM}`
-  let SGRule = `aws ec2 authorize-security-group-ingress --group-name DatabaseGroup --ip-permissions IpProtocol=tcp,FromPort=5432,ToPort=5432,Ipv6Ranges='[{CidrIpv6=::/0}]',IpRanges='[{CidrIp=0.0.0.0/0}]' --profile ${useIAM}`
-  let stdOut
+  const createDatabaseGroup = async (useIAM) => {
+    let SGCreate = `aws ec2 create-security-group --group-name DatabaseGroup --description "For connecting to databases" --profile ${useIAM}`
+    let SGRule = `aws ec2 authorize-security-group-ingress --group-name DatabaseGroup --ip-permissions IpProtocol=tcp,FromPort=5432,ToPort=5432,Ipv6Ranges='[{CidrIpv6=::/0}]',IpRanges='[{CidrIp=0.0.0.0/0}]' --profile ${useIAM}`
+    let stdOut
+    try {
+      stdOut = await exec(SGCreate)
+      execSync(SGRule)
+    } catch(e) {
+      console.error(`Failed to create security group for databases`)
+      throw e
+    }
+    return JSON.parse(stdOut.stdout).GroupId //remember security group in order to use later!
+  }
+
   try {
-    stdOut = execSync(SGCreate)
-    execSync(SGRule)
-  } catch(e) {
-    console.error(`Failed to create security group for databases`)
+    temp = await exec(`aws ec2 describe-security-groups --profile trialPushkin`)
+  } catch (e) {
+    console.error(`Failed to retried list of security groups from aws`)
     throw e
   }
-  const securityGroupID = JSON.parse(stdOut.toString()).GroupId //remember security group in order to use later!
+  let foundDBGroup
+  let madeDBGroup
+  JSON.parse(temp.stdout).SecurityGroups.forEach((g) => {
+    if (g.GroupName == 'DatabaseGroup') {foundDBGroup = g.GroupId}
+    })
 
-//  const securityGroupID = 'sg-0aa473800eb96748f'
+  let securityGroupID
+  if (foundDBGroup) {
+    console.log(`Database security group already exists. Skipping creation.`)
+    securityGroupID = foundDBGroup
+  } else {
+    console.log('Creating security group for databases')
+    securityGroupID = await createDatabaseGroup(useIAM)
+  }
 
   let initializedMainDB
   try {
@@ -634,7 +774,6 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
   }
 
   const returnedPromises = await Promise.all([initializedTransactionDB, initializedMainDB]) //initializedTransactionsDB must be first in this list
-  await Promise.all([initializedTransactionDB, initializedMainDB, deployedFrontEnd, configuredECS])
   const transactionDB = returnedPromises[0] //this is why it has to be first
 
   let setupTransactionsTable
@@ -644,11 +783,10 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
     throw e
   }
 
-  await setupTransactionsTable
-
+  await Promise.all([deployedFrontEnd, configuredECS, setupTransactionsTable])
+  console.log(`FUBAR. Still not done. But done.`)
   return
 }
-
 
 export async function nameProject(projName) {
   let awsConfig = {}

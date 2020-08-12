@@ -182,7 +182,6 @@ export const apiTask = {
     }
 }
 
-
 export const workerTask = {
     "version": '2',
     "services": {

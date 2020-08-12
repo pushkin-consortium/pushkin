@@ -253,18 +253,25 @@ export default async (experimentsDir, coreDir) => {
     const workerLoc = path.join(expDir, workerConfig.location);
 
     let AMQP_ADDRESS
-    compFile.services[exp.concat("_worker").toLowerCase()].environment.forEach((e) => {
-      if (e.includes("AMQP_ADDRESS")) { 
-        AMQP_ADDRESS = e.split("=")[1] 
-      }
-    })    
+    // Recall, compFile is docker-compose.dev.yml, and is defined outside this function.
+    try {
+      Object.keys(compFile.services[workerName].environment).forEach((e) => {
+        if (compFile.services[workerName].environment[e].includes("AMQP_ADDRESS")) { 
+          AMQP_ADDRESS = compFile.services[workerName].environment[e].split("=")[1] 
+        }
+      }) 
+    } catch (e) {
+      console.error(`Problem with updating environment variables for ${workerName}`)
+      console.error(`Value of service ${workerName} in docker-compose.dev.yml:\n ${JSON.stringify(compFile.services[workerName])}`)
+      throw e
+    }   
 
-    compFile.services[exp.concat("_worker").toLowerCase()].environment = {} 
-    compFile.services[exp.concat("_worker").toLowerCase()].environment.AMQP_ADDRESS = AMQP_ADDRESS || 'amqp://message-queue:5672'
-    compFile.services[exp.concat("_worker").toLowerCase()].environment.DB_USER = pushkinYAML.databases.localtestdb.user
-    compFile.services[exp.concat("_worker").toLowerCase()].environment.DB_PASS = pushkinYAML.databases.localtestdb.pass
-    compFile.services[exp.concat("_worker").toLowerCase()].environment.DB_URL = pushkinYAML.databases.localtestdb.url
-    compFile.services[exp.concat("_worker").toLowerCase()].environment.DB_NAME = pushkinYAML.databases.localtestdb.name
+    compFile.services[workerName].environment = {} 
+    compFile.services[workerName].environment.AMQP_ADDRESS = AMQP_ADDRESS || 'amqp://message-queue:5672'
+    compFile.services[workerName].environment.DB_USER = pushkinYAML.databases.localtestdb.user
+    compFile.services[workerName].environment.DB_PASS = pushkinYAML.databases.localtestdb.pass
+    compFile.services[workerName].environment.DB_URL = pushkinYAML.databases.localtestdb.url
+    compFile.services[workerName].environment.DB_NAME = pushkinYAML.databases.localtestdb.name
 
     let workerBuild
     try {
@@ -276,7 +283,6 @@ export default async (experimentsDir, coreDir) => {
     return workerBuild;
   }
 
-  // write out new compose file with worker service
   const composeFileLoc = path.join(path.join(process.cwd(), 'pushkin'), 'docker-compose.dev.yml');
   const pushkinYAMLFileLoc = path.join(process.cwd(), 'pushkin.yaml')
   let compFile;
@@ -284,12 +290,11 @@ export default async (experimentsDir, coreDir) => {
   try { 
     compFile = jsYaml.safeLoad(fs.readFileSync(composeFileLoc), 'utf8'); 
     pushkinYAML = jsYaml.safeLoad(fs.readFileSync(pushkinYAMLFileLoc), 'utf8'); 
-    console.log('loaded compFile')
+    console.log('loaded docker-compose.dev.yml and pushkin.yaml.')
   } catch (e) { 
-    console.error('Failed to load either pushkin.yaml or docker-compose.dev.yml');
+    console.error('Failed to load either pushkin.yaml or docker-compose.dev.yml or both.');
     throw e
   }
-
 
   let preppedWorkers;
   try {
