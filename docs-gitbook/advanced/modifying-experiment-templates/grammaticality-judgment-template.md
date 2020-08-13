@@ -1,12 +1,12 @@
-# Grammaticality judgement template
+# Grammaticality judgment template
 
 To install this experiment template, use the command `pushkin install experiment`, then select **grammaticality**.
 
-* [config info](grammaticality-judgement-template.md#config-js)
-* [stim info](grammaticality-judgement-template.md#stim-js)
-* [Example: Customizing a lexical decision experiment](grammaticality-judgement-template.md#example-customizing-a-lexical-decision-experiment)
+* [config info](grammaticality-judgment-template.md#config-js)
+* [stim info](grammaticality-judgment-template.md#stim-js)
+* [Example: Customizing a grammaticality judgment experiment](grammaticality-judgment-template.md#example-customizing-a-grammaticality-judgment-experiment)
 
-![Grammaticality judgement experiment template, with corrective response set to true.](../../.gitbook/assets/ezgif.com-video-to-gif-8-.gif)
+![Grammaticality judgment experiment template, with corrective response set to true.](../../.gitbook/assets/ezgif.com-video-to-gif-8-.gif)
 
 ### config.js
 
@@ -20,11 +20,11 @@ When **correctiveFeedback** is set to true: the two-alternative forced choice qu
 
 **sentence\_ungrammatical**: The grammatically incorrect sentence.
 
-## Example: Customizing a lexical decision experiment
+## Example: Customizing a grammaticality judgment experiment
 
 ### Finding experiment files to modify
 
-If you have installed an experiment using the grammaticality judgement experiment template and called it `gram`, you should have a directory called `gram` in your experiments folder. This directory should be structured like this:
+If you have installed an experiment using the grammaticality judgment experiment template and called it `gram`, you should have a directory called `gram` in your experiments folder. This directory should be structured like this:
 
 ```example
 gram
@@ -37,7 +37,7 @@ gram
 ├── web page
 └── worker
 ```
-In order to customize your simple grammaticality judgement experiment, you will need to access two files, `config.js` and `stim.js`. These files can be found in `web page/src/`, a directory that looks like this:
+In order to customize your simple grammaticality judgment experiment, you will need to access two files, `config.js` and `stim.js`. These files can be found in `web page/src/`, a directory that looks like this:
 
 ```example
 src
@@ -121,7 +121,7 @@ Say you have created the following table of stimuli for your experiment.
 | This is an example\.  | This an example\.       |
 
 
-In order to be able to use these stimuli in the grammaticality judgement experiment, you must use a table to JSON converter such as [this one](https://tableconvert.com/) to format it correctly for jsPsych. 
+In order to be able to use these stimuli in the grammaticality judgment experiment, you must use a table to JSON converter such as [this one](https://tableconvert.com/) to format it correctly for jsPsych. 
 
 Once it has been converted, paste the JSON into the `stim.js` file. You may need to manually add spaces, as the file should now look like this:
 
