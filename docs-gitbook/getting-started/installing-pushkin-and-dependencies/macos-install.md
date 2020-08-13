@@ -60,6 +60,14 @@ You should get a list of commands with some documentation for each.
 
 ![](../../.gitbook/assets/ezgif.com-video-to-gif-1-%20%281%29%20%281%29.gif)
 
+Confirm that you have version `2.0.0` or later by running:
+
+```bash
+$ pushkin --version
+```
+
+and reading the output.
+
 ### Install Docker
 
 Next, install [Docker](https://docs.docker.com/install/).
