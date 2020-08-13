@@ -12,6 +12,6 @@
   "dependencies": {
     "build-if-changed": "^1.5.5",
     "knex": "^0.21.2",
-    "pushkin-worker": "^1.4.0"
+    "pushkin-worker": "^2.0.0"
   }
 }
