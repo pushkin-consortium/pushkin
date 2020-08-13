@@ -36,7 +36,7 @@ description: >-
     * [help](advanced/pushkin-cli.md#help)
   * [Using Experiment Templates](advanced/modifying-experiment-templates/)
     * [Lexical decision template](advanced/modifying-experiment-templates/lexical-decision-template.md)
-    * [Grammaticality judgement template](advanced/modifying-experiment-templates/grammaticality-judgement-template.md)
+    * [Grammaticality judgment template](advanced/modifying-experiment-templates/grammaticality-judgment-template.md)
     * [Self-paced reading template](advanced/modifying-experiment-templates/self-paced-reading-template.md)
   * [Experiment Structure](advanced/experiment-structure/)
     * [Config File](advanced/experiment-structure/experiment-config-files.md)
