@@ -275,6 +275,7 @@ export default async (experimentsDir, coreDir) => {
 
     let workerBuild
     try {
+      console.log(`Building docker image for ${workerName}`)
       workerBuild = exec(`docker build ${workerLoc} -t ${workerName}`)
     } catch(e) {
       console.error(`Problem building worker for ${exp}`)
@@ -344,6 +345,7 @@ export default async (experimentsDir, coreDir) => {
   }
 
   await preppedWorkers
+  console.log('Finished building all experiment workers')
   try {
     console.log(`updating docker-compose.dev.yml`)
     fs.writeFileSync(composeFileLoc, jsYaml.safeDump(compFile), 'utf8');

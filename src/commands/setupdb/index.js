@@ -67,11 +67,9 @@ export async function setupdb(coreDBs, mainExpDir) {
             console.log('...')
             return x.out.search('healthy')
           },
-                err => {console.error(err)})
+          err => {console.error(err)})
     if (x > 0) {
-      console.log(dbsToExps);
-      console.log(coreDBs);
-      console.log('starting migrations...');
+      console.log('starting migrations....');
       dbsToExps.forEach((migAndSeedDirs, db) => {
         if (!coreDBs[db]) {
           console.error(`The database ${db} is not configured in pushkin.yaml`);
@@ -80,16 +78,17 @@ export async function setupdb(coreDBs, mainExpDir) {
         const dbInfo = coreDBs[db];
         const migDirs = migAndSeedDirs.map((i) => i.migrations);
         const seedDirs = migAndSeedDirs.map((i) => i.seeds);
-        const pg = knex({
+        const knexInfo = {
           client: 'pg',
           version: '11',
           connection: {
-            host: dbInfo.url,
+            host: 'localhost',
             user: dbInfo.user,
             password: dbInfo.pass,
             database: dbInfo.name,
-          },
-        });
+          }
+        }
+        const pg = knex(knexInfo);
         pg.migrate.latest({ directory: migDirs })
           .then(() => {
             if (expConfig.seeds.location) {
@@ -100,15 +99,27 @@ export async function setupdb(coreDBs, mainExpDir) {
             return true;
           })
           .then(() => {
-            console.log('Setup databases successfully');
+            console.log('Set up databases successfully');
           })
           .catch((err) => {
-            console.log(`Failed to setup databases:\n\t${err}`);
+            console.log(`Failed to set up databases:\n\t${err}`);
           })
+          // .then(() => {
+          //   //FUBAR for testing
+          //   return Promise.all([pg('pushkin_users').insert({
+          //       user_id: '1234',
+          //       created_at: new Date()
+          //     })])
+          // })
+          // .catch((err) => {
+          //   console.error(`Some sort of problem with writing to pushkin_users`)
+          //   throw err
+          // })
           .finally(() => {
             pg.destroy();
           });
       })
+
       return compose.stop({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml'})
       .then(
         out => { console.log(out.out, 'Database updated. Shutting down...')},

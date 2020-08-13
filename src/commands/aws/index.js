@@ -675,54 +675,9 @@ console.log(`FUBAR. BalancerSecurityGroupID: ${BalancerSecurityGroupID}`)
 }
 
 export async function awsInit(projName, awsName, useIAM, DHID) {
-  getDBInfo()
   let temp
-  //pushing stuff to DockerHub
-  console.log('Publishing images to DockerHub')
-  let publishedToDocker
-  try {
-    publishedToDocker = publishToDocker(DHID);
-  } catch(e) {
-    console.error('Unable to publish images to DockerHub')
-    throw e
-  }
 
-  await publishedToDocker
-
-  //build front-end
-  let builtWeb
-  try {
-    builtWeb = buildFE(projName)
-  } catch(e) {
-    throw e
-  }
-
-  console.log("Creating s3 bucket")
-  try {
-    execSync(`aws s3 mb s3://`.concat(awsName).concat(` --profile `).concat(useIAM))
-  } catch(e) {
-    console.error('Problem creating bucket for front-end')
-    throw e
-  }
-
-  await builtWeb; //need this before we sync! 
-
-  let deployedFrontEnd
-  try {
-    deployedFrontEnd = deployFrontEnd(projName, awsName, useIAM)
-  } catch(e) {
-    console.error(`Failed to deploy front end`)
-    throw e
-  }
-
-
-  let configuredECS
-  try {
-    configuredECS = setupECS(projName, awsName, useIAM, DHID);
-  } catch(e) {
-    throw e
-  }
-
+  //Databases take BY FAR the longest, so start them first
   const createDatabaseGroup = async (useIAM) => {
     let SGCreate = `aws ec2 create-security-group --group-name DatabaseGroup --description "For connecting to databases" --profile ${useIAM}`
     let SGRule = `aws ec2 authorize-security-group-ingress --group-name DatabaseGroup --ip-permissions IpProtocol=tcp,FromPort=5432,ToPort=5432,Ipv6Ranges='[{CidrIpv6=::/0}]',IpRanges='[{CidrIp=0.0.0.0/0}]' --profile ${useIAM}`
@@ -770,6 +725,52 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
     initializedTransactionDB = initDB('Transaction', securityGroupID, projName, awsName, useIAM)
   } catch(e) {
     console.error(`Failed to initialize transaction database`)
+    throw e
+  }
+
+  //pushing stuff to DockerHub
+  console.log('Publishing images to DockerHub')
+  let publishedToDocker
+  try {
+    publishedToDocker = publishToDocker(DHID);
+  } catch(e) {
+    console.error('Unable to publish images to DockerHub')
+    throw e
+  }
+
+  await publishedToDocker
+
+  //build front-end
+  let builtWeb
+  try {
+    builtWeb = buildFE(projName)
+  } catch(e) {
+    throw e
+  }
+
+  console.log("Creating s3 bucket")
+  try {
+    execSync(`aws s3 mb s3://`.concat(awsName).concat(` --profile `).concat(useIAM))
+  } catch(e) {
+    console.error('Problem creating bucket for front-end')
+    throw e
+  }
+
+  await builtWeb; //need this before we sync! 
+
+  let deployedFrontEnd
+  try {
+    deployedFrontEnd = deployFrontEnd(projName, awsName, useIAM)
+  } catch(e) {
+    console.error(`Failed to deploy front end`)
+    throw e
+  }
+
+
+  let configuredECS
+  try {
+    configuredECS = setupECS(projName, awsName, useIAM, DHID);
+  } catch(e) {
     throw e
   }
 
