@@ -14,7 +14,7 @@ worker:
     environment:
       AMQP_ADDRESS: 'amqp://message-queue:5672'
       DB_USER: "postgres"
-      DB_PASS: example
+      DB_PASS: "example"
       DB_URL: "test_db"
       DB_NAME: "test_db"     
 webPage:
