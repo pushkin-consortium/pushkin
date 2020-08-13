@@ -38,8 +38,8 @@ class PushkinWorker {
 	// 		this.handle(h, handler[h].bind(handler));
 	// 	});
 	// }
-	useHandler(ahandler, dbUrl, dbTablePrefix, transactionOps) {
-		const handler = new ahandler(dbUrl, dbTablePrefix, transactionOps);
+	useHandler(ahandler, connection, dbTablePrefix, transactionOps) {
+		const handler = new ahandler(connection, dbTablePrefix, transactionOps);
 		let methods = handler.methods();
 		methods.forEach(h => {
 			this.handle(h, handler[h].bind(handler));
@@ -54,8 +54,7 @@ class PushkinWorker {
 				ch.prefetch(1);
 				const consumeCallback = msg => {
 					console.log(`got message: ${msg.content.toString()}`);
-					Promise.resolve(msg.content.toString())
-						.then(JSON.parse)
+					Promise.resolve(JSON.parse(msg.content))
 						.then(req => {
 							if (!req || !req.method || req.data === undefined)
 								throw new Error('requests must have a method and data field');
@@ -66,7 +65,8 @@ class PushkinWorker {
 							return this.handlers.get(req.method)(sessId, req.data, req.params);
 						})
 						.then(res => {
-							console.log(`responding ${res}`);
+							// Is anyone actually reading this response? I don't think so...
+							console.log(`responding ${JSON.stringify(res)}`);
 							ch.sendToQueue(msg.properties.replyTo,
 								new Buffer.from(JSON.stringify(res)),
 								{correlationId: msg.properties.correlationId}
@@ -106,7 +106,7 @@ function handleJSON(str) {
 }
 
 class DefaultHandler {
-	constructor(db_url, dbTablePrefix, transactionOps) {
+	constructor(connection, dbTablePrefix, transactionOps) {
 		this.tables = {
 			users: `pushkin_users`,
 			userResults: `pushkin_userResults`,
@@ -116,8 +116,15 @@ class DefaultHandler {
 			stimGroups: `${dbTablePrefix}_stimulusGroups`,
 			stimGroupStim: `${dbTablePrefix}_stimulusGroupStimuli`
 		};
-		this.pg_main = knex({ client: 'pg', connection: db_url, });
 
+		this.knexInfo = { 
+			client: 'pg', 
+			version: '11',
+			connection: connection, 
+			debug: true
+		} //fubar -- get rid of debug
+
+		this.pg_main = knex(this.knexInfo); 
 		this.logging = transactionOps ? true : false;
 		if (this.logging) {
 			this.trans_table = transactionOps.tableName;
@@ -127,6 +134,7 @@ class DefaultHandler {
 	}
 
 	async logTransaction(knexCommand) {
+		console.log('this.logging: ', this.logging)
 		if (!this.logging) return knexCommand;
 		const toInsert = this.trans_mapper(knexCommand.toString());
 		await this.pg_trans(this.trans_table).insert(toInsert);
@@ -151,24 +159,28 @@ class DefaultHandler {
 			created_at: new Date()
 		}));
 	}
-
-	async startExperiment(sessId, data) {
+	async startExperiment(sessId, data, params) {
 		if (!sessId)
 			throw new Error('startExperiment got invalid session id');
 		if (!data.user_id)
 			throw new Error('startExperiment got invalid userID');
 
 		const userId = data.user_id;
+		const toInsert = {
+			user_id: userId,
+			created_at: new Date()
+		}
+		console.log('to insert:\n ',toInsert)
 
 		const userCount = (await this.pg_main(this.tables.users).where('user_id', userId).count('*'))[0].count;
+		console.log('userCount: ', userCount)
 		if (userCount>0) {
+			console.log(`user ${userId} already exists. No need to recreate.`)
 			//only need to insert if new subject
-			return 
+			return {user_id: userId}
 		} else {
-			return this.logTransaction(this.pg_main(this.tables.users).insert({
-				user_id: data.user_id,
-				created_at: new Date()
-			}));
+			console.log(`Adding ${userId} to users ${this.tables.users}.`)
+			return this.logTransaction(this.pg_main(this.tables.users).insert(toInsert));
 		}
 	}
 
@@ -204,7 +216,7 @@ class DefaultHandler {
 
 		return this.logTransaction(this.pg_main(this.tables.stimResp).insert({
 			user_id: data.user_id,
-			stimulus: JSON.stringify(data.data_string.stimulus),
+			stimulus: JSON.stringify(data.data_string.stimulus).substring(0,1000),
 			response: JSON.stringify(data.data_string),
 			created_at: new Date()
 		}));
