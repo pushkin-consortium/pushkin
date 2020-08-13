@@ -2,22 +2,28 @@
 
 ## Skip to section
 
-* [config](pushkin-cli.md#config)
-* [install site](pushkin-cli.md#install-site)
-* [install experiment](pushkin-cli.md#install-experiment)
-* [updateDB](pushkin-cli.md#updatedb)
-* [prep](pushkin-cli.md#prep)
-* [start](pushkin-cli.md#start)
-* [stop](pushkin-cli.md#stop)
-* [kill](pushkin-cli.md#kill)
-* [armageddon](pushkin-cli.md#armageddon)
-* [help](pushkin-cli.md#help)
+* [installation](pushkin-cli.md#installation)
+	* [update](pushkin-cli.md#update)
+* [commands](pushkin-cli.md#commands)
+	* [config](pushkin-cli.md#config)
+	* [install site](pushkin-cli.md#install-site)
+	* [install experiment](pushkin-cli.md#install-experiment)
+	* [updateDB](pushkin-cli.md#updatedb)
+	* [prep](pushkin-cli.md#prep)
+	* [start](pushkin-cli.md#start)
+	* [stop](pushkin-cli.md#stop)
+	* [kill](pushkin-cli.md#kill)
+	* [armageddon](pushkin-cli.md#armageddon)
+	* [help](pushkin-cli.md#help)
 
+### installation
 The Pushkin command-line package is available via **Yarn**. We highly recommend a global install in order to make working with Pushkin projects as easy as possible:
 
 ```bash
 $ yarn global add pushkin-cli
 ```
+
+#### update
 
 To update the Pushkin CLI to the most recently released version, run:
 
