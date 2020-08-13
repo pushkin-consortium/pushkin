@@ -23,7 +23,7 @@
 * [Pushkin CLI](advanced/pushkin-cli.md)
 * [Using Experiment Templates](advanced/modifying-experiment-templates/README.md)
   * [Lexical decision template](advanced/modifying-experiment-templates/lexical-decision-template.md)
-  * [Grammaticality judgement template](advanced/modifying-experiment-templates/grammaticality-judgement-template.md)
+  * [Grammaticality judgment template](advanced/modifying-experiment-templates/grammaticality-judgment-template.md)
   * [Self-paced reading template](advanced/modifying-experiment-templates/self-paced-reading-template.md)
 * [Experiment Component Structure](advanced/experiment-structure/README.md)
   * [Experiment Config.yaml Files](advanced/experiment-structure/experiment-config-files.md)
