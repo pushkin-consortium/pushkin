@@ -11,6 +11,7 @@ description: Start here to build a basic Pushkin site and experiment.
 * [Setting up logins](./#setting-up-logins)
 * [Local testing](./#local-testing)
 * [Updating](./#updating)
+* [Viewing your database with a Postgres manager](./#viewing-your-database-with-a-postgres-manager)
 * [Starting over](./#starting-over)
 
 **If you haven't installed pushkin-cli and its dependencies, start** [**here**](../installing-pushkin-and-dependencies/) **first.**
@@ -205,7 +206,7 @@ Under the *Quick Links*, click **Add New Server**. (Make sure you have run `push
 3. Set the password to the default password, `example`, which you can find in `pushkin.yaml`. 
 4. Click **Save** and your *Pushkin Testing* server should appear in the left sidebar.
 
-[GIF GOES HERE]
+![](../../.gitbook/assets/pgadmin_2.gif)
 
 To view your data tables, navigate to the left sidebar:
 
@@ -216,11 +217,11 @@ To view your data tables, navigate to the left sidebar:
 
 By default, you should have 5 tables: `knex_migrations`, `knex_migrations_lock`, `pushkin_userMeta`, `pushkin_userResults`, and `pushkin_users`. You should also have one table for each experiment; if you've followed this tutorial, you should also have `mind_stimulusResponses`, `vocab_stimulusResponses`, and `which_english_stimulusResponses`. 
 
-[GIF GOES HERE]
+![](../../.gitbook/assets/pgadmin_3.gif)
 
 To view a given table, right-click on it, hover over *View/Edit Data*, and click on **All Rows**, which will then appear in a new pgAdmin tab.
 
-[GIF GOES HERE]
+![](../../.gitbook/assets/pgadmin_4.gif)
 
 For more information on how to use pgAdmin, you can read their documentation [here](https://www.pgadmin.org/docs/).
 
