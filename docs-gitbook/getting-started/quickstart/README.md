@@ -210,7 +210,7 @@ Under the *Quick Links*, click **Add New Server**. (Make sure you have run `push
 
 To view your data tables, navigate to the left sidebar:
 
-1. click to expand your *Pushkin Testing* 
+1. Click to expand your *Pushkin Testing* server.
 2. Select **test_db** under *Databases*. 
 3. Select **Schemas**, which will also open its subitem **public**. 
 4. Under **public**, choose **Tables**.
