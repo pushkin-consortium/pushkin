@@ -11,6 +11,7 @@ description: Start here to build a basic Pushkin site and experiment.
 * [Setting up logins](./#setting-up-logins)
 * [Local testing](./#local-testing)
 * [Updating](./#updating)
+* [Viewing your database with a Postgres manager](./#viewing-your-database-with-a-postgres-manager)
 * [Starting over](./#starting-over)
 
 **If you haven't installed pushkin-cli and its dependencies, start** [**here**](../installing-pushkin-and-dependencies/) **first.**
@@ -189,6 +190,40 @@ Every time you update code or add an experiment, you’ll need to run pushkin pr
 $ pushkin prep
 $ pushkin start
 ```
+### Viewing your database with a Postgres manager
+By default, the Pushkin creates a database called `test_db` where your data is stored. (This is explained in further detail [here](../../advanced/experiment-structure/experiment-config-files.md#database).) In order to view your database and easily see your data, you should install a Postgres Manager such as [SQLPro for Postgres](https://macpostgresclient.com/), which costs $7.99/month after the free trial ends. Free and open-source managers are also available \(e.g., [pgAdmin](https://www.pgadmin.org/download/)). Or, if you become very comfortable connecting to postgres through the command line \(not documented in this tutorial\), then you may not need a Postgres manager.
+
+This tutorial will assume that you've downloaded and installed [pgAdmin](https://www.pgadmin.org/download/). Windows, macOS, and Ubuntu users can all download pgAdmin from their [official download page](https://www.pgadmin.org/download/). Ubuntu users can also install it from the command line using [these instructions](https://www.pgadmin.org/download/pgadmin-4-apt/).
+
+When you start pgAdmin, it will take a moment to load and then will appear as a new tab in your web browser. When you install it the first time, it will ask you to set a master password. This can be whatever you'd like, but make sure you keep it in a secure place.
+
+![](../../.gitbook/assets/pgadmin_1.png)
+
+Under the *Quick Links*, click **Add New Server**. (Make sure you have run `pushkin start;` and that your site is running in `localhost` or at your IPv4 Public IP address.) Then follow these steps:
+
+1. You can set the name of the server to anything, for example `Pushkin Testing`. 
+2. Then move to the *Connection* tab and set **Host name/address** to `localhost` (or your IPv4 Public IP address). 
+3. Set the password to the default password, `example`, which you can find in `pushkin.yaml`. 
+4. Click **Save** and your *Pushkin Testing* server should appear in the left sidebar.
+
+![](../../.gitbook/assets/pgadmin_2.gif)
+
+To view your data tables, navigate to the left sidebar:
+
+1. Click to expand your *Pushkin Testing* server.
+2. Select **test_db** under *Databases*. 
+3. Select **Schemas**, which will also open its subitem **public**. 
+4. Under **public**, choose **Tables**.
+
+By default, you should have 5 tables: `knex_migrations`, `knex_migrations_lock`, `pushkin_userMeta`, `pushkin_userResults`, and `pushkin_users`. You should also have one table for each experiment; if you've followed this tutorial, you should also have `mind_stimulusResponses`, `vocab_stimulusResponses`, and `which_english_stimulusResponses`. 
+
+![](../../.gitbook/assets/pgadmin_3.gif)
+
+To view a given table, right-click on it, hover over *View/Edit Data*, and click on **All Rows**, which will then appear in a new pgAdmin tab.
+
+![](../../.gitbook/assets/pgadmin_4.gif)
+
+For more information on how to use pgAdmin, you can read their documentation [here](https://www.pgadmin.org/docs/).
 
 ### Starting over
 
