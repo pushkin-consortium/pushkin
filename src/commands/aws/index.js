@@ -774,8 +774,8 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
 
   let pushkinConfig
   try {
-    stdOut = await fs.promises.readFile(path.join(process.cwd(), 'pushkin.yaml'), 'utf8')
-    pushkinConfig = jsYaml.safeLoad(stdOut)
+    temp = await fs.promises.readFile(path.join(process.cwd(), 'pushkin.yaml'), 'utf8')
+    pushkinConfig = jsYaml.safeLoad(temp)
   } catch (e) {
     console.error(`Couldn't load pushkin.yaml`)
     throw e
