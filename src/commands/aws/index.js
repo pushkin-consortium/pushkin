@@ -5,7 +5,7 @@ import util from 'util';
 import pacMan from '../../pMan.js'; //which package manager is available?
 import { execSync } from 'child_process'; // eslint-disable-line
 import jsYaml from 'js-yaml';
-import { policy, cloudfront, dbConfig, rabbitTask, apiTask, workerTask } from './awsConfigs.js'
+import { policy, cloudfront, dbConfig, rabbitTask, apiTask, workerTask, recordSet } from './awsConfigs.js'
 import { setupTransactionsDB } from '../setupdb/index.js';
 import inquirer from 'inquirer'
 const exec = util.promisify(require('child_process').exec);
@@ -105,10 +105,21 @@ const buildFE = function (projName) {
   })
 }
 
-const deployFrontEnd = async (projName, awsName, useIAM) => {
-  console.log("Copying files to bucket")
+const deployFrontEnd = async (projName, awsName, useIAM, myDomain, myCertificate) => {
+  let temp
+
+  console.log("Creating s3 bucket")
   try {
-    execSync(`aws s3 sync build/ s3://${awsName} --profile ${useIAM}`, {cwd: path.join(process.cwd(), 'pushkin/front-end')})
+    await exec(`aws s3 mb s3://`.concat(awsName).concat(` --profile `).concat(useIAM))
+  } catch(e) {
+    console.error('Problem creating bucket for front-end')
+    throw e
+  }
+
+  console.log("Copying files to bucket")
+  let syncMe
+  try {
+    syncMe = exec(`aws s3 sync build/ s3://${awsName} --profile ${useIAM}`, {cwd: path.join(process.cwd(), 'pushkin/front-end')})
   } catch(e) {
     console.error(`Unable to sync local build with s3 bucket`)
     throw e
@@ -117,8 +128,8 @@ const deployFrontEnd = async (projName, awsName, useIAM) => {
   console.log("Setting permissions")
   policy.Statement[0].Resource = "arn:aws:s3:::".concat(awsName).concat("/*")
   try {
-    execSync(`aws s3 website s3://${awsName} --profile ${useIAM} --index-document index.html --error-document index.html`)
-    execSync(`aws s3api put-bucket-policy --bucket `.concat(awsName).concat(` --policy '`).concat(JSON.stringify(policy)).concat(`' --profile ${useIAM}`))
+    await exec(`aws s3 website s3://${awsName} --profile ${useIAM} --index-document index.html --error-document index.html`)
+    await (`aws s3api put-bucket-policy --bucket `.concat(awsName).concat(` --policy '`).concat(JSON.stringify(policy)).concat(`' --profile ${useIAM}`))
   } catch (e) {
     console.error('Problem setting bucket permissions for front-end')
     throw e
@@ -129,12 +140,53 @@ const deployFrontEnd = async (projName, awsName, useIAM) => {
   cloudfront.DefaultCacheBehavior.TargetOriginId = awsName;
   cloudfront.Origins.Items[0].Id = awsName;
   cloudfront.Origins.Items[0].DomainName = awsName.concat('.s3.amazonaws.com');
+  if (myDomain != "default") {
+    // set up DNS
+    cloudFront.Aliases.Quantity = 2
+    cloudFront.Aliases.Items = [myDomain, 'www.'.concat(myDomain)]
+    cloudFront.ViewerCertificate.CloudFrontDefaultCertificate = false
+    cloudFront.ViewerCertificate.ACMCertificateArn = myCertificate
+    cloudFront.ViewerCertificate.SSLSupportMethod = 'sni-only'
+    cloudFront.ViewerCertificate.MinimumProtocolVersion = 'TLSv1.2_2019'
+  }
+  let myCloud
   try {
-    execSync(`aws cloudfront create-distribution --distribution-config '`.concat(JSON.stringify(cloudfront)).concat(`' --profile ${useIAM}`))
+    myCloud = exec(`aws cloudfront create-distribution --distribution-config '`.concat(JSON.stringify(cloudfront)).concat(`' --profile ${useIAM}`))
   } catch (e) {
     console.log('Could not set up cloudfront.')
     throw e
   }
+
+  console.log(`Retrieving hostedzone ID for ${myDomain}`)
+  let zoneID
+  try {
+    temp = await exec(`aws route53 list-hosted-zones-by-name --dns-name ${myDomain} --profile ${useIAM}`)
+    zoneID = temp.HostedZones[0].Id.split("/hostedzone/")[1]
+  } catch (e) {
+    console.error(`Unable to retrieve hostedzone for ${myDomain}`)
+    throw e
+  }
+
+  recordSet.HostedZoneId = zoneID
+  recordSet.ChangeBatch.Changes.ResourceRecordSet.Name = "CloudFront1"
+  recordSet.ChangeBatch.Changes.ResourceRecordSet.AliasTarget = myCloud.Distribution.DomainName
+  recordSet.ChangeBatch.Changes.ResourceRecordSet.SetIdentifier = "A"
+
+  try {
+    await exec(`aws route53 change-resource-record-sets --cli-input-json ${recordSet} --profile ${trialPushkin}`)
+  } catch (e) {
+    console.error(`Unable to create resource record set for ${myDomain}`)
+  }
+  
+  // Two record sets required if IPv6 is enabled
+  recordSet.ChangeBatch.Changes.ResourceRecordSet.SetIdentifier = "AAAA"
+  try {
+    await exec(`aws route53 change-resource-record-sets --cli-input-json ${recordSet} --profile ${trialPushkin}`)
+  } catch (e) {
+    console.error(`Unable to create resource record set for ${myDomain}`)
+  }
+
+  await syncMe
 
   return
 }
@@ -177,24 +229,9 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
     throw e
   }
 
-  console.log(`Database ${dbType} created. Adding to local config definitions.`)
-  let pushkinConfig
+  console.log(`Database ${dbType} created.`)
+
   try {
-    stdOut = await fs.promises.readFile(path.join(process.cwd(), 'pushkin.yaml'), 'utf8')
-    pushkinConfig = jsYaml.safeLoad(stdOut)
-  } catch (e) {
-    console.error(`Couldn't load pushkin.yaml`)
-    throw e
-  }
-
-  // Would have made sense for local databases and production databases to be nested within 'databases'
-  // But poor planning prevents that. And we'd like to avoid breaking changes, so...
-  if (pushkinConfig.productionDBs == null) {
-    // initialize
-    pushkinConfig.productionDBs = {};
-  }
-
-   try {
     // should hang until instance is available
     console.log(`Waiting for ${dbType} to spool up. This may take a while...`)
     stdOut = await exec(`aws rds wait db-instance-available --db-instance-identifier ${dbName} --profile ${useIAM}`)
@@ -221,39 +258,62 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
     "password": myDBConfig.MasterUserPassword,
     "port": myDBConfig.Port
   }
-console.log(`newDB: ${newDB}`)
-  pushkinConfig.productionDBs[dbType] = newDB;
-console.log(`pushkinConfig: ${pushkinConfig}`)
-
-  try {
-    stdOut = await fs.promises.writeFile(path.join(process.cwd(), 'pushkin.yaml'), jsYaml.safeDump(pushkinConfig), 'utf8')
-    console.log(`Successfully updated pushkin.yaml with ${dbName}.`)
-  } catch(e) {
-    throw e
-  }
+console.log(`newDB: ${JSON.stringify(newDB)}`) //FUBAR for debugging
   
   return newDB
 }
 
-const getDBInfo = async (n = 0) => {
-  if (n > 30) {
-    throw new Error(`Database creation timed out.`)
-  }
+// const getDBInfo = async (n = 0) => {
+//   if (n > 30) {
+//     throw new Error(`Database creation timed out.`)
+//   }
+//   let temp
+//   let pushkinConfig
+//   try {
+//     temp = await fs.promises.readFile(path.join(process.cwd(), 'pushkin.yaml'), 'utf8')
+//     pushkinConfig = jsYaml.safeLoad(temp)
+//     console.log(pushkinConfig)
+//   } catch (e) {
+//     console.error(`Couldn't load pushkin.yaml`)
+//     throw e
+//   }
+//   if (pushkinConfig.productionDBs.length >= 2 ) {
+//     let dbsByType
+//     //fubar - just changed this to assume JSON. Might not be right.
+//     Object.keys(pushkinConfig.productionDBs).forEach((d) => {
+//       dbTypesByName[pushkinConfig.productionDBs[d].type] = {
+//         "name": pushkinConfig.productionDBs[d].name,
+//         "username": pushkinConfig.productionDBs[d].username,
+//         "password": pushkinConfig.productionDBs[d].password,
+//         "port": pushkinConfig.productionDBs[d].port,
+//         "endpoint": pushkinConfig.productionDBs[d].endpoint
+//       }
+//   } else {
+//     console.log(`Waiting for DB creation to complete...${n}`);
+//   }
+
+//   await new Promise(r => setTimeout(r, 30000));
+//   const stillWaiting = await getDBInfo(n+1);
+// }
+
+//     })
+//     return dbsByType  
+const getDBInfo = async () => {
   let temp
   let pushkinConfig
   try {
     temp = await fs.promises.readFile(path.join(process.cwd(), 'pushkin.yaml'), 'utf8')
     pushkinConfig = jsYaml.safeLoad(temp)
-    console.log(pushkinConfig)
   } catch (e) {
     console.error(`Couldn't load pushkin.yaml`)
-    throw e
+    throw e;
   }
-  if (pushkinConfig.productionDBs.length >= 2 ) {
-    let dbsByType
+  console.log(JSON.stringify(pushkinConfig)) //FUBAR debugging
+  if (Object.keys(pushkinConfig.productionDBs).length >= 2 ) {
+    let dbsByType = {}
     //fubar - just changed this to assume JSON. Might not be right.
     Object.keys(pushkinConfig.productionDBs).forEach((d) => {
-      dbTypesByName[pushkinConfig.productionDBs[d].type] = {
+      dbsByType[pushkinConfig.productionDBs[d].type] = {
         "name": pushkinConfig.productionDBs[d].name,
         "username": pushkinConfig.productionDBs[d].username,
         "password": pushkinConfig.productionDBs[d].password,
@@ -263,16 +323,16 @@ const getDBInfo = async (n = 0) => {
     })
     return dbsByType  
   } else {
-    console.log(`Waiting for DB creation to complete...${n}`);
+    throw new Error(`Error finding production DBs in pushkin.yaml`);
   }
 
-  await new Promise(r => setTimeout(r, 30000));
-  const stillWaiting = await getDBInfo(n+1);
+  return dbsByType
 }
 
 
-const ecsTaskCreator = async (projName, awsName, useIAM, DHID) => {
+const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs) => {
   let mkTaskDir
+  let temp
   try {
     if (fs.existsSync(path.join(process.cwd(), 'ECStasks'))) {
       //nothing
@@ -287,8 +347,8 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID) => {
 
   const ecsCompose = async (yaml, task, name) => {
 
-    // Get database information from pushkin.yaml
     try {
+      console.log(`Writing ECS task list ${name}`)
       await fs.promises.writeFile(path.join(process.cwd(), 'ECStasks', yaml), jsYaml.safeDump(task), 'utf8');
     } catch (e) {
       console.error(`Unable to write ${yaml}`)
@@ -296,6 +356,7 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID) => {
     }
     let compose
     try {
+      console.log(`Running ECS compose for ${name}`)      
       compose = exec(`ecs-cli compose -f ${yaml} -p ${name} create`, { cwd: path.join(process.cwd(), "ECStasks")})
     } catch (e) {
       console.error(`Failed to run ecs-cli compose on ${yaml}`)
@@ -332,7 +393,10 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID) => {
     throw e
   }
 
+  temp = await completedDBs; //Next part won't run if DBs aren't done
+  console.log("completedDBs:\n", JSON.stringify(completedDBs)) //FUBAR debugging
   const dbInfoByTask = await getDBInfo();
+  console.log('got DB info') //FUBAR for debugging
 
   let composedRabbit
   let composedAPI
@@ -364,7 +428,9 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID) => {
         "TRANSACTION_DATABASE_URL": `postgres://${dbInfoByTask['Transaction'].username}:${dbInfoByTask['Transaction'].password}@${dbInfoByTask['Transaction'].endpoint}:/${dbInfoByTask['Transaction'].port}/${dbInfoByTask['Transaction'].name}`
       }
       task.services[w].command = workerTask.services["EXPERIMENT_NAME"].command
-      ecsCompose(yaml, task, name)
+      task.services[w].command = workerTask.services["EXPERIMENT_NAME"].command
+      console.log(`task:\n ${JSON.stringify(task)}`) //FUBAR for debuggins
+      return ecsCompose(yaml, task, name)
     })
   } catch (e) {
     throw e
@@ -373,39 +439,9 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID) => {
   return Promise.all([composedRabbit, composedAPI, composedWorkers]);
 }
 
-const setupECS = async (projName, awsName, useIAM, DHID) => {
+const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertificate) => {
   console.log(`Starting ECS setup`)
   let temp
-
-  const chooseCertificate = async(useIAM) => {
-    console.log('Setting up SSL for load-balancer')
-    let temp
-    try {
-      temp = await exec(`aws acm list-certificates --profile ${useIAM}`)
-    } catch(e) {
-      console.error(`Unable to get list of SSL certificates`)
-    }
-    let certificates = {}
-    JSON.parse(temp.stdout).CertificateSummaryList.forEach((c) => {
-      certificates[c.DomainName] = c.CertificateArn
-    })
-
-    return new Promise((resolve, reject) => {
-      console.log(`Choosing...`)
-      inquirer.prompt(
-          [{ type: 'list', name: 'certificate', choices: Object.keys(certificates), default: 0, 
-          message: 'Which SSL certificate would you like to use for your site?' }]
-        ).then((answers) => {
-          resolve(certificates[answers.certificate])
-        })
-      })     
-  }
-  let choseCertificate
-  try {
-    choseCertificate = chooseCertificate(useIAM)
-  } catch (e) {
-    throw e
-  }
 
   const makeSSH = async (useIAM) => {
     let keyPairs
@@ -600,14 +636,16 @@ const setupECS = async (projName, awsName, useIAM, DHID) => {
   let createdECSTasks
   try {
     console.log('Creating ECS tasks')
-    createdECSTasks = ecsTaskCreator(projName, awsName, useIAM, DHID);
+    createdECSTasks = ecsTaskCreator(projName, awsName, useIAM, DHID, completedDBs);
   } catch(e) {
     throw e
   }
 
   let launchedECS
   await madeSSH //need this shortly
+  console.log(`SSH set up`)
   const zones = await foundSubnets
+  console.log(`Subnets identified`)
   let subnets
   try {
     subnets = Object.keys(zones).map((z) => zones[z])
@@ -634,7 +672,7 @@ const setupECS = async (projName, awsName, useIAM, DHID) => {
 
   console.log(`Creating application load balancer`)
   if (!foundBalancerGroup) {BalancerSecurityGroupID = await madeBalancerGroup}
-console.log(`FUBAR. BalancerSecurityGroupID: ${BalancerSecurityGroupID}`)
+  console.log(`FUBAR. BalancerSecurityGroupID: ${BalancerSecurityGroupID}`) //FUBAR for debugging
   const loadBalancerName = ECSName.concat("Balancer")
   let madeBalancer
   try {
@@ -645,7 +683,7 @@ console.log(`FUBAR. BalancerSecurityGroupID: ${BalancerSecurityGroupID}`)
   }
 
   try {
-    temp = await exec(`aws elbv2 create-target-group --name BalancerTargets --protocol HTTP --port 80 --vpc-id ${myVPC} --profile ${useIAM}`)
+    temp = await exec(`aws elbv2 create-target-group --name ${loadBalancerName}Targets --protocol HTTP --port 80 --vpc-id ${myVPC} --profile ${useIAM}`)
   } catch(e) {
     console.error(`Unable to create target group`)
     throw e
@@ -656,7 +694,6 @@ console.log(`FUBAR. BalancerSecurityGroupID: ${BalancerSecurityGroupID}`)
   const balancerARN = JSON.parse(temp.stdout).LoadBalancers[0].LoadBalancerArn
   temp = await  exec(`aws elbv2 create-listener --load-balancer-arn ${balancerARN} --protocol HTTP --port 80  --default-actions Type=forward,TargetGroupArn=${targGroupARN} --profile ${useIAM}`)
 
-  const myCertificate = await choseCertificate //need this to set up HTTPS
   let addedHTTPS
   try {
     addedHTTPS = exec(`aws elbv2 create-listener --load-balancer-arn ${balancerARN} --protocol HTTPS --port 443 --certificates CertificateArn=${myCertificate} --default-actions Type=forward,TargetGroupArn=${targGroupARN} --profile ${useIAM}`)
@@ -677,7 +714,94 @@ console.log(`FUBAR. BalancerSecurityGroupID: ${BalancerSecurityGroupID}`)
 export async function awsInit(projName, awsName, useIAM, DHID) {
   let temp
 
-  //Databases take BY FAR the longest, so start them first
+  const chooseCertificate = async(useIAM) => {
+    console.log('Setting up SSL for load-balancer')
+    let temp
+    try {
+      temp = await exec(`aws acm list-certificates --profile ${useIAM}`)
+    } catch(e) {
+      console.error(`Unable to get list of SSL certificates`)
+    }
+    let certificates = {}
+    JSON.parse(temp.stdout).CertificateSummaryList.forEach((c) => {
+      certificates[c.DomainName] = c.CertificateArn
+    })
+
+    return new Promise((resolve, reject) => {
+      console.log(`Choosing...`)
+      inquirer.prompt(
+          [{ type: 'list', name: 'certificate', choices: Object.keys(certificates), default: 0, 
+          message: 'Which SSL certificate would you like to use for your site?' }]
+        ).then((answers) => {
+          resolve(certificates[answers.certificate])
+        })
+      })     
+  }
+  let myCertificate
+  try {
+    myCertificate = await chooseCertificate(useIAM) //Waiting because otherwise input query gets buried
+  } catch (e) {
+    throw e
+  }
+
+  const chooseDomain = async(useIAM) => {
+    console.log('Choosing domain name for site')
+    let temp
+    try {
+      temp = await exec(`aws route53domains list-domains --profile ${useIAM}`)
+    } catch(e) {
+      console.error(`Unable to get list of SSL certificates`)
+    }
+    let domains = ['default']
+    JSON.parse(temp.stdout).Domains.forEach((c) => {domains.push(c.DomainName)})
+
+    return new Promise((resolve, reject) => {
+      console.log(`Choosing...`)
+      inquirer.prompt(
+          [{ type: 'list', name: 'domain', choices: domains, default: 0, 
+          message: 'Which domain would you like to use for your site?' }]
+        ).then((answers) => {
+          resolve(answers.domain)
+        })
+      })     
+  }
+  let myDomain
+  try {
+    myDomain = await chooseDomain(useIAM) //Waiting because otherwise input query gets buried
+  } catch (e) {
+    throw e
+  }
+
+  let pushkinConfig
+  try {
+    stdOut = await fs.promises.readFile(path.join(process.cwd(), 'pushkin.yaml'), 'utf8')
+    pushkinConfig = jsYaml.safeLoad(stdOut)
+  } catch (e) {
+    console.error(`Couldn't load pushkin.yaml`)
+    throw e
+  }
+
+  pushkinConfig.info.rootDomain = myDomain
+  try {
+    stdOut = await fs.promises.writeFile(path.join(process.cwd(), 'pushkin.yaml'), jsYaml.safeDump(pushkinConfig), 'utf8')
+    console.log(`Successfully updated pushkin.yaml with custom domain.`)
+  } catch(e) {
+    throw e
+  }
+
+  //FUBAR
+  process.exit();
+  try {
+    await deployFrontEnd(projName, awsName, useIAM, myDomain, myCertificate)
+  } catch(e) {
+    console.error(`Failed to deploy front end`)
+    throw e
+  }
+  process.exit()
+  //FUBAR
+
+
+  //Databases take BY FAR the longest, so start them right after certificate (certificate comes first or things get confused)
   const createDatabaseGroup = async (useIAM) => {
     let SGCreate = `aws ec2 create-security-group --group-name DatabaseGroup --description "For connecting to databases" --profile ${useIAM}`
     let SGRule = `aws ec2 authorize-security-group-ingress --group-name DatabaseGroup --ip-permissions IpProtocol=tcp,FromPort=5432,ToPort=5432,Ipv6Ranges='[{CidrIpv6=::/0}]',IpRanges='[{CidrIp=0.0.0.0/0}]' --profile ${useIAM}`
@@ -728,6 +852,42 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
     throw e
   }
 
+  const recordDBs = async(dbsDone) => {
+    const returnedPromises = await dbsDone //initializedTransactionsDB must be first in this list
+    const transactionDB = returnedPromises[0] //this is why it has to be first
+    const mainDB = returnedPromises[1] //this is why it has to be second
+
+    console.log(`Databases created. Adding to local config definitions.`)
+    let pushkinConfig
+    let stdOut;
+    try {
+      stdOut = await fs.promises.readFile(path.join(process.cwd(), 'pushkin.yaml'), 'utf8')
+      pushkinConfig = jsYaml.safeLoad(stdOut)
+    } catch (e) {
+      console.error(`Couldn't load pushkin.yaml`)
+      throw e
+    }
+
+    // Would have made sense for local databases and production databases to be nested within 'databases'
+    // But poor planning prevents that. And we'd like to avoid breaking changes, so...
+    if (pushkinConfig.productionDBs == null) {
+      // initialize
+      pushkinConfig.productionDBs = {};
+    }
+    pushkinConfig.productionDBs[transactionDB.type] = transactionDB;
+    pushkinConfig.productionDBs[mainDB.type] = mainDB;
+    try {
+      stdOut = await fs.promises.writeFile(path.join(process.cwd(), 'pushkin.yaml'), jsYaml.safeDump(pushkinConfig), 'utf8')
+      console.log(`Successfully updated pushkin.yaml with databases.`)
+    } catch(e) {
+      throw e
+    }
+
+    return pushkinConfig;
+  }
+
+  const completedDBs = recordDBs(Promise.all([initializedMainDB, initializedTransactionDB]))
+
   //pushing stuff to DockerHub
   console.log('Publishing images to DockerHub')
   let publishedToDocker
@@ -748,19 +908,11 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
     throw e
   }
 
-  console.log("Creating s3 bucket")
-  try {
-    execSync(`aws s3 mb s3://`.concat(awsName).concat(` --profile `).concat(useIAM))
-  } catch(e) {
-    console.error('Problem creating bucket for front-end')
-    throw e
-  }
-
   await builtWeb; //need this before we sync! 
 
   let deployedFrontEnd
   try {
-    deployedFrontEnd = deployFrontEnd(projName, awsName, useIAM)
+    deployedFrontEnd = deployFrontEnd(projName, awsName, useIAM, myDomain, myCertificate)
   } catch(e) {
     console.error(`Failed to deploy front end`)
     throw e
@@ -769,17 +921,16 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
 
   let configuredECS
   try {
-    configuredECS = setupECS(projName, awsName, useIAM, DHID);
+    configuredECS = setupECS(projName, awsName, useIAM, DHID, completedDBs, myCertificate);
   } catch(e) {
     throw e
   }
 
-  const returnedPromises = await Promise.all([initializedTransactionDB, initializedMainDB]) //initializedTransactionsDB must be first in this list
-  const transactionDB = returnedPromises[0] //this is why it has to be first
+  pushkinConfig = await completedDBs;
 
   let setupTransactionsTable
   try {
-    setupTransactionsTable = setupTransactionsDB(transactionDB, useIAM);
+    setupTransactionsTable = setupTransactionsDB(pushkinConfig.productionDBs.Transaction, useIAM);
   } catch (e) {
     throw e
   }

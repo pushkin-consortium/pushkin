@@ -198,3 +198,42 @@ export const workerTask = {
       }   
     }
 }
+
+export const recordSet = {
+    "HostedZoneId": "us-east-1",
+    "ChangeBatch": {
+        "Comment": "",
+        "Changes": [
+            {
+                "Action": "CREATE",
+                "ResourceRecordSet": {
+                    "Name": "",
+                    "Type": "A",
+                    "SetIdentifier": "",
+                    "Weight": 0,
+                    "Region": "us-east-1",
+                    "GeoLocation": {
+                        "ContinentCode": "",
+                        "CountryCode": "",
+                        "SubdivisionCode": ""
+                    },
+                    "Failover": "SECONDARY",
+                    "MultiValueAnswer": true,
+                    "TTL": 0,
+                    "ResourceRecords": [
+                        {
+                            "Value": ""
+                        }
+                    ],
+                    "AliasTarget": {
+                        "HostedZoneId": "",
+                        "DNSName": "",
+                        "EvaluateTargetHealth": true
+                    },
+                    "HealthCheckId": "",
+                    "TrafficPolicyInstanceId": ""
+                }
+            }
+        ]
+    }
+}
