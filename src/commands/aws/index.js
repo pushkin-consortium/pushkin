@@ -147,7 +147,7 @@ const deployFrontEnd = async (projName, awsName, useIAM, myDomain, myCertificate
   policy.Statement[0].Resource = "arn:aws:s3:::".concat(awsName).concat("/*")
   try {
     await exec(`aws s3 website s3://${awsName} --profile ${useIAM} --index-document index.html --error-document index.html`)
-    await (`aws s3api put-bucket-policy --bucket `.concat(awsName).concat(` --policy '`).concat(JSON.stringify(policy)).concat(`' --profile ${useIAM}`))
+    await exec(`aws s3api put-bucket-policy --bucket `.concat(awsName).concat(` --policy '`).concat(JSON.stringify(policy)).concat(`' --profile ${useIAM}`))
   } catch (e) {
     console.error('Problem setting bucket permissions for front-end')
     throw e
