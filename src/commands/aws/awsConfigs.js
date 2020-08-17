@@ -15,7 +15,7 @@ export const policy = {
     ]
 }
 
-export const cloudfront = {
+export const cloudFront = {
     "CallerReference": "string",
     "Aliases": {
         "Quantity": 0
@@ -199,41 +199,17 @@ export const workerTask = {
     }
 }
 
-export const recordSet = {
-    "HostedZoneId": "us-east-1",
-    "ChangeBatch": {
-        "Comment": "",
-        "Changes": [
-            {
-                "Action": "CREATE",
-                "ResourceRecordSet": {
-                    "Name": "",
-                    "Type": "A",
-                    "SetIdentifier": "",
-                    "Weight": 0,
-                    "Region": "us-east-1",
-                    "GeoLocation": {
-                        "ContinentCode": "",
-                        "CountryCode": "",
-                        "SubdivisionCode": ""
-                    },
-                    "Failover": "SECONDARY",
-                    "MultiValueAnswer": true,
-                    "TTL": 0,
-                    "ResourceRecords": [
-                        {
-                            "Value": ""
-                        }
-                    ],
-                    "AliasTarget": {
-                        "HostedZoneId": "",
-                        "DNSName": "",
-                        "EvaluateTargetHealth": true
-                    },
-                    "HealthCheckId": "",
-                    "TrafficPolicyInstanceId": ""
-                }
-            }
-        ]
+export const changeSet = {
+    "Action": "UPSERT",
+    "ResourceRecordSet": {
+        "Name": "DNS domain name",
+        "Type": "A",
+        "Region": "us-east-1",
+        "SetIdentifier": "PushkinSet",
+        "AliasTarget": {
+            "HostedZoneId": "Z2FDTNDATAQYW2",
+            "DNSName": "",
+            "EvaluateTargetHealth": false
+        },
     }
 }

@@ -165,25 +165,47 @@ const inquirerPromise = async (type, name, message) => {
 }
 
 const handleAWSInit = async () => {
+  let temp
 
-    const config = await loadConfig(path.join(process.cwd(), 'pushkin.yaml'))
+  let config
+  try {
+    config = await loadConfig(path.join(process.cwd(), 'pushkin.yaml'))
+  } catch (e) {
+    console.error(`Unable to load pushkin.yaml`)
+    throw e
+  }
 
-    if (config.DockerHubID == null) {
-      console.error(`Your DockerHub ID has not been configured. Please be sure you have a valid DockerHub ID and then run 'pushkin setDockerHub'.`)
-      process.exit()
-    }
-    
-    let projName;
-    let useIAM;
-    let awsName
-    let stdOut
+  if (config.DockerHubID == null) {
+    console.error(`Your DockerHub ID has not been configured. Please be sure you have a valid DockerHub ID and then run 'pushkin setDockerHub'.`)
+    process.exit()
+  }
+  
+  let projName;
+  let useIAM;
+  let awsName
+  let stdOut
 
+  try {
+    execSync('aws --version')
+  } catch(e) {
+    console.error('Please install the AWS CLI before continuing.')
+    process.exit();
+  }
+
+  let newProj = true
+  if (config.info.projName) {
     try {
-      execSync('aws --version')
-    } catch(e) {
-      console.error('Please install the AWS CLI before continuing.')
-      process.exit();
+      projName = await inquirer.prompt([ { type: 'list', name: 'name', choices: [config.info.projName, 'new'], message: 'Which project?'}])
+    } catch (e) {
+      throw e
     }
+    if (projName.name != "new") {
+      newProj = false;
+      awsName = config.info.awsName
+    }
+  }
+
+  if (newProj) {
     try {
       projName = await inquirer.prompt([ { type: 'input', name: 'name', message: 'Name your project'}])
       awsName = await nameProject(projName.name)
@@ -191,29 +213,30 @@ const handleAWSInit = async () => {
       console.error(e)
       process.exit()
     }
-    try {
-      useIAM = await inquirer.prompt([{ type: 'input', name: 'iam', message: 'Provide your AWS IAM username that you want to use for managing this project.'}])
-    } catch (e) {
-      console.error('Problem getting AWS IAM username.\n', e)
-      process.exit()
-    }
-    try {
-      stdOut = execSync(`aws configure list --profile ${useIAM.iam}`).toString()
-    } catch (e) {
-      console.error(`The IAM user ${useIAM.iam} is not configured on the AWS CLI. For more information see https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html`)
-      process.exit();
-    }
-    let addedIAM
-    try {
-      addedIAM = addIAM(useIAM.iam) //this doesn't need to be synchronous      
-    } catch(e) {
-      console.error(e)
-      process.exit()
-    }
-    await Promise.all([awsInit(projName.name, awsName, useIAM.iam, config.DockerHubID), addedIAM])
-    console.log("done")
+  }
+  try {
+    useIAM = await inquirer.prompt([{ type: 'input', name: 'iam', message: 'Provide your AWS IAM username that you want to use for managing this project.'}])
+  } catch (e) {
+    console.error('Problem getting AWS IAM username.\n', e)
+    process.exit()
+  }
+  try {
+    stdOut = execSync(`aws configure list --profile ${useIAM.iam}`).toString()
+  } catch (e) {
+    console.error(`The IAM user ${useIAM.iam} is not configured on the AWS CLI. For more information see https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html`)
+    process.exit();
+  }
+  let addedIAM
+  try {
+    addedIAM = addIAM(useIAM.iam) //this doesn't need to be synchronous      
+  } catch(e) {
+    console.error(e)
+    process.exit()
+  }
+  await Promise.all([awsInit(projName.name, awsName, useIAM.iam, config.DockerHubID), addedIAM])
+  console.log("done")
 
-    return
+  return
 }
 
 const killLocal = async () => {
@@ -279,6 +302,7 @@ async function main() {
         case 'init':
           try {
             await handleAWSInit();
+            console.log('really, really done') //FUBAR debugging
           } catch(e) {
             console.error(e)
             process.exit();

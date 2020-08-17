@@ -5,7 +5,7 @@ import util from 'util';
 import pacMan from '../../pMan.js'; //which package manager is available?
 import { execSync } from 'child_process'; // eslint-disable-line
 import jsYaml from 'js-yaml';
-import { policy, cloudfront, dbConfig, rabbitTask, apiTask, workerTask, recordSet } from './awsConfigs.js'
+import { policy, cloudFront, dbConfig, rabbitTask, apiTask, workerTask, changeSet } from './awsConfigs.js'
 import { setupTransactionsDB } from '../setupdb/index.js';
 import inquirer from 'inquirer'
 const exec = util.promisify(require('child_process').exec);
@@ -108,15 +108,33 @@ const buildFE = function (projName) {
 const deployFrontEnd = async (projName, awsName, useIAM, myDomain, myCertificate) => {
   let temp
 
-  console.log("Creating s3 bucket")
+  console.log(`Checking to see if bucket ${awsName} already exists.`)
+  let bucketExists = false
   try {
-    await exec(`aws s3 mb s3://`.concat(awsName).concat(` --profile `).concat(useIAM))
-  } catch(e) {
-    console.error('Problem creating bucket for front-end')
+    temp = await exec(`aws s3api list-buckets --profile ${useIAM}`)
+  } catch (e) {
+    console.error(`Problem listing aws s3 buckets for your account`)
     throw e
   }
+  JSON.parse(temp.stdout).Buckets.forEach((b) => {
+    if (b.Name == awsName) {
+      bucketExists = true;
+      console.log(`Bucket exists. Skipping create.`)
+    }
+  })
 
-  console.log("Copying files to bucket")
+
+  if (!bucketExists) {
+    console.log("Bucket does not yet exist. Creating s3 bucket")
+    try {
+      await exec(`aws s3 mb s3://`.concat(awsName).concat(` --profile `).concat(useIAM))
+    } catch(e) {
+      console.error('Problem creating bucket for front-end')
+      throw e
+    }    
+  }
+
+  console.log("Syncing files to bucket")
   let syncMe
   try {
     syncMe = exec(`aws s3 sync build/ s3://${awsName} --profile ${useIAM}`, {cwd: path.join(process.cwd(), 'pushkin/front-end')})
@@ -135,60 +153,111 @@ const deployFrontEnd = async (projName, awsName, useIAM, myDomain, myCertificate
     throw e
   }
 
-  console.log("Deploy to CloudFront")
-  cloudfront.CallerReference = awsName;
-  cloudfront.DefaultCacheBehavior.TargetOriginId = awsName;
-  cloudfront.Origins.Items[0].Id = awsName;
-  cloudfront.Origins.Items[0].DomainName = awsName.concat('.s3.amazonaws.com');
+  let myCloud, theCloud
+
+  console.log(`Checking for CloudFront distribution`)
+  let distributionExists = false;
+  try {
+    temp = await exec(`aws cloudfront list-distributions --profile ${useIAM}`)
+  } catch (e) {
+    console.error(`Unable to get list of cloudfront distributions`)
+    throw e
+  }
+  if (temp.stdout != "") {
+    JSON.parse(temp.stdout).DistributionList.Items.forEach((d) => {
+      let tempCheck = false;
+      try {
+        tempCheck = (d.Origins.Items[0].Id == awsName)
+      } catch (e) {
+        // Probably not a fully created cloudfront distribution.
+        // Probably can ignore this. 
+        console.warning(`Found an incompletely-specified cloudFront distribution. This may not be a problem, but you should check.`)
+        console.warning(`Worst-case scenario, run 'pushkin aws armageddon' and start over.`)
+      }
+      if (tempCheck) {
+        distributionExists = true;
+        theCloud = d
+        console.log(`Distribution for ${awsName} found. Skipping create.`)
+      }
+    })    
+  }
+
+  if (!distributionExists) {
+    console.log(`No existing cloudFront distribution for ${awsName}. Creating distribution.`)
+    cloudFront.CallerReference = awsName;
+    cloudFront.DefaultCacheBehavior.TargetOriginId = awsName;
+    cloudFront.Origins.Items[0].Id = awsName;
+    cloudFront.Origins.Items[0].DomainName = awsName.concat('.s3.amazonaws.com');
+    if (myDomain != "default") {
+      // set up DNS
+      cloudFront.Aliases.Quantity = 2
+      cloudFront.Aliases.Items = [myDomain, 'www.'.concat(myDomain)]
+      cloudFront.ViewerCertificate.CloudFrontDefaultCertificate = false
+      cloudFront.ViewerCertificate.ACMCertificateArn = myCertificate
+      cloudFront.ViewerCertificate.SSLSupportMethod = 'sni-only'
+      cloudFront.ViewerCertificate.MinimumProtocolVersion = 'TLSv1.2_2019'
+    }
+    try {
+      myCloud = await exec(`aws cloudfront create-distribution --distribution-config '`.concat(JSON.stringify(cloudFront)).concat(`' --profile ${useIAM}`))
+      theCloud = JSON.parse(myCloud.stdout).Distribution
+    } catch (e) {
+      console.log('Could not set up cloudfront.')
+      throw e
+    }
+  }
+
   if (myDomain != "default") {
-    // set up DNS
-    cloudFront.Aliases.Quantity = 2
-    cloudFront.Aliases.Items = [myDomain, 'www.'.concat(myDomain)]
-    cloudFront.ViewerCertificate.CloudFrontDefaultCertificate = false
-    cloudFront.ViewerCertificate.ACMCertificateArn = myCertificate
-    cloudFront.ViewerCertificate.SSLSupportMethod = 'sni-only'
-    cloudFront.ViewerCertificate.MinimumProtocolVersion = 'TLSv1.2_2019'
-  }
-  let myCloud
-  try {
-    myCloud = exec(`aws cloudfront create-distribution --distribution-config '`.concat(JSON.stringify(cloudfront)).concat(`' --profile ${useIAM}`))
-  } catch (e) {
-    console.log('Could not set up cloudfront.')
-    throw e
-  }
+    console.log(`Retrieving hostedzone ID for ${myDomain}`)
+    let zoneID
+    try {
+      temp = await exec(`aws route53 list-hosted-zones-by-name --dns-name ${myDomain} --profile ${useIAM}`)
+      zoneID = JSON.parse(temp.stdout).HostedZones[0].Id.split("/hostedzone/")[1]
+    } catch (e) {
+      console.error(`Unable to retrieve hostedzone for ${myDomain}`)
+      throw e
+    }
 
-  console.log(`Retrieving hostedzone ID for ${myDomain}`)
-  let zoneID
-  try {
-    temp = await exec(`aws route53 list-hosted-zones-by-name --dns-name ${myDomain} --profile ${useIAM}`)
-    zoneID = temp.HostedZones[0].Id.split("/hostedzone/")[1]
-  } catch (e) {
-    console.error(`Unable to retrieve hostedzone for ${myDomain}`)
-    throw e
-  }
+    // The following will update the resource records, creating them if they don't already exist
 
-  recordSet.HostedZoneId = zoneID
-  recordSet.ChangeBatch.Changes.ResourceRecordSet.Name = "CloudFront1"
-  recordSet.ChangeBatch.Changes.ResourceRecordSet.AliasTarget = myCloud.Distribution.DomainName
-  recordSet.ChangeBatch.Changes.ResourceRecordSet.SetIdentifier = "A"
+    console.log(`Updating record set for ${myDomain}`)
+    let recordSet = {
+      "Comment": "",
+      "Changes": []
+    }
+    recordSet.Changes[0] = JSON.parse(JSON.stringify(changeSet));
+    recordSet.Changes[1] = JSON.parse(JSON.stringify(changeSet));
+    recordSet.Changes[2] = JSON.parse(JSON.stringify(changeSet));
+    recordSet.Changes[3] = JSON.parse(JSON.stringify(changeSet));
 
-  try {
-    await exec(`aws route53 change-resource-record-sets --cli-input-json ${recordSet} --profile ${trialPushkin}`)
-  } catch (e) {
-    console.error(`Unable to create resource record set for ${myDomain}`)
-  }
-  
-  // Two record sets required if IPv6 is enabled
-  recordSet.ChangeBatch.Changes.ResourceRecordSet.SetIdentifier = "AAAA"
-  try {
-    await exec(`aws route53 change-resource-record-sets --cli-input-json ${recordSet} --profile ${trialPushkin}`)
-  } catch (e) {
-    console.error(`Unable to create resource record set for ${myDomain}`)
+    recordSet.Changes[0].ResourceRecordSet.Name = myDomain
+    recordSet.Changes[0].ResourceRecordSet.AliasTarget.DNSName = theCloud.DomainName
+    recordSet.Changes[0].ResourceRecordSet.Type = "A"
+
+    recordSet.Changes[1].ResourceRecordSet.Name = myDomain
+    recordSet.Changes[1].ResourceRecordSet.AliasTarget.DNSName = theCloud.DomainName
+    recordSet.Changes[1].ResourceRecordSet.Type = "AAAA"
+
+    recordSet.Changes[2].ResourceRecordSet.Name = "www.".concat(myDomain) //forward from www
+    recordSet.Changes[2].ResourceRecordSet.AliasTarget.DNSName = theCloud.DomainName
+    recordSet.Changes[2].ResourceRecordSet.Type = "A"
+
+    recordSet.Changes[3].ResourceRecordSet.Name = "www.".concat(myDomain) //forward from www
+    recordSet.Changes[3].ResourceRecordSet.AliasTarget.DNSName = theCloud.DomainName
+    recordSet.Changes[3].ResourceRecordSet.Type = "AAAA"
+
+    try {
+      await exec(`aws route53 change-resource-record-sets --hosted-zone-id ${zoneID} --change-batch '${JSON.stringify(recordSet)}' --profile ${useIAM}`)
+      console.log(`Updated record set for ${myDomain}.`)
+     } catch (e) {
+      console.error(`Unable to create resource record set for ${myDomain}`)
+      throw e
+    }
   }
 
   await syncMe
+  console.log(`Finished syncing files`)
 
-  return
+  return theCloud.DomainName
 }
 
 const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
@@ -308,7 +377,6 @@ const getDBInfo = async () => {
     console.error(`Couldn't load pushkin.yaml`)
     throw e;
   }
-  console.log(JSON.stringify(pushkinConfig)) //FUBAR debugging
   if (Object.keys(pushkinConfig.productionDBs).length >= 2 ) {
     let dbsByType = {}
     //fubar - just changed this to assume JSON. Might not be right.
@@ -782,15 +850,16 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
   }
 
   pushkinConfig.info.rootDomain = myDomain
+  pushkinConfig.info.projName = projName
+  pushkinConfig.info.awsName = awsName
   try {
-    stdOut = await fs.promises.writeFile(path.join(process.cwd(), 'pushkin.yaml'), jsYaml.safeDump(pushkinConfig), 'utf8')
+    temp = await fs.promises.writeFile(path.join(process.cwd(), 'pushkin.yaml'), jsYaml.safeDump(pushkinConfig), 'utf8')
     console.log(`Successfully updated pushkin.yaml with custom domain.`)
   } catch(e) {
     throw e
   }
 
   //FUBAR
-  process.exit();
   try {
     await deployFrontEnd(projName, awsName, useIAM, myDomain, myCertificate)
   } catch(e) {
@@ -937,6 +1006,13 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
 
   await Promise.all([deployedFrontEnd, configuredECS, setupTransactionsTable])
   console.log(`FUBAR. Still not done. But done.`)
+
+
+  // This needs to come last, right before 'return'
+  if (myDomain == "default") {
+    let cloudDomain = await deployedFrontEnd //has actually already resolved, but not sure I can use it directly
+    console.log(`Access your website at ${cloudDomain}`)
+  }
   return
 }
 
