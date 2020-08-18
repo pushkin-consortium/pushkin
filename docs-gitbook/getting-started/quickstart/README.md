@@ -169,9 +169,13 @@ $ pushkin start;
 
 \(See example output for this command [here](sample_output.md#example-output-for-pushkin-start).\)
 
-Now browse to `http://localhost` \(or your IPv4 Public IP address\) to see the stub website.
+Now browse to `http://localhost` to see the stub website. 
 
 ![](../../.gitbook/assets/quickstart_6.gif)
+
+If you are using an AWS EC2 instance, navigate to the IPv4 Public IP address of your instance instead of `http://localhost`. This can be found in the AWS EC2 console.
+
+![](../../.gitbook/assets/39.gif)
 
 When you are done looking at your website, stop it by running:
 
