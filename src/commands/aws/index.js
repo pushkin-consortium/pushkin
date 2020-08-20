@@ -437,7 +437,7 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs) => 
   const rabbitPW = Math.random().toString();
   const rabbitCookie = uuid();
   const rabbitAddress = "amqp://".concat(awsName).concat(":").concat(rabbitPW).concat("@localhost:5672")
-  myRabbitTask = JSON.parse(JSON.stringify(rabbitTask));
+  let myRabbitTask = JSON.parse(JSON.stringify(rabbitTask));
   myRabbitTask.services['message-queue'].environment.RABBITMQ_DEFAULT_USER = projName.replace(/[^\w\s]/g, "").replace(/ /g,"");
   myRabbitTask.services['message-queue'].environment.RABBITMQ_DEFAULT_PASSWORD = rabbitPW;
   myRabbitTask.services['message-queue'].environment.RABBITMQ_ERLANG_COOKIE = rabbitCookie;
