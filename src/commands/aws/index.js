@@ -6,7 +6,7 @@ import pacMan from '../../pMan.js'; //which package manager is available?
 import { execSync } from 'child_process'; // eslint-disable-line
 import jsYaml from 'js-yaml';
 import { policy, cloudFront, dbConfig, rabbitTask, apiTask, workerTask, changeSet } from './awsConfigs.js'
-import { setupTransactionsDB } from '../setupdb/index.js';
+import { setupTransactionsDB, runMigrations, getMigrations } from '../setupdb/index.js';
 import inquirer from 'inquirer'
 const exec = util.promisify(require('child_process').exec);
 const mkdir = util.promisify(require('fs').mkdir);
@@ -184,21 +184,22 @@ const deployFrontEnd = async (projName, awsName, useIAM, myDomain, myCertificate
 
   if (!distributionExists) {
     console.log(`No existing cloudFront distribution for ${awsName}. Creating distribution.`)
-    cloudFront.CallerReference = awsName;
-    cloudFront.DefaultCacheBehavior.TargetOriginId = awsName;
-    cloudFront.Origins.Items[0].Id = awsName;
-    cloudFront.Origins.Items[0].DomainName = awsName.concat('.s3.amazonaws.com');
+    let myCloudFront = JSON.parse(JSON.stringify(cloudFront));
+    myCloudFront.CallerReference = awsName;
+    myCloudFront.DefaultCacheBehavior.TargetOriginId = awsName;
+    myCloudFront.Origins.Items[0].Id = awsName;
+    myCloudFront.Origins.Items[0].DomainName = awsName.concat('.s3.amazonaws.com');
     if (myDomain != "default") {
       // set up DNS
-      cloudFront.Aliases.Quantity = 2
-      cloudFront.Aliases.Items = [myDomain, 'www.'.concat(myDomain)]
-      cloudFront.ViewerCertificate.CloudFrontDefaultCertificate = false
-      cloudFront.ViewerCertificate.ACMCertificateArn = myCertificate
-      cloudFront.ViewerCertificate.SSLSupportMethod = 'sni-only'
-      cloudFront.ViewerCertificate.MinimumProtocolVersion = 'TLSv1.2_2019'
+      myCloudFront.Aliases.Quantity = 2
+      myCloudFront.Aliases.Items = [myDomain, 'www.'.concat(myDomain)]
+      myCloudFront.ViewerCertificate.CloudFrontDefaultCertificate = false
+      myCloudFront.ViewerCertificate.ACMCertificateArn = myCertificate
+      myCloudFront.ViewerCertificate.SSLSupportMethod = 'sni-only'
+      myCloudFront.ViewerCertificate.MinimumProtocolVersion = 'TLSv1.2_2019'
     }
     try {
-      myCloud = await exec(`aws cloudfront create-distribution --distribution-config '`.concat(JSON.stringify(cloudFront)).concat(`' --profile ${useIAM}`))
+      myCloud = await exec(`aws cloudfront create-distribution --distribution-config '`.concat(JSON.stringify(myCloudFront)).concat(`' --profile ${useIAM}`))
       theCloud = JSON.parse(myCloud.stdout).Distribution
     } catch (e) {
       console.log('Could not set up cloudfront.')
@@ -283,14 +284,14 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
   if (foundDB) {
     console.log(`${dbName} already exists. If that surprises you, look into it.`)
     //Could consider putting an optional break in here, make people acknowledge before going on.
-    return;
+    return false;
   }
 
-  let myDBConfig = dbConfig;
+  let myDBConfig = JSON.parse(JSON.stringify(dbConfig));
   myDBConfig.DBName = dbName
   myDBConfig.DBInstanceIdentifier = dbName
   myDBConfig.VpcSecurityGroupIds = [securityGroupID]
-  myDBConfig.MasterUserPassword = dbPassword //This had better get updated!
+  myDBConfig.MasterUserPassword = dbPassword
   try {
     stdOut = await exec(`aws rds create-db-instance --cli-input-json '`.concat(JSON.stringify(myDBConfig)).concat(`' --profile `).concat(useIAM))
   } catch(e) {
@@ -298,6 +299,7 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
     throw e
   }
 
+  console.log(`Database ${dbType} created with following:`, myDBConfig)
   console.log(`Database ${dbType} created.`)
 
   try {
@@ -310,10 +312,10 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
     throw e
   }
 
-  let transactionsEndpoint
+  let dbEndpoint
   try {
      stdOut = await exec(`aws rds describe-db-instances --db-instance-identifier ${dbName} --profile ${useIAM}`)
-     transactionsEndpoint = JSON.parse(stdOut.stdout);
+     dbEndpoint = JSON.parse(stdOut.stdout);
   } catch (e) {
     console.error(`Problem getting ${dbType} endpoint.`)
     throw e
@@ -322,12 +324,11 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
   const newDB = {
     "type": dbType,
     "name": dbName, 
-    "endpoint": transactionsEndpoint.DBInstances[0].Endpoint.Address, 
-    "username": myDBConfig.MasterUsername, 
-    "password": myDBConfig.MasterUserPassword,
+    "host": dbEndpoint.DBInstances[0].Endpoint.Address, 
+    "user": myDBConfig.MasterUsername, 
+    "pass": myDBConfig.MasterUserPassword,
     "port": myDBConfig.Port
   }
-console.log(`newDB: ${JSON.stringify(newDB)}`) //FUBAR for debugging
   
   return newDB
 }
@@ -383,10 +384,10 @@ const getDBInfo = async () => {
     Object.keys(pushkinConfig.productionDBs).forEach((d) => {
       dbsByType[pushkinConfig.productionDBs[d].type] = {
         "name": pushkinConfig.productionDBs[d].name,
-        "username": pushkinConfig.productionDBs[d].username,
-        "password": pushkinConfig.productionDBs[d].password,
+        "username": pushkinConfig.productionDBs[d].user,
+        "password": pushkinConfig.productionDBs[d].pass,
         "port": pushkinConfig.productionDBs[d].port,
-        "endpoint": pushkinConfig.productionDBs[d].endpoint
+        "endpoint": pushkinConfig.productionDBs[d].host
       }
     })
     return dbsByType  
@@ -436,9 +437,10 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs) => 
   const rabbitPW = Math.random().toString();
   const rabbitCookie = uuid();
   const rabbitAddress = "amqp://".concat(awsName).concat(":").concat(rabbitPW).concat("@localhost:5672")
-  rabbitTask.services['message-queue'].environment.RABBITMQ_DEFAULT_USER = projName.replace(/[^\w\s]/g, "").replace(/ /g,"");
-  rabbitTask.services['message-queue'].environment.RABBITMQ_DEFAULT_PASSWORD = rabbitPW;
-  rabbitTask.services['message-queue'].environment.RABBITMQ_ERLANG_COOKIE = rabbitCookie;
+  myRabbitTask = JSON.parse(JSON.stringify(rabbitTask));
+  myRabbitTask.services['message-queue'].environment.RABBITMQ_DEFAULT_USER = projName.replace(/[^\w\s]/g, "").replace(/ /g,"");
+  myRabbitTask.services['message-queue'].environment.RABBITMQ_DEFAULT_PASSWORD = rabbitPW;
+  myRabbitTask.services['message-queue'].environment.RABBITMQ_ERLANG_COOKIE = rabbitCookie;
   apiTask.services['api'].environment.AMPQ_ADDRESS = rabbitAddress;
   apiTask.services['api'].image = `${DHID}/api:latest`
 
@@ -464,13 +466,14 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs) => 
   temp = await completedDBs; //Next part won't run if DBs aren't done
   console.log("completedDBs:\n", JSON.stringify(completedDBs)) //FUBAR debugging
   const dbInfoByTask = await getDBInfo();
+  console.log(dbInfoByTask) //FUBAR
   console.log('got DB info') //FUBAR for debugging
 
   let composedRabbit
   let composedAPI
   let composedWorkers
   try {
-    composedRabbit = ecsCompose('rabbitTask.yml', rabbitTask, 'message-queue')
+    composedRabbit = ecsCompose('rabbitTask.yml', myRabbitTask, 'message-queue')
     composedRabbit = ecsCompose('apiTask.yml', apiTask, 'api')
     composedWorkers = workerList.map((w) => {
       const yaml = w.concat('.yml')
@@ -492,10 +495,8 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs) => 
         "DB_NAME": dbInfoByTask['Main'].name,
         "DB_PASS": dbInfoByTask['Main'].password,
         "DB_URL": dbInfoByTask['Main'].endpoint,
-        "DB_SMARTURL": `postgres://${dbInfoByTask['Main'].username}:${dbInfoByTask['Main'].password}@${dbInfoByTask['Main'].endpoint}:/${dbInfoByTask['Main'].port}/${dbInfoByTask['Main'].name}`,
         "TRANSACTION_DATABASE_URL": `postgres://${dbInfoByTask['Transaction'].username}:${dbInfoByTask['Transaction'].password}@${dbInfoByTask['Transaction'].endpoint}:/${dbInfoByTask['Transaction'].port}/${dbInfoByTask['Transaction'].name}`
       }
-      task.services[w].command = workerTask.services["EXPERIMENT_NAME"].command
       task.services[w].command = workerTask.services["EXPERIMENT_NAME"].command
       console.log(`task:\n ${JSON.stringify(task)}`) //FUBAR for debuggins
       return ecsCompose(yaml, task, name)
@@ -555,7 +556,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
       console.error(`Failed to create security group for load balancer`)
       throw e
     }
-    return JSON.parse(stdOut.toString()).GroupId //remember security group in order to use later!
+    return JSON.parse(stdOut.stdout).GroupId //remember security group in order to use later!
   }
 
   let securityGroups
@@ -586,19 +587,22 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
   const makeECSGroup = async(useIAM) => {
     console.log(`Creating security group for ECS cluster`)
     let SGCreate = `aws ec2 create-security-group --group-name ECSGroup --description "For the ECS cluster" --profile ${useIAM}`
-    let SGRule1 = `aws ec2 authorize-security-group-ingress --group-name ECSGroup --ip-permissions IpProtocol=tcp,FromPort=80,ToPort=80,Ipv6Ranges='[{CidrIpv6=::/0}]',IpRanges='[{CidrIp=0.0.0.0/0}]' --profile ${useIAM}`
-    let SGRule2 = `aws ec2 authorize-security-group-ingress --group-name ECSGroup --ip-permissions IpProtocol=tcp,FromPort=22,ToPort=22,Ipv6Ranges='[{CidrIpv6=::/0}]',IpRanges='[{CidrIp=0.0.0.0/0}]' --profile ${useIAM}`
-    let SGRule3 = `aws ec2 authorize-security-group-ingress --group-name ECSGroup --ip-permissions IpProtocol=tcp,FromPort=1024,ToPort=65535,Ipv6Ranges='[{CidrIpv6=::/0}]',IpRanges='[{CidrIp=0.0.0.0/0}]' --profile ${useIAM}`
-    let SGRule4 = `aws ec2 authorize-security-group-egress --group-name ECSGroup --ip-permissions IpProtocol=-1,IpRanges='[{CidrIp=0.0.0.0/0}]' --profile ${useIAM}`
     let stdOut
+    let groupId
     try {
       stdOut = await exec(SGCreate)
-      await Promise.all([exec(SGRule1), exec(SGRule2), exec(SGRule3), exec(SGRule4)])
+      groupId = JSON.parse(stdOut.stdout).GroupId //remember security group in order to use later!
+      let SGRule1 = `aws ec2 authorize-security-group-ingress --group-id ${groupId} --ip-permissions IpProtocol=tcp,FromPort=80,ToPort=80,Ipv6Ranges='[{CidrIpv6=::/0}]',IpRanges='[{CidrIp=0.0.0.0/0}]' --profile ${useIAM}`
+      let SGRule2 = `aws ec2 authorize-security-group-ingress --group-id ${groupId} --ip-permissions IpProtocol=tcp,FromPort=22,ToPort=22,Ipv6Ranges='[{CidrIpv6=::/0}]',IpRanges='[{CidrIp=0.0.0.0/0}]' --profile ${useIAM}`
+      let SGRule3 = `aws ec2 authorize-security-group-ingress --group-id ${groupId} --ip-permissions IpProtocol=tcp,FromPort=1024,ToPort=65535,Ipv6Ranges='[{CidrIpv6=::/0}]',IpRanges='[{CidrIp=0.0.0.0/0}]' --profile ${useIAM}`
+      //let SGRule4 = `aws ec2 authorize-security-group-egress --group-id ${groupId} --ip-permissions IpProtocol=-1,IpRanges='[{CidrIp=0.0.0.0/0}]' --profile ${useIAM}`
+      //await Promise.all([exec(SGRule1), exec(SGRule2), exec(SGRule3), exec(SGRule4)])
+      await Promise.all([exec(SGRule1), exec(SGRule2), exec(SGRule3)])
     } catch(e) {
       console.error(`Failed to create security group for load balancer`)
       throw e
     }
-    return JSON.parse(stdOut.toString()).GroupId //remember security group in order to use later!
+    return groupId
   }
 
   let ecsSecurityGroupID;
@@ -732,7 +736,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
     console.log('Launching ECS cluster')
     //Probably we should check if there is already a configuration with this name and ask before replacing.
     //launchedECS = exec(`ecs-cli configure --cluster ${ECSName} --default-launch-type EC2 --region us-east-1 --config-name ${ECSName}`)
-    launchedECS = exec(`ecs-cli up --keypair my-pushkin-key-pair --capability-iam --size 1 --instance-type t2.small --cluster ${ECSName} --security-group ${ecsSecurityGroupID} --vpc ${myVPC} --subnets ${subnets.join(' ')} --ecs-profile ${useIAM} --force`)
+    launchedECS = exec(`ecs-cli up --force --keypair my-pushkin-key-pair --capability-iam --size 1 --instance-type t2.small --cluster ${ECSName} --security-group ${ecsSecurityGroupID} --vpc ${myVPC} --subnets ${subnets.join(' ')} --ecs-profile ${useIAM}`)
   } catch (e) {
     console.error(`Unable to launch cluster ${ECSName}.`)
     throw e
@@ -760,6 +764,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
 
   temp = await madeBalancer //need this for the next step
   const balancerARN = JSON.parse(temp.stdout).LoadBalancers[0].LoadBalancerArn
+  const balancerEndpoint = JSON.parse(temp.stdout).LoadBalancers[0].DNSName
   temp = await  exec(`aws elbv2 create-listener --load-balancer-arn ${balancerARN} --protocol HTTP --port 80  --default-actions Type=forward,TargetGroupArn=${targGroupARN} --profile ${useIAM}`)
 
   let addedHTTPS
@@ -776,11 +781,62 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
   console.log(`Added HTTPS to load balancer`)
   console.log(`Created ECS task definitions`)
 
+  return balancerEndpoint
+}
+
+
+const forwardAPI = async (myDomain, useIAM, balancerEndpoint) => {
+
+  // This whole function can be skipped if not using custom domain
+  // The API endpoint will have to be set manually
+  if (myDomain != "default") {
+    let temp
+    console.log(`Retrieving hostedzone ID for ${myDomain}`)
+    let zoneID
+    try {
+      temp = await exec(`aws route53 list-hosted-zones-by-name --dns-name ${myDomain} --profile ${useIAM}`)
+      zoneID = JSON.parse(temp.stdout).HostedZones[0].Id.split("/hostedzone/")[1]
+    } catch (e) {
+      console.error(`Unable to retrieve hostedzone for ${myDomain}`)
+      throw e
+    }
+
+    // The following will update the resource records, creating them if they don't already exist
+
+    console.log(`Updating record set for ${myDomain} in order to forward API`)
+    let recordSet = {
+      "Comment": "",
+      "Changes": []
+    }
+    recordSet.Changes[0] = JSON.parse(JSON.stringify(changeSet));
+
+    recordSet.Changes[0].ResourceRecordSet.Name = 'api.'.concat(myDomain)
+    recordSet.Changes[0].ResourceRecordSet.AliasTarget.DNSName = balancerEndpoint
+    recordSet.Changes[0].ResourceRecordSet.Type = "A"
+
+    try {
+      await exec(`aws route53 change-resource-record-sets --hosted-zone-id ${zoneID} --change-batch '${JSON.stringify(recordSet)}' --profile ${useIAM}`)
+      console.log(`Updated record set for ${myDomain}.`)
+     } catch (e) {
+      console.error(`Unable to create resource record set for ${myDomain}`)
+      throw e
+    }
+  }
+
   return
 }
 
 export async function awsInit(projName, awsName, useIAM, DHID) {
   let temp
+
+  let pushkinConfig
+  try {
+    temp = await fs.promises.readFile(path.join(process.cwd(), 'pushkin.yaml'), 'utf8')
+    pushkinConfig = jsYaml.safeLoad(temp)
+  } catch (e) {
+    console.error(`Couldn't load pushkin.yaml`)
+    throw e
+  }
 
   const chooseCertificate = async(useIAM) => {
     console.log('Setting up SSL for load-balancer')
@@ -840,15 +896,6 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
     throw e
   }
 
-  let pushkinConfig
-  try {
-    temp = await fs.promises.readFile(path.join(process.cwd(), 'pushkin.yaml'), 'utf8')
-    pushkinConfig = jsYaml.safeLoad(temp)
-  } catch (e) {
-    console.error(`Couldn't load pushkin.yaml`)
-    throw e
-  }
-
   pushkinConfig.info.rootDomain = myDomain
   pushkinConfig.info.projName = projName
   pushkinConfig.info.awsName = awsName
@@ -858,17 +905,6 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
   } catch(e) {
     throw e
   }
-
-  //FUBAR
-  try {
-    await deployFrontEnd(projName, awsName, useIAM, myDomain, myCertificate)
-  } catch(e) {
-    console.error(`Failed to deploy front end`)
-    throw e
-  }
-  process.exit()
-  //FUBAR
-
 
   //Databases take BY FAR the longest, so start them right after certificate (certificate comes first or things get confused)
   const createDatabaseGroup = async (useIAM) => {
@@ -921,8 +957,8 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
     throw e
   }
 
-  const recordDBs = async(dbsDone) => {
-    const returnedPromises = await dbsDone //initializedTransactionsDB must be first in this list
+  const recordDBs = async(dbDone) => {
+    const returnedPromises = await dbDone //initializedTransactionsDB must be first in this list
     const transactionDB = returnedPromises[0] //this is why it has to be first
     const mainDB = returnedPromises[1] //this is why it has to be second
 
@@ -943,8 +979,12 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
       // initialize
       pushkinConfig.productionDBs = {};
     }
-    pushkinConfig.productionDBs[transactionDB.type] = transactionDB;
-    pushkinConfig.productionDBs[mainDB.type] = mainDB;
+    if (transactionDB) {
+      pushkinConfig.productionDBs[transactionDB.type] = transactionDB;
+    }
+    if (mainDB) {
+      pushkinConfig.productionDBs[mainDB.type] = mainDB;
+    }
     try {
       stdOut = await fs.promises.writeFile(path.join(process.cwd(), 'pushkin.yaml'), jsYaml.safeDump(pushkinConfig), 'utf8')
       console.log(`Successfully updated pushkin.yaml with databases.`)
@@ -967,8 +1007,6 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
     throw e
   }
 
-  await publishedToDocker
-
   //build front-end
   let builtWeb
   try {
@@ -987,7 +1025,7 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
     throw e
   }
 
-
+  await publishedToDocker //need this to configure ECS
   let configuredECS
   try {
     configuredECS = setupECS(projName, awsName, useIAM, DHID, completedDBs, myCertificate);
@@ -995,16 +1033,66 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
     throw e
   }
 
-  pushkinConfig = await completedDBs;
-
+  const setupTransactionsWrapper = async () => {
+    let info = await initializedTransactionDB;
+    let setupTransactionsTable
+    try {
+      setupTransactionsTable = setupTransactionsDB(info, useIAM);
+    } catch (e) {
+      throw e    
+    }
+    return setupTransactionsTable
+  }
   let setupTransactionsTable
   try {
-    setupTransactionsTable = setupTransactionsDB(pushkinConfig.productionDBs.Transaction, useIAM);
+    setupTransactionsTable = setupTransactionsWrapper()
   } catch (e) {
     throw e
   }
 
-  await Promise.all([deployedFrontEnd, configuredECS, setupTransactionsTable])
+  const migrationsWrapper = async () => {
+    console.log(`Handling migrations`)
+    let dbsToExps, ranMigrations
+    let info = await initializedMainDB
+    try {
+      dbsToExps = await getMigrations(pushkinConfig.experimentsDir, true)
+      ranMigrations = runMigrations(dbsToExps, pushkinConfig.productionDBs)
+    } catch (e) {
+      throw e
+    }    
+    return ranMigrations
+  }
+  let ranMigrations
+  try {
+    ranMigrations = migrationsWrapper();
+  } catch (e) {
+    throw e
+  }
+
+  let balancerEndPoint
+  const forwardAPIWrapper = async () => {
+    balancerEndpoint = await configuredECS
+    
+    let apiForwarded
+    try {
+      apiForwarded = forwardAPI(FUBAR, balancerEndpoint)
+    } catch(e) {
+      console.error(`Unable to set up forwarding for API`)
+      throw e
+    }
+
+    return apiForwarded
+  }
+  let apiForwarded
+  try {
+    apiForwarded = forwardAPIWrapper();
+  } catch (e) {
+    throw e
+  }
+
+  pushkinConfig = await completedDBs;
+
+  await Promise.all([deployedFrontEnd, setupTransactionsTable, ranMigrations, apiForwarded])
   console.log(`FUBAR. Still not done. But done.`)
 
 
@@ -1012,7 +1100,12 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
   if (myDomain == "default") {
     let cloudDomain = await deployedFrontEnd //has actually already resolved, but not sure I can use it directly
     console.log(`Access your website at ${cloudDomain}`)
+    console.log(`Be sure to update pushkin/front-end/src/config.js so that the api URL is ${balancerEndpoint}.`)
+    pushkinConfig.info.rootDomain = cloudDomain
   }
+
+  await fs.promises.writeFile(path.join(process.cwd(), 'pushkin.yaml'), jsYaml.safeDump(pushkinConfig), 'utf8')
+
   return
 }
 
