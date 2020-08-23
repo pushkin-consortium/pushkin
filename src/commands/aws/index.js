@@ -397,7 +397,7 @@ const getDBInfo = async () => {
 }
 
 
-const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs, ECSName) => {
+const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs, ECSName, targGroupARN) => {
   let mkTaskDir
   let temp
   try {
@@ -412,7 +412,7 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs, ECS
     throw e
   }
 
-  const ecsCompose = async (yaml, task, name) => {
+  const ecsCompose = async (yaml, task, name, port = 0, targGroupARN = false) => {
 
     const wait = async () => {
       //Sometimes, I really miss loops
@@ -432,8 +432,10 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs, ECS
         }
         let compose
         try {
-          console.log(`Running ECS compose for ${name}`)      
-          compose = exec(`ecs-cli compose -f ${yaml} -p ${name} --cluster-config ${ECSName} service up`, { cwd: path.join(process.cwd(), "ECStasks")})
+          console.log(`Running ECS compose for ${name}`)
+          let balancerCommand = (targGroupARN ? `--target-groups "targetGroupArn=${targGroupARN},containerName=${name},containerPort=${port}"` : '')
+          let composeCommand = `ecs-cli compose -f ${yaml} -p ${name} service up --cluster-config ${ECSName} `.concat(balancerCommand)
+          compose = exec(composeCommand, { cwd: path.join(process.cwd(), "ECStasks")})
         } catch (e) {
           console.error(`Failed to run ecs-cli compose service on ${yaml}`)
           throw e
@@ -488,7 +490,7 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs, ECS
   let composedWorkers
   try {
     composedRabbit = ecsCompose('rabbitTask.yml', myRabbitTask, 'message-queue')
-    composedRabbit = ecsCompose('apiTask.yml', apiTask, 'api')
+    composedRabbit = ecsCompose('apiTask.yml', apiTask, 'api', 80, targGroupARN)
     composedWorkers = workerList.map((w) => {
       const yaml = w.concat('.yml')
       const name = w;
@@ -812,7 +814,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
   let createdECSTasks
   try {
     console.log('Creating ECS tasks')
-    createdECSTasks = ecsTaskCreator(projName, awsName, useIAM, DHID, completedDBs, ECSName);
+    createdECSTasks = ecsTaskCreator(projName, awsName, useIAM, DHID, completedDBs, ECSName, targGroupARN);
   } catch(e) {
     throw e
   }
