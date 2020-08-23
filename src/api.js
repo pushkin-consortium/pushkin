@@ -24,6 +24,9 @@ export default class PushkinAPI {
 		});
 		this.app.use(bodyParser.json());
 		this.expressListening = false;
+		this.app.get('/', function (req, res) {
+			res.send('👨‍🔬💬👩‍🔬')
+		})
 	}
 
 	async init() {
