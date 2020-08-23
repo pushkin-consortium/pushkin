@@ -168,6 +168,13 @@ const inquirerPromise = async (type, name, message) => {
 const handleAWSInit = async () => {
   let temp
 
+  try {
+    console.log(`Setting front-end 'environment variable'`)
+    fs.writeFileSync(path.join(process.cwd(), 'pushkin/front-end/src', '.env.js'), `export const debug = false`)
+  } catch (e) {
+    console.error(`Unable to create .env.js`)
+  }
+
   let config
   try {
     config = await loadConfig(path.join(process.cwd(), 'pushkin.yaml'))
@@ -382,6 +389,12 @@ async function main() {
     .option('-nc, --nocache', 'Rebuild all images from scratch, without using the cache.', false)
     .action(async (options) => {
       moveToProjectRoot();
+      try {
+        console.log(`Setting front-end 'environment variable'`)
+        fs.writeFileSync(path.join(process.cwd(), 'pushkin/front-end/src', '.env.js'), `export const debug = true`)
+      } catch (e) {
+        console.error(`Unable to update .env.js`)
+      }
       try {
         fs.copyFileSync('pushkin/front-end/src/experiments.js', 'pushkin/front-end/experiments.js');
       } catch (e) {
