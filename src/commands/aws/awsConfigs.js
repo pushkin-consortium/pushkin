@@ -169,7 +169,7 @@ export const apiTask = {
         'environment': {
           "AMQP_ADDRESS":"amqp://RABBITMQ_USERNAME:RABBITMQ_PASSWORD@localhost:5672",
           'NODE_ENV':'production', //I'm not convinced this is ever used
-          "PORT": 3000
+          "PORT": 80
           },
         'command': [
               'bash',

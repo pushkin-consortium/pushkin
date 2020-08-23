@@ -784,7 +784,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
   }
 
   try {
-    temp = await exec(`aws elbv2 create-target-group --name ${loadBalancerName}Targets --protocol HTTP --port 3000 --vpc-id ${myVPC} --profile ${useIAM}`)
+    temp = await exec(`aws elbv2 create-target-group --name ${loadBalancerName}Targets --protocol HTTP --port 80 --vpc-id ${myVPC} --profile ${useIAM}`)
   } catch(e) {
     console.error(`Unable to create target group`)
     throw e
