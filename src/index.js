@@ -12,7 +12,7 @@ import { listExpTemplates, getExpTemplate,  } from './commands/experiments/index
 import { listSiteTemplates, getPushkinSite, pushkinInit } from './commands/sites/index.js';
 import { awsInit, nameProject, addIAM } from './commands/aws/index.js'
 import prep from './commands/prep/index.js';
-import { setupdb } from './commands/setupdb/index.js';
+import { setupdb, setupTestTransactionsDB } from './commands/setupdb/index.js';
 import * as compose from 'docker-compose'
 import { Command } from 'commander'
 import inquirer from 'inquirer'
@@ -94,14 +94,12 @@ const handlePrep = async () => {
 }
 
 const getVersions = async (url) => {
-  console.log(url)
   let response
   let body
   let verList = {}
   try {
     const response = await got(url);
     body = JSON.parse(response.body)
-    console.log(url)
     body.forEach((r) => {
       verList[r.tag_name] = r.url;
     })
@@ -124,7 +122,10 @@ const handleInstall = async (what) => {
           .then((verList) => {
             inquirer.prompt(
               [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version? (Recommend:'.concat(Object.keys(verList)[0]).concat(')')}]
-            ).then(answers => getPushkinSite(process.cwd(),verList[answers.version]))
+            ).then(async (answers) => {
+              await getPushkinSite(process.cwd(),verList[answers.version])
+              await setupTestTransactionsDB()
+            })
           })
         })
     } else {
@@ -233,7 +234,11 @@ const handleAWSInit = async () => {
     console.error(e)
     process.exit()
   }
-  await Promise.all([awsInit(projName.name, awsName, useIAM.iam, config.DockerHubID), addedIAM])
+  try {
+    await Promise.all([awsInit(projName.name, awsName, useIAM.iam, config.DockerHubID), addedIAM])
+  } catch(e) {
+    throw e
+  }
   console.log("done")
 
   return
@@ -302,7 +307,6 @@ async function main() {
         case 'init':
           try {
             await handleAWSInit();
-            console.log('really, really done') //FUBAR debugging
           } catch(e) {
             console.error(e)
             process.exit();
@@ -427,6 +431,13 @@ async function main() {
     .command('kill')
     .description('Removes all containers and volumes from local Docker, as well as pushkin-specific images. To additionally remove third-party images, run `pushkin armageddon`.')
     .action(killLocal)
+
+  program
+    .command('setup-transaction-db')
+    .description('This is included for backwards compatibility. You probably will not need. Creates a local transactions db.')
+    .action(async () => {
+      await setupTestTransactionsDB()
+    })
 
   program
     .command('armageddon')

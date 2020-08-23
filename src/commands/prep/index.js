@@ -10,7 +10,6 @@ import pacMan from '../../pMan.js'; //which package manager is available?
 // give package unique name, package it, npm install on installDir, return module name
 const publishLocalPackage = async (modDir, modName) => {
   return new Promise((resolve, reject) => {
-    console.log('modDir: ', modDir)
     const packageJsonPath = path.join(modDir, 'package.json');
     let packageJson;
     try {
@@ -102,7 +101,7 @@ export const readConfig = (expDir) => {
     return jsYaml.safeLoad(fs.readFileSync(path.join(expDir, 'config.yaml')));
   } catch (err) {
     if (err.code === 'ENOENT') {
-      console.log('File not found!');
+      console.error('File not found!');
     }
     throw err
   }

@@ -167,9 +167,9 @@ export const apiTask = {
         'image': 'DOCKERHUB_ID/api:latest',
         'mem_limit': '128m',
         'environment': {
-          "AMPQ_ADDRESS":"amqp://RABBITMQ_USERNAME:RABBITMQ_PASSWORD@localhost:5672",
+          "AMQP_ADDRESS":"amqp://RABBITMQ_USERNAME:RABBITMQ_PASSWORD@localhost:5672",
           'NODE_ENV':'production', //I'm not convinced this is ever used
-          "PORT": 80
+          "PORT": 3000
           },
         'command': [
               'bash',
@@ -189,7 +189,7 @@ export const workerTask = {
         "image": "DOCKERHUB_ID/EXPERIMENT_NAME:latest",
         "mem_limit": "128m",
         "environment": {
-          "AMPQ_ADDRESS": "amqp://RABBITMQ_USERNAME:RABBITMQ_PASSWORD@localhost:5672"
+          "AMQP_ADDRESS": "amqp://RABBITMQ_USERNAME:RABBITMQ_PASSWORD@localhost:5672"
         },
         "command": [
             "bash", 

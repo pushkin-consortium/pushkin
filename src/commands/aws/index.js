@@ -263,10 +263,8 @@ const deployFrontEnd = async (projName, awsName, useIAM, myDomain, myCertificate
 
 const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
   console.log(`Creating ${dbType} database.`)
-  let stdOut
-
-  const dbPassword = Math.random().toString() //Pick random password for database
-  let dbName = projName.concat(dbType).replace(/[^\w\s]/g, "").replace(/ /g,"")
+  let stdOut, dbName, dbPassword
+  dbName = projName.concat(dbType).replace(/[^\w\s]/g, "").replace(/ /g,"")
 
   //First, check to see if database exists
   try {
@@ -286,7 +284,7 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
     //Could consider putting an optional break in here, make people acknowledge before going on.
     return false;
   }
-
+  dbPassword = Math.random().toString() //Pick random password for database
   let myDBConfig = JSON.parse(JSON.stringify(dbConfig));
   myDBConfig.DBName = dbName
   myDBConfig.DBInstanceIdentifier = dbName
@@ -399,7 +397,7 @@ const getDBInfo = async () => {
 }
 
 
-const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs) => {
+const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs, ECSName) => {
   let mkTaskDir
   let temp
   try {
@@ -416,32 +414,51 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs) => 
 
   const ecsCompose = async (yaml, task, name) => {
 
-    try {
-      console.log(`Writing ECS task list ${name}`)
-      await fs.promises.writeFile(path.join(process.cwd(), 'ECStasks', yaml), jsYaml.safeDump(task), 'utf8');
-    } catch (e) {
-      console.error(`Unable to write ${yaml}`)
-      throw e
+    const wait = async () => {
+      //Sometimes, I really miss loops
+      let x = await exec(`aws ecs describe-clusters --profile ${useIAM} --clusters ${ECSName}`)
+            .then((x) => {
+              let y = JSON.parse(x.stdout).clusters[0]
+              return y.registeredContainerInstancesCount
+            },
+            err => {console.error(err)})
+      if (x > 0) {
+        try {
+          console.log(`Writing ECS task list ${name}`)
+          await fs.promises.writeFile(path.join(process.cwd(), 'ECStasks', yaml), jsYaml.safeDump(task), 'utf8');
+        } catch (e) {
+          console.error(`Unable to write ${yaml}`)
+          throw e
+        }
+        let compose
+        try {
+          console.log(`Running ECS compose for ${name}`)      
+          compose = exec(`ecs-cli compose -f ${yaml} -p ${name} --cluster-config ${ECSName} service up`, { cwd: path.join(process.cwd(), "ECStasks")})
+        } catch (e) {
+          console.error(`Failed to run ecs-cli compose service on ${yaml}`)
+          throw e
+        }
+        console.log('Running started for ${name}')//FUBAR
+        return compose
+      } else {
+        console.log('...')
+        setTimeout( wait, 10000 );
+      }
     }
-    let compose
-    try {
-      console.log(`Running ECS compose for ${name}`)      
-      compose = exec(`ecs-cli compose -f ${yaml} -p ${name} create`, { cwd: path.join(process.cwd(), "ECStasks")})
-    } catch (e) {
-      console.error(`Failed to run ecs-cli compose on ${yaml}`)
-      throw e
-    }
-    return compose
+
+    console.log('Waiting for ECS cluster to start...')
+    return await wait();
   }
 
   const rabbitPW = Math.random().toString();
+  const rabbitUser = projName.replace(/[^\w\s]/g, "").replace(/ /g,"")
   const rabbitCookie = uuid();
-  const rabbitAddress = "amqp://".concat(awsName).concat(":").concat(rabbitPW).concat("@localhost:5672")
+  const rabbitAddress = "amqp://".concat(rabbitUser).concat(":").concat(rabbitPW).concat("@localhost:5672")
   let myRabbitTask = JSON.parse(JSON.stringify(rabbitTask));
-  myRabbitTask.services['message-queue'].environment.RABBITMQ_DEFAULT_USER = projName.replace(/[^\w\s]/g, "").replace(/ /g,"");
-  myRabbitTask.services['message-queue'].environment.RABBITMQ_DEFAULT_PASSWORD = rabbitPW;
+  myRabbitTask.services['message-queue'].environment.RABBITMQ_DEFAULT_USER = rabbitUser;
+  myRabbitTask.services['message-queue'].environment.RABBITMQ_DEFAULT_PASS = rabbitPW;
   myRabbitTask.services['message-queue'].environment.RABBITMQ_ERLANG_COOKIE = rabbitCookie;
-  apiTask.services['api'].environment.AMPQ_ADDRESS = rabbitAddress;
+  apiTask.services['api'].environment.AMQP_ADDRESS = rabbitAddress;
   apiTask.services['api'].image = `${DHID}/api:latest`
 
   let docker_compose
@@ -464,10 +481,7 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs) => 
   }
 
   temp = await completedDBs; //Next part won't run if DBs aren't done
-  console.log("completedDBs:\n", JSON.stringify(completedDBs)) //FUBAR debugging
   const dbInfoByTask = await getDBInfo();
-  console.log(dbInfoByTask) //FUBAR
-  console.log('got DB info') //FUBAR for debugging
 
   let composedRabbit
   let composedAPI
@@ -490,7 +504,7 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs) => 
       //However, existing deploys won't have that. So both sets of information are maintained
       //for backwards compatibility, at least for the time being. 
       task.services[w].environment = {
-        "AMPQ_ADDRESS" : rabbitAddress,
+        "AMQP_ADDRESS" : rabbitAddress,
         "DB_USER": dbInfoByTask['Main'].username,
         "DB_NAME": dbInfoByTask['Main'].name,
         "DB_PASS": dbInfoByTask['Main'].password,
@@ -498,13 +512,13 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs) => 
         "TRANSACTION_DATABASE_URL": `postgres://${dbInfoByTask['Transaction'].username}:${dbInfoByTask['Transaction'].password}@${dbInfoByTask['Transaction'].endpoint}:/${dbInfoByTask['Transaction'].port}/${dbInfoByTask['Transaction'].name}`
       }
       task.services[w].command = workerTask.services["EXPERIMENT_NAME"].command
-      console.log(`task:\n ${JSON.stringify(task)}`) //FUBAR for debuggins
       return ecsCompose(yaml, task, name)
     })
   } catch (e) {
     throw e
   }
 
+  console.log('returning promises')//FUBAR
   return Promise.all([composedRabbit, composedAPI, composedWorkers]);
 }
 
@@ -678,6 +692,22 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
     console.error(`Problem with ECSTasks folder`)
     throw e
   }
+  try {
+    console.log(`Making ecs-params.yml`)
+    // This lets us set the network mode for all services.
+    // Currently that cannot be done through the task docker file
+    let ecsParams = {
+      "version": 1,
+      "task_definition": {
+        "ecs_network_mode": "host"
+      }
+     }
+    await fs.promises.writeFile(path.join(process.cwd(), 'ECStasks/ecs-params.yml'), jsYaml.safeDump(ecsParams), 'utf8')
+  } catch (e) {
+    console.error(`Unable to create ecs-params.yml`)
+    throw e
+  }
+
 
   //Everything past here requires the ECS CLI having been set up  
   console.log("Configuring ECS CLI")
@@ -690,12 +720,9 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
     console.error(`Unable to load AWS credentials for ${useIAM}. Are you sure you have this profile configured for the AWS CLI?`)
     throw e
   }
-  console.log(aws_access_key_id)
-  console.log(aws_secret_access_key)
 
   const ECSName = projName.replace(/[^\w\s]/g, "").replace(/ /g,"");
   const setProfile = `ecs-cli configure profile --profile-name ${useIAM} --access-key ${aws_access_key_id} --secret-key ${aws_secret_access_key}`.replace(/(\r\n|\n|\r)/gm," ")
-  console.log(setProfile)
   try {
     //not necessary if already set up, but doesn't seem to hurt anything
     temp = await exec(setProfile)
@@ -703,15 +730,18 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
     console.error(`Unable to set up profile ${useIAM} for ECS CLI.`)
     throw e
   }
-  console.log(`ECS CLI configured`)
 
-  let createdECSTasks
+  const nameCluster = `ecs-cli configure --region us-east-1 --cluster ${ECSName} --default-launch-type EC2 --config-name ${ECSName}`
+  const setDefaultCluster = `ecs-cli configure default --config-name ${ECSName}`
   try {
-    console.log('Creating ECS tasks')
-    createdECSTasks = ecsTaskCreator(projName, awsName, useIAM, DHID, completedDBs);
-  } catch(e) {
+    //not necessary if already set up, but doesn't seem to hurt anything
+    temp = await exec(nameCluster)
+    temp = await exec(setDefaultCluster)
+  } catch (e) {
+    console.error(`Unable to set default cluster ${ECSName} for ECS CLI.`)
     throw e
   }
+  console.log(`ECS CLI configured`)
 
   let launchedECS
   await madeSSH //need this shortly
@@ -734,9 +764,9 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
   const myVPC = await gotVPC
   try {
     console.log('Launching ECS cluster')
-    //Probably we should check if there is already a configuration with this name and ask before replacing.
-    //launchedECS = exec(`ecs-cli configure --cluster ${ECSName} --default-launch-type EC2 --region us-east-1 --config-name ${ECSName}`)
-    launchedECS = exec(`ecs-cli up --force --keypair my-pushkin-key-pair --capability-iam --size 1 --instance-type t2.small --cluster ${ECSName} --security-group ${ecsSecurityGroupID} --vpc ${myVPC} --subnets ${subnets.join(' ')} --ecs-profile ${useIAM}`)
+    //Note that cluster is named here, although that should match the default anyway.
+    const ecsCommand = `ecs-cli up --force --keypair my-pushkin-key-pair --capability-iam --size 1 --instance-type t2.small --cluster ${ECSName} --security-group ${ecsSecurityGroupID} --vpc ${myVPC} --subnets ${subnets.join(' ')} --ecs-profile ${useIAM}`
+    launchedECS = exec(ecsCommand)
   } catch (e) {
     console.error(`Unable to launch cluster ${ECSName}.`)
     throw e
@@ -744,7 +774,6 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
 
   console.log(`Creating application load balancer`)
   if (!foundBalancerGroup) {BalancerSecurityGroupID = await madeBalancerGroup}
-  console.log(`FUBAR. BalancerSecurityGroupID: ${BalancerSecurityGroupID}`) //FUBAR for debugging
   const loadBalancerName = ECSName.concat("Balancer")
   let madeBalancer
   try {
@@ -755,7 +784,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
   }
 
   try {
-    temp = await exec(`aws elbv2 create-target-group --name ${loadBalancerName}Targets --protocol HTTP --port 80 --vpc-id ${myVPC} --profile ${useIAM}`)
+    temp = await exec(`aws elbv2 create-target-group --name ${loadBalancerName}Targets --protocol HTTP --port 3000 --vpc-id ${myVPC} --profile ${useIAM}`)
   } catch(e) {
     console.error(`Unable to create target group`)
     throw e
@@ -765,6 +794,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
   temp = await madeBalancer //need this for the next step
   const balancerARN = JSON.parse(temp.stdout).LoadBalancers[0].LoadBalancerArn
   const balancerEndpoint = JSON.parse(temp.stdout).LoadBalancers[0].DNSName
+  const balancerZone = JSON.parse(temp.stdout).LoadBalancers[0].CanonicalHostedZoneId
   temp = await  exec(`aws elbv2 create-listener --load-balancer-arn ${balancerARN} --protocol HTTP --port 80  --default-actions Type=forward,TargetGroupArn=${targGroupARN} --profile ${useIAM}`)
 
   let addedHTTPS
@@ -776,16 +806,25 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
     throw e
   }
 
-  await Promise.all([ launchedECS, addedHTTPS, createdECSTasks ])
+  await Promise.all([ launchedECS, addedHTTPS])
   console.log(`ECS cluster launched`)
-  console.log(`Added HTTPS to load balancer`)
+
+  let createdECSTasks
+  try {
+    console.log('Creating ECS tasks')
+    createdECSTasks = ecsTaskCreator(projName, awsName, useIAM, DHID, completedDBs, ECSName);
+  } catch(e) {
+    throw e
+  }
+  console.log('Waiting for ECS task creation to cmomplete...')//FUBAR
+  await createdECSTasks
   console.log(`Created ECS task definitions`)
 
-  return balancerEndpoint
+  return [ balancerEndpoint, balancerZone]
 }
 
 
-const forwardAPI = async (myDomain, useIAM, balancerEndpoint) => {
+const forwardAPI = async (myDomain, useIAM, balancerEndpoint, balancerZone) => {
 
   // This whole function can be skipped if not using custom domain
   // The API endpoint will have to be set manually
@@ -813,7 +852,7 @@ const forwardAPI = async (myDomain, useIAM, balancerEndpoint) => {
     recordSet.Changes[0].ResourceRecordSet.Name = 'api.'.concat(myDomain)
     recordSet.Changes[0].ResourceRecordSet.AliasTarget.DNSName = balancerEndpoint
     recordSet.Changes[0].ResourceRecordSet.Type = "A"
-
+    recordSet.Changes[0].ResourceRecordSet.AliasTarget.HostedZoneId = balancerZone
     try {
       await exec(`aws route53 change-resource-record-sets --hosted-zone-id ${zoneID} --change-batch '${JSON.stringify(recordSet)}' --profile ${useIAM}`)
       console.log(`Updated record set for ${myDomain}.`)
@@ -980,9 +1019,11 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
       pushkinConfig.productionDBs = {};
     }
     if (transactionDB) {
+      // false means it is preexisting, doesn't need to be updated
       pushkinConfig.productionDBs[transactionDB.type] = transactionDB;
     }
     if (mainDB) {
+      // false means it is preexisting, doesn't need to be updated
       pushkinConfig.productionDBs[mainDB.type] = mainDB;
     }
     try {
@@ -992,7 +1033,7 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
       throw e
     }
 
-    return pushkinConfig;
+   return pushkinConfig;
   }
 
   const completedDBs = recordDBs(Promise.all([initializedMainDB, initializedTransactionDB]))
@@ -1034,10 +1075,10 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
   }
 
   const setupTransactionsWrapper = async () => {
-    let info = await initializedTransactionDB;
+    let info = await completedDBs
     let setupTransactionsTable
     try {
-      setupTransactionsTable = setupTransactionsDB(info, useIAM);
+      setupTransactionsTable = setupTransactionsDB(info.productionDBs.Transaction);
     } catch (e) {
       throw e    
     }
@@ -1053,10 +1094,10 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
   const migrationsWrapper = async () => {
     console.log(`Handling migrations`)
     let dbsToExps, ranMigrations
-    let info = await initializedMainDB
+    let info = await completedDBs
     try {
-      dbsToExps = await getMigrations(pushkinConfig.experimentsDir, true)
-      ranMigrations = runMigrations(dbsToExps, pushkinConfig.productionDBs)
+      dbsToExps = await getMigrations(path.join(process.cwd(), info.experimentsDir), true)
+      ranMigrations = runMigrations(dbsToExps, info.productionDBs)
     } catch (e) {
       throw e
     }    
@@ -1069,13 +1110,14 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
     throw e
   }
 
-  let balancerEndPoint
+  let balancerEndpoint
+  let balancerZone
   const forwardAPIWrapper = async () => {
-    balancerEndpoint = await configuredECS
+    [ balancerEndpoint, balancerZone] = await configuredECS
     
     let apiForwarded
     try {
-      apiForwarded = forwardAPI(FUBAR, balancerEndpoint)
+      apiForwarded = forwardAPI(myDomain, useIAM, balancerEndpoint, balancerZone)
     } catch(e) {
       console.error(`Unable to set up forwarding for API`)
       throw e
@@ -1093,8 +1135,6 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
   pushkinConfig = await completedDBs;
 
   await Promise.all([deployedFrontEnd, setupTransactionsTable, ranMigrations, apiForwarded])
-  console.log(`FUBAR. Still not done. But done.`)
-
 
   // This needs to come last, right before 'return'
   if (myDomain == "default") {
@@ -1115,7 +1155,7 @@ export async function nameProject(projName) {
   awsConfig.name = projName;
   awsConfig.awsName = projName.replace(/[^\w\s]/g, "").replace(/ /g,"-").concat(uuid()).toLowerCase();
   try {
-    stdOut = fs.writeFileSync(path.join(process.cwd(), 'awsConfig.js'), JSON.stringify(awsConfig), 'utf8');
+    stdOut = fs.writeFileSync(path.join(process.cwd(), 'awsConfig.js'), jsYaml.safeDump(awsConfig), 'utf8');
   } catch(e) {
     console.error(`Could not write to the pushkin CLI's AWS config file. This is a very strange error. Please contact the dev team.`)
     throw e
@@ -1126,15 +1166,14 @@ export async function nameProject(projName) {
 export async function addIAM(iam) {
   let awsConfig
   try {
-    awsConfig = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'awsConfig.js'), awsConfig, 'utf8'));
+    awsConfig = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'awsConfig.js'), 'utf8'));
   } catch(e) {
     console.error(`Could not read the pushkin CLI's AWS config file. This is a very strange error. Please contact the dev team.`)
     throw e
   }
   awsConfig.iam = iam;
-  console.log(awsConfig)
   try {
-    fs.writeFileSync(path.join(process.cwd(), 'awsConfig.js'), JSON.stringify(awsConfig), 'utf8');
+    fs.writeFileSync(path.join(process.cwd(), 'awsConfig.js'), jsYaml.safeDump(awsConfig), 'utf8');
   } catch(e) {
     console.error(`Could not write to the pushkin CLI's AWS config file. This is a very strange error. Please contact the dev team.`)
     throw e
