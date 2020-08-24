@@ -440,7 +440,6 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs, ECS
           console.error(`Failed to run ecs-cli compose service on ${yaml}`)
           throw e
         }
-        console.log('Running started for ${name}')//FUBAR
         return compose
       } else {
         console.log('...')
@@ -1181,5 +1180,36 @@ export async function addIAM(iam) {
     throw e
   }
   return
+}
+
+export const awsArmageddon = async (useIAM) => {
+  // docker run --rm -it -v /Users/jkhartshorne/Downloads/HomeSeer/config.yml:/home/aws-nuke/config.yml -v ~/.aws:/home/aws-nuke/.aws rebuy/aws-nuke --profile trialPushkin --config /home/aws-nuke/config.yml --no-dry-run  
+
+// regions:
+// - us-east-1
+
+// account-blacklist:
+// - "999999999999" # production
+
+// resource-types:
+//   # only nuke these resources
+//   targets:
+//   - S3Object
+//   - S3Bucket
+//   - ECSTaskDefinition
+//   - ECSCluster
+//   - ECSClusterInstance
+//   - ECSService
+//   - RDSInstance
+//   - CloudFormationStack
+//   - LaunchConfiguration
+//   - EC2Volume
+//   - EC2SecurityGroup
+//   - EC2Instance
+//   - ELBv2TargetGroup
+
+// accounts:
+//   "625162337273": {}
+
 }
 

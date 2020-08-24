@@ -357,7 +357,7 @@ export default async (experimentsDir, coreDir) => {
   try {
     console.log(`Writing out front-end config`)
     const tempConfig = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'pushkin.yaml')))
-    fs.writeFileSync(path.join(process.cwd(), 'pushkin/front-end/src', '.pushkin.js'), `export default const pushkinConfig = ${JSON.stringify(config)}`)
+    fs.writeFileSync(path.join(process.cwd(), 'pushkin/front-end/src', '.pushkin.js'), `export const pushkinConfig = ${JSON.stringify(tempConfig)}`)
   } catch(e) {
     console.error(`Unable to create .pushkin.js`)
     throw e
