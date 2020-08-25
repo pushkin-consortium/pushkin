@@ -5,7 +5,7 @@ import util from 'util';
 import pacMan from '../../pMan.js'; //which package manager is available?
 import { execSync } from 'child_process'; // eslint-disable-line
 import jsYaml from 'js-yaml';
-import { policy, cloudFront, dbConfig, rabbitTask, apiTask, workerTask, changeSet, corsPolicy } from './awsConfigs.js'
+import { policy, cloudFront, dbConfig, rabbitTask, apiTask, workerTask, changeSet, corsPolicy, disableCloudfront } from './awsConfigs.js'
 import { setupTransactionsDB, runMigrations, getMigrations } from '../setupdb/index.js';
 import inquirer from 'inquirer'
 const exec = util.promisify(require('child_process').exec);
@@ -1385,21 +1385,21 @@ export const awsArmageddon = async (useIAM) => {
     //Nothing
   }
 
-  // const deleteStack = async () => {
-  //   try {
-  //     await exec(`aws cloudformation describe-stacks --stack-name ${'amazon-ecs-cli-setup-'.concat(awsResources.name)} --profile ${useIAM}`)
-  //   } catch (e) {
-  //     console.warn(`Unable to find cloudformation stack ${'amazon-ecs-cli-setup-'.concat(awsResources.name)}. May have already been deleted. Skipping.`)
-  //   }
-  //   try {
-  //     return exec(`aws cloudformation delete-stack --stack-name ${'amazon-ecs-cli-setup-'.concat(awsResources.name)} --profile ${useIAM}`)
-  //   } catch (e) {
-  //     console.error(`Unable to delete cloudformation stack ${'amazon-ecs-cli-setup-'.concat(awsResources.name)}.`)
-  //     console.error(e)
-  //     return
-  //   }
-  // }
-  // const deletedStack = deleteStack()
+  const deleteStack = async () => {
+    try {
+      await exec(`aws cloudformation describe-stacks --stack-name ${'amazon-ecs-cli-setup-'.concat(awsResources.name)} --profile ${useIAM}`)
+    } catch (e) {
+      console.warn(`Unable to find cloudformation stack ${'amazon-ecs-cli-setup-'.concat(awsResources.name)}. May have already been deleted. Skipping.`)
+    }
+    try {
+      return exec(`aws cloudformation delete-stack --stack-name ${'amazon-ecs-cli-setup-'.concat(awsResources.name)} --profile ${useIAM}`)
+    } catch (e) {
+      console.error(`Unable to delete cloudformation stack ${'amazon-ecs-cli-setup-'.concat(awsResources.name)}.`)
+      console.error(e)
+      return
+    }
+  }
+  const deletedStack = deleteStack()
 
   const deleteLoadBalancer = async () => {
     let deletedLoadBalancer
@@ -1445,13 +1445,17 @@ export const awsArmageddon = async (useIAM) => {
     let cloudConfig
     try {
       temp = await exec(`aws cloudfront get-distribution-config --id ${awsResources.cloudFrontId} --profile ${useIAM}`)
-      cloudConfig = JSON.parse(temp.stdout).DistributionConfig
+      //cloudConfig = JSON.parse(temp.stdout).DistributionConfig
     } catch (e) {
       console.log(`Cannot find cloudfront distribution ${awsResources.cloudFrontId}. May have already been deleted. Skipping.`)      
       awsResources.cloudFrontETag = null
       awsResources.cloudFrontId = null
       return
     }
+
+    disableCloudfront.Enabled = false
+//    disableCloudfront.Origins.Items[0].Id = cloudConfig.Origins.Items[0].Id
+//    disableCloudfront.Origins.Items[0].DomainName = cloudConfig.Origins.Items[0].DomainName
 
     console.log(`Disabling cloudfront distribution`)
     cloudConfig.Enabled = false
@@ -1460,7 +1464,7 @@ export const awsArmageddon = async (useIAM) => {
       disableCloudFront = exec(`aws cloudfront update-distribution \
         --id ${awsResources.cloudFrontId} \
         --if-match ${awsResources.cloudFrontETag} \
-        --distribution-config '${JSON.stringify(cloudConfig)}' --profile ${useIAM}`)        
+        --distribution-config '${JSON.stringify(disableCloudfront)}' --profile ${useIAM}`)        
     } catch (e) {
       console.error(`Unable to disable cloudfront distribution.`)
       throw e

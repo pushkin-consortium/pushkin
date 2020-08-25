@@ -245,7 +245,7 @@ export const disableCloudfront = {
         "Items": [
             {
                 "Id": "binbinaf254907-b471-45a0-8648-653a5c8b3ba7",
-                "DomainName": "binbinaf254907-b471-45a0-8648-653a5c8b3ba7.s3.amazonaws.com"",
+                "DomainName": "binbinaf254907-b471-45a0-8648-653a5c8b3ba7.s3.amazonaws.com",
                 "OriginPath": "",
                 "CustomHeaders": {
                     "Quantity": 0
