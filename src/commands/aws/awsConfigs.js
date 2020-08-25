@@ -213,3 +213,23 @@ export const changeSet = {
         },
     }
 }
+
+export const corsPolicy = {
+    "Bucket": "",
+    "CORSConfiguration": {
+        "CORSRules": [
+            {
+                "AllowedHeaders": [
+                    "Authorization"
+                ],
+                "AllowedMethods": [
+                    "GET"
+                ],
+                "AllowedOrigins": [
+                    "*"
+                ],
+                "MaxAgeSeconds": 3000
+            }
+        ]
+    },
+}

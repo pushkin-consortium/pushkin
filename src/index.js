@@ -10,7 +10,7 @@ import { execSync, exec } from 'child_process'; // eslint-disable-line
 // subcommands
 import { listExpTemplates, getExpTemplate,  } from './commands/experiments/index.js';
 import { listSiteTemplates, getPushkinSite, pushkinInit } from './commands/sites/index.js';
-import { awsInit, nameProject, addIAM, awsArmageddon } from './commands/aws/index.js'
+import { awsInit, nameProject, addIAM, awsArmageddon, awsList } from './commands/aws/index.js'
 import prep from './commands/prep/index.js';
 import { setupdb, setupTestTransactionsDB } from './commands/setupdb/index.js';
 import * as compose from 'docker-compose'
@@ -93,6 +93,17 @@ const handlePrep = async () => {
   return;  
 }
 
+const handleAWSList = async () => {
+  let useIAM
+  try {
+    useIAM = await inquirer.prompt([{ type: 'input', name: 'iam', message: 'Provide your AWS IAM username that you want to use for managing this project.'}])
+  } catch (e) {
+    console.error('Problem getting AWS IAM username.\n', e)
+    process.exit()
+  }
+  return awsList(useIAM.iam)
+}
+
 const handleAWSArmageddon = async () => {
   let useIAM
   try {
@@ -101,7 +112,7 @@ const handleAWSArmageddon = async () => {
     console.error('Problem getting AWS IAM username.\n', e)
     process.exit()
   }
-  return awsArmageddon(useIAM)
+  return awsArmageddon(useIAM.iam)
 }
 
 const getVersions = async (url) => {
@@ -318,7 +329,10 @@ async function main() {
 
   program
     .command('aws <cmd>')
-    .description(`For working with AWS. Commands include:\n init: initialize an AWS deployment.\n armageddon: delete all AWS resources (not just for this project, so be careful!)`)
+    .description(`For working with AWS. Commands include:\n 
+      init: initialize an AWS deployment.\n 
+      armageddon: delete AWS resources created by Pushkin.\n
+      list: list AWS resources created by Pushkin (and possibly others).`)
     .action(async (cmd) => {
       moveToProjectRoot();
       switch (cmd){
@@ -337,7 +351,15 @@ async function main() {
             console.error(e);
             process.exit();
           }
-
+          break;
+        case 'list':
+          try {
+            await handleAWSList();
+          } catch(e) {
+            console.error(e);
+            process.exit();
+          }
+          break;
         default: 
           console.error("Command not recognized. For help, run 'pushkin help aws'.")
       }
