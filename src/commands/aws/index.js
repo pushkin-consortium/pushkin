@@ -230,7 +230,7 @@ const deployFrontEnd = async (projName, awsName, useIAM, myDomain, myCertificate
     awsResources.cloudFrontId = theCloud.Id
     console.log(`Updating awsResources with cloudfront info`)
     try {
-      await fs.promises.writeFile(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
+      let temp = await fs.promises.writeFile(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
     } catch (e) {
       console.error(`Unable to update awsResources.js`)
     }    
@@ -321,7 +321,7 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
     awsResources.dbs = [dbName]
   }
   try {
-    await fs.promises.writeFile(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
+    let temp = await fs.promises.writeFile(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
   } catch (e) {
     console.error(`Unable to update awsResources.js`)
   }
@@ -492,7 +492,7 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs, ECS
     console.log('Waiting for ECS cluster to start...')
     awsResources.ECSName = ECSName
     try {
-      await fs.promises.writeFile(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
+      let temp = await fs.promises.writeFile(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
     } catch (e) {
       console.error(`Unable to update awsResources.js`)
     }    
@@ -827,7 +827,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
   const loadBalancerName = ECSName.concat("Balancer")
   awsResources.loadBalancerName = loadBalancerName
   try {
-    await fs.promises.writeFile(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
+    let temp = await fs.promises.writeFile(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
   } catch (e) {
     console.error(`Unable to update awsResources.js`)
   }    
@@ -849,7 +849,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
   const targGroupARN = JSON.parse(temp.stdout).TargetGroups[0].TargetGroupArn
   awsResources.targGroupARN = targGroupARN
   try {
-    await fs.promises.writeFile(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
+    let temp = await fs.promises.writeFile(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
   } catch (e) {
     console.error(`Unable to update awsResources.js`)
   }    
@@ -1491,12 +1491,12 @@ export const awsArmageddon = async (useIAM) => {
           }
           if (tempCheck) {
             distributionReady = (d.Enabled == false)
+            distributionExists = true
           }
         })    
       }
       if (!distributionExists) {
         console.error(`Unable to find cloudfront distribution. That is very strange.`)
-        throw e
       }
       return distributionReady
     }
@@ -1623,7 +1623,7 @@ export const awsArmageddon = async (useIAM) => {
 
   console.log(`Updating awsResources.js`)
   try {
-    await fs.promises.writeFile(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
+    let temp = await fs.promises.writeFile(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
   } catch (e) {
     console.error(`Unable to update awsResources.js`)
   }    

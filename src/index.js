@@ -96,7 +96,7 @@ const handlePrep = async () => {
 const handleAWSList = async () => {
   let useIAM
   try {
-    useIAM = await inquirer.prompt([{ type: 'input', name: 'iam', message: 'Provide your AWS IAM username that you want to use for managing this project.'}])
+    useIAM = await inquirer.prompt([{ type: 'input', name: 'iam', message: 'Provide your AWS profile username that you want to use for managing this project.'}])
   } catch (e) {
     console.error('Problem getting AWS IAM username.\n', e)
     process.exit()
@@ -130,7 +130,7 @@ const handleAWSArmageddon = async () => {
   console.log(`I hope you know what you are doing. This makes me nervous every time...`)
   let useIAM
   try {
-    useIAM = await inquirer.prompt([{ type: 'input', name: 'iam', message: 'Provide your AWS IAM username that you want to use for managing this project.'}])
+    useIAM = await inquirer.prompt([{ type: 'input', name: 'iam', message: 'Provide your AWS profile username that you want to use for managing this project.'}])
   } catch (e) {
     console.error('Problem getting AWS IAM username.\n', e)
     process.exit()
@@ -275,7 +275,7 @@ const handleAWSInit = async () => {
     }
   }
   try {
-    useIAM = await inquirer.prompt([{ type: 'input', name: 'iam', message: 'Provide your AWS IAM username that you want to use for managing this project.'}])
+    useIAM = await inquirer.prompt([{ type: 'input', name: 'iam', message: 'Provide your AWS profile username that you want to use for managing this project.'}])
   } catch (e) {
     console.error('Problem getting AWS IAM username.\n', e)
     process.exit()
