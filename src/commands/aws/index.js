@@ -155,7 +155,6 @@ const deployFrontEnd = async (projName, awsName, useIAM, myDomain, myCertificate
   console.log("Setting permissions")
   let myCORSPolicy = JSON.parse(JSON.stringify(corsPolicy))
   myCORSPolicy.Bucket = awsName 
-  console.log(`aws s3api put-bucket-cors --cli-input-json ${JSON.stringify(myCORSPolicy)} --profile ${useIAM}`)//FUBAR
   policy.Statement[0].Resource = "arn:aws:s3:::".concat(awsName).concat("/*")
   try {
     await exec(`aws s3 website s3://${awsName} --profile ${useIAM} --index-document index.html --error-document index.html`)
@@ -228,7 +227,6 @@ const deployFrontEnd = async (projName, awsName, useIAM, myDomain, myCertificate
       throw e
     }
 
-    awsResources.cloudFront = myCloudFront //need this for deletion later
     awsResources.cloudFrontId = theCloud.Id
     console.log(`Updating awsResources with cloudfront info`)
     try {
@@ -492,6 +490,13 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs, ECS
     }
 
     console.log('Waiting for ECS cluster to start...')
+    awsResources.ECSName = ECSName
+    try {
+      await fs.promises.writeFile(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
+    } catch (e) {
+      console.error(`Unable to update awsResources.js`)
+    }    
+
     return await wait();
   }
 
@@ -874,7 +879,6 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
   } catch(e) {
     throw e
   }
-  console.log('Waiting for ECS task creation to complete...')//FUBAR
   await createdECSTasks
   console.log(`Created ECS task definitions`)
 
@@ -1267,7 +1271,53 @@ export const awsArmageddon = async (useIAM) => {
 // accounts:
 //   "625162337273": {}
 
-  
+  let temp
+
+
+  const deleteCluster = async() => {
+    if (!awsResources.ECSName) {
+      console.log(`No cluster. Skipping.`)
+      return
+    }
+
+    try {
+      temp = await exec(`aws ecs describe-clusters --clusters ${awsResources.ECSName} --profile ${useIAM}`)
+    } catch (e) {
+      console.warn(`Unable to find ECS cluster ${awsResources.ECSName}. May have already been deleted.`)
+      awsResources.ECSName = null
+      return
+    }
+
+    console.log(`Stopping ECS services.`)
+    const yamls = fs.readdirSync(path.join(process.cwd(), 'ECSTasks'));
+    temp = await Promise.all([
+      yamls.forEach((yaml) => {
+        let composeCommand = `ecs-cli compose -f ${yaml} service down --cluster ${awsResources.ECSName} --ecs-profile ${useIAM}`
+        try {
+         temp = exec(composeCommand, { cwd: path.join(process.cwd(), "ECStasks")})
+        } catch(e) {
+          console.warn(`Unable to stop service ${yaml}.`)
+          consele.warn(e)
+        }
+      })
+    ])
+
+    console.log(`Deleting ECS Cluster ${awsResources.ECSName}.`)
+    try {
+      temp = await exec(`ecs-cli down --force --cluster ${awsResources.ECSName} --ecs-profile ${useIAM}`)
+    } catch (e) {
+      console.warn(`Unable to delete cluster ${awsResources.ECSName}.`)
+      console.warn(e)
+    }
+  }
+  let deletedCluster
+  try {
+    //deletedCluster = deleteCluster()    
+  } catch(e) {
+    //Nothing
+  }
+
+
   const deleteDatabases = async () => {
     if (awsResources.dbs == []) {
       console.log(`No databases. Skipping.`)
@@ -1275,9 +1325,21 @@ export const awsArmageddon = async (useIAM) => {
     }
 
     console.log(`Removing deletion protection from databases.`) 
+    let dbs = awsResources.dbs
     await Promise.all([
-      awsResources.dbs.forEach((db) => {
-        return exec(`aws rds modify-db-instance --db-instance-identifier ${db} --no-deletion-protection --apply-immediately --profile ${useIAM}`)
+      dbs.forEach((db) => {
+      try {  
+        temp = execSync(`aws rds describe-db-instances --db-instance-identifier ${db} --profile ${useIAM}`)
+      } catch (e) {
+        console.warn(`Unable to find database ${db}. Possibly it was already deleted.`)
+        let tempFunc = (x) => {
+          return x.filter((d) => {return (d != db)}) // remove from list
+        } 
+        awsResources.dbs = tempFunc(awsResources.dbs)
+        return
+      }
+      return exec(`aws rds modify-db-instance --db-instance-identifier ${db} --no-deletion-protection --apply-immediately --profile ${useIAM}`)
+
       })
     ])
 
@@ -1288,8 +1350,8 @@ export const awsArmageddon = async (useIAM) => {
       try {
         temp = execSync(`aws rds describe-db-instances --db-instance-identifier ${dbId} --profile ${useIAM}`).toString()
       } catch (e) {
-        console.error(`Unable to get information for db ${dbId}.`)
-        throw e
+        console.error(`Unable to get information for db ${dbId}. Possibly it was already deleted. Skipping`)
+        return
       }
       if (temp != "") {
         return (JSON.parse(temp).DBInstances[0].DeletionProtection == false)
@@ -1302,7 +1364,7 @@ export const awsArmageddon = async (useIAM) => {
       //Sometimes, I really miss loops
       if (awsResources.dbs.every((db) => {return checkDatabases(db)})) {
         await Promise.all([awsResources.dbs.map((db) => {
-          exec(`aws rds delete-db-instance --db-instance-identifier ${db} --skip-final-snapshot --profile ${useIAM}`)
+          temp = exec(`aws rds delete-db-instance --db-instance-identifier ${db} --skip-final-snapshot --profile ${useIAM}`)
         })])
         awsResources.dbs = []; //Hopefully they were actually deleted
         return true
@@ -1316,23 +1378,89 @@ export const awsArmageddon = async (useIAM) => {
     return await wait();
   }
 
-  let deletedDBs = deleteDatabases()
+  let deletedDBs 
+  try {
+    deletedDBs = deleteDatabases()
+  } catch(e) {
+    //Nothing
+  }
 
+  // const deleteStack = async () => {
+  //   try {
+  //     await exec(`aws cloudformation describe-stacks --stack-name ${'amazon-ecs-cli-setup-'.concat(awsResources.name)} --profile ${useIAM}`)
+  //   } catch (e) {
+  //     console.warn(`Unable to find cloudformation stack ${'amazon-ecs-cli-setup-'.concat(awsResources.name)}. May have already been deleted. Skipping.`)
+  //   }
+  //   try {
+  //     return exec(`aws cloudformation delete-stack --stack-name ${'amazon-ecs-cli-setup-'.concat(awsResources.name)} --profile ${useIAM}`)
+  //   } catch (e) {
+  //     console.error(`Unable to delete cloudformation stack ${'amazon-ecs-cli-setup-'.concat(awsResources.name)}.`)
+  //     console.error(e)
+  //     return
+  //   }
+  // }
+  // const deletedStack = deleteStack()
+
+  const deleteLoadBalancer = async () => {
+    let deletedLoadBalancer
+    if (awsResources.loadBalancerName) {
+      console.log(`Deleting load balancer`)
+      let temp
+      try {
+        temp = await exec(`aws elbv2 describe-load-balancers --names ${awsResources.loadBalancerName} --profile ${useIAM}`)
+      } catch(e) {
+        console.warn(`Unable to find load balancer ${awsResources.loadBalancerName}. May have already been deleted. Skipping.`)
+        awsResources.loadBalancerName = null
+        return
+      }
+      const loadBalancerARN = JSON.parse(temp.stdout).LoadBalancers[0].LoadBalancerArn
+      console.log('loadBalancerARN: ', loadBalancerARN)//FUBAR
+      console.log(temp)
+      try {
+        deletedLoadBalancer = exec(`aws elbv2 delete-load-balancer --load-balancer-arn ${loadBalancerARN} --profile ${useIAM}`)
+        awsResources.loadBalancerName = null
+      } catch (e) {
+        console.error(`Unable to delete load balancer ${awsResources.loadBalancerName}`)
+        console.error(e)
+      }    
+    } else {
+      console.log(`No load balancer. Skipping.`)
+    }
+
+    return deletedLoadBalancer    
+  }
+
+  let deletedLoadBalancer 
+  try {
+    deletedLoadBalancer = deleteLoadBalancer();
+  } catch(e) {
+    //Nothing
+  }
 
   const deleteCloudFront = async () => {
     if (!awsResources.cloudFrontId) {
       console.log(`No cloudfront distribution. Skipping.`)
       return
     }
+    let cloudConfig
+    try {
+      temp = await exec(`aws cloudfront get-distribution-config --id ${awsResources.cloudFrontId} --profile ${useIAM}`)
+      cloudConfig = JSON.parse(temp.stdout).DistributionConfig
+    } catch (e) {
+      console.log(`Cannot find cloudfront distribution ${awsResources.cloudFrontId}. May have already been deleted. Skipping.`)      
+      awsResources.cloudFrontETag = null
+      awsResources.cloudFrontId = null
+      return
+    }
 
     console.log(`Disabling cloudfront distribution`)
-    awsResources.cloudFront.Enabled = false
+    cloudConfig.Enabled = false
     let disableCloudFront
     try {
       disableCloudFront = exec(`aws cloudfront update-distribution \
         --id ${awsResources.cloudFrontId} \
         --if-match ${awsResources.cloudFrontETag} \
-        --distribution-config '${JSON.stringify(awsResources.cloudFront)}' --profile ${useIAM}`)        
+        --distribution-config '${JSON.stringify(cloudConfig)}' --profile ${useIAM}`)        
     } catch (e) {
       console.error(`Unable to disable cloudfront distribution.`)
       throw e
@@ -1362,7 +1490,6 @@ export const awsArmageddon = async (useIAM) => {
             throw e
           }
           if (tempCheck) {
-            console.log('distribution info\n', d)//FUBAR
             distributionReady = (d.Enabled == false)
           }
         })    
@@ -1381,7 +1508,6 @@ export const awsArmageddon = async (useIAM) => {
         console.log(`Cloudfront is disabled. Deleting.`)
         try {
           await exec(`aws cloudfront delete-distribution --id ${awsResources.cloudFrontId} --if-match ${awsResources.cloudFrontETag} --profile ${useIAM}`)
-          awsResources.cloudFront = null
           awsResources.cloudFrontETag = null
           awsResources.cloudFrontId = null
         } catch (e) {
@@ -1398,13 +1524,25 @@ export const awsArmageddon = async (useIAM) => {
     return await wait();
   }
 
-  const deletedCloudFront = deleteCloudFront();
+  let deletedCloudFront 
+  try {
+    deletedCloudFront = deleteCloudFront();
+  } catch(e) {
+    //Nothing
+  }
 
   const deleteBucket = async () => {
     if (awsResources.awsName) {
       console.log(`Deleting s3 bucket`)
       try {
-        await exec(`aws s3api delete-bucket --bucket ${awsResources.awsName} --profile ${useIAM}`)
+        await exec(`aws s3api get-bucket-policy --bucket ${awsResources.awsName} --profile ${useIAM}`)
+      } catch (e) {
+        console.warn(`Unable to find bucket ${awsResources.awsName}. May have already been deleted. Skipping.`)
+        awsResources.awsName = null;
+        return
+      }
+      try {
+        await exec(`aws s3 rb s3://${awsResources.awsName} --force --profile ${useIAM}`)
         awsResources.awsName = null;
         return
       } catch (e) {
@@ -1416,48 +1554,65 @@ export const awsArmageddon = async (useIAM) => {
     }
   }
 
-  let deletedBucket = deleteBucket();
+  let deletedBucket 
+  try {
+    deletedBucket = deleteBucket();
+  } catch(e) {
+    //nothing
+  }
 
-  let deletedTargetGroup
-  if (awsResources.targGroupARN){
-    console.log(`Deleting target group`)
-    try {
-      deletedTargetGroup = exec(`aws elbv2 delete-target-group --target-group-arn ${awsResources.targGroupARN} --profile ${useIAM}`)
-      awsResources.targGroupARN = null
-    } catch (e) {
-      console.error(`Unable to delete associated target group`)
-      console.error(e)
+  await Promise.all([ deletedCloudFront, deletedDBs, deletedBucket, deletedLoadBalancer ]);
+
+
+  const deleteTargetGroup = async () => {
+    let deletedTargetGroup
+    if (awsResources.targGroupARN){
+      console.log(`Deleting target group`)
+      try {
+        await exec(`aws elbv2 describe-target-groups --target-group-arns ${awsResources.targGroupARN} --profile ${useIAM}`)
+      } catch (e) {
+        console.warn(`Unable to find target group ${awsResources.targGroupARN}. May have already been deleted. Skipping.`)
+        awsResources.targGroupARN = null
+        return
+      }
+      try {
+        deletedTargetGroup = exec(`aws elbv2 delete-target-group --target-group-arn ${awsResources.targGroupARN} --profile ${useIAM}`)
+        awsResources.targGroupARN = null
+      } catch (e) {
+        console.error(`Unable to delete associated target group`)
+        console.error(e)
+      }
+    } else {
+      console.log(`No target group. Skipping.`)
     }
-  } else {
-    console.log(`No target group. Skipping.`)
+
+    return deletedTargetGroup
+  }
+  let deletedTargetGroup 
+  try {
+    deletedTargetGroup = deleteTargetGroup()    
+  } catch(e) {
+    //nothing
   }
 
-  let deletedLoadBalancer
-  if (awsResources.loadBalancerName) {
-    console.log(`Deleting load balancer`)
-    try {
-      deletedLoadBalancer = exec(`aws elb delete-load-balancer --load-balancer-name ${awsResources.loadBalancerName} --profile ${useIAM}`)
-      awsResources.loadBalancerName = null
-    } catch (e) {
-      console.error(`Unable to delete load balancer`)
-    }    
-  } else {
-    console.log(`No load balancer. Skipping.`)
-  }
-
-  await Promise.all([ deletedCloudFront, deletedDBs, deletedBucket, deletedTargetGroup ]);
 
   console.log(`Deleting security groups`)
   let deletedGroups
   try {
     deletedGroups = Promise.all(["BalancerGroup", "DatabaseGroup", "ECSGroup"].map(async (g) => {
+      let temp
       try {
         await exec(`aws ec2 describe-security-groups --group-names ${g} --profile ${useIAM}`)
       } catch (e) {
-        //No security group by that name.
+        //No security group by that name. Since we didn't keep track, this is not necessarily a surprise, so no warning message.
         return true
       }
-      return exec(`aws ec2 delete-security-group --group-name ${g} --profile ${useIAM}`)
+      try {
+        temp = exec(`aws ec2 delete-security-group --group-name ${g} --profile ${useIAM}`)
+      } catch(e) {
+        console.warn(`Unable to delete security group ${g}. PROBABLY this is because AWS needs something else to delete first.\n We recommend you retry 'pushkin aws armageddon' in a few minutes.`)
+      }
+      return temp
     }))
   } catch (e) {
     console.error(`Unable to delete one or more security groups.\n
@@ -1473,7 +1628,7 @@ export const awsArmageddon = async (useIAM) => {
     console.error(`Unable to update awsResources.js`)
   }    
 
-  await deletedGroups
+  await Promise.all([ deletedGroups, deletedCluster ])
 
   console.log(`The following resources were either not deleted or are still in the process of being deleted:`)
   await awsList(useIAM)

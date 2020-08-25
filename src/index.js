@@ -105,6 +105,29 @@ const handleAWSList = async () => {
 }
 
 const handleAWSArmageddon = async () => {
+  let nukeMe
+  try {
+    nukeMe = await inquirer.prompt([{ type: 'input', name: 'armageddon', message: `This command will DELETE your website. This cannot be undone.\n Are you SURE you want to do this?\n Confirm by typing 'armageddon'.`}])
+  } catch (e) {
+    console.error('Problem getting permission.\n', e)
+    process.exit()
+  }
+  if (nukeMe.armageddon != 'armageddon') {
+    console.log('That is probably wise. Exiting.')
+    return
+  }
+  let nukeMeTwice
+  try {
+    nukeMeTwice = await inquirer.prompt([{ type: 'input', name: 'armageddon', message: `Your database -- along with any data -- will be deleted.\n Confirm this is what you want by typing 'nuke my data'.`}])
+  } catch (e) {
+    console.error('Problem getting permission.\n', e)
+    process.exit()
+  }
+  if (nukeMeTwice.armageddon != 'nuke my data') {
+    console.log('That is probably wise. Exiting.')
+    return
+  }
+  console.log(`I hope you know what you are doing. This makes me nervous every time...`)
   let useIAM
   try {
     useIAM = await inquirer.prompt([{ type: 'input', name: 'iam', message: 'Provide your AWS IAM username that you want to use for managing this project.'}])
@@ -189,6 +212,13 @@ const inquirerPromise = async (type, name, message) => {
 
 const handleAWSInit = async () => {
   let temp
+
+  try {
+    execSync(`docker login`)
+  } catch (e) {
+    console.error(`Please log into DockerHub before continuing.\n Type '$ docker login' into the console.\n Provide your username and password when asked.`)
+    process.exit()
+  }
 
   try {
     console.log(`Setting front-end 'environment variable'`)
