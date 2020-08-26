@@ -70,7 +70,9 @@ description: >-
     * [Findings Page](advanced/modifying-site-template/findings-page.md)
     * [About Page](advanced/modifying-site-template/about-page.md)
     * [Feedback Page](advanced/modifying-site-template/feedback-page.md)
-  * [Testing Pushkin with Jest](advanced/testing-pushkin-with-jest.md)
+  * [Deployment](advanced/deployment/)
+    * [Deleting AWS](advanced/deployment/awsDeletion.md)
+
 * **Developers**
   * [Developing with Pushkin](developers/developing-with-pushkin.md)
   * [Getting Started on Development](developers/getting-started-on-development.md)
@@ -78,4 +80,5 @@ description: >-
     * [Understanding Docker](developers/getting-started-on-development.md#understanding-docker)
     * [Testing Pushkin Modules Locally](developers/getting-started-on-development.md#testing-pushkin-modules-locally)
     * [Pushkin jsPsych](https://github.com/pushkin-consortium/pushkin/tree/423120801ce745e971a197dd80d762db002b1749/docs-gitbook/developers/getting-started-on-development/README.md#pushkin-jspsych)
+  * [Testing Pushkin with Jest](advanced/testing-pushkin-with-jest.md)
 
