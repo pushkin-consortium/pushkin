@@ -42,11 +42,13 @@
   * [API Controller Builder](advanced/pushkin-api/api-controller-builder.md)
   * [Core API](advanced/pushkin-api/core-api.md)
 * [Users & Authentication](advanced/users-and-authentication.md)
-* [Testing Pushkin with Jest](advanced/testing-pushkin-with-jest.md)
+* [Deployment](advanced/deployment/)
+	* [Deleting AWS](advanced/deployment/awsDeletion.md)
 
 ## Developers
 
 * [Developing with Pushkin](developers/developing-with-pushkin.md)
 * [Getting Started on Development](developers/getting-started-on-development.md)
 * [Overview of Technologies](developers/overview-of-tech.md)
+* [Testing Pushkin with Jest](advanced/testing-pushkin-with-jest.md)
 
