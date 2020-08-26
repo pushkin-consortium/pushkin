@@ -64,12 +64,12 @@ export async function getPushkinSite(initDir, url) {
   try {
     response = await got(url);
     zipball_url = JSON.parse(response.body).assets[0].browser_download_url;
-    console.log(zipball_url)
+    console.log(zipball_url)//FUBAR
   } catch (error) {
     console.error('Unable to download from specified site. Make sure your internet is on. If it is on but this error repeats, ask for help on the Pushkin forum.');
     throw error;
   }
-  sa
+  await sa
     .get(zipball_url)
     .on('error', function(error){
       console.error('Download failed: ',error);

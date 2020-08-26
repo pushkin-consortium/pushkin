@@ -169,6 +169,7 @@ const handleInstall = async (what) => {
               [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version? (Recommend:'.concat(Object.keys(verList)[0]).concat(')')}]
             ).then(async (answers) => {
               await getPushkinSite(process.cwd(),verList[answers.version])
+              console.log(`gotten`)//FUBAR
               await setupTestTransactionsDB()
             })
           })
@@ -240,10 +241,7 @@ const handleAWSInit = async () => {
     process.exit()
   }
   
-  let projName;
-  let useIAM;
-  let awsName
-  let stdOut
+  let projName, useIAM, awsName, stdOut
 
   try {
     execSync('aws --version')
@@ -254,8 +252,9 @@ const handleAWSInit = async () => {
 
   let newProj = true
   if (config.info.projName) {
+    let myChoices = (config.info.projName ? [config.info.projName, 'new'] : ['new'])
     try {
-      projName = await inquirer.prompt([ { type: 'list', name: 'name', choices: [config.info.projName, 'new'], message: 'Which project?'}])
+      projName = await inquirer.prompt([ { type: 'list', name: 'name', choices: myChoices, message: 'Which project?'}])
     } catch (e) {
       throw e
     }
@@ -268,12 +267,18 @@ const handleAWSInit = async () => {
   if (newProj) {
     try {
       projName = await inquirer.prompt([ { type: 'input', name: 'name', message: 'Name your project'}])
-      awsName = await nameProject(projName.name)
     } catch(e) {
       console.error(e)
       process.exit()
     }
   }
+
+  try {
+      awsName = await nameProject(projName.name)    
+  } catch (e) {
+    throw e
+  }
+
   try {
     useIAM = await inquirer.prompt([{ type: 'input', name: 'iam', message: 'Provide your AWS profile username that you want to use for managing this project.'}])
   } catch (e) {
