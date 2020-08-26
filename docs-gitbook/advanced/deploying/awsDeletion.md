@@ -41,11 +41,11 @@ The CLI does its best to remove things it was responsible for creating. However,
 
 6. Wait a while (about 5 minutes). Once your distribution's state is displayed as 'Disabled', you can now select it and click 'Delete'. 
 
-7. Go back to the [EC2 service](https://console.aws.amazon.com/ec2). Select 'Security Groups'. Select all the security groups EXCEPT the one named 'default'. Then choose Actions->Delete. 
+7. Go back to the [EC2 service](https://console.aws.amazon.com/ec2). Select 'Security Groups'. Select all the security groups EXCEPT the one named 'default' (and, if you are developing on an AWS EC2 instance, the security group(s) you created when setting that up). Then choose Actions->Delete. 
 
 You may be told you can't delete one of the security groups because it is still in use. That's probably because the databases haven't finished deleting. Check to see if that's the case (go back to RDS). If so, wait a while longer, then try again.
 
-8. Go to the [S3 service](https://s3.console.aws.amazon.com/s3). Choose your s3 bucket(s) and click "Delete". 
+Finally, go to the [S3 service](https://s3.console.aws.amazon.com/s3). Choose your s3 bucket(s) and click "Delete". 
 
 ------
 
