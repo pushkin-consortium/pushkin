@@ -1271,6 +1271,7 @@ export const awsArmageddon = async (useIAM) => {
     console.log(`Deleting ECS Cluster ${awsResources.ECSName}.`)
     try {
       temp = await exec(`ecs-cli down --force --cluster ${awsResources.ECSName} --ecs-profile ${useIAM}`)
+      awsResources.ECSName = null
     } catch (e) {
       console.warn(`Unable to delete cluster ${awsResources.ECSName}.`)
       console.warn(e)
@@ -1502,7 +1503,7 @@ export const awsArmageddon = async (useIAM) => {
     }
 
     console.log('Waiting for cloudfront distribution to be disabled...')
-    return await wait();
+    return wait();
   }
 
   let deletedCloudFront 
@@ -1549,36 +1550,29 @@ export const awsArmageddon = async (useIAM) => {
 
   console.log(`Deleting security groups`)
   let deletedGroups
-  try {
-    deletedGroups = Promise.all(["BalancerGroup", "DatabaseGroup", "ECSGroup"].map(async (g) => {
-      let temp
-      try {
-        await exec(`aws ec2 describe-security-groups --group-names ${g} --profile ${useIAM}`)
-      } catch (e) {
-        //No security group by that name. Since we didn't keep track, this is not necessarily a surprise, so no warning message.
-        return true
-      }
-      try {
-        temp = exec(`aws ec2 delete-security-group --group-name ${g} --profile ${useIAM}`)
-      } catch(e) {
-        console.warn(`Unable to delete security group ${g}. PROBABLY this is because AWS needs something else to delete first.\n We recommend you retry 'pushkin aws armageddon' in a few minutes.`)
-        return true
-      }
-      return temp
-    }))
-  } catch (e) {
-    console.error(`Unable to delete one or more security groups.\n
-      This is probably because an attached resource had not finished deleting.
-      You may wish to run this command again in a few minutes.`)
-    console.error(e)
+
+  const deleteMyGroup = async (g) => {
+    let temp
+    try {
+      await exec(`aws ec2 describe-security-groups --group-names ${g} --profile ${useIAM}`)
+    } catch (e) {
+      //No security group by that name. Since we didn't keep track, this is not necessarily a surprise, so no warning message.
+      return true
+    }
+    try {
+      return exec(`aws ec2 delete-security-group --group-name ${g} --profile ${useIAM}`)
+    } catch(e) {
+      console.warn(`Unable to delete security group ${g}. PROBABLY this is because AWS needs something else to delete first.\n We recommend you retry 'pushkin aws armageddon' in a few minutes.`)
+      console.warn(e)
+      return true
+    }
   }
 
-  console.log(`Updating awsResources.js`)
   try {
-    await fs.promises.writeFile(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
+    deletedGroups = Promise.all(["BalancerGroup", "DatabaseGroup", "ECSGroup"].map(deleteMyGroup))
   } catch (e) {
-    console.error(`Unable to update awsResources.js`)
-  }    
+    // Do nothing
+  }
 
   await Promise.all([ deletedGroups, deletedCluster ])
 
@@ -1613,6 +1607,13 @@ export const awsArmageddon = async (useIAM) => {
   }
 
   await Promise.all([ deletedBucket ])
+
+  console.log(`Updating awsResources.js`)
+  try {
+    await fs.promises.writeFile(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
+  } catch (e) {
+    console.error(`Unable to update awsResources.js`)
+  }    
 
   console.log(`The following resources were either not deleted or are still in the process of being deleted:`)
   await awsList(useIAM)
