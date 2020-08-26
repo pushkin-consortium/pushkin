@@ -75,7 +75,14 @@ Run:
 $ pushkin aws init
 ```
 
-You should be asked to name your project, to enter the aws profile you want to use, choose a security certificate, and choose a domain name. In the latter two cases, the certificate and domain you created in the steps above should be available as options (if not, check that you ). you will be able to choose from available options. The ones you created in the steps above should be visible. 
+You should be asked to name your project, to enter the aws profile you want to use, choose a security certificate, and choose a domain name. In the latter two cases, the certificate and domain you created in the steps above should be available as options (if not, check that you completed those steps and can see the resources in the AWS console).
 
-...To be continued
+When the program successfully completes, you should be able to navigate to your website at your chosen domain.
 
+### What do I do if aws init crashes?
+
+Deploying to AWS is very complicated. Sometimes, it will fail. Try debugging by doing the following in the following order:
+
+1. Try rerunning `pushkin aws init`.
+2. Try deleting your deploy (`$ pushkin aws armageddon`) and starting over.
+3. Ask for help on the [Pushkin forum](https://github.com/pushkin-consortium/pushkin/discussions). Post ALL of the output from your run of aws init.
