@@ -18,3 +18,6 @@ Then to clear the port, run the following (replacing `<PID>` with the PID(s) lis
 ### homebrew install not working
 
 Homebrew is not compatible with some shells such as tcsh, try using bash or xsh instead.
+
+### Error: The migration directory is corrupt in `pushkin prep`
+This can happen when your database is still configured for another Pushkin site set up on your system. Pushkin does not currently support two active Pushkin sites at the same time, so if you would like to switch between Pushkin sites you're working on, you'll have to run `pushkin kill` before running `pushkin prep`.
