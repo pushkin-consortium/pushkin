@@ -42,8 +42,8 @@
   * [API Controller Builder](advanced/pushkin-api/api-controller-builder.md)
   * [Core API](advanced/pushkin-api/core-api.md)
 * [Users & Authentication](advanced/users-and-authentication.md)
-* [Deployment](advanced/deployment/)
-	* [Deleting AWS](advanced/deployment/awsDeletion.md)
+* [Deployment](advanced/deploying/)
+	* [Deleting AWS](advanced/deploying/awsDeletion.md)
 
 ## Developers
 

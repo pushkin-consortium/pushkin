@@ -70,8 +70,8 @@ description: >-
     * [Findings Page](advanced/modifying-site-template/findings-page.md)
     * [About Page](advanced/modifying-site-template/about-page.md)
     * [Feedback Page](advanced/modifying-site-template/feedback-page.md)
-  * [Deployment](advanced/deployment/)
-    * [Deleting AWS](advanced/deployment/awsDeletion.md)
+  * [Deployment](advanced/deploying/)
+    * [Deleting AWS](advanced/deploying/awsDeletion.md)
 
 * **Developers**
   * [Developing with Pushkin](developers/developing-with-pushkin.md)
