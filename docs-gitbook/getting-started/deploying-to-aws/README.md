@@ -6,7 +6,7 @@ Deploy your basic Pushkin site and experiments to Amazon Web Services.
 
 Before you begin, make sure your have:
  
-1. Finished the [Quickstart](../quickstart/README.md). 
+1. Finished the [Quickstart](../quickstart/README.md), including [installing a Postgres manager](../quickstart/README.md##viewing-your-database-with-a-postgres-manager). 
 2. Created an [Amazon Web Services](https://aws.amazon.com/free/?all-free-tier.sort-by=item.additionalFields.SortRank&all-free-tier.sort-order=asc) account. (**Note:** This must be done approximately 24 hours in advance of when you would like to follow this tutorial.) 
 
 ## AWS Deployment Steps
