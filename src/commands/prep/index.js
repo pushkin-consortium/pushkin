@@ -48,6 +48,16 @@ const publishLocalPackage = async (modDir, modName) => {
   })
 };
 
+export function updatePushkinJs() {
+  try {
+    console.log(`Writing out front-end config`)
+    const tempConfig = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'pushkin.yaml')))
+    fs.writeFileSync(path.join(process.cwd(), 'pushkin/front-end/src', '.pushkin.js'), `export const pushkinConfig = ${JSON.stringify(tempConfig)}`)
+  } catch(e) {
+    console.error(`Unable to create .pushkin.js`)
+    throw e
+  }  
+}
 
 // prepare a single experiment's api controllers
 const prepApi = async (expDir, controller) => {
@@ -355,13 +365,11 @@ export default async (experimentsDir, coreDir) => {
 
 
   try {
-    console.log(`Writing out front-end config`)
-    const tempConfig = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'pushkin.yaml')))
-    fs.writeFileSync(path.join(process.cwd(), 'pushkin/front-end/src', '.pushkin.js'), `export const pushkinConfig = ${JSON.stringify(tempConfig)}`)
+    updatePushkinJs() //This is synchronous
   } catch(e) {
-    console.error(`Unable to create .pushkin.js`)
     throw e
   }
+
   try {
     console.log(`Setting front-end 'environment variable'`)
     fs.writeFileSync(path.join(process.cwd(), 'pushkin/front-end/src', '.env.js'), `export const debug = true`)

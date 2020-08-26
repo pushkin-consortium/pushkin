@@ -7,6 +7,7 @@ import { execSync } from 'child_process'; // eslint-disable-line
 import jsYaml from 'js-yaml';
 import { policy, cloudFront, dbConfig, rabbitTask, apiTask, workerTask, changeSet, corsPolicy, disableCloudfront } from './awsConfigs.js'
 import { setupTransactionsDB, runMigrations, getMigrations } from '../setupdb/index.js';
+import { updatePushkinJs } from '../prep/index.js'
 import inquirer from 'inquirer'
 const exec = util.promisify(require('child_process').exec);
 const mkdir = util.promisify(require('fs').mkdir);
@@ -971,6 +972,7 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
   try {
     await fs.promises.writeFile(path.join(process.cwd(), 'pushkin.yaml'), jsYaml.safeDump(pushkinConfig), 'utf8')
     console.log(`Successfully updated pushkin.yaml with custom domain.`)
+    updatePushkinJs()
   } catch(e) {
     throw e
   }
