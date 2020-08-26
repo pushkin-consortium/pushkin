@@ -11,15 +11,6 @@ import inquirer from 'inquirer'
 const exec = util.promisify(require('child_process').exec);
 const mkdir = util.promisify(require('fs').mkdir);
 
-let awsResources = {} //needs to  be accessible everywhere
-try {
-  const resourcesPath = path.join(process.cwd(), 'awsResources.js')
-  awsResources = jsYaml.safeLoad(fs.readFileSync(resourcesPath, 'utf8'));
-} catch(e) {
-  //Hopefully ignoring this doesn't cause a problem.
-  //Otherwise, even `pushkin install site` throws this error.
-}
-
 const publishToDocker = function (DHID) {
   console.log("Building API")
   try {
@@ -226,12 +217,14 @@ const deployFrontEnd = async (projName, awsName, useIAM, myDomain, myCertificate
       throw e
     }
 
-    awsResources.cloudFrontId = theCloud.Id
     console.log(`Updating awsResources with cloudfront info`)
     try {
-      await fs.promises.writeFile(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
+      let awsResources = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
+      awsResources.cloudFrontId = theCloud.Id
+      fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
     } catch (e) {
       console.error(`Unable to update awsResources.js`)
+      console.error(e)
     }    
   }
 
@@ -314,16 +307,19 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
   }
 
   //Updating list of AWS resources
-  if (awsResources.dbs) {
-    awsResources.dbs.push(dbName)
-  } else {
-    awsResources.dbs = [dbName]
-  }
+  console.log('Updated awsResources with db information')
   try {
-    await fs.promises.writeFile(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
+    let awsResources = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
+    if (awsResources.dbs) {
+      awsResources.dbs.push(dbName)
+    } else {
+      awsResources.dbs = [dbName]
+    }
+    fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
   } catch (e) {
     console.error(`Unable to update awsResources.js`)
-  }
+    console.error(e)
+  }    
 
   dbPassword = Math.random().toString() //Pick random password for database
   let myDBConfig = JSON.parse(JSON.stringify(dbConfig));
@@ -453,14 +449,17 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs, ECS
       }
     }
 
-    console.log('Waiting for ECS cluster to start...')
-    awsResources.ECSName = ECSName
+    console.log(`Updated awsResources with ECS information`)
     try {
-      await fs.promises.writeFile(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
+      let awsResources = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
+      awsResources.ECSName = ECSName
+      fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
     } catch (e) {
       console.error(`Unable to update awsResources.js`)
+      console.error(e)
     }    
 
+    console.log('Waiting for ECS cluster to start...')
     return await wait();
   }
 
@@ -788,11 +787,15 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
   console.log(`Creating application load balancer`)
   if (!foundBalancerGroup) {BalancerSecurityGroupID = await madeBalancerGroup}
   const loadBalancerName = ECSName.concat("Balancer")
-  awsResources.loadBalancerName = loadBalancerName
+
   try {
-    await fs.promises.writeFile(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
+    console.log(`Updating awsResources.js with load balancer info`)
+    let awsResources = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
+    awsResources.loadBalancerName = loadBalancerName
+    fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
   } catch (e) {
     console.error(`Unable to update awsResources.js`)
+    console.error(e)
   }    
 
   let madeBalancer
@@ -810,11 +813,14 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
     throw e
   }
   const targGroupARN = JSON.parse(temp.stdout).TargetGroups[0].TargetGroupArn
-  awsResources.targGroupARN = targGroupARN
   try {
-    await fs.promises.writeFile(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
+    console.log(`Updating awsResources.js with target group info`)
+    let awsResources = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
+    awsResources.targGroupARN = targGroupARN
+    fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
   } catch (e) {
     console.error(`Unable to update awsResources.js`)
+    console.error(e)
   }    
 
   temp = await madeBalancer //need this for the next step
@@ -1176,7 +1182,7 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
 export async function nameProject(projName) {
   console.log(`Recording project name`)
   let awsResources = {}
-  let stdOut;
+  let stdOut, temp, pushkinConfig;
   awsResources.name = projName;
   awsResources.awsName = projName.replace(/[^\w\s]/g, "").replace(/ /g,"-").concat(uuid()).toLowerCase();
   try {
@@ -1185,6 +1191,26 @@ export async function nameProject(projName) {
     console.error(`Could not write to the pushkin CLI's AWS config file. This is a very strange error. Please contact the dev team.`)
     throw e
   }
+
+  console.log("Resetting db info")
+  try {
+    temp = await fs.promises.readFile(path.join(process.cwd(), 'pushkin.yaml'), 'utf8')
+    pushkinConfig = jsYaml.safeLoad(temp)
+  } catch (e) {
+    console.error(`Couldn't load pushkin.yaml`)
+    throw e;
+  }
+
+  pushkinConfig.productionDBs = {};
+
+  console.log("Resetting db info")
+  try {
+    await fs.promises.writeFile(path.join(process.cwd(), 'pushkin.yaml'), jsYaml.safeDump(pushkinConfig), 'utf8')
+  } catch (e) {
+    console.error(`Couldn't save pushkin.yaml`)
+    throw e;
+  }
+
   return awsResources.awsName
 }
 
@@ -1236,7 +1262,12 @@ export const awsArmageddon = async (useIAM) => {
 // accounts:
 //   "625162337273": {}
 
-  let temp
+  let temp, awsResources
+  try {
+    awsResources = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
+  } catch (e) {
+    console.error(`Unable to load awsResources.js`)
+  }    
 
   const deleteCluster = async() => {
     if (!awsResources.ECSName) {
@@ -1474,36 +1505,41 @@ export const awsArmageddon = async (useIAM) => {
       return distributionReady
     }
 
-    const wait = async () => {
-      //Sometimes, I really miss loops
-      let temp
-      let x = await checkCloudFront()
-      if (x) {
-        console.log(`Cloudfront is disabled. Deleting.`)
-        try {
-          await exec(`aws cloudfront delete-distribution --id ${awsResources.cloudFrontId} --if-match ${ETag} --profile ${useIAM}`)
-          awsResources.cloudFrontId = null
-        } catch (e) {
-          console.error(`Unable to delete cloudfront distribution`)
-          try {
-            return exec(`aws cloudfront get-distribution --id ${awsResources.cloudFrontId} --profile ${useIAM}`)
-          } catch (e) {
-            console.error(e)
-            if (JSON.parse(temp.stdout).Distribution.Status != "InProgress") {
-              console.error(`Unable to delete cloudfront distribution. It may be worth running pushkin aws armageddon again.`)
-              return
-            }
-          }
-          console.error(e)
-        }
-      } else {
-        console.log('Waiting for cloudfront distribution to be disabled...')
-        setTimeout( wait, 10000 );
-      }
-    }
+    return new Promise((resolve, reject) => {
 
-    console.log('Waiting for cloudfront distribution to be disabled...')
-    return wait();
+      const wait = async () => {
+        //Sometimes, I really miss loops
+        let temp
+        let x = await checkCloudFront()
+        if (x) {
+          console.log(`Cloudfront is disabled. Deleting.`)
+          try {
+            await exec(`aws cloudfront delete-distribution --id ${awsResources.cloudFrontId} --if-match ${ETag} --profile ${useIAM}`)
+            awsResources.cloudFrontId = null
+            resolve(true)
+          } catch (e) {
+            console.error(`Unable to delete cloudfront distribution`)
+            try {
+              resolve(exec(`aws cloudfront get-distribution --id ${awsResources.cloudFrontId} --profile ${useIAM}`))
+            } catch (e) {
+              console.error(e)
+              if (JSON.parse(temp.stdout).Distribution.Status != "InProgress") {
+                console.error(`Unable to delete cloudfront distribution. It may be worth running pushkin aws armageddon again.`)
+                resolve(false)
+              }
+            }
+            console.error(e)
+          }
+        } else {
+          console.log('Waiting for cloudfront distribution to be disabled...')
+          setTimeout( wait, 15000 );
+        }
+      }
+
+      console.log('Waiting for cloudfront distribution to be disabled...')
+      wait();
+    })
+
   }
 
   let deletedCloudFront 
@@ -1547,6 +1583,7 @@ export const awsArmageddon = async (useIAM) => {
     //nothing
   }
 
+  await Promise.all([ deletedCluster, deletedTargetGroup ])
 
   console.log(`Deleting security groups`)
   let deletedGroups
@@ -1573,8 +1610,6 @@ export const awsArmageddon = async (useIAM) => {
   } catch (e) {
     // Do nothing
   }
-
-  await Promise.all([ deletedGroups, deletedCluster ])
 
   const deleteBucket = async () => {
     if (awsResources.awsName) {
@@ -1613,6 +1648,7 @@ export const awsArmageddon = async (useIAM) => {
     await fs.promises.writeFile(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
   } catch (e) {
     console.error(`Unable to update awsResources.js`)
+    console.error(e)
   }    
 
   console.log(`The following resources were either not deleted or are still in the process of being deleted:`)
