@@ -14,9 +14,9 @@ Before you begin, make sure your have:
 * [Install required software.](./install-required-software.md)
 * [Configure the AWS and ECS CLIs.](./configure-aws-and-ecs-clis.md)
 * [Register a domain.](./domain-registration.md)
+* [Set up DockerHub.](./dockerhub.md)
+* [Initialize AWS Deploy](./initializing-aws-deploy.md)
 
-
-**This documentation is not yet complete. To be continued...**
 
 
 

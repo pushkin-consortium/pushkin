@@ -14,7 +14,8 @@
   * [Install required software.](getting-started/deploying-to-aws/install-required-software.md)
   * [Configure the AWS and ECS CLIs.](getting-started/deploying-to-aws/configure-aws-and-ecs-clis.md)
   * [Register a domain.](getting-started/deploying-to-aws/domain-registration.md)
-
+  * [Set up DockerHub.](getting-started/deploying-to-aws/dockerhub.md)
+  * [Initialize AWS Deploy.](getting-started/deploying-to-aws/initializing-aws-deploy.md)
 
 * [Tutorial: Simple Experiment](getting-started/tutorial-simple-experiment.md)
 
