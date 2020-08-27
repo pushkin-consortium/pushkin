@@ -37,7 +37,7 @@ class quizComponent extends React.Component {
     this.setState({ experimentStarted: true });
 
     jsPsych.data.addProperties({user_id: this.props.userID}); //See https://www.jspsych.org/core_library/jspsych-data/#jspsychdataaddproperties
-    await pushkin.connect('/api/pushkintemplate');
+    await pushkin.connect(this.props.api);
     await pushkin.prepExperimentRun(this.props.userID);
     await pushkin.loadScripts([
       'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/plugins/jspsych-html-keyboard-response.js',

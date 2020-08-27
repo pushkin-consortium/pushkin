@@ -12,11 +12,11 @@ worker:
       - message-queue
       - test_db
     environment:
-      - "AMQP_ADDRESS=amqp://message-queue:5672"
-      - "DB_USER=postgres"
-      - "DB_PASS="
-      - "DB_URL=test_db"
-      - "DB_NAME=test_db"
+      AMQP_ADDRESS: 'amqp://message-queue:5672'
+      DB_USER: "postgres"
+      DB_PASS: "example"
+      DB_URL: "test_db"
+      DB_NAME: "test_db"     
 webPage:
   location: 'web page'
 migrations:

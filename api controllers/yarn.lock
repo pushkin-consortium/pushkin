@@ -1171,6 +1171,14 @@ core-util-is@~1.0.0:
   resolved "https://registry.yarnpkg.com/core-util-is/-/core-util-is-1.0.2.tgz#b5fd54220aa2bc5ab57aab7140c940754503c1a7"
   integrity sha1-tf1UIgqivFq1eqtxQMlAdUUDwac=
 
+cors@^2.8.5:
+  version "2.8.5"
+  resolved "https://registry.yarnpkg.com/cors/-/cors-2.8.5.tgz#eac11da51592dd86b9f06f6e7ac293b3df875d29"
+  integrity sha512-KIHbLJqu73RGr/hnbrO9uBeixNGuvSQjul/jdFvS/KFSIH1hWVd1ng7zOHx+YrEfInLG7q4n6GHQ9cDtxv/P6g==
+  dependencies:
+    object-assign "^4"
+    vary "^1"
+
 debug@2.6.9, debug@^2.2.0, debug@^2.3.3, debug@~2.6.9:
   version "2.6.9"
   resolved "https://registry.yarnpkg.com/debug/-/debug-2.6.9.tgz#5d128515df134ff327e90a4c93f4e077a536341f"
@@ -1932,6 +1940,11 @@ normalize-path@^3.0.0:
   resolved "https://registry.yarnpkg.com/normalize-path/-/normalize-path-3.0.0.tgz#0dcd69ff23a1c9b11fd0978316644a0388216a65"
   integrity sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==
 
+object-assign@^4:
+  version "4.1.1"
+  resolved "https://registry.yarnpkg.com/object-assign/-/object-assign-4.1.1.tgz#2109adc7965887cfc05cbbd442cac8bfbb360863"
+  integrity sha1-IQmtx5ZYh8/AXLvUQsrIv7s2CGM=
+
 object-copy@^0.1.0:
   version "0.1.0"
   resolved "https://registry.yarnpkg.com/object-copy/-/object-copy-0.1.0.tgz#7e7d858b781bd7c991a41ba975ed3812754e998c"
@@ -2042,15 +2055,16 @@ proxy-addr@~2.0.5:
     forwarded "~0.1.2"
     ipaddr.js "1.9.1"
 
-pushkin-api@^1.5.2:
-  version "1.5.2"
-  resolved "https://registry.yarnpkg.com/pushkin-api/-/pushkin-api-1.5.2.tgz#712b7baf9a0f67f484d741cdc8d809a25b19c1f2"
-  integrity sha512-xtsb9A65U6p9BY+Ix6RAb97JPKdXvSEV29H8WiURSV47DmBt+QUHV15KU6XxNM3NkUiOIlLISQaQkqSnfFvYBg==
+pushkin-api@^1.5.4:
+  version "1.5.4"
+  resolved "https://registry.yarnpkg.com/pushkin-api/-/pushkin-api-1.5.4.tgz#e971871739a5cb52fa62961ca943e5e929f77bbd"
+  integrity sha512-HEw452yzEx0Zvv+RcSwo9A14yrSGvEXpBRYEsKFvC22oAHIeWYWKIhLTwSE5TwMyvbKGDcQnOwvA39kNklub+A==
   dependencies:
     amqplib "^0.6.0"
     body-parser "^1.19.0"
     cookie-session "^1.4.0"
     core-js "^3.6.5"
+    cors "^2.8.5"
     express "^4.17.1"
     regenerator-runtime "^0.13.5"
     uuid "^8.2.0"
@@ -2524,7 +2538,7 @@ uuid@^8.2.0:
   resolved "https://registry.yarnpkg.com/uuid/-/uuid-8.2.0.tgz#cb10dd6b118e2dada7d0cd9730ba7417c93d920e"
   integrity sha512-CYpGiFTUrmI6OBMkAdjSDM0k5h8SkkiTP4WAjQgDgNB1S3Ou9VBEvr6q0Kv2H1mMk7IWfxYGpMH5sd5AvcIV2Q==
 
-vary@~1.1.2:
+vary@^1, vary@~1.1.2:
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/vary/-/vary-1.1.2.tgz#2299f02c6ded30d4a5961b0b9f74524a18f634fc"
   integrity sha1-IpnwLG3tMNSllhsLn3RSShj2NPw=

@@ -907,10 +907,10 @@ postgres-interval@^1.1.0:
   dependencies:
     xtend "^4.0.0"
 
-pushkin-worker@^1.4.0:
-  version "1.4.0"
-  resolved "https://registry.yarnpkg.com/pushkin-worker/-/pushkin-worker-1.4.0.tgz#a88b179d3f25d964237b15dfe6915de8ba429425"
-  integrity sha512-ZsIEfmCJ9BiPVkwr9CrY49JakaFF22UrcpvI2EcMqp5iVc+dG1MLUDVRPIpFy3RhJ0rnITet2YMiesHAz7nemQ==
+pushkin-worker@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/pushkin-worker/-/pushkin-worker-2.0.0.tgz#5a8e773e0e2eddfb58df683fc7ce341641ce476d"
+  integrity sha512-pGTUVHyZNqb0042a12vBg89tSfr6SPI5/eUjRnBGqvOUzaB7AwCTa/qHuYroXe3QyLVinDtvTbHBO7MW6zi4xg==
   dependencies:
     "@babel/polyfill" "^7.7.0"
     amqplib "^0.6.0"
