@@ -84,7 +84,7 @@ When the program successfully completes, you should be able to navigate to your 
 Deploying to AWS is very complicated. Sometimes, it will fail. Try debugging by doing the following in the following order:
 
 1. Try rerunning `pushkin aws init`.
-2. Try deleting your deploy (`$ pushkin aws armageddon`) and starting over.
+2. Try deleting your deploy (`$ pushkin aws armageddon`) and then running (`$ pushkin aws init --force`). The `--force` tag insures that any local aws config information is reset.
 3. Ask for help on the [Pushkin forum](https://github.com/pushkin-consortium/pushkin/discussions). Post ALL of the output from your run of aws init.
 
 ## Deleting your AWS deploy
