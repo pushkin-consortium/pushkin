@@ -9,9 +9,9 @@ import 'regenerator-runtime/runtime';
 import { execSync, exec } from 'child_process'; // eslint-disable-line
 // subcommands
 import { listExpTemplates, getExpTemplate,  } from './commands/experiments/index.js';
-import { listSiteTemplates, getPushkinSite, pushkinInit } from './commands/sites/index.js';
+import { listSiteTemplates, getPushkinSite } from './commands/sites/index.js';
 import { awsInit, nameProject, addIAM, awsArmageddon, awsList } from './commands/aws/index.js'
-import prep from './commands/prep/index.js';
+import { prep, setEnv } from './commands/prep/index.js';
 import { setupdb, setupTestTransactionsDB } from './commands/setupdb/index.js';
 import * as compose from 'docker-compose'
 import { Command } from 'commander'
@@ -222,9 +222,10 @@ const handleAWSInit = async (force) => {
 
   try {
     console.log(`Setting front-end 'environment variable'`)
-    fs.writeFileSync(path.join(process.cwd(), 'pushkin/front-end/src', '.env.js'), `export const debug = false`)
+    setEnv(false)
   } catch (e) {
     console.error(`Unable to create .env.js`)
+    throw e
   }
 
   let config
@@ -235,7 +236,7 @@ const handleAWSInit = async (force) => {
     throw e
   }
 
-  if (config.DockerHubID == null) {
+  if (config.DockerHubID == '') {
     console.error(`Your DockerHub ID has not been configured. Please be sure you have a valid DockerHub ID and then run 'pushkin setDockerHub'.`)
     process.exit()
   }
@@ -347,13 +348,6 @@ async function main() {
 //    .option('-p, --pizza-type <type>', 'flavour of pizza');
 
   program
-    .command('config [what]')
-    .description('View config file for `what`, with possible values being `site` or any of the installed experiments by name. Defaults to all.')
-    .action((what) => {
-      handleViewConfig(what)
-    });
-
-  program
     .command('install <what>')
     .description(`Install template website ('site') or experiment ('experiment').`)
     .action((what) => {
@@ -409,13 +403,6 @@ async function main() {
     });
 
   program
-    .command('init')
-    .description(`Primarily for development. Don't use.`)
-    .action(() => {
-      pushkinInit();
-    })
-
-  program
     .command('setDockerHub')
     .description(`Set (or change) your DockerHub ID. This must be run before deploying to AWS.`)
     .action(() => {
@@ -440,11 +427,6 @@ async function main() {
           }
         })
     })
-
-  program
-    .command('updateDB')
-    .description('Updates test database. This is automatically run as part of `pushkin prep`, so you are unlikely to need to use it directly.')
-    .action(handleUpdateDB)
 
   program
     .command('prep')
@@ -475,7 +457,7 @@ async function main() {
       moveToProjectRoot();
       try {
         console.log(`Setting front-end 'environment variable'`)
-        fs.writeFileSync(path.join(process.cwd(), 'pushkin/front-end/src', '.env.js'), `export const debug = true`)
+        setEnv(true) //this is synchronous
       } catch (e) {
         console.error(`Unable to update .env.js`)
       }
@@ -530,13 +512,6 @@ async function main() {
     .action(killLocal)
 
   program
-    .command('setup-transaction-db')
-    .description('This is included for backwards compatibility. You probably will not need. Creates a local transactions db.')
-    .action(async () => {
-      await setupTestTransactionsDB()
-    })
-
-  program
     .command('armageddon')
     .description('Complete reset of the local docker. This will generate some error messages, which you can safely ignore.')
     .action(async () => {
@@ -547,6 +522,42 @@ async function main() {
       }
       return;
     })
+
+  program
+    .command('config [what]')
+    .description('View config file for `what`, with possible values being `site` or any of the installed experiments by name. Defaults to all.')
+    .action((what) => {
+      handleViewConfig(what)
+    });
+
+  program
+    .command('utils <cmd>')
+    .description(`Functions that are useful for backwards compatibility or debugging.\n
+      init: Updates test database. This is automatically run as part of 'pushkin prep'.\n
+      setup-transaction-db: Creates a local transactions db. Useful for users of old site templates who wish to use CLI v2+.`)
+    .action(async (cmd) => {
+      moveToProjectRoot();
+      switch (cmd){
+        case 'updateDB':
+          try {
+            await handleUpdateDB();
+          } catch(e) {
+            console.error(e)
+            process.exit();
+          }
+          break;
+        case 'setup-transaction-db':
+          try {
+            await setupTestTransactionsDB();
+          } catch(e) {
+            console.error(e);
+            process.exit();
+          }
+          break;
+        default: 
+          console.error("Command not recognized. For help, run 'pushkin help utils'.")
+      }
+    });
 
    program.parseAsync(process.argv);
 }

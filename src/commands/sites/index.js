@@ -8,7 +8,7 @@ import * as compose from 'docker-compose'
 const exec = util.promisify(require('child_process').exec);
 import { templates } from './templates.js';
 import { execSync } from 'child_process'; // eslint-disable-line
-import { updatePushkinJs } from '../prep/index.js'
+import { updatePushkinJs, setEnv } from '../prep/index.js'
 const shell = require('shelljs');
 import pacMan from '../../pMan.js';  //which package manager is available?
 
@@ -22,7 +22,8 @@ export const promiseFolderInit = async (initDir, dir) => {
   try {
     await exec(pacMan.concat(' install --mutex network'), { cwd: path.join(initDir, dir) })
     console.log(`Building ${dir}`);
-    updatePushkinJs();
+    updatePushkinJs(); //synchronous
+    setEnv(false); //synchronous
     console.log(`Building front end`)
     await exec(pacMan.concat(' run build'), { cwd: path.join(initDir, dir) })
     console.log(`${dir} is built`);
@@ -95,24 +96,24 @@ export async function getPushkinSite(initDir, url) {
   })
 }
 
-export async function pushkinInit() {
-  //Deprecated. Shouldn't really need this. Keeping it as a useful example of working with Docker.
-  //However, the same thing can be achieved by adding 'POSTGRES_DB: test_db' to the docker-compose environment variables.
-      const dbPromise = compose.upOne('test_db', {cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml'})
-        .then((resp) => resp, err => console.log('something went wrong starting database container:', err))
+// export async function pushkinInit() {
+//   //Deprecated. Shouldn't really need this. Keeping it as a useful example of working with Docker.
+//   //However, the same thing can be achieved by adding 'POSTGRES_DB: test_db' to the docker-compose environment variables.
+//       const dbPromise = compose.upOne('test_db', {cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml'})
+//         .then((resp) => resp, err => console.log('something went wrong starting database container:', err))
       
-      const wait = async () => {
-        //Sometimes, I really miss loops
-        let x = await compose.ps({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml'})
-              .then((x) => x.out.search('healthy'), err => {console.error('Problem with waiting:',err)})
-        if (x) {
-          console.log(x);
-          return compose.exec('test_db', ['psql', '-U', 'postgres', '-c', 'create database test_db'], {cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml'})
-            .then((resp) => resp, err => console.log('something went wrong:', err))
-        } else {
-          setTimeout( wait, 500 );
-        }
-      }
-      const dbCreate = wait(); //ridiculously roundabout loop
-      return await Promise.all([dbPromise, dbCreate]);
-}
+//       const wait = async () => {
+//         //Sometimes, I really miss loops
+//         let x = await compose.ps({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml'})
+//               .then((x) => x.out.search('healthy'), err => {console.error('Problem with waiting:',err)})
+//         if (x) {
+//           console.log(x);
+//           return compose.exec('test_db', ['psql', '-U', 'postgres', '-c', 'create database test_db'], {cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml'})
+//             .then((resp) => resp, err => console.log('something went wrong:', err))
+//         } else {
+//           setTimeout( wait, 500 );
+//         }
+//       }
+//       const dbCreate = wait(); //ridiculously roundabout loop
+//       return await Promise.all([dbPromise, dbCreate]);
+// }
