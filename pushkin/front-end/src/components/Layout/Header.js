@@ -13,7 +13,6 @@ import { Nav, Navbar, Button, Image } from 'react-bootstrap';
 
 //other
 import { CONFIG } from '../../config';
-import { useAuth0 } from '../../utils/react-auth0-spa';
 
 const mapStateToProps = state => {
   return {
@@ -22,11 +21,8 @@ const mapStateToProps = state => {
 };
 
 const Header = props => {
-  const { isAuthenticated, loginWithRedirect, logout, user } = useAuth0();
-  if (!CONFIG.useAuth) {
-    const isAuthenticated = false;
-    const user = null;
-  }
+  const isAuthenticated = false;
+  const user = null;
 
   useEffect(() => {
     props.dispatch(getUser(isAuthenticated, user));
