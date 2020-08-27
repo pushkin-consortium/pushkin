@@ -21,9 +21,7 @@ info:
   shortName: 'CSW'
 addons:
   useForum: false
-  useAuth: true
-  authDomain: '<YOUR_AUTH0_DOMAIN>'
-  authClientID: '<YOUR_AUTH0_CLIENT_ID>'    
+  useAuth: false
 salt: 'abc123'
 fc: {
   popup: false

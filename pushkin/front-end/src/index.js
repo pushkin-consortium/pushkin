@@ -22,7 +22,6 @@ import rootSaga from './sagas/index';
 
 //utilities
 //import history from './utils/history';
-import { Auth0Provider } from './utils/react-auth0-spa';
 import App from './App';
 import { CONFIG } from './config';
 
@@ -45,17 +44,10 @@ const onRedirectCallback = appState => {
 
 //Renders the front end
 render(
-  <Auth0Provider
-    domain={CONFIG.authDomain}
-    client_id={CONFIG.authClientID}
-    redirect_uri={window.location.origin}
-    onRedirectCallback={onRedirectCallback}
-  >
     <Provider store={store}>
       <Router history={customHistory}>
         <App />
       </Router>
     </Provider>
-  </Auth0Provider>,
   document.getElementById('root')
 );
