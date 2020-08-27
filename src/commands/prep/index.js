@@ -52,7 +52,13 @@ export function updatePushkinJs() {
   try {
     console.log(`Writing out front-end config`)
     const tempConfig = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'pushkin.yaml')))
-    fs.writeFileSync(path.join(process.cwd(), 'pushkin/front-end/src', '.pushkin.js'), `export const pushkinConfig = ${JSON.stringify(tempConfig)}`)
+    let useConfig = {}
+    useConfig.info = tempConfig.info
+    useConfig.apiEndpoint = tempConfig.apiEndpoint
+    useConfig.salt = tempConfig.salt
+    useConfig.fc = tempConfig.fc
+    useConfig.addons = tempConfig.addons
+    fs.writeFileSync(path.join(process.cwd(), 'pushkin/front-end/src', '.pushkin.js'), `export const pushkinConfig = ${JSON.stringify(useConfig)}`)
   } catch(e) {
     console.error(`Unable to create .pushkin.js`)
     throw e
