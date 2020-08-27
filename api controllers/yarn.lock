@@ -2096,7 +2096,7 @@ proxy-addr@~2.0.5:
     forwarded "~0.1.2"
     ipaddr.js "1.9.1"
 
-pushkin-api@^1.5.2:
+pushkin-api@^1.5.4:
   version "1.5.4"
   resolved "https://registry.yarnpkg.com/pushkin-api/-/pushkin-api-1.5.4.tgz#e971871739a5cb52fa62961ca943e5e929f77bbd"
   integrity sha512-HEw452yzEx0Zvv+RcSwo9A14yrSGvEXpBRYEsKFvC22oAHIeWYWKIhLTwSE5TwMyvbKGDcQnOwvA39kNklub+A==
