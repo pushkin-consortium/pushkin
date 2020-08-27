@@ -23,10 +23,11 @@ export const promiseFolderInit = async (initDir, dir) => {
     await exec(pacMan.concat(' install --mutex network'), { cwd: path.join(initDir, dir) })
     console.log(`Building ${dir}`);
     updatePushkinJs();
+    console.log(`Building front end`)
     await exec(pacMan.concat(' run build'), { cwd: path.join(initDir, dir) })
     console.log(`${dir} is built`);
   } catch(e) {
-    console.error('Problem installing dependencies for ${dir}')
+    console.error(`Problem installing dependencies for ${dir}`)
     throw(e)
   }
   return "Built"
