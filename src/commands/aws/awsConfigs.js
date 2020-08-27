@@ -479,3 +479,11 @@ export const launchGroup = {
     "NewInstancesProtectedFromScaleIn": true,
     "ServiceLinkedRoleARN": "arn:aws:iam::111122223333:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling"
 }
+
+export const scalingPolicyTargets = {
+     "TargetValue": 50.0,
+     "PredefinedMetricSpecification": {
+          "PredefinedMetricType": "ALBRequestCountPerTarget",
+          "ResourceLabel": "app/EC2Co-EcsEl-1TKLTMITMM0EO/f37c06a68c1748aa/targetgroup/EC2Co-Defau-LDNM7Q3ZH1ZN/6d4ea56ca2d6a18d"
+     }
+}

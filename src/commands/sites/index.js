@@ -8,6 +8,7 @@ import * as compose from 'docker-compose'
 const exec = util.promisify(require('child_process').exec);
 import { templates } from './templates.js';
 import { execSync } from 'child_process'; // eslint-disable-line
+import { updatePushkinJs } from '../prep/index.js'
 const shell = require('shelljs');
 import pacMan from '../../pMan.js';  //which package manager is available?
 

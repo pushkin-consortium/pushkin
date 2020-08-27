@@ -437,7 +437,7 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs, ECS
         try {
           console.log(`Running ECS compose for ${name}`)
           let balancerCommand = (targGroupARN ? `--target-groups "targetGroupArn=${targGroupARN},containerName=${name},containerPort=${port}"` : '')
-          let composeCommand = `ecs-cli compose -f ${yaml} -p ${yaml.split('.')[0]} service up --cluster-config ${ECSName} --scheduling-strategy DAEMON`.concat(balancerCommand)
+          let composeCommand = `ecs-cli compose -f ${yaml} -p ${yaml.split('.')[0]} service up --cluster-config ${ECSName} --scheduling-strategy  `.concat(balancerCommand)
           compose = exec(composeCommand, { cwd: path.join(process.cwd(), "ECStasks")})
         } catch (e) {
           console.error(`Failed to run ecs-cli compose service on ${yaml}`)
@@ -1788,12 +1788,12 @@ const createAutoScale = async (useIAM, projName, useEmail) => {
   }
 
   console.log(`Finding autoscaling launch configuration`)
-  let LaunchConfiguration
+  let asGroup
   try {
-    let temp = await exec(`aws autoscaling describe-launch-configurations --profile ${useIAM}`)
-    JSON.parse(temp.stdout).LaunchConfigurations.forEach((l) => {
-      if (l.LaunchConfigurationName.search(shortName)){
-        LaunchConfiguration = l.LaunchConfigurationName
+    let temp = await exec(`aws autoscaling describe-auto-scaling-groups --profile ${useIAM}`)
+    JSON.parse(temp.stdout).AutoScalingGroups.forEach((l) => {
+      if (l.AutoScalingGroupName.search(shortName)){
+        asGroup = l.AutoScalingGroupName
       }
     })
   } catch (e) {
@@ -1801,7 +1801,24 @@ const createAutoScale = async (useIAM, projName, useEmail) => {
     throw e
   }
 
+  try {
+    await exec(`aws autoscaling update-auto-scaling-group --auto-scaling-group-name ${asGroup} --min-size 2 --max-size 10 --desired-capacity 2 --profile ${useIAM}`)
+  } catch (e) {
+    console.error(`Unable to update settings for autoscaling group`)
+    throw e
+  }
+
+  // try {
+  //   await exec(`aws autoscaling put-scaling-policy --auto-scaling-group-name ${asGroup} --policy-type StepScaling --policy-name ${} --profile ${useIAM}`)
+  // } catch (e) {
+  //   console.error(`Unable to add autoscaling policy(s) for autoscaling group`)
+  //   throw e
+  // }
+
+
   await Promise.all([alarmCPUHigh, alarmCPULow, alarmRAMHigh, alarmRAMHigh])
+
+
 
 }
 
