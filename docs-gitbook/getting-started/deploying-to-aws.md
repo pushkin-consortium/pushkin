@@ -77,7 +77,7 @@ $ pushkin aws init
 
 You should be asked to name your project, to enter the aws profile you want to use, choose a security certificate, and choose a domain name. In the latter two cases, the certificate and domain you created in the steps above should be available as options (if not, check that you completed those steps and can see the resources in the AWS console).
 
-When the program successfully completes, you should be able to navigate to your website at your chosen domain.
+It usually takes 5-10 minutes for the program to complete. It tends to stick at "Finished syncing files" and "Creating ECS tasks," although the exact location could change in future versions. When the program successfully completes, you should be able to navigate to your website at your chosen domain.
 
 ### What do I do if aws init crashes?
 
