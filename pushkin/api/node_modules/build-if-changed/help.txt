@@ -1,6 +1,0 @@
-bic [-f] [-s]
-
-Options:
-
-  -f  Force build all packages.
-  -s  Silence log output.
