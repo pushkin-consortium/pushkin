@@ -332,3 +332,150 @@ export const disableCloudfront = {
     "HttpVersion": "http2",
     "IsIPV6Enabled": true
 }
+
+export const alarmCPUHigh = {
+    "AlarmName": "cpuHigh",
+    "AlarmDescription": "CPU Usage is too high",
+    "ActionsEnabled": true,
+    "OKActions": [
+        ""
+    ],
+    "AlarmActions": [
+        ""
+    ],
+    "InsufficientDataActions": [
+        ""
+    ],
+    "MetricName": "CPUUtilization",
+    "Namespace": "AWS/ECS",
+    "Statistic": "Average",
+    "ExtendedStatistic": "",
+    "Dimensions": [
+        {
+            "Name": "ClusterName",
+            "Value": "FUBAR"
+        }
+    ],
+    "Period": 300,
+    "Unit": "Terabytes",
+    "EvaluationPeriods": 1,
+    "DatapointsToAlarm": 1,
+    "Threshold": 50.0,
+    "ComparisonOperator": "GreaterThanThreshold",
+    "TreatMissingData": "breaching",
+}
+
+export const alarmCPULow = {
+    "AlarmName": "cpuLow",
+    "AlarmDescription": "CPU Usage is too low",
+    "ActionsEnabled": true,
+    "OKActions": [
+        ""
+    ],
+    "AlarmActions": [
+        ""
+    ],
+    "InsufficientDataActions": [
+        ""
+    ],
+    "MetricName": "CPUUtilization",
+    "Namespace": "AWS/ECS",
+    "Statistic": "Average",
+    "ExtendedStatistic": "",
+    "Dimensions": [
+        {
+            "Name": "ClusterName",
+            "Value": "FUBAR"
+        }
+    ],
+    "Period": 300,
+    "Unit": "Terabytes",
+    "EvaluationPeriods": 1,
+    "DatapointsToAlarm": 1,
+    "Threshold": 10.0,
+    "ComparisonOperator": "LessThanThreshold",
+    "TreatMissingData": "breaching",
+}
+
+export const alarmRAMHigh = {
+    "AlarmName": "alarmRAMHigh",
+    "AlarmDescription": "Memory Usage is too high",
+    "ActionsEnabled": true,
+    "OKActions": [
+        ""
+    ],
+    "AlarmActions": [
+        ""
+    ],
+    "InsufficientDataActions": [
+        ""
+    ],
+    "MetricName": "MemoryUtilization",
+    "Namespace": "AWS/ECS",
+    "Statistic": "Average",
+    "ExtendedStatistic": "",
+    "Dimensions": [
+        {
+            "Name": "ClusterName",
+            "Value": "FUBAR"
+        }
+    ],
+    "Period": 300,
+    "Unit": "Terabytes",
+    "EvaluationPeriods": 1,
+    "DatapointsToAlarm": 1,
+    "Threshold": 50.0,
+    "ComparisonOperator": "GreaterThanThreshold",
+    "TreatMissingData": "breaching",
+}
+
+export const alarmRAMLow = {
+    "AlarmName": "alarmRAMLow",
+    "AlarmDescription": "Memory Usage is too low",
+    "ActionsEnabled": true,
+    "OKActions": [
+        ""
+    ],
+    "AlarmActions": [
+        ""
+    ],
+    "InsufficientDataActions": [
+        ""
+    ],
+    "MetricName": "MemoryUtilization",
+    "Namespace": "AWS/ECS",
+    "Statistic": "Average",
+    "ExtendedStatistic": "",
+    "Dimensions": [
+        {
+            "Name": "ClusterName",
+            "Value": "FUBAR"
+        }
+    ],
+    "Period": 300,
+    "Unit": "Terabytes",
+    "EvaluationPeriods": 1,
+    "DatapointsToAlarm": 1,
+    "Threshold": 10.0,
+    "ComparisonOperator": "LessThanThreshold",
+    "TreatMissingData": "breaching",
+}
+
+export const launchGroup = {
+    "LaunchConfigurationName": "CLItutorial-launchconfig",
+    "MinSize": 2,
+    "MaxSize": 10,
+    "DesiredCapacity": 2,
+    "DefaultCooldown": 300,
+    "AvailabilityZones": [
+        "us-west-2c"
+    ],
+    "HealthCheckType": "EC2",
+    "HealthCheckGracePeriod": 300,
+    "VPCZoneIdentifier": "subnet-abcd1234",
+    "TerminationPolicies": [
+        "DEFAULT"
+    ],
+    "NewInstancesProtectedFromScaleIn": true,
+    "ServiceLinkedRoleARN": "arn:aws:iam::111122223333:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling"
+}

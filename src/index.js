@@ -210,7 +210,7 @@ const inquirerPromise = async (type, name, message) => {
   return answers[name]
 }
 
-const handleAWSInit = async () => {
+const handleAWSInit = async (force) => {
   let temp
 
   try {
@@ -261,6 +261,14 @@ const handleAWSInit = async () => {
       newProj = false;
       awsName = config.info.awsName
     }
+    if (force) {
+      try {
+        //Run this anyway to reset awsResources.js and remove productionDBs from pushkin.yaml
+        awsName = await nameProject(projName.name)
+      } catch (e) {
+        throw e
+      }
+    }
   }
 
   if (newProj) {
@@ -270,13 +278,13 @@ const handleAWSInit = async () => {
       console.error(e)
       process.exit()
     }
+    try {
+        awsName = await nameProject(projName.name)    
+    } catch (e) {
+      throw e
+    }
   }
 
-  try {
-      awsName = await nameProject(projName.name)    
-  } catch (e) {
-    throw e
-  }
 
   try {
     useIAM = await inquirer.prompt([{ type: 'input', name: 'iam', message: 'Provide your AWS profile username that you want to use for managing this project.'}])
@@ -367,12 +375,13 @@ async function main() {
       init: initialize an AWS deployment.\n 
       armageddon: delete AWS resources created by Pushkin.\n
       list: list AWS resources created by Pushkin (and possibly others).`)
-    .action(async (cmd) => {
+    .option('-f, --force', 'Applies only to init. Resets installation options. Does not delete AWS resources (for that, use aws armageddon).', false)
+    .action(async (cmd, options) => {
       moveToProjectRoot();
       switch (cmd){
         case 'init':
           try {
-            await handleAWSInit();
+            await handleAWSInit(options.force);
           } catch(e) {
             console.error(e)
             process.exit();

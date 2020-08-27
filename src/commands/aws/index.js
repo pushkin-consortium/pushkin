@@ -5,7 +5,7 @@ import util from 'util';
 import pacMan from '../../pMan.js'; //which package manager is available?
 import { execSync } from 'child_process'; // eslint-disable-line
 import jsYaml from 'js-yaml';
-import { policy, cloudFront, dbConfig, rabbitTask, apiTask, workerTask, changeSet, corsPolicy, disableCloudfront } from './awsConfigs.js'
+import { policy, cloudFront, dbConfig, rabbitTask, apiTask, workerTask, changeSet, corsPolicy, disableCloudfront, alarmCPUHigh } from './awsConfigs.js'
 import { setupTransactionsDB, runMigrations, getMigrations } from '../setupdb/index.js';
 import { updatePushkinJs } from '../prep/index.js'
 import inquirer from 'inquirer'
@@ -437,7 +437,7 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs, ECS
         try {
           console.log(`Running ECS compose for ${name}`)
           let balancerCommand = (targGroupARN ? `--target-groups "targetGroupArn=${targGroupARN},containerName=${name},containerPort=${port}"` : '')
-          let composeCommand = `ecs-cli compose -f ${yaml} -p ${yaml.split('.')[0]} service up --cluster-config ${ECSName} `.concat(balancerCommand)
+          let composeCommand = `ecs-cli compose -f ${yaml} -p ${yaml.split('.')[0]} service up --cluster-config ${ECSName} --scheduling-strategy DAEMON`.concat(balancerCommand)
           compose = exec(composeCommand, { cwd: path.join(process.cwd(), "ECStasks")})
         } catch (e) {
           console.error(`Failed to run ecs-cli compose service on ${yaml}`)
@@ -1203,9 +1203,13 @@ export async function nameProject(projName) {
     throw e;
   }
 
-  pushkinConfig.productionDBs = {};
+  Object.keys(pushkinConfig.productionDBs).forEach((db) => {
+    pushkinConfig.productionDBs[db].name = null
+    pushkinConfig.productionDBs[db].host = null
+    pushkinConfig.productionDBs[db].pass = null
+    // Leave port and user in place, since those are unlikely to change
+  })
 
-  console.log("Resetting db info")
   try {
     await fs.promises.writeFile(path.join(process.cwd(), 'pushkin.yaml'), jsYaml.safeDump(pushkinConfig), 'utf8')
   } catch (e) {
@@ -1620,12 +1624,12 @@ export const awsArmageddon = async (useIAM) => {
         await exec(`aws s3api get-bucket-policy --bucket ${awsResources.awsName} --profile ${useIAM}`)
       } catch (e) {
         console.warn(`Unable to find bucket ${awsResources.awsName}. May have already been deleted. Skipping.`)
-        awsResources.awsName = null;
+//        awsResources.awsName = null;
         return
       }
       try {
         await exec(`aws s3 rb s3://${awsResources.awsName} --force --profile ${useIAM}`)
-        awsResources.awsName = null;
+//        awsResources.awsName = null;
         return
       } catch (e) {
         console.error(`Unable to delete s3 bucket ${awsResources.awsName}`)
@@ -1704,5 +1708,100 @@ export async function awsList(useIAM) {
   if (JSON.parse(temp.stdout).SecretList.length > 0) {
     console.log('Secrets:\n', JSON.parse(temp.stdout).SecretList)
   } 
+}
+
+const createAutoScale = async (useIAM, projName, useEmail) => {
+  const shortName = projName.replace(/[^\w\s]/g, "").replace(/ /g,"")
+  const snsName = shortName.concat("Alarms")
+  let TopicArn
+  let ECSName
+
+  console.log('Configuring autoscaling')
+  console.log('Creating SNS topic')
+  try {
+    let awsResources = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
+    ECSName = awsResources.ECSName
+  } catch (e) {
+    console.error(`Unable to read ECSName from awsResources.js`)
+    throw e
+  }    
+
+  try {
+    // This action is idempotent, so if the requester already owns a topic with the specified name, that topic’s ARN is returned without creating a new topic.
+    let temp = await exec(`aws sns create-topic --name ${snsName} --profile ${useIAM}`)
+    TopicArn = JSON.parse(temp.stdout).TopicArn
+  } catch (e) {
+    console.error(`Unable to create SNS topic`)
+    throw e
+  }
+  try {
+    //Looks like this can be repeated
+    let temp = await exec(`aws sns subscribe --topic-arn ${TopicArn} --protocol email --notification-endpoint ${useEmail} --profile ${useIAM}`)
+  } catch (e) {
+    console.error(`Unable to subscribe to SNS topic`)
+    throw e
+  }
+
+  console.log('Registering cloudwatch alarms')
+  alarmCPUHigh.AlarmActions = TopicArn
+  alarmCPUHigh.Dimensions.Value = ECSName
+  alarmCPUHigh.AlarmName = shortName.concat(alarmCPUHigh.AlarmName)
+  let setAlarmCPUHigh
+  try {
+    setAlarmCPUHigh = exec(`aws cloudwatch put-metric-alarm --alarm-name ${alarmCPUHigh.AlarmName} --cli-input-json ${JSON.stringify(alarmCPUHigh)} --profile ${useIAM}`)
+  } catch (e) {
+    console.error(`Unable to set cloudwatch alarm ${alarmCPUHigh.AlarmName}`)
+    throw e
+  }
+
+  alarmCPULow.AlarmActions = TopicArn
+  alarmCPULow.Dimensions.Value = ECSName
+  alarmCPULow.AlarmName = shortName.concat(alarmCPULow.AlarmName)
+  let setAlarmCPULow
+  try {
+    alarmCPULow = exec(`aws cloudwatch put-metric-alarm --alarm-name ${alarmCPULow.AlarmName} --cli-input-json ${JSON.stringify(alarmCPULow)} --profile ${useIAM}`)
+  } catch (e) {
+    console.error(`Unable to set cloudwatch alarm ${alarmCPULow.AlarmName}`)
+    throw e
+  }
+
+  alarmRAMHigh.AlarmActions = TopicArn
+  alarmRAMHigh.Dimensions.Value = ECSName
+  alarmRAMHigh.AlarmName = shortName.concat(alarmRAMHigh.AlarmName)
+  let setAlarmRAMHigh
+  try {
+    setAlarmRAMHigh = exec(`aws cloudwatch put-metric-alarm --alarm-name ${alarmRAMHigh.AlarmName} --cli-input-json ${JSON.stringify(alarmRAMHigh)} --profile ${useIAM}`)
+  } catch (e) {
+    console.error(`Unable to set cloudwatch alarm ${alarmRAMHigh.AlarmName}`)
+    throw e
+  }
+
+  alarmRAMLow.AlarmActions = TopicArn
+  alarmRAMLow.Dimensions.Value = ECSName
+  alarmRAMLow.AlarmName = shortName.concat(alarmRAMLow.AlarmName)
+  let setAlarmRAMLow
+  try {
+    setAlarmRAMLow = exec(`aws cloudwatch put-metric-alarm --alarm-name ${alarmRAMLow.AlarmName} --cli-input-json ${JSON.stringify(alarmRAMLow)} --profile ${useIAM}`)
+  } catch (e) {
+    console.error(`Unable to set cloudwatch alarm ${alarmRAMLow.AlarmName}`)
+    throw e
+  }
+
+  console.log(`Finding autoscaling launch configuration`)
+  let LaunchConfiguration
+  try {
+    let temp = await exec(`aws autoscaling describe-launch-configurations --profile ${useIAM}`)
+    JSON.parse(temp.stdout).LaunchConfigurations.forEach((l) => {
+      if (l.LaunchConfigurationName.search(shortName)){
+        LaunchConfiguration = l.LaunchConfigurationName
+      }
+    })
+  } catch (e) {
+    console.log(`Unable to find launch configuration name`)
+    throw e
+  }
+
+  await Promise.all([alarmCPUHigh, alarmCPULow, alarmRAMHigh, alarmRAMHigh])
+
 }
 
