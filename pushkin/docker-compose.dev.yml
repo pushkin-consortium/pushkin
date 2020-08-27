@@ -5,9 +5,9 @@ volumes:
 services:
   api:
     build: ./api
-    environment:
-      - 'AMQP_ADDRESS=amqp://message-queue:5672'
-      - PORT=3000
+    environment: 
+      AMQP_ADDRESS: 'amqp://message-queue:5672'
+      PORT: 3000
     expose:
       - '3000'
     links:
@@ -30,6 +30,7 @@ services:
   server:
     build: ./front-end
     environment:
+      NODE_ENV: 'debug'
       API_PORT: '3000'
     ports:
       - '80:80'
@@ -38,8 +39,16 @@ services:
       - api
   test_db:
     image: 'postgres:11'
+    environment:
+      POSTGRES_PASSWORD: example
+      POSTGRES_DB: test_db
     ports:
       - '5432:5432'
     volumes:
       - 'test_db_volume:/var/lib/postgresql/data'
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
       

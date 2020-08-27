@@ -34,7 +34,10 @@ export const Auth0Provider = ({
       const auth0FromHook = await createAuth0Client(initOptions);
       setAuth0(auth0FromHook);
 
-      if (window.location.search.includes('code=')) {
+      if (
+        window.location.search.includes('code=') &&
+        window.location.search.includes('state=')
+      ) {
         const { appState } = await auth0FromHook.handleRedirectCallback();
         onRedirectCallback(appState);
       }
@@ -44,9 +47,8 @@ export const Auth0Provider = ({
       setIsAuthenticated(isAuthenticated);
 
       if (isAuthenticated) {
-        const claims = await auth0FromHook.getIdTokenClaims();
-        const encrypted = await sha512(claims.sub, CONFIG.salt);
-        setUser(encrypted);
+        const user = await auth0FromHook.getUser();
+        setUser(user);
       }
 
       setLoading(false);
@@ -64,20 +66,18 @@ export const Auth0Provider = ({
     } finally {
       setPopupOpen(false);
     }
-    const claims = await auth0Client.getIdTokenClaims();
-    const encrypted = await sha512(claims.sub, CONFIG.salt);
-    setUser(encrypted);
+    const user = await auth0Client.getUser();
+    setUser(user);
     setIsAuthenticated(true);
   };
 
   const handleRedirectCallback = async () => {
     setLoading(true);
     await auth0Client.handleRedirectCallback();
-    const claims = await auth0Client.getIdTokenClaims();
+    const user = await auth0Client.getUser();
     setLoading(false);
     setIsAuthenticated(true);
-    const encrypted = await sha512(claims.sub, CONFIG.salt);
-    setUser(encrypted);
+    setUser(user);
   };
   return (
     <Auth0Context.Provider

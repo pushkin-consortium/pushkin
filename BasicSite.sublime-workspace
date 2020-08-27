@@ -1,0 +1,427 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"get",
+				"getcwd\tfunction"
+			],
+			[
+				"assert",
+				"assertEqual\tfunction"
+			]
+		]
+	},
+	"buffers":
+	[
+		{
+			"file": ".gitignore",
+			"settings":
+			{
+				"buffer_size": 411,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "pushkin/config.js.bak",
+			"settings":
+			{
+				"buffer_size": 1065,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		}
+	],
+	"build_system": "",
+	"build_system_choices":
+	[
+	],
+	"build_varint": "",
+	"command_palette":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+			[
+				"virtual ",
+				"SublimeREPL: Python - virtualenv"
+			],
+			[
+				"virtualenv",
+				"Virtualenv: Activate"
+			],
+			[
+				"repl python virtual",
+				"SublimeREPL: Python - virtualenv"
+			],
+			[
+				"repl vitual p",
+				"SublimeREPL: Python - virtualenv"
+			],
+			[
+				"sublimerepl python virtual",
+				"SublimeREPL: Python - virtualenv"
+			],
+			[
+				"install",
+				"Package Control: Install Package"
+			],
+			[
+				"disable",
+				"Package Control: Disable Package"
+			],
+			[
+				"remove",
+				"Package Control: Remove Package"
+			]
+		],
+		"width": 0.0
+	},
+	"console":
+	{
+		"height": 136.0,
+		"history":
+		[
+			"import urllib.request,os,hashlib; h = '6f4c264a24d933ce70df5dedcf1dcaee' + 'ebe013ee18cced0ef93d5f746d80ef60'; pf = 'Package Control.sublime-package'; ipp = sublime.installed_packages_path(); urllib.request.install_opener( urllib.request.build_opener( urllib.request.ProxyHandler()) ); by = urllib.request.urlopen( 'http://packagecontrol.io/' + pf.replace(' ', '%20')).read(); dh = hashlib.sha256(by).hexdigest(); print('Error validating download (got %s instead of %s), please try manual install' % (dh, h)) if dh != h else open(os.path.join( ipp, pf), 'wb' ).write(by)"
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"expanded_folders":
+	[
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/PushkinNew/pushkin-sitetemplates-basic",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/PushkinNew/pushkin-sitetemplates-basic/pushkin"
+	],
+	"file_history":
+	[
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/PushkinNew/pushkin-cli/src/commands/generate/index.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/PushkinNew/pushkin-cli/src/commands/prep/index.bak.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/PushkinNew/pushkin-cli/src/commands/prep/index.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/PushkinNew/pushkin-cli/.babelrc",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/PushkinNew/pushkin-cli/src/commands/init/index.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/PushkinNew/pushkin-cli/src/commands/generate/templates.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/PushkinNew/pushkin-cli/src/commands/setupdb/index.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/PushkinNew/pushkin-cli/src/index.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/PushkinNew/pushkin-exptemplates-basic/migrations/20180724101120_create_pushkintemplate_users.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/PushkinNew/pushkin-exptemplates-basic/migrations/20180724101122_create_pushkintemplate_stimulusResponses.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/PushkinNew/pushkin-cli/package.json",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/PushkinNew/pushkin-cli/src/commands/init/templates.js",
+		"/usr/local/lib/node_modules/pushkin-cli/build/commands/generate/index.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/PushkinNew/pushkin-cli/build/index.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/PushkinNew/pushkin-cli/build/commands/init/index.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin/docs/source/website/index.rst",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin/docs/source/deployment/deployment_index.rst",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin/docs/source/index.rst",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin/docs/source/quickstart/index.rst",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin/docs/source/quickstart/gettingstarted.rst",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin/docs/source/deployment/deploying_aws.rst",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin/docs/source/development/development_experimentStubs.rst",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin/docs/source/development/development_prep.rst",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin/docs/source/development/development.rst",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin/docs/source/deployment/setup_rancher.rst",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin/docs/source/deployment/setup_pushkin_fordeployment.rst",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin/docs/source/deployment/setup_aws.rst",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin/docs/source/deployment/local_test.rst",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin/docs/source/links/links.rst",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin/docs/source/deployment/index.rst",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin/docs/source/deployment/deploying.rst",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin/docs/source/conf.py",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin/docs/source/deployment/note.txt",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin/docs/source/quickstart/gettingstarted_experimentStubs.rst",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/PushkinNew/pushkin-sitetemplates-default/pushkin/front-end/src/App.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/PushkinNew/pushkin-sitetemplates-default/pushkin/api/Dockerfile",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/PushkinNew/pushkin-sitetemplates-default/pushkin/front-end/DockerDebug",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/PushkinNew/pushkin-sitetemplates-default/pushkin/front-end/Dockerfile",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/PushkinNew/pushkin-sitetemplates-default/pushkin/docker-compose.dev.yml",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/PushkinNew/pushkin-sitetemplates-default/pushkin/front-end/package.json",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/PushkinNew/pushkin-sitetemplates-default/pushkin/front-end/src/components/Profile.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/TrialWebsites/clean/pushkin/docker-compose.dev.yml",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin-worker/src/index.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/TrialWebsites/clean/experiments/newexp/web page/package.json",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/TrialWebsites/FromScratch/todo-app/src/containers/Callback.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/TrialWebsites/FromScratch/todo-app/src/reducers/index.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/TrialWebsites/FromScratch/todo-app/src/sagas/index.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/TrialWebsites/FromScratch/todo-app/src/actions/index.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/TrialWebsites/FromScratch/todo-app/src/index.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/TrialWebsites/FromScratch/todo-app/src/containers/AddToDo.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/TrialWebsites/FromScratch/todo-app/src/components/ToDo.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/TrialWebsites/FromScratch/todo-app/src/components/ToDoList.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/TrialWebsites/FromScratch/todo-app/src/containers/ToDoListContainer.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/TrialWebsites/FromScratch/todo-app/public/index.html",
+		"/Users/jkhartshorne/Documents/Projects/UntitledDPProject/DPTutorial.py",
+		"/Users/jkhartshorne/Documents/Projects/2016_8_ml5/Analyses/references.bib",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/TrialWebsites/FromScratch/front-end/src/core/auth0-variables.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin-api/README.md",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin-api/package.json",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/front-end/experiments/listener-quiz/index.js",
+		"/Users/jkhartshorne/Documents/Projects/2016_4_lifespan/Analyses/spline_testing.R",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin-cli/src/commands/init/index.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin-cli/package.json",
+		"/Users/jkhartshorne/Documents/Projects/2019_2_verbnet_db/vndatabasetest.py",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin-cli/src/commands/init/bare_bones/pushkin/front-end/src/site/reducers/index.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin-cli/src/commands/init/bare_bones/pushkin/front-end/src/site/main.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin-cli/src/commands/init/initFiles/pushkin/front-end/src/site/reducers/index.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/front-end/main.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/front-end/core/authWeb.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/front-end/core/authWebjs",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin-cli/src/commands/init/initFiles/pushkin/front-end/package.json",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/TrialWebsites/pushkin_new/pushkin.yaml",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/TrialWebsites/pushkin_new/pushkin/docker-compose.dev.yml",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/TrialWebsites/pushkin.yaml",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/TrialWebsites/pushkin/docker-compose.dev.yml",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/TrialWebsites/experiments/exp1/config.yaml",
+		"/Users/jkhartshorne/Documents/Projects/2016_4_lifespan/Analyses/main.sh",
+		"/Users/jkhartshorne/Documents/Projects/2016_4_lifespan/Analyses/batch.sh",
+		"/Users/jkhartshorne/Documents/PapersAndPresentations/Papers-InPrep/paper-criticalperiods_tics_response/paper.tex",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/front-end/experiments/vocab-quiz/index.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin/docs/source/cli/pushkin_cli.rst",
+		"/Users/jkhartshorne/Documents/Projects/2016_4_lifespan/main.R",
+		"/Users/jkhartshorne/Documents/Projects/2016_4_lifespan/Analyses/main.R",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin/.pushkin/bin/newQuiz.sh",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin/docs/source/setup/getPushkin.rst",
+		"/Users/jkhartshorne/Documents/websites/gameswithwords_v5/quizzes/quizzes/aquiz/quiz_page/index.js",
+		"/Users/jkhartshorne/Documents/websites/gameswithwords_v5/.env",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin/docker-compose.production.yml",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin/package.json",
+		"/Users/jkhartshorne/Documents/PapersAndPresentations/Papers-InPrep/paper-BonnattiEtAl2005_Exp1/english_stim/phos/tobidu.pho",
+		"/Users/jkhartshorne/Documents/PapersAndPresentations/Papers-InPrep/paper-BonnattiEtAl2005_Exp1/english_stim/phos/tupora.pho",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/api/controllers/which-spanish.js",
+		"/Users/jkhartshorne/Documents/Projects/2018_6_vendler/vendler1/pilot3/static/js/jsPsych/plugins/jspsych-button-response.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/front-end/actions/userinfo.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/db-worker/index.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/api/server.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/front-end/components/ForumWrapper/index.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/pushkin-mailer/index.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/front-end/experiments/which-spanish/index.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/front-end/experiments/which-spanish/axiosWhichSpanish.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/api/dbWrite.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/front-end/core/routes.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/db-worker/models/which-spanish/Predictands.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/db-worker/worker.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/db-worker/models/which-spanish/User.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/db-worker/models/which-spanish/Response.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/db-worker/models/which-spanish/StimulusResponse.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/db-worker/models/which-spanish/Stimulus.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/db-worker/migrations/20190707140232_create_which-spanish_predicands.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/front-end/actions/tempResponse.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/front-end/components/QuizWrapper/index.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/front-end/components/QuizForum/index.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/db-worker/package.json",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/db-worker/migrations/20190707140231_create_which-spanish_responses.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/db-worker/logger.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/front-end/package-lock.json",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/front-end/package.json",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/front-end/components/ForumPostReply/index.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/front-end/components/ForumPostQuestion/index.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/front-end/components/ForumPostContent/index.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/front-end/components/ForumPostComments/index.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/front-end/components/ForumContent/index.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/api/controllers/verbcorner.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/front-end/components/ForumTrendingQuestions/index.js",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/workers/vocab-quiz/worker.py",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/workers/which-spanish/worker.py",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/front-end/Dockerfile",
+		"/Users/jkhartshorne/Documents/Projects/PushkinDev/pushkin_latest/front-end/yarn.lock"
+	],
+	"find":
+	{
+		"height": 39.0
+	},
+	"find_in_files":
+	{
+		"height": 101.0,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"selected": 1,
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": ".gitignore",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 411,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								99,
+								99
+							]
+						],
+						"settings":
+						{
+							"git_gutter_is_enabled": true,
+							"syntax": "Packages/Git Formats/Git Ignore.sublime-syntax",
+							"touched": 1576464157.47
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "pushkin/config.js.bak",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1065,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								931,
+								931
+							]
+						],
+						"settings":
+						{
+							"git_gutter_is_enabled": true,
+							"syntax": "Packages/Text/Plain text.tmLanguage",
+							"tab_size": 2,
+							"touched": 1576464231.34,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 24.0
+	},
+	"input":
+	{
+		"height": 36.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.SublimeLinter":
+	{
+		"height": 0.0
+	},
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"output.mdpopups":
+	{
+		"height": 0.0
+	},
+	"pinned_build_system": "",
+	"project": "BasicSite.sublime-project",
+	"replace":
+	{
+		"height": 44.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 500.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 380.0
+	},
+	"select_symbol":
+	{
+		"height": 392.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 592.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": true,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 282.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}

@@ -1,6 +1,13 @@
 FROM node:latest
-RUN apt-get update && apt-get install -y netcat
-COPY . /usr/src/app
+
+COPY ./public /usr/src/app/public
+COPY ./src /usr/src/app/src
+COPY .yalc /usr/src/app/.yalc/
+COPY ./experiments.js /usr/src/app/src/
+COPY ./package.json ./yarn.lock ./yalc.lock /usr/src/app/
+
 WORKDIR /usr/src/app
-CMD npm run build
-CMD npm start
+RUN yarn install
+RUN apt-get update && apt-get install -y netcat
+
+CMD yarn start

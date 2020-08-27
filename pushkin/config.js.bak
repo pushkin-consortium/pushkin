@@ -1,49 +1,54 @@
 // Global configuration file
 
-const production = process.env.NODE_ENV === 'production';
+import util from 'util';
+import jsYaml from 'js-yaml';
+import fs from 'fs';
+import { pushkinConfig } from './.pushkin.js'
+import { debug } from './.env.js'
+
+// Front-end configuration file
 
 // --- API ---
 let apiEndpoint; //Still needed?
 let frontEndURL; //Still needed?
 let logoutURL; //Still needed?
-const rootDomain = 'http://localhost';
-if (production) {
-  // Production
-  // use /api/ as base url
+if (debug) {
+  // Debug / Test
+  const rootDomain = 'http://localhost';
   apiEndpoint = rootDomain + '/api';
   frontEndURL = rootDomain + '/callback';
   logoutURL = rootDomain;
 } else {
-  // Debug / Test
-  // remove port (if there is one specified) and append port 3000 and /api/
-  apiEndpoint = rootDomain + '/api';
-  frontEndURL = rootDomain + '/callback';
-  logoutURL = rootDomain;
+  // Production
+  const rootDomain = pushkinConfig.info.rootDomain;
+  if (pushkinConfig.apiEndpoint) {
+    //What's in the YAML can override default
+    apiEndpoint = pushkinConfig.apiEndpoint
+  } else{
+    apiEndpoint = 'https://api.' + rootDomain;    
+  }
+  frontEndURL = 'https://' + rootDomain + '/callback';
+  logoutURL = 'https://' + rootDomain;
 }
 
 export const CONFIG = {
-  production,
-  debug: !production,
+  production: !debug,
+  debug: debug,
 
-  apiEndpoint,
-  frontEndURL,
-  logoutURL,
+  apiEndpoint: apiEndpoint,
+  frontEndURL: frontEndURL,
+  logoutURL: logoutURL,
 
-  useForum: false,
-  useAuth: false,
-  //Note that the forum won't work without authentication
+  useForum: pushkinConfig.addons.useForum,
+  useAuth: pushkinConfig.addons.useAuth,
 
-  authDomain: '<YOUR_AUTH0_DOMAIN>',
-  authClientID: '<YOUR_AUTH0_CLIENT_ID>',
+  whoAmI: pushkinConfig.info.whoAmI,
+  hashtags: pushkinConfig.info.hashtags,
+  email: pushkinConfig.info.email,
+  shortName: pushkinConfig.info.shortName,
+  salt: pushkinConfig.salt,
 
-  whoAmI: 'Citizen Science Website',
-  hashtags: 'science, learn',
-  email: 'me@mydomain.com',
-  shortName: 'CSW',
-
-  salt: 'abc123',
-
-  fc: {
-    popup: false
-  }
+  fc: pushkinConfig.fc,
+  authClientID: '',
+  authDomain: ''
 };

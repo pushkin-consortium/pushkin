@@ -1,5 +1,5 @@
 import Cookies from 'js-cookie';
-import uuidv4 from 'uuid/v4';
+import { v4 as uuidv4 } from 'uuid';
 import { CONFIG } from '../config';
 
 const COOKIE_ID = CONFIG.shortName + '_SESSION_ID';
@@ -27,5 +27,5 @@ export default {
     }
 
     return sessionId;
-  }
+  },
 };
