@@ -63,6 +63,12 @@ export function updatePushkinJs() {
     console.error(`Unable to create .pushkin.js`)
     throw e
   }  
+  try {
+    console.log(`Setting front-end 'environment variable'`)
+    fs.writeFileSync(path.join(process.cwd(), 'pushkin/front-end/src', '.env.js'), `export const debug = true`)
+  } catch (e) {
+    console.error(`Unable to create .env.js`)
+  }
 }
 
 // prepare a single experiment's api controllers
@@ -375,15 +381,6 @@ export default async (experimentsDir, coreDir) => {
   } catch(e) {
     throw e
   }
-
-  try {
-    console.log(`Setting front-end 'environment variable'`)
-    fs.writeFileSync(path.join(process.cwd(), 'pushkin/front-end/src', '.env.js'), `export const debug = true`)
-  } catch (e) {
-    console.error(`Unable to create .env.js`)
-  }
-
-
 
   return Promise.all([installedApi, installedWeb]);
 };
