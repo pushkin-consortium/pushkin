@@ -7,6 +7,7 @@ description: Start here to build a basic Pushkin site and experiment.
 ## Skip to section
 
 * [Creating a basic new Pushkin site](./#creating-basic-new-pushkin-site)
+* [Updating configs](./#updating-configs)
 * [Making an experiment](./#making-an-experiment)
 * [Setting up logins](./#setting-up-logins)
 * [Local testing](./#local-testing)
@@ -60,6 +61,56 @@ This sets up a skeleton website in the current folder and a development database
 ```
 
 The files in the `pushkin` folder won’t need to be edited at all except those in the `front-end` folder.
+
+### Updating configs
+
+Open `pushkin.yaml` in your project root directory. It should look something like:
+
+```yaml
+# main directories relative to project root ('..')
+experimentsDir: 'experiments'
+coreDir: 'pushkin'
+DockerHubID: ''
+
+# databases configs experiments can use
+databases:
+  localtestdb:
+    user: 'postgres'
+    pass: 'example'
+    url: 'test_db'
+    name: 'test_db'
+    host: 'localhost'
+
+# basic site configuration
+info:
+  rootDomain: 'localhost'
+  whoAmI: 'Citizen Science Website'
+  hashtags: 'science, learn'
+  email: 'me@mydomain.com'
+  shortName: 'CSW'
+addons:
+  useForum: false
+  useAuth: true
+  authDomain: '<YOUR_AUTH0_DOMAIN>'
+  authClientID: '<YOUR_AUTH0_CLIENT_ID>'    
+salt: 'abc123'
+fc: {
+  popup: false
+}
+```
+
+You can ignore most of these (or all, if you want to keep the defaults). But probably you should change:
+
+- whoAmI: This is the name of your website that will be displayed to users
+- shortName: An abbreviated name of your website
+- hashtags: These are hashtags used for social media
+- email: An email where notifications, etc., will be sent to.
+
+The one you should *definitely* change is `salt`. This is used to encrypt private information. Type in any alphanumeric text here -- for instance: 
+
+```yaml
+   salt: 'personwomanmancameratv'
+```
 
 ### Making an experiment
 
