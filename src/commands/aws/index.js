@@ -1203,19 +1203,21 @@ export async function nameProject(projName) {
     throw e;
   }
 
-  Object.keys(pushkinConfig.productionDBs).forEach((db) => {
-    pushkinConfig.productionDBs[db].name = null
-    pushkinConfig.productionDBs[db].host = null
-    pushkinConfig.productionDBs[db].pass = null
-    // Leave port and user in place, since those are unlikely to change
-  })
-
-  try {
-    await fs.promises.writeFile(path.join(process.cwd(), 'pushkin.yaml'), jsYaml.safeDump(pushkinConfig), 'utf8')
-  } catch (e) {
-    console.error(`Couldn't save pushkin.yaml`)
-    throw e;
+  if (pushkinConfig.productionDbs){
+    Object.keys(pushkinConfig.productionDBs).forEach((db) => {
+      pushkinConfig.productionDBs[db].name = null
+      pushkinConfig.productionDBs[db].host = null
+      pushkinConfig.productionDBs[db].pass = null
+      // Leave port and user in place, since those are unlikely to change
+    })    
+    try {
+      await fs.promises.writeFile(path.join(process.cwd(), 'pushkin.yaml'), jsYaml.safeDump(pushkinConfig), 'utf8')
+    } catch (e) {
+      console.error(`Couldn't save pushkin.yaml`)
+      throw e;
+    }
   }
+
 
   return awsResources.awsName
 }
