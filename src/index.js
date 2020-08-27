@@ -169,7 +169,7 @@ const handleInstall = async (what) => {
               [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version? (Recommend:'.concat(Object.keys(verList)[0]).concat(')')}]
             ).then(async (answers) => {
               await getPushkinSite(process.cwd(),verList[answers.version])
-              await setupTestTransactionsDB()
+//              await setupTestTransactionsDB()
             })
           })
         })
