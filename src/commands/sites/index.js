@@ -17,23 +17,18 @@ export function listSiteTemplates() {
 }
 
 export const promiseFolderInit = async (initDir, dir) => {
-  return new Promise ((resolve, reject) => {
-    console.log(`Installing dependencies for ${dir}`);
-    try {
-      exec(pacMan.concat(' install --mutex network'), { cwd: path.join(initDir, dir) })
-        .then(() => {
-          console.log(`Building ${dir}`);
-          exec(pacMan.concat(' run build'), { cwd: path.join(initDir, dir) })
-            .then(() => {
-              console.log(`${dir} is built`);
-              resolve("built")              
-            })
-        })
-    } catch(e) {
-      console.error('Problem installing dependencies for ${dir}')
-      throw(e)
-    }
-  })
+  console.log(`Installing dependencies for ${dir}`);
+  try {
+    await exec(pacMan.concat(' install --mutex network'), { cwd: path.join(initDir, dir) })
+    console.log(`Building ${dir}`);
+    updatePushkinJs();
+    await exec(pacMan.concat(' run build'), { cwd: path.join(initDir, dir) })
+    console.log(`${dir} is built`);
+  } catch(e) {
+    console.error('Problem installing dependencies for ${dir}')
+    throw(e)
+  }
+  return "Built"
 }
 
 export async function getPushkinSite(initDir, url) {
