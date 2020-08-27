@@ -48,6 +48,6 @@ render(
       <Router history={customHistory}>
         <App />
       </Router>
-    </Provider>
+    </Provider>,
   document.getElementById('root')
 );
