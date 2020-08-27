@@ -23,10 +23,6 @@ import forumPage from './pages/Forum';
 
 function App() {
 
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-
   return (
     <div className="App" style={{ minHeight: '100vh', position: 'relative' }}>
       <Header />
