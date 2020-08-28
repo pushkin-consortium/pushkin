@@ -46,6 +46,21 @@ const loadConfig = (configFile) => {
   })
 };
 
+const handleAWSUpdate = async () => {
+  let useIAM
+  try {
+    useIAM = await inquirer.prompt([{ type: 'input', name: 'iam', message: 'Provide your AWS profile username that you want to use for managing this project.'}])
+  } catch (e) {
+    console.error('Problem getting AWS IAM username.\n', e)
+    throw e
+  }
+
+  console.log(`Loading deployment config`)
+  //FUBAR
+
+}
+
+
 const handleCreateAutoScale = async () => {
   let projName
   try {
@@ -380,6 +395,7 @@ async function main() {
     .command('aws <cmd>')
     .description(`For working with AWS. Commands include:\n 
       init: initialize an AWS deployment.\n 
+      update: update an AWS deployment.\n
       armageddon: delete AWS resources created by Pushkin.\n
       list: list AWS resources created by Pushkin (and possibly others).`)
     .option('-f, --force', 'Applies only to init. Resets installation options. Does not delete AWS resources (for that, use aws armageddon).', false)
@@ -392,6 +408,14 @@ async function main() {
             await handleAWSInit(options.force);
           } catch(e) {
             console.error(e)
+            process.exit();
+          }
+          break;
+        case 'update':
+          try {
+            await handleAWSUpdate();
+          } catch(e) {
+            console.error(e);
             process.exit();
           }
           break;
