@@ -10,7 +10,7 @@ import { execSync, exec } from 'child_process'; // eslint-disable-line
 // subcommands
 import { listExpTemplates, getExpTemplate,  } from './commands/experiments/index.js';
 import { listSiteTemplates, getPushkinSite } from './commands/sites/index.js';
-import { awsInit, nameProject, addIAM, awsArmageddon, awsList } from './commands/aws/index.js'
+import { awsInit, nameProject, addIAM, awsArmageddon, awsList, createAutoScale } from './commands/aws/index.js'
 import { prep, setEnv } from './commands/prep/index.js';
 import { setupdb, setupTestTransactionsDB } from './commands/setupdb/index.js';
 import * as compose from 'docker-compose'
@@ -45,6 +45,27 @@ const loadConfig = (configFile) => {
     }
   })
 };
+
+const handleCreateAutoScale = async () => {
+  let projName
+  try {
+    let temp = loadConfig(path.join(process.cwd(), 'pushkin.yaml'))  
+    projName = temp.info.projName.replace(/[^\w\s]/g, "").replace(/ /g,"")
+  } catch (e) {
+    console.error(`Unable to find project name`)
+    throw e
+  }
+
+  let useIAM
+  try {
+    useIAM = await inquirer.prompt([{ type: 'input', name: 'iam', message: 'Provide your AWS profile username that you want to use for managing this project.'}])
+  } catch (e) {
+    console.error('Problem getting AWS IAM username.\n', e)
+    throw e
+  }
+
+  return createAutoScale(useIAM.iam, projName)
+}
 
 const handleViewConfig = async (what) => {
   moveToProjectRoot();
@@ -220,14 +241,6 @@ const handleAWSInit = async (force) => {
     process.exit()
   }
 
-  try {
-    console.log(`Setting front-end 'environment variable'`)
-    setEnv(false)
-  } catch (e) {
-    console.error(`Unable to create .env.js`)
-    throw e
-  }
-
   let config
   try {
     config = await loadConfig(path.join(process.cwd(), 'pushkin.yaml'))
@@ -375,6 +388,7 @@ async function main() {
       switch (cmd){
         case 'init':
           try {
+            setEnv(false) //asynchronous
             await handleAWSInit(options.force);
           } catch(e) {
             console.error(e)
@@ -530,11 +544,13 @@ async function main() {
       handleViewConfig(what)
     });
 
+
   program
     .command('utils <cmd>')
     .description(`Functions that are useful for backwards compatibility or debugging.\n
       init: Updates test database. This is automatically run as part of 'pushkin prep'.\n
-      setup-transaction-db: Creates a local transactions db. Useful for users of old site templates who wish to use CLI v2+.`)
+      setup-transaction-db: Creates a local transactions db. Useful for users of old site templates who wish to use CLI v2+.\n
+      aws-auto-scale: Setups up default autoscaling for an AWS deploy. Normally run as part of 'aws init'.`)
     .action(async (cmd) => {
       moveToProjectRoot();
       switch (cmd){
@@ -549,6 +565,14 @@ async function main() {
         case 'setup-transaction-db':
           try {
             await setupTestTransactionsDB();
+          } catch(e) {
+            console.error(e);
+            process.exit();
+          }
+          break;
+        case 'aws-auto-scale':
+          try {
+            await handleCreateAutoScale();
           } catch(e) {
             console.error(e);
             process.exit();

@@ -360,42 +360,42 @@ export const alarmCPUHigh = {
     "Unit": "Terabytes",
     "EvaluationPeriods": 1,
     "DatapointsToAlarm": 1,
-    "Threshold": 50.0,
+    "Threshold": 60.0,
     "ComparisonOperator": "GreaterThanThreshold",
     "TreatMissingData": "breaching",
 }
 
-export const alarmCPULow = {
-    "AlarmName": "cpuLow",
-    "AlarmDescription": "CPU Usage is too low",
-    "ActionsEnabled": true,
-    "OKActions": [
-        ""
-    ],
-    "AlarmActions": [
-        ""
-    ],
-    "InsufficientDataActions": [
-        ""
-    ],
-    "MetricName": "CPUUtilization",
-    "Namespace": "AWS/ECS",
-    "Statistic": "Average",
-    "ExtendedStatistic": "",
-    "Dimensions": [
-        {
-            "Name": "ClusterName",
-            "Value": "FUBAR"
-        }
-    ],
-    "Period": 300,
-    "Unit": "Terabytes",
-    "EvaluationPeriods": 1,
-    "DatapointsToAlarm": 1,
-    "Threshold": 10.0,
-    "ComparisonOperator": "LessThanThreshold",
-    "TreatMissingData": "breaching",
-}
+// export const alarmCPULow = {
+//     "AlarmName": "cpuLow",
+//     "AlarmDescription": "CPU Usage is too low",
+//     "ActionsEnabled": true,
+//     "OKActions": [
+//         ""
+//     ],
+//     "AlarmActions": [
+//         ""
+//     ],
+//     "InsufficientDataActions": [
+//         ""
+//     ],
+//     "MetricName": "CPUUtilization",
+//     "Namespace": "AWS/ECS",
+//     "Statistic": "Average",
+//     "ExtendedStatistic": "",
+//     "Dimensions": [
+//         {
+//             "Name": "ClusterName",
+//             "Value": "FUBAR"
+//         }
+//     ],
+//     "Period": 300,
+//     "Unit": "Terabytes",
+//     "EvaluationPeriods": 1,
+//     "DatapointsToAlarm": 1,
+//     "Threshold": 10.0,
+//     "ComparisonOperator": "LessThanThreshold",
+//     "TreatMissingData": "breaching",
+// }
 
 export const alarmRAMHigh = {
     "AlarmName": "alarmRAMHigh",
@@ -424,14 +424,14 @@ export const alarmRAMHigh = {
     "Unit": "Terabytes",
     "EvaluationPeriods": 1,
     "DatapointsToAlarm": 1,
-    "Threshold": 50.0,
+    "Threshold": 60.0,
     "ComparisonOperator": "GreaterThanThreshold",
     "TreatMissingData": "breaching",
 }
 
-export const alarmRAMLow = {
-    "AlarmName": "alarmRAMLow",
-    "AlarmDescription": "Memory Usage is too low",
+export const alarmRDSHigh = {
+    "AlarmName": "alarmRDSHigh",
+    "AlarmDescription": "Memory Usage is too high",
     "ActionsEnabled": true,
     "OKActions": [
         ""
@@ -442,13 +442,13 @@ export const alarmRAMLow = {
     "InsufficientDataActions": [
         ""
     ],
-    "MetricName": "MemoryUtilization",
-    "Namespace": "AWS/ECS",
+    "MetricName": "WriteLatency",
+    "Namespace": "AWS/RDS",
     "Statistic": "Average",
     "ExtendedStatistic": "",
     "Dimensions": [
         {
-            "Name": "ClusterName",
+            "Name": "DBInstanceIdentifier",
             "Value": "FUBAR"
         }
     ],
@@ -456,10 +456,43 @@ export const alarmRAMLow = {
     "Unit": "Terabytes",
     "EvaluationPeriods": 1,
     "DatapointsToAlarm": 1,
-    "Threshold": 10.0,
-    "ComparisonOperator": "LessThanThreshold",
-    "TreatMissingData": "breaching",
+    "Threshold": 5.0,
+    "ComparisonOperator": "GreaterThanThreshold",
+    "TreatMissingData": "missing",
 }
+
+
+// export const alarmRAMLow = {
+//     "AlarmName": "alarmRAMLow",
+//     "AlarmDescription": "Memory Usage is too low",
+//     "ActionsEnabled": true,
+//     "OKActions": [
+//         ""
+//     ],
+//     "AlarmActions": [
+//         ""
+//     ],
+//     "InsufficientDataActions": [
+//         ""
+//     ],
+//     "MetricName": "MemoryUtilization",
+//     "Namespace": "AWS/ECS",
+//     "Statistic": "Average",
+//     "ExtendedStatistic": "",
+//     "Dimensions": [
+//         {
+//             "Name": "ClusterName",
+//             "Value": "FUBAR"
+//         }
+//     ],
+//     "Period": 300,
+//     "Unit": "Terabytes",
+//     "EvaluationPeriods": 1,
+//     "DatapointsToAlarm": 1,
+//     "Threshold": 10.0,
+//     "ComparisonOperator": "LessThanThreshold",
+//     "TreatMissingData": "breaching",
+// }
 
 export const launchGroup = {
     "LaunchConfigurationName": "CLItutorial-launchconfig",
@@ -481,7 +514,7 @@ export const launchGroup = {
 }
 
 export const scalingPolicyTargets = {
-     "TargetValue": 50.0,
+     "TargetValue": 700.0,
      "PredefinedMetricSpecification": {
           "PredefinedMetricType": "ALBRequestCountPerTarget",
           "ResourceLabel": "app/EC2Co-EcsEl-1TKLTMITMM0EO/f37c06a68c1748aa/targetgroup/EC2Co-Defau-LDNM7Q3ZH1ZN/6d4ea56ca2d6a18d"

@@ -5,7 +5,7 @@ import util from 'util';
 import pacMan from '../../pMan.js'; //which package manager is available?
 import { execSync } from 'child_process'; // eslint-disable-line
 import jsYaml from 'js-yaml';
-import { policy, cloudFront, dbConfig, rabbitTask, apiTask, workerTask, changeSet, corsPolicy, disableCloudfront, alarmCPUHigh } from './awsConfigs.js'
+import { policy, cloudFront, dbConfig, rabbitTask, apiTask, workerTask, changeSet, corsPolicy, disableCloudfront, alarmRAMHigh, alarmCPUHigh, alarmRDSHigh, scalingPolicyTargets } from './awsConfigs.js'
 import { setupTransactionsDB, runMigrations, getMigrations } from '../setupdb/index.js';
 import { updatePushkinJs } from '../prep/index.js'
 import inquirer from 'inquirer'
@@ -437,7 +437,7 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs, ECS
         try {
           console.log(`Running ECS compose for ${name}`)
           let balancerCommand = (targGroupARN ? `--target-groups "targetGroupArn=${targGroupARN},containerName=${name},containerPort=${port}"` : '')
-          let composeCommand = `ecs-cli compose -f ${yaml} -p ${yaml.split('.')[0]} service up --cluster-config ${ECSName} --scheduling-strategy  `.concat(balancerCommand)
+          let composeCommand = `ecs-cli compose -f ${yaml} -p ${yaml.split('.')[0]} service up --cluster-config ${ECSName} --scheduling-strategy DAEMON `.concat(balancerCommand)
           compose = exec(composeCommand, { cwd: path.join(process.cwd(), "ECStasks")})
         } catch (e) {
           console.error(`Failed to run ecs-cli compose service on ${yaml}`)
@@ -1712,21 +1712,43 @@ export async function awsList(useIAM) {
   } 
 }
 
-const createAutoScale = async (useIAM, projName, useEmail) => {
+export const createAutoScale = async (useIAM, projName) => {
   const shortName = projName.replace(/[^\w\s]/g, "").replace(/ /g,"")
   const snsName = shortName.concat("Alarms")
-  let TopicArn
-  let ECSName
+  let TopicArn, targGroupARN, ECSName, balancerARN, loadBalancerName, useEmail
 
-  console.log('Configuring autoscaling')
-  console.log('Creating SNS topic')
+  console.log('Reading config information to configure autoscaling and alarms')
   try {
     let awsResources = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
     ECSName = awsResources.ECSName
+    targGroupARN = awsResources.targGroupARN
+    loadBalancerName = awsResources.loadBalancerName
   } catch (e) {
     console.error(`Unable to read ECSName from awsResources.js`)
     throw e
   }    
+
+  let alarmMainHigh = JSON.parse(JSON.stringify(alarmRDSHigh))
+  let alarmTransactionHigh = JSON.parse(JSON.stringify(alarmRDSHigh))
+  try {
+    let temp = await fs.promises.readFile(path.join(process.cwd(), 'pushkin.yaml'), 'utf8')
+    let config = jsYaml.safeLoad(temp)
+    alarmMainHigh.Dimensions.Value = config.productionDBs.Main.name
+    alarmTransactionHigh.Dimensions.Value = config.productionDBs.Transaction.name
+    useEmail = config.info.email
+  } catch (e) {
+    console.error(`Couldn't load pushkin.yaml`)
+    throw e;
+  } 
+
+  try {
+    let temp = await exec(`aws elbv2 describe-load-balancers --names ${loadBalancerName} --profile ${useIAM}`)
+    balancerARN = JSON.parse(temp.stdout).LoadBalancers[0].LoadBalancerArn
+  } catch (e) {
+    console.error(`Unable to find load balancer ARN`)
+  }
+
+  console.log('Creating SNS topic')
 
   try {
     // This action is idempotent, so if the requester already owns a topic with the specified name, that topic’s ARN is returned without creating a new topic.
@@ -1747,7 +1769,7 @@ const createAutoScale = async (useIAM, projName, useEmail) => {
   console.log('Registering cloudwatch alarms')
   alarmCPUHigh.AlarmActions = TopicArn
   alarmCPUHigh.Dimensions.Value = ECSName
-  alarmCPUHigh.AlarmName = shortName.concat(alarmCPUHigh.AlarmName)
+  alarmCPUHigh.AlarmName = shortName.concat("alarmCPUHigh")
   let setAlarmCPUHigh
   try {
     setAlarmCPUHigh = exec(`aws cloudwatch put-metric-alarm --alarm-name ${alarmCPUHigh.AlarmName} --cli-input-json ${JSON.stringify(alarmCPUHigh)} --profile ${useIAM}`)
@@ -1756,20 +1778,9 @@ const createAutoScale = async (useIAM, projName, useEmail) => {
     throw e
   }
 
-  alarmCPULow.AlarmActions = TopicArn
-  alarmCPULow.Dimensions.Value = ECSName
-  alarmCPULow.AlarmName = shortName.concat(alarmCPULow.AlarmName)
-  let setAlarmCPULow
-  try {
-    alarmCPULow = exec(`aws cloudwatch put-metric-alarm --alarm-name ${alarmCPULow.AlarmName} --cli-input-json ${JSON.stringify(alarmCPULow)} --profile ${useIAM}`)
-  } catch (e) {
-    console.error(`Unable to set cloudwatch alarm ${alarmCPULow.AlarmName}`)
-    throw e
-  }
-
   alarmRAMHigh.AlarmActions = TopicArn
   alarmRAMHigh.Dimensions.Value = ECSName
-  alarmRAMHigh.AlarmName = shortName.concat(alarmRAMHigh.AlarmName)
+  alarmRAMHigh.AlarmName = shortName.concat("alarmRAMHigh")
   let setAlarmRAMHigh
   try {
     setAlarmRAMHigh = exec(`aws cloudwatch put-metric-alarm --alarm-name ${alarmRAMHigh.AlarmName} --cli-input-json ${JSON.stringify(alarmRAMHigh)} --profile ${useIAM}`)
@@ -1778,14 +1789,21 @@ const createAutoScale = async (useIAM, projName, useEmail) => {
     throw e
   }
 
-  alarmRAMLow.AlarmActions = TopicArn
-  alarmRAMLow.Dimensions.Value = ECSName
-  alarmRAMLow.AlarmName = shortName.concat(alarmRAMLow.AlarmName)
-  let setAlarmRAMLow
+  alarmMainHigh.AlarmActions = TopicArn
+  alarmMainHigh.AlarmName = shortName.concat('Main').concat("alarmRAMHigh")
+  alarmTransactionHigh.AlarmActions = TopicArn
+  alarmTransactionHigh.AlarmName = shortName.concat('Transaction').concat("alarmRAMHigh")
+
   try {
-    setAlarmRAMLow = exec(`aws cloudwatch put-metric-alarm --alarm-name ${alarmRAMLow.AlarmName} --cli-input-json ${JSON.stringify(alarmRAMLow)} --profile ${useIAM}`)
+    dbAlarmMain = exec(`aws cloudwatch put-metric-alarm --alarm-name ${alarmMainHigh.AlarmActions} --cli-input-json ${JSON.stringify(alarmMainHigh)} --profile ${useIAM}`)
   } catch (e) {
-    console.error(`Unable to set cloudwatch alarm ${alarmRAMLow.AlarmName}`)
+    console.error(`Unable to set cloudwatch alarm ${alarmMainHigh.AlarmName}`)
+    throw e
+  }
+  try {
+    dbAlarmTransaction = exec(`aws cloudwatch put-metric-alarm --alarm-name ${alarmTransactionHigh.AlarmActions} --cli-input-json ${JSON.stringify(alarmTransactionHigh)} --profile ${useIAM}`)
+  } catch (e) {
+    console.error(`Unable to set cloudwatch alarm ${alarmTransactionHigh.AlarmName}`)
     throw e
   }
 
@@ -1805,22 +1823,50 @@ const createAutoScale = async (useIAM, projName, useEmail) => {
 
   try {
     await exec(`aws autoscaling update-auto-scaling-group --auto-scaling-group-name ${asGroup} --min-size 2 --max-size 10 --desired-capacity 2 --profile ${useIAM}`)
+    await exec(`aws autoscaling attach-load-balancer-target-groups --auto-scaling-group-name ${asGroup} --target-group-arns ${targGroupARN} --profile ${useIAM}`)
   } catch (e) {
     console.error(`Unable to update settings for autoscaling group`)
     throw e
   }
 
+  const label1 = balancerARN.split("loadbalancer/")[1]
+  const label2 = "/targetgroup".concat(targGroupARN.split("targetgroup")[1])
+  scalingPolicyTargets.PredefinedMetricSpecification.ResourceLabel = label1.concat(label2)
+
+  let alarmUp
+  let alarmDown
+  let policyARN
+  try {
+    let temp = await exec(`aws autoscaling put-scaling-policy --policy-name MyPushkinPolicy --auto-scaling-group-name ${asGroup} --policy-type TargetTrackingScaling --target-tracking-configuration ${scalingPolicyTargets} --profile ${useIAM}`)
+    alarmUp = JSON.parse(temp.stdout).Alarms[0]
+    alarmDown = JSON.parse(temp.stdout).Alarms[1]
+    policyARN = JSON.parse(temp.stdout).PolicyARN
+  } catch (e) {
+    console.error(`Unable to make autoscaling policy`)
+    throw e
+  }
+
+  console.log(`Updating awsResources with autoscaling info`)
+  try {
+    let awsResources = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
+    awsResources.alarmUp = alarmUp
+    awsResources.alarmDown = alarmDown
+    awsResources.policyARN = policyARN
+    fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
+  } catch (e) {
+    console.error(`Unable to update awsResources.js`)
+    throw e
+  }    
+
   // try {
-  //   await exec(`aws autoscaling put-scaling-policy --auto-scaling-group-name ${asGroup} --policy-type StepScaling --policy-name ${} --profile ${useIAM}`)
+  //   let temp1 = exec(`aws cloudwatch put-metric-alarm --alarm-name ${alarm1.AlarmName} --alarm-actions ${TopicArn} --evaluation-periods 3 --comparison-operator LessThanThreshold --profile ${useIAM}`)
+  //   let temp2 = exec(`aws cloudwatch put-metric-alarm --alarm-name ${alarm1.AlarmName} --alarm-actions ${TopicArn} --comparison-operator GreaterThanThreshold --profile ${useIAM}`)
+  //   await Promise.all([ temp1, temp2 ])
   // } catch (e) {
-  //   console.error(`Unable to add autoscaling policy(s) for autoscaling group`)
+  //   console.log(`unable to subscribe to alarms`)
   //   throw e
   // }
 
-
-  await Promise.all([alarmCPUHigh, alarmCPULow, alarmRAMHigh, alarmRAMHigh])
-
-
-
+  return Promise.all([ dbAlarmTransaction, dbAlarmMain, setAlarmRAMHigh, setAlarmCPUHigh])
 }
 
