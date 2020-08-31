@@ -284,3 +284,5 @@ For more information on how to use pgAdmin, you can read their documentation [he
 
 The great thing about Docker is that it saves your work. \(Read up on Docker to see what I mean.\) The bad thing is that it saves your work. Simply editing your code locally may not change what Docker thinks the code is. If you are updating something but it’s not showing up in your website or if you are getting error messages from Docker … ideally, you should read up on Docker. However, as a fail-safe, run `pushkin kill` to delete all your Pushkin-specific code in Docker. Then just run `pushkin prep` again. This will take a while but should address any Docker-specific problems. If you really need a fresh Docker install, run `pushkin armageddon`, which will completely clean Docker.
 
+**To get the latest news and updates on Pushkin, sign up for our newsletter** [**here.**](https://groups.google.com/g/pushkinjs)
+
