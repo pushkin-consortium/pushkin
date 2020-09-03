@@ -225,6 +225,7 @@ Now browse to `http://localhost` to see the stub website.
 ![](../../.gitbook/assets/quickstart_6.gif)
 
 If you are using an AWS EC2 instance, navigate to the IPv4 Public IP address of your instance instead of `http://localhost`. This can be found in the AWS EC2 console.
+Note: You will not be able to locally test a default site if you are using an AWS EC2 instance. The authentication software used in the default site template requires the site to be accessed from localhost. In order to locally test a site on an AWS EC2 instance, it must have a "basic" site template.
 
 ![](../../.gitbook/assets/39.gif)
 
