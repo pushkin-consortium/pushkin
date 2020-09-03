@@ -41,7 +41,7 @@ Under *Access keys*, click **Create access keys**. Download the CSV with the Acc
 
 Run `aws configure`, pasting your Access Key ID and Secret Access key as needed.
 
-**Note**: When configuring AWS, be sure to specify `json` as your default output format.
+**Note**: When configuring AWS, be sure to specify `us-east-1` as your default region name and `json` as your default output format.
 
 The output should look like this.
 
