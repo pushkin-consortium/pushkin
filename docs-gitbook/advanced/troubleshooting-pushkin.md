@@ -30,4 +30,4 @@ At the time of writing, the AWS Free Tier includes [30 GB of Elastic Block stora
 [This tutorial](https://medium.com/findworka/how-to-increase-disk-size-for-an-ec2-instance-on-aws-b82181df6215) explains how to increase the disk size of your EC2 instance.
 
 
-If you have any problems not listed here, check out our [Pushkin forum](https://github.com/pushkin-consortium/pushkin/discussions) to see if others have had the same problem or report the problem to our team.
+**If you have any problems not listed here, check out our** [**Pushkin forum**](https://github.com/pushkin-consortium/pushkin/discussions) **to see if others have had the same problem or report the problem to our team.**
