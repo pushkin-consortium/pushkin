@@ -1,6 +1,6 @@
-#AWS EC2 Instance
+# AWS EC2 Instance
 
-Although it is dispreferred, users can choose to create a free-tier [Amazon Web Services \(AWS\) EC2](https://aws.amazon.com/ec2/) instance for using and deploying Pushkin as an alternative to using WSL on Windows. In your instance, you will be able to run an Ubuntu virtual machine and follow the Ubuntu setup instructions. We suggest accessing this AWS EC2 instance from your local computer using the [PuTTY SSH client](https://www.chiark.greenend.org.uk/~sgtatham/putty/), though in principle any SSH client for Windows should work.
+We recommend using WSL over an AWS EC2 instance on Windows, as using an EC2 instance has limitations not present when using WSL. However, users can choose to create a free-tier [Amazon Web Services \(AWS\) EC2](https://aws.amazon.com/ec2/) instance for using and deploying Pushkin as an alternative to using WSL on Windows. In your instance, you will be able to run an Ubuntu virtual machine and follow the Ubuntu setup instructions. We suggest accessing this AWS EC2 instance from your local computer using the [PuTTY SSH client](https://www.chiark.greenend.org.uk/~sgtatham/putty/), though in principle any SSH client for Windows should work.
 
 ## Skip to section
 
