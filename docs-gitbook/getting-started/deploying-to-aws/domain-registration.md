@@ -12,7 +12,7 @@ Cheaper domains on AWS currently cost around $12/yr, but if you would like a tre
 
 In order to have encryption&mdash;which you want!&mdash;you need a certificate. You can get this for free through AWS, though it's particularly easy to set this up if you registered your domain through AWS as well:
 
-1. First, make sure you are in the US-East-1 zone. \(We [read that this matters](https://medium.com/dailyjs/a-guide-to-deploying-your-react-app-with-aws-s3-including-https-a-custom-domain-a-cdn-and-58245251f081), though we haven't confirmed this.\)
+1. First, make sure you are in the US-East-1 zone. \([This matters](https://medium.com/dailyjs/a-guide-to-deploying-your-react-app-with-aws-s3-including-https-a-custom-domain-a-cdn-and-58245251f081).\)
 2. In the AWS Certificate Manager, select "Provision Certificate"
 3. Request a public certificate.
 4. Enter your domain preceded by an `*` \(thus 'gameswithwords.org' would be entered as `*.gameswithwords.org`\).
