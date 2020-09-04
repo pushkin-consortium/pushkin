@@ -4,7 +4,23 @@ description: Start here to build install Pushkin and its dependencies on Windows
 
 # Windows 10
 
-This setup depends on the Windows Subsystem for Linux (WSL) 2.[This tutorial](https://docs.microsoft.com/en-us/windows/wsl/install-win10) explains how to configure WSL 2 and install a Linux distribution from the Microsoft Store. We recommend using Ubuntu 18.04 or 20.04. Make sure you [set your distribution to WSL 2](https://docs.microsoft.com/en-us/windows/wsl/install-win10#set-your-distribution-version-to-wsl-1-or-wsl-2), or this tutorial will not work.
+To install Pushkin, Windows users will have to install the Windows Subsystem for Linux (WSL) 2. Note that this process will require restarting your computer multiple times. [This tutorial](https://docs.microsoft.com/en-us/windows/wsl/install-win10) explains how to configure WSL 2 and install a Linux distribution from the Microsoft Store. We recommend using Ubuntu 18.04 or 20.04. 
+
+Pushkin requires using WSL 2. To check which version of WSL you are using, run the following command in Windows Powershell:
+
+```bash
+$ wsl --list --verbose
+```
+
+Insert GIF here
+
+This will give you a list of your installed Linux distributions and what version of WSL they are using. If your distribution is using WSL 1, run:
+
+```bash
+$ wsl --set-version <distribution name> 2
+```
+
+The distribution name should be the name given in the previous list for your Linux distribution.
 
 As the tutorial details, you will need Windows 10 version 2004 to be able to use WSL 2. If you follow the instructions in the tutorial and cannot update to version 2004, [these steps](https://www.bleepingcomputer.com/news/microsoft/windows-10-2004-update-not-offered-heres-how-to-get-it-now/) may be able to help.
 
@@ -16,6 +32,8 @@ Next, run the following commands in the Ubuntu terminal to update your Ubuntu pa
 $ sudo apt update
 $ sudo apt upgrade
 ```
+
+Insert GIF Here
 
 (For more on package management with apt, you can see the documentation [here](https://ubuntu.com/server/docs/package-management). To learn more about the basics of the Linux command line, you can follow [this tutorial](https://ubuntu.com/tutorials/command-line-for-beginners#1-overview).)
 
