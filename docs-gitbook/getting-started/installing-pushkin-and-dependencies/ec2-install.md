@@ -1,6 +1,13 @@
 # AWS EC2 Instance
 
-We recommend using WSL over an AWS EC2 instance on Windows, as using an EC2 instance has limitations not present when using WSL. However, users can choose to create a free-tier [Amazon Web Services \(AWS\) EC2](https://aws.amazon.com/ec2/) instance for using and deploying Pushkin as an alternative to using WSL on Windows. In your instance, you will be able to run an Ubuntu virtual machine and follow the Ubuntu setup instructions. We suggest accessing this AWS EC2 instance from your local computer using the [PuTTY SSH client](https://www.chiark.greenend.org.uk/~sgtatham/putty/), though in principle any SSH client for Windows should work.
+Previously we recommended that Windows users use Pushkin through an AWS EC2 instance due to bugs in WSL making the setup not work reliably. This issue seems to have been resolved so we now recommend using WSL over an EC2 instance. Using an EC2 instance has a number of limitations including:
+
+* Cannot do true local testing via localhost, the IPv4 public IP address must be used
+* The default site template can't be tested locally
+* In our experience, timeout errors are far more common on EC2 instances
+* If multiple experiments are installed, the EC2 instance may run out of space
+
+However, users can choose to create a free-tier [Amazon Web Services \(AWS\) EC2](https://aws.amazon.com/ec2/) instance for using and deploying Pushkin as an alternative to using WSL on Windows. In your instance, you will be able to run an Ubuntu virtual machine and follow the Ubuntu setup instructions. We suggest accessing this AWS EC2 instance from your local computer using the [PuTTY SSH client](https://www.chiark.greenend.org.uk/~sgtatham/putty/), though in principle any SSH client for Windows should work.
 
 ## Skip to section
 
