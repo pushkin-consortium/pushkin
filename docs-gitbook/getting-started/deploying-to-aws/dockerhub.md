@@ -1,6 +1,6 @@
 # DockerHub
 
-[Create a DockerHub account]([https://id.docker.com](https://id.docker.com)) if you haven't already. Then tell Pushkin what your DockerHub ID is by running:
+[Create a DockerHub account](https://hub.docker.com/) if you haven't already. Then tell Pushkin what your DockerHub ID is by running:
 
 ```bash
 $ pushkin setDockerHub
