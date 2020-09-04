@@ -7,8 +7,8 @@
 * [Installing Pushkin and dependencies](getting-started/installing-pushkin-and-dependencies/README.md)
   * [macOS](getting-started/installing-pushkin-and-dependencies/macos-install.md)
   * Windows 10
-   	** [Windows Subsystem for Linux](getting-started/installing-pushkin-and-dependencies/windows-install.md) (preferred)
-	** [AWS EC2 Instance](ec2-install.md) 
+   * [Windows Subsystem for Linux](getting-started/installing-pushkin-and-dependencies/windows-install.md) (preferred)
+   * [AWS EC2 Instance](getting-started/installing-pushkin-and-dependencies/ec2-install.md) 
   * [Ubuntu Linux](getting-started/installing-pushkin-and-dependencies/ubuntu-install.md)
 * [Quickstart](getting-started/quickstart/README.md)
   * [Quickstart: Example Outputs](getting-started/quickstart/sample_output.md)
