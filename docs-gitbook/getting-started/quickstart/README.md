@@ -213,7 +213,7 @@ Coming soon!
 Now, let’s look at your website! Make sure Docker is running by running the command `docker info`; if it is not, you can run `dockerd` or `sudo dockerd` to start it. Next, run:
 
 ```bash
-$ pushkin start;
+$ pushkin start
 ```
 
 ![](../../.gitbook/assets/quickstart_5.gif)
@@ -232,7 +232,7 @@ Note: You will not be able to locally test a default site if you are using an AW
 When you are done looking at your website, stop it by running:
 
 ```bash
-$ pushkin stop;
+$ pushkin stop
 ```
 ![](../../.gitbook/assets/quickstart_7.gif)
 
