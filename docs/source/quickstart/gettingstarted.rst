@@ -143,7 +143,7 @@ Now, let's look at your website! Make sure Docker is running, and then type
 
 .. code-block:: bash
 
-  $ pushkin start;
+  $ pushkin start
 
 Now browse to ``http://localhost`` to see the stub website.
 
@@ -151,7 +151,7 @@ When you are done looking at your website, stop it by running:
 
 .. code-block:: bash
 
-  $ pushkin stop;
+  $ pushkin stop
 
 If you don't do that, the web server will keep running in Docker until you quit Docker or restart. 
 
