@@ -20,6 +20,14 @@ If you don’t have [Homebrew](https://brew.sh/), install it. If you do not have
 
 Note that Homebrew requires a 64-bit Intel CPU, macOS High Sierra /(10.13/) or higher, Command Line Tools /(CLT/) for Xcode, and a Bourne-compatible shell for installation like bash or zsh.
 
+### Install Node
+
+If you don't have an installation of Node yet (you'd know if you did), you should install it:
+
+```bash
+$ brew install node
+```
+
 ### Install Yarn
 
 Then run the following to get Yarn, which will let you download Pushkin:
