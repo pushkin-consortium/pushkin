@@ -133,7 +133,7 @@ export const readConfig = (expDir) => {
 }
 
 // the main prep function for prepping all experiments
-export default async (experimentsDir, coreDir) => {
+export const prep = async (experimentsDir, coreDir) => {
 
   console.log("package manager: ",pacMan);
 

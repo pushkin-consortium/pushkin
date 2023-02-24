@@ -10,7 +10,7 @@ import { execSync, exec } from 'child_process'; // eslint-disable-line
 // subcommands
 import { listExpTemplates, getExpTemplate,  } from './commands/experiments/index.js';
 import { listSiteTemplates, getPushkinSite } from './commands/sites/index.js';
-import { awsInit, nameProject, addIAM, awsArmageddon, awsList, createAutoScale } from './commands/aws/index.js'
+import { awsInit, nameProject, addIAM, awsArmageddon, awsList, createAutoScale, syncs3 } from './commands/aws/index.js'
 import { prep, setEnv } from './commands/prep/index.js';
 import { setupdb, setupTestTransactionsDB } from './commands/setupdb/index.js';
 import * as compose from 'docker-compose'
@@ -46,18 +46,144 @@ const loadConfig = (configFile) => {
   })
 };
 
-const handleAWSUpdate = async () => {
-  let useIAM
+
+const updateS3 = async () => {
+  let awsName, useIAM
   try {
-    useIAM = await inquirer.prompt([{ type: 'input', name: 'iam', message: 'Provide your AWS profile username that you want to use for managing this project.'}])
+    let awsResources = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
+    awsName = awsResources.awsName
+    useIAM = awsResources.iam
   } catch (e) {
-    console.error('Problem getting AWS IAM username.\n', e)
+    console.error(`Unable to read deployment config`)
+    throw e
+  }    
+
+  let syncMe
+  try {
+    return syncS3(awsName, useIAM)
+  } catch(e) {
+    console.error(`Unable to sync local build with s3 bucket`)
+    throw e
+  }  
+}
+
+const updateDocker = async () => {
+  try {
+    console.log(`Confirming docker login.`)
+    execSync(`docker login`)
+  } catch (e) {
+    console.error(`Please log into DockerHub before continuing.\n Type '$ docker login' into the console.\n Provide your username and password when asked.`)
+    process.exit()
+  }
+
+  let DHID
+  try {
+    let config = await loadConfig(path.join(process.cwd(), 'pushkin.yaml'))
+    DHID = config.DockerHubID
+  } catch (e) {
+    console.error(`Unable to load pushkin.yaml`)
     throw e
   }
 
-  console.log(`Loading deployment config`)
-  //FUBAR
+  if (DHID == '') {
+    throw new Error(`Your DockerHub ID has disappeared from pushkin.yaml.\n I am not sure how that happened.\n
+      If you run '$ pushkin setDockerHub' and then retry aws update, it might work. Depending on exactly why your DockerHub ID wasn't in pushkin.yaml.`)
+  }
 
+  try {
+    return publishToDocker(DHID);
+  } catch(e) {
+    console.error('Unable to publish images to DockerHub')
+    throw e
+  }
+}
+
+const updateMigrations = async () => {
+  let experimentsDir, productionDBs
+  try {
+    let config = await loadConfig(path.join(process.cwd(), 'pushkin.yaml'))
+    experimentsDir = config.experimentsDir
+    productionDBs = config.productionDBs
+  } catch (e) {
+    console.error(`Unable to load pushkin.yaml`)
+    throw e
+  }
+  console.log(`Handling migrations`)
+  let ranMigrations
+  try {
+    let dbsToExps = await getMigrations(path.join(process.cwd(), experimentsDir), true)
+    return runMigrations(dbsToExps, productionDBs)
+  } catch (e) {
+    console.error(`Unable to run database migrations`)
+    throw e
+  }    
+}
+
+const updateECS = async () => {
+  console.log(`Updating ECS services.`)
+
+  let ECSName
+  try {
+    let config = await loadConfig(path.join(process.cwd(), 'pushkin.yaml'))
+    ECSName = config.ECSName
+  } catch (e) {
+    console.error(`Unable to load pushkin.yaml`)
+    throw e
+  }
+
+  const yamls = fs.readdirSync(path.join(process.cwd(), 'ECSTasks'));
+  return Promise.all(
+    yamls.forEach((yaml) => {
+      if (yaml != "ecs-params.yml"){
+        let composeCommand = `ecs-cli compose -f ${yaml} -p ${yaml.split('.')[0]} service up --cluster-config ${ECSName} --force-deployment`
+        try {
+         temp = exec(composeCommand, { cwd: path.join(process.cwd(), "ECStasks")})
+        } catch(e) {
+          console.warn(`Unable to update service ${yaml}.`)
+          console.warn(e)
+        }          
+      }
+    })
+  )
+}
+
+const handleAWSUpdate = async () => {
+
+  console.log(`Loading deployment config`)
+
+  let publishedToDocker
+  try {
+    publishedToDocker = updateDocker();
+  } catch(e) {
+    throw e
+  }
+
+  let syncMe
+  try {
+    syncMe = updateS3()
+  } catch(e) {
+    throw e
+  }
+
+  let ranMigrations
+  try {
+    ranMigrations = updateMigrations()
+  } catch (e) {
+    throw e
+  }    
+
+  await Promise.all([ publishedToDocker, syncMe, ranMigrations ]) 
+  //Technically only publishedToDocker needs to finish before we update ECS
+  //But waiting for everything increases that likelihood
+
+ let compose
+  try {
+    compose = updateECS()
+  } catch (e) {
+    throw e
+  }
+
+  return compose // this is a promise, so can be awaited
 }
 
 
@@ -65,7 +191,7 @@ const handleCreateAutoScale = async () => {
   let projName
   try {
     let temp = loadConfig(path.join(process.cwd(), 'pushkin.yaml'))  
-    projName = temp.info.projName.replace(/[^\w\s]/g, "").replace(/ /g,"")
+    projName = temp.info.projName.replace(/[^A-Za-z0-9]/g, "")
   } catch (e) {
     console.error(`Unable to find project name`)
     throw e
@@ -228,7 +354,7 @@ const handleInstall = async (what) => {
               [{ type: 'input', name: 'name', message: 'What do you want to call your experiment?'}]
             ).then(async (answers) => {
                 const longName = answers.name
-                const shortName = longName.replace(/[^\w\s]/g, "").replace(/ /g,"_");
+                const shortName = longName.replace(/[^A-Za-z0-9]/g, "");
                 let config = await loadConfig('pushkin.yaml');
                 getExpTemplate(path.join(process.cwd(), config.experimentsDir), url, longName, shortName, process.cwd())
             })

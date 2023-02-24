@@ -13,6 +13,7 @@ const exec = util.promisify(require('child_process').exec);
 const mkdir = util.promisify(require('fs').mkdir);
 
 const publishToDocker = function (DHID) {
+  console.log('Publishing images to DockerHub')
   console.log("Building API")
   try {
     execSync(`docker build -t ${DHID}/api:latest pushkin/api`, {cwd: process.cwd()})
@@ -20,7 +21,7 @@ const publishToDocker = function (DHID) {
     console.error(`Problem building API`)
     throw e
   }
-  console.log("Pushkin API to DockerHub")
+  console.log("Pushing API to DockerHub")
   let pushedAPI
   try {
     pushedAPI = exec(`docker push ${DHID}/api:latest`, {cwd: process.cwd()})
@@ -62,7 +63,6 @@ const publishToDocker = function (DHID) {
     }
   }
 
- 
   let pushedWorkers
   try {
     pushedWorkers = Object.keys(docker_compose.services).map(pushWorkers)
@@ -106,6 +106,16 @@ const buildFE = function (projName) {
   })
 }
 
+export const syncS3 = async (awsName, useIAM) => {
+  console.log("Syncing files to bucket")
+  try {
+    return exec(`aws s3 sync build/ s3://${awsName} --profile ${useIAM}`, {cwd: path.join(process.cwd(), 'pushkin/front-end')})
+  } catch(e) {
+    console.error(`Unable to sync local build with s3 bucket`)
+    throw e
+  }  
+}
+
 const deployFrontEnd = async (projName, awsName, useIAM, myDomain, myCertificate) => {
   let temp
 
@@ -135,10 +145,9 @@ const deployFrontEnd = async (projName, awsName, useIAM, myDomain, myCertificate
     }    
   }
 
-  console.log("Syncing files to bucket")
   let syncMe
   try {
-    syncMe = exec(`aws s3 sync build/ s3://${awsName} --profile ${useIAM}`, {cwd: path.join(process.cwd(), 'pushkin/front-end')})
+    syncMe = syncS3(awsName, useIAM)
   } catch(e) {
     console.error(`Unable to sync local build with s3 bucket`)
     throw e
@@ -286,7 +295,7 @@ const deployFrontEnd = async (projName, awsName, useIAM, myDomain, myCertificate
 const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
   console.log(`Creating ${dbType} database.`)
   let stdOut, dbName, dbPassword
-  dbName = projName.concat(dbType).replace(/[^\w\s]/g, "").replace(/ /g,"")
+  dbName = projName.concat(dbType).replace(/[^A-Za-z0-9]/g, "")
 
   //First, check to see if database exists
   try {
@@ -465,7 +474,7 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs, ECS
   }
 
   const rabbitPW = Math.random().toString();
-  const rabbitUser = projName.replace(/[^\w\s]/g, "").replace(/ /g,"")
+  const rabbitUser = projName.replace(/[^A-Za-z0-9]/g, "")
   const rabbitCookie = uuid();
   const rabbitAddress = "amqp://".concat(rabbitUser).concat(":").concat(rabbitPW).concat("@localhost:5672")
   let myRabbitTask = JSON.parse(JSON.stringify(rabbitTask));
@@ -734,7 +743,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
     throw e
   }
 
-  const ECSName = projName.replace(/[^\w\s]/g, "").replace(/ /g,"");
+  const ECSName = projName.replace(/[^A-Za-z0-9]/g, "");
   const setProfile = `ecs-cli configure profile --profile-name ${useIAM} --access-key ${aws_access_key_id} --secret-key ${aws_secret_access_key}`.replace(/(\r\n|\n|\r)/gm," ")
   try {
     //not necessary if already set up, but doesn't seem to hurt anything
@@ -808,7 +817,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
   }
 
   try {
-    temp = await exec(`aws elbv2 create-target-group --name ${loadBalancerName}Targets --protocol HTTP --port 80 --vpc-id ${myVPC} --profile ${useIAM}`)
+    temp = await exec(`aws elbv2 create-target-group --name ${loadBalancerName.concat("Targets").slice(0,32)} --protocol HTTP --port 80 --vpc-id ${myVPC} --profile ${useIAM}`)
   } catch(e) {
     console.error(`Unable to create target group`)
     throw e
@@ -1071,7 +1080,6 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
   const completedDBs = recordDBs(Promise.all([initializedMainDB, initializedTransactionDB]))
 
   //pushing stuff to DockerHub
-  console.log('Publishing images to DockerHub')
   let publishedToDocker
   try {
     publishedToDocker = publishToDocker(DHID);
@@ -1301,7 +1309,7 @@ export const awsArmageddon = async (useIAM) => {
            temp = exec(composeCommand, { cwd: path.join(process.cwd(), "ECStasks")})
           } catch(e) {
             console.warn(`Unable to stop service ${yaml}.`)
-            consele.warn(e)
+            console.warn(e)
           }          
         }
       })
@@ -1713,7 +1721,7 @@ export async function awsList(useIAM) {
 }
 
 export const createAutoScale = async (useIAM, projName) => {
-  const shortName = projName.replace(/[^\w\s]/g, "").replace(/ /g,"")
+  const shortName = projName.replace(/[^A-Za-z0-9]/g, "")
   const snsName = shortName.concat("Alarms")
   let TopicArn, targGroupARN, ECSName, balancerARN, loadBalancerName, useEmail
 
