@@ -267,7 +267,7 @@ export async function setupdb(coreDBs, mainExpDir) {
   //But just in case, this ridiculously roundabout loop...
   const wait = async () => {
     //Sometimes, I really miss loops
-    let x = await exec (`docker ps -f name=pushkin-test_db_1`)
+    let x = await exec (`docker ps -f name=pushkin-test_db-1`)
           .then((x) => {
             console.log('...')
             return x.stdout.search('healthy')
