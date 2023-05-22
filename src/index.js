@@ -12,7 +12,7 @@ import { listExpTemplates, getExpTemplate,  } from './commands/experiments/index
 import { listSiteTemplates, getPushkinSite } from './commands/sites/index.js';
 import { awsInit, nameProject, addIAM, awsArmageddon, awsList, createAutoScale } from './commands/aws/index.js'
 import prep from './commands/prep/index.js'; //has to be separate from other imports from prep/index.js; this is the default export
-import setEnv from './commands/prep/index.js';
+import {setEnv} from './commands/prep/index.js';
 import { setupdb, setupTestTransactionsDB } from './commands/setupdb/index.js';
 import * as compose from 'docker-compose'
 import { Command } from 'commander'
@@ -493,6 +493,7 @@ async function main() {
     .description('Starts local deploy for debugging purposes. To start only the front end (no databases), see the manual.')
     .option('-nc, --nocache', 'Rebuild all images from scratch, without using the cache.', false)
     .action(async (options) => {
+      console.log("starting start...")
       moveToProjectRoot();
       try {
         console.log(`Setting front-end 'environment variable'`)
