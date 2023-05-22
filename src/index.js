@@ -11,7 +11,8 @@ import { execSync, exec } from 'child_process'; // eslint-disable-line
 import { listExpTemplates, getExpTemplate,  } from './commands/experiments/index.js';
 import { listSiteTemplates, getPushkinSite } from './commands/sites/index.js';
 import { awsInit, nameProject, addIAM, awsArmageddon, awsList, createAutoScale } from './commands/aws/index.js'
-import { prep, setEnv } from './commands/prep/index.js';
+import prep from './commands/prep/index.js'; //has to be separate from other imports from prep/index.js; this is the default export
+import setEnv from './commands/prep/index.js';
 import { setupdb, setupTestTransactionsDB } from './commands/setupdb/index.js';
 import * as compose from 'docker-compose'
 import { Command } from 'commander'
