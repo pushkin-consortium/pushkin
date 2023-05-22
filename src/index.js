@@ -572,7 +572,7 @@ async function main() {
   program
     .command('utils <cmd>')
     .description(`Functions that are useful for backwards compatibility or debugging.\n
-      init: Updates test database. This is automatically run as part of 'pushkin prep'.\n
+      updateDB: Updates test database. This is automatically run as part of 'pushkin prep'.\n
       setup-transaction-db: Creates a local transactions db. Useful for users of old site templates who wish to use CLI v2+.\n
       aws-auto-scale: Setups up default autoscaling for an AWS deploy. Normally run as part of 'aws init'.`)
     .action(async (cmd) => {
