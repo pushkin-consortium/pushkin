@@ -9,7 +9,7 @@ import 'regenerator-runtime/runtime';
 import { execSync, exec } from 'child_process'; // eslint-disable-line
 // subcommands
 import { listExpTemplates, getExpTemplate,  } from './commands/experiments/index.js';
-import { listSiteTemplates, getPushkinSite } from './commands/sites/index.js';
+import { listSiteTemplates, getPushkinSite, copyPushkinSite } from './commands/sites/index.js';
 import { awsInit, nameProject, addIAM, awsArmageddon, awsList, createAutoScale } from './commands/aws/index.js'
 import prep from './commands/prep/index.js'; //has to be separate from other imports from prep/index.js; this is the default export
 import {setEnv} from './commands/prep/index.js';
@@ -206,18 +206,26 @@ const handleInstall = async (what) => {
     if (what == 'site') {
       const siteList = await listSiteTemplates();
       inquirer.prompt([
-          { type: 'list', name: 'sites', choices: Object.keys(siteList), default: 0, message: 'Which site template do you want to use?'}
+          { type: 'list', name: 'sites', choices: Object.keys(siteList).concat("path"), default: 0, message: 'Which site template do you want to use?'}
         ]).then(answers => {
           let siteType = answers.sites
-          getVersions(siteList[siteType])
-          .then((verList) => {
+          if (siteType == "path") {
             inquirer.prompt(
-              [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version? (Recommend:'.concat(Object.keys(verList)[0]).concat(')')}]
+              [{ type: 'input', name: 'path', message: 'What is the absolute path to your site template?'}]
             ).then(async (answers) => {
-              await getPushkinSite(process.cwd(),verList[answers.version])
-//              await setupTestTransactionsDB()
+              await copyPushkinSite(process.cwd(), answers.path)
             })
-          })
+          }else{
+            getVersions(siteList[siteType])
+            .then((verList) => {
+              inquirer.prompt(
+                [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version? (Recommend:'.concat(Object.keys(verList)[0]).concat(')')}]
+              ).then(async (answers) => {
+                await getPushkinSite(process.cwd(),verList[answers.version])
+  //              await setupTestTransactionsDB()
+              })
+            })  
+          }
         })
     } else {
       //definitely experiment then
