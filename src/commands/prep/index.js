@@ -10,7 +10,6 @@ import pacMan from '../../pMan.js'; //which package manager is available?
 // give package unique name, package it, npm install on installDir, return module name
 const publishLocalPackage = async (modDir, modName) => {
   return new Promise((resolve, reject) => {
-    console.log('modDir: ', modDir)
     const packageJsonPath = path.join(modDir, 'package.json');
     let packageJson;
     try {
@@ -49,6 +48,33 @@ const publishLocalPackage = async (modDir, modName) => {
   })
 };
 
+export function setEnv(debug) {
+  console.log("running setEnv()")
+  try {
+    console.log(`Setting front-end 'environment variable'`)
+    console.log("...")
+    fs.writeFileSync(path.join(process.cwd(), 'pushkin/front-end/src', '.env.js'), `export const debug = ${debug}`)
+  } catch (e) {
+    console.error(`Unable to create .env.js`)
+  }
+}
+
+export function updatePushkinJs() {
+  try {
+    console.log(`Writing out front-end config`)
+    const tempConfig = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'pushkin.yaml')))
+    let useConfig = {}
+    useConfig.info = tempConfig.info
+    useConfig.apiEndpoint = tempConfig.apiEndpoint
+    useConfig.salt = tempConfig.salt
+    useConfig.fc = tempConfig.fc
+    useConfig.addons = tempConfig.addons
+    fs.writeFileSync(path.join(process.cwd(), 'pushkin/front-end/src', '.pushkin.js'), `export const pushkinConfig = ${JSON.stringify(useConfig)}`)
+  } catch(e) {
+    console.error(`Unable to create .pushkin.js`)
+    throw e
+  }  
+}
 
 // prepare a single experiment's api controllers
 const prepApi = async (expDir, controller) => {
@@ -96,17 +122,19 @@ const prepWeb = async (expDir, expConfig, coreDir) => {
   return { moduleName, listAppendix: modListAppendix };
 };
 
+
 export const readConfig = (expDir) => {
   const expConfigPath = path.join(expDir, 'config.yaml');
   try {
     return jsYaml.safeLoad(fs.readFileSync(path.join(expDir, 'config.yaml')));
   } catch (err) {
     if (err.code === 'ENOENT') {
-      console.log('File not found!');
+      console.error('File not found!');
     }
     throw err
   }
 }
+
 
 // the main prep function for prepping all experiments
 export default async (experimentsDir, coreDir) => {
@@ -236,6 +264,7 @@ export default async (experimentsDir, coreDir) => {
     process.exit();
   }
 
+
   const prepWorkerWrapper = async (exp) => {
     console.log(`Building worker for`, exp);
     const expDir = path.join(experimentsDir, exp)
@@ -250,14 +279,50 @@ export default async (experimentsDir, coreDir) => {
     const workerConfig = expConfig.worker;
     const workerName = `${exp}_worker`.toLowerCase(); //Docker names must all be lower case
     const workerLoc = path.join(expDir, workerConfig.location);
+
+    let AMQP_ADDRESS
+    // Recall, compFile is docker-compose.dev.yml, and is defined outside this function.
+    try {
+      Object.keys(compFile.services[workerName].environment).forEach((e) => {
+        if (compFile.services[workerName].environment[e].includes("AMQP_ADDRESS")) { 
+          AMQP_ADDRESS = compFile.services[workerName].environment[e].split("=")[1] 
+        }
+      }) 
+    } catch (e) {
+      console.error(`Problem with updating environment variables for ${workerName}`)
+      console.error(`Value of service ${workerName} in docker-compose.dev.yml:\n ${JSON.stringify(compFile.services[workerName])}`)
+      throw e
+    }   
+
+    compFile.services[workerName].environment = {} 
+    compFile.services[workerName].environment.AMQP_ADDRESS = AMQP_ADDRESS || 'amqp://message-queue:5672'
+    compFile.services[workerName].environment.DB_USER = pushkinYAML.databases.localtestdb.user
+    compFile.services[workerName].environment.DB_PASS = pushkinYAML.databases.localtestdb.pass
+    compFile.services[workerName].environment.DB_URL = pushkinYAML.databases.localtestdb.url
+    compFile.services[workerName].environment.DB_NAME = pushkinYAML.databases.localtestdb.name
+
     let workerBuild
     try {
+      console.log(`Building docker image for ${workerName}`)
       workerBuild = exec(`docker build ${workerLoc} -t ${workerName}`)
     } catch(e) {
       console.error(`Problem building worker for ${exp}`)
       throw (e)
     }
     return workerBuild;
+  }
+
+  const composeFileLoc = path.join(path.join(process.cwd(), 'pushkin'), 'docker-compose.dev.yml');
+  const pushkinYAMLFileLoc = path.join(process.cwd(), 'pushkin.yaml')
+  let compFile;
+  let pushkinYAML;
+  try { 
+    compFile = jsYaml.safeLoad(fs.readFileSync(composeFileLoc), 'utf8'); 
+    pushkinYAML = jsYaml.safeLoad(fs.readFileSync(pushkinYAMLFileLoc), 'utf8'); 
+    console.log('loaded docker-compose.dev.yml and pushkin.yaml.')
+  } catch (e) { 
+    console.error('Failed to load either pushkin.yaml or docker-compose.dev.yml or both.');
+    throw e
   }
 
   let preppedWorkers;
@@ -268,8 +333,7 @@ export default async (experimentsDir, coreDir) => {
     throw(err);
   }
 
-
-const tempAwait = await Promise.all([webPageIncludes, preppedAPI, cleanedWeb])
+  const tempAwait = await Promise.all([webPageIncludes, preppedAPI, cleanedWeb])
 
   // Deal with Web page includes
   let finalWebPages = tempAwait[0]
@@ -308,5 +372,22 @@ const tempAwait = await Promise.all([webPageIncludes, preppedAPI, cleanedWeb])
     throw err
   }
 
-  return Promise.all([installedApi, installedWeb, preppedWorkers]);
+  await preppedWorkers
+  console.log('Finished building all experiment workers')
+  try {
+    console.log(`updating docker-compose.dev.yml`)
+    fs.writeFileSync(composeFileLoc, jsYaml.safeDump(compFile), 'utf8');
+  } catch (e) { 
+    console.error('Failed to create new compose file', e); 
+    process.exit()
+  }
+
+
+  try {
+    updatePushkinJs() //This is synchronous
+  } catch(e) {
+    throw e
+  }
+
+  return Promise.all([installedApi, installedWeb]);
 };
