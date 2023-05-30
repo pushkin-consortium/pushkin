@@ -7,8 +7,7 @@
     "build/*"
   ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "babel src -d build; cp -r src/assets build/"
+    "test": "react-scripts test --transformIgnorePatterns 'node_modules/(?!(<your-package-goes-here>)/)',"
   },
   "author": "",
   "license": "MIT",
@@ -25,6 +24,11 @@
     "@babel/core": "^7.10.5",
     "@babel/preset-env": "^7.10.4",
     "@babel/preset-react": "^7.10.4",
-    "babel-plugin-static-fs": "^3.0.0"
+    "@types/jest": "^29.5.1",
+    "babel-plugin-static-fs": "^3.0.0",
+    "ts-jest": "^29.1.0"
+  },
+  "transform": {
+    "\\.js$": "<rootDir>/node_modules/babel-jest"
   }
 }
