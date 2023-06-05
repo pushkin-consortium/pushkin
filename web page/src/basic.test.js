@@ -1,4 +1,13 @@
-const timeline = require('./experiment.js');
+/**
+ * @jest-environment jsdom
+ */
+
+test('use jsdom in this test file', () => {
+  const element = document.createElement('div');
+  expect(element).not.toBeNull();
+});
+
+import timeline from './experiment.js';
 
 describe('Experiment Timeline', () => {
   it('should be an array', () => {

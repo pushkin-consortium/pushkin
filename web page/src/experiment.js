@@ -1,6 +1,7 @@
-const jsPsych = require('pushkin-jspsych');
+import jsPsych from 'pushkin-jspsych';
 
 const timeline = []
+
 
 var hello_trial = {
     type: 'html-keyboard-response',
@@ -9,4 +10,4 @@ var hello_trial = {
 
 timeline.push(hello_trial);
 
-module.exports = timeline;
+export default timeline;
