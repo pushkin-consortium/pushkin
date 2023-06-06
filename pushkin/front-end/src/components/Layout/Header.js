@@ -13,17 +13,16 @@ import { Nav, Navbar, Button, Image } from 'react-bootstrap';
 
 //other
 import { CONFIG } from '../../config';
-import { useAuth0 } from '../../utils/react-auth0-spa';
 
-const mapStateToProps = state => {
+const mapStateToProps = (state) => {
   return {
-    userID: state.userInfo.userID
+    userID: state.userInfo.userID,
   };
 };
 
-const Header = props => {
-    const isAuthenticated = false;
-    const user = null;
+const Header = (props) => {
+  const isAuthenticated = false;
+  const user = null;
 
   useEffect(() => {
     props.dispatch(getUser(isAuthenticated, user));
