@@ -24,6 +24,12 @@ The distribution name should be the name given in the previous list for your Lin
 
 As the tutorial details, you will need Windows 10 version 2004 to be able to use WSL 2. If you follow the instructions in the tutorial and cannot update to version 2004, [these steps](https://www.bleepingcomputer.com/news/microsoft/windows-10-2004-update-not-offered-heres-how-to-get-it-now/) may be able to help.
 
+To check the version of Ubuntu you are using, run the following command in the Ubuntu terminal:
+
+```bash
+$ lsb_release -a
+```
+
 After you have enabled WSL 2 and installed Ubuntu, you will probably also want to enable copy and paste in the terminal by right-clicking on the terminal window, selecting *Properties* and following [these instructions](https://devblogs.microsoft.com/commandline/copy-and-paste-arrives-for-linuxwsl-consoles/).
 
 ![](../../.gitbook/assets/copyPasteScreenshot.jpg)
