@@ -1,5 +1,5 @@
 ---
-description: Start here to build install Pushkin and its dependencies on Windows 10.
+description: Start here to build install Pushkin and its dependencies on Windows 10, then continue to Ubuntu Linux to finish installation.
 ---
 
 # Windows 10
