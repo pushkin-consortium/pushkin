@@ -6,7 +6,7 @@ import 'react-app-polyfill/stable';
 
 // Basic react imports
 import React from 'react';
-import { render } from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import { Router } from 'react-router-dom';
 
 // redux
@@ -34,7 +34,7 @@ sagaMiddleware.run(rootSaga);
 
 // A function that routes the user to the right place
 // after login
-const onRedirectCallback = appState => {
+const onRedirectCallback = (appState) => {
   customHistory.push(
     appState && appState.targetUrl
       ? appState.targetUrl
@@ -43,11 +43,14 @@ const onRedirectCallback = appState => {
 };
 
 //Renders the front end
-render(
-    <Provider store={store}>
-      <Router history={customHistory}>
-        <App />
-      </Router>
-    </Provider>,
+const container = document.getElementById('root');
+const root = createRoot(container);
+
+root.render(
+  <Provider store={store}>
+    <Router history={customHistory}>
+      <App />
+    </Router>
+  </Provider>,
   document.getElementById('root')
 );
