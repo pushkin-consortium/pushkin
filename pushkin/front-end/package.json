@@ -3,9 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@craco/craco": "^7.1.0",
     "aphrodite": "^2.4.0",
     "axios": "^0.19.0",
     "bootstrap": "^4.3.1",
+    "buffer": "^6.0.3",
     "build-if-changed": "^1.5.5",
     "husky": "^4.2.5",
     "js-cookie": "^2.2.1",
@@ -66,5 +68,8 @@
   "prettier": {
     "singleQuote": true
   },
-  "proxy": "http://api:3000"
+  "proxy": "http://api:3000",
+  "devDependencies": {
+    "node-polyfill-webpack-plugin": "^2.0.1"
+  }
 }
