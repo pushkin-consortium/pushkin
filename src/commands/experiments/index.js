@@ -102,6 +102,66 @@ export async function getExpTemplate(experimentsDir, url, longName, newExpName, 
     })
 }
 
+export async function copyExpTemplate(experimentsDir, expPath, longName, newExpName, rootDir) {
+  if (!expPath) {
+    console.error('No path provided.');
+    return;
+  }
+  // Check that path exists and has what we need
+  fs.existsSync(expPath, (exists) => {
+    if (!exists) {
+      console.error('That path does not exist. Try again');
+      return;
+    }})
+  fs.existsSync(path.join(expPath, "api controllers"), (exists) => {
+    if (!exists) {
+      console.error('Path to template does not contain an api controllers folder.');
+      return;
+    }
+  })
+  fs.existsSync(path.join(expPath, "migrations"), (exists) => {
+    if (!exists) {
+      console.error('Path to template does not contain a migrations folder.');
+      return;
+    }
+  })
+  fs.existsSync(path.join(expPath, "web page"), (exists) => {
+    if (!exists) {
+      console.error('Path to template does not contain a web page folder.');
+      return;
+    }
+  })
+  fs.existsSync(path.join(expPath, "worker"), (exists) => {
+    if (!exists) {
+      console.error('Path to template does not contain a worker folder.');
+      return;
+    }
+  })
+
+  if (!isValidExpName(newExpName)) {
+    console.error(`'${newExpName}' is not a valid name. Names must start with a letter and can only contain alphanumeric characters.`);
+    return;
+  }
+  console.log(`Making ${newExpName} in ${experimentsDir}`);
+  const newDir = path.join(experimentsDir, newExpName);
+  if (fs.existsSync(newDir) && fs.lstatSync(newDir).isDirectory()) {
+    console.error(`A directory in the experiments folder already exists with this name (${newExpName})`);
+    return;
+  }
+
+  fs.mkdirSync(newDir);
+  console.log(`copying from ${expPath}`);
+  console.log('be patient...');
+  try {
+    fs.cpSync(expPath, newDir, {recursive: true})
+  } catch (error) {
+    console.log(`failed to copy pushkin experiment template: ${error}`);
+    throw error; 
+  }  
+  shell.rm('-rf','__MACOSX');
+  return(initExperiment(newDir, newExpName, longName, rootDir));
+}
+
 const initExperiment = async (expDir, expName, longName, rootDir) => {
   const options = {
     files: expDir.concat('/**/*.*'),
