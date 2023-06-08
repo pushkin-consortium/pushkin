@@ -9,7 +9,6 @@
     "bootstrap": "^4.3.1",
     "buffer": "^6.0.3",
     "build-if-changed": "^1.5.5",
-    "husky": "^4.2.5",
     "js-cookie": "^2.2.1",
     "lint-staged": "^10.2.11",
     "prettier": "^2.0.5",
@@ -33,10 +32,10 @@
     "uuid": "^8.2.0"
   },
   "scripts": {
-    "start": "PORT=80 react-scripts start",
-    "dev": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
+    "start": "PORT=80 craco start",
+    "dev": "craco start",
+    "build": "craco build",
+    "test": "craco test",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
@@ -70,6 +69,7 @@
   },
   "proxy": "http://api:3000",
   "devDependencies": {
+    "husky": "^8.0.3",
     "node-polyfill-webpack-plugin": "^2.0.1"
   }
 }
