@@ -53,11 +53,6 @@
       "last 1 safari version"
     ]
   },
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged"
-    }
-  },
   "lint-staged": {
     "src/**/*.{js,jsx,ts,tsx,json,css,scss,md}": [
       "prettier --single-quote --write",
@@ -69,7 +64,6 @@
   },
   "proxy": "http://api:3000",
   "devDependencies": {
-    "husky": "^8.0.3",
     "node-polyfill-webpack-plugin": "^2.0.1"
   }
 }
