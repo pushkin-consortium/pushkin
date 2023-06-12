@@ -287,7 +287,7 @@ export async function setupdb(coreDBs, mainExpDir) {
       );
 
     } else {
-      setTimeout( wait, 1000 );
+      setTimeout( wait, 4000 );
     }
   }
 
