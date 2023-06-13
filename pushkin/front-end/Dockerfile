@@ -1,4 +1,4 @@
-FROM node:latest
+FROM node:20.2
 
 COPY ./public /usr/src/app/public
 COPY ./src /usr/src/app/src

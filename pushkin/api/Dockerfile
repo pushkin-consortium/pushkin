@@ -1,4 +1,4 @@
-FROM node:latest
+FROM node:20.2
 
 COPY ./src /usr/src/app/src
 COPY .yalc /usr/src/app/.yalc/
