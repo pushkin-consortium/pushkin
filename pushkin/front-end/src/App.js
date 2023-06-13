@@ -1,6 +1,6 @@
 // Import react
 import React from 'react';
-import { Route, withRouter } from 'react-router-dom';
+import { Route, Switch } from 'react-router-dom'
 
 //import custom front-end stuff
 //import logo from './logo.svg';
@@ -20,19 +20,20 @@ import feedbackPage from './pages/Feedback';
 
 function App() {
   return (
-    <div className="App" style={{ minHeight: '100vh', position: 'relative' }}>
+    <><div className="App" style={{ minHeight: '100vh', position: 'relative' }}>
       <Header />
-      <Route exact path="/" component={homePage} />
-      <Route exact path="/index" component={homePage} />
-      <Route exact path="/index.html" component={homePage} />
-      <Route exact path="/findings" component={findingsPage} />
-      <Route exact path="/about" component={aboutPage} />
-      <Route exact path="/feedback" component={feedbackPage} />
-      <Route path="/quizzes/:quizName" component={TakeQuiz} />
-      <div style={{ height: '150px', marginTop: '3rem' }}></div>
-      <Footer />
-    </div>
+      <Switch>
+        <Route exact path="/"><homePage /></Route>
+        <Route path="/index"><homePage /></homePage></Route>
+        <Route path="/index.html"><homePage /></Route>
+        <Route path="/findings"><findingsPage /></Route>
+        <Route path="/about"><aboutPage /></Route>
+        <Route path="/feedback"><feedbackPage /></Route>
+        <Route path="/quizzes/:quizName"><TakeQuiz /></Route>
+    </Switch><div style={{ height: '150px', marginTop: '3rem' }}></div><Footer />
+    </div></>
   );
 }
 
-export default withRouter(App);
+export default App;
+
