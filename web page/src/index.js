@@ -10,7 +10,7 @@ const fs = require('fs');
 //stylin'
 import './assets/experiment.css'
 
-const expConfig = jsYaml.safeLoad(fs.readFileSync('../config.yaml'), 'utf8');
+const expConfig = jsYaml.load(fs.readFileSync('../config.yaml'), 'utf8');
 
 const pushkin = new pushkinClient();
 window.jsPsych = jsPsych;
@@ -60,7 +60,6 @@ class quizComponent extends React.Component {
   }
 
   render() {
-    const { match } = this.props;
 
     return (
       <div>
@@ -71,4 +70,4 @@ class quizComponent extends React.Component {
   }
 }
 
-export default withRouter(connect(mapStateToProps)(quizComponent));
+export default connect(mapStateToProps)(quizComponent);
