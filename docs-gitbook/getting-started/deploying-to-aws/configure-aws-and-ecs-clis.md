@@ -39,7 +39,7 @@ Under *Access keys*, click **Create access keys**. Download the CSV with the Acc
 ![](../../.gitbook/assets/aws_17.gif)
 
 
-Run `aws configure`, pasting your Access Key ID and Secret Access key as needed.
+Run `aws configure --profile myprofile` (where you substitute `myprofile` with a name of your choosing; this is just in case you want to have multiple logins, which you probably will), pasting your Access Key ID and Secret Access key as needed.
 
 **Note**: When configuring AWS, be sure to specify `us-east-1` as your default region name and `json` as your default output format.
 

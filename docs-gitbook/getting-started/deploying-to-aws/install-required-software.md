@@ -8,5 +8,7 @@ Configuration steps will follow on the [next page](./configure-aws-and-ecs-clis.
 
 ## ECS CLI
 
-Install [ECS CLI](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ECS_CLI_installation.html). (Do only the first page. There's no need follow the steps on the 'configuration' page. The Pushkin CLI will handle this for you.)
+Install [ECS CLI](https://github.com/aws/amazon-ecs-cli). (Do only the first page. There's no need follow the steps on the 'configuration' page. The Pushkin CLI will handle this for you.)
+
+*Note that the ECS CLI is no longer being actively maintained, so we may probably migrate in the near future.*
 
