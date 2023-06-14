@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import { withRouter } from 'react-router-dom';
 import { LinkContainer } from 'react-router-bootstrap';
 
 import { Card, Button, Row, Col } from 'react-bootstrap';
@@ -181,4 +180,4 @@ class QuizTile extends Component {
   }
 }
 
-export default withRouter(QuizTile);
+export default QuizTile;

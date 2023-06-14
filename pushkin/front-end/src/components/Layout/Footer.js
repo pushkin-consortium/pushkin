@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import { withRouter } from 'react-router-dom';
 import { LinkContainer } from 'react-router-bootstrap';
 //import * as i from 'react-social-icons';
 import { Row, Col } from 'react-bootstrap';
@@ -43,4 +42,4 @@ class Footer extends Component {
   }
 }
 
-export default withRouter(Footer);
+export default Footer;

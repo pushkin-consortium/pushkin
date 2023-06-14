@@ -1,6 +1,6 @@
 // Import react
 import React from 'react';
-import { Route, withRouter } from 'react-router-dom';
+import { Route, Switch } from 'react-router-dom'
 
 //import custom front-end stuff
 //import logo from './logo.svg';
@@ -13,30 +13,26 @@ import Footer from './components/Layout/Footer';
 import TakeQuiz from './components/Quizzes/TakeQuiz';
 
 //import pages
-import homePage from './pages/Home';
-import findingsPage from './pages/Findings';
-import aboutPage from './pages/About';
-import feedbackPage from './pages/Feedback';
-import dashboardPage from './pages/dashboard/Dashboard';
-import forumPage from './pages/Forum';
-
+import HomePage from './pages/Home';
+import FindingsPage from './pages/Findings';
+import AboutPage from './pages/About';
+import FeedbackPage from './pages/Feedback';
 
 function App() {
-
   return (
-    <div className="App" style={{ minHeight: '100vh', position: 'relative' }}>
+    <><div className="App" style={{ minHeight: '100vh', position: 'relative' }}>
       <Header />
-      <Route exact path="/" component={homePage} />
-      <Route exact path="/index" component={homePage} />
-      <Route exact path="/index.html" component={homePage} />
-      <Route exact path="/findings" component={findingsPage} />
-      <Route exact path="/about" component={aboutPage} />
-      <Route exact path="/feedback" component={feedbackPage} />
-      <Route path="/quizzes/:quizName" component={TakeQuiz} />
-      <div style={{ height: '150px', marginTop: '3rem' }}></div>
-      <Footer />
-    </div>
+      <Switch>
+        <Route exact path="/"><HomePage /></Route>
+        <Route path="/index"><HomePage /></Route>
+        <Route path="/index.html"><HomePage /></Route>
+        <Route path="/findings"><FindingsPage /></Route>
+        <Route path="/about"><AboutPage /></Route>
+        <Route path="/feedback"><FeedbackPage /></Route>
+        <Route path="/quizzes/:quizName"><TakeQuiz /></Route>
+    </Switch><div style={{ height: '150px', marginTop: '3rem' }}></div><Footer />
+    </div></>
   );
 }
 
-export default withRouter(App);
+export default App;

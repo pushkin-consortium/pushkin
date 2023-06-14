@@ -39,6 +39,7 @@ export default function AboutPage(props) {
               return (
                 <TeamMember
                   name={p.name}
+                  key={p.name}
                   description={p.description}
                   image={require('../assets/images/teamMember/' + p.image)}
                 />

@@ -4,7 +4,6 @@ import { combineReducers } from 'redux';
 
 import error from './error';
 import userInfo from './userInfo';
-import forum from './forum';
 import tempResponses from './tempResponse';
 import nextPage from './nextPage';
 
@@ -15,5 +14,4 @@ export default combineReducers({
   routing: routerReducer,
   form: formReducer,
   tempResponses,
-  forum
 });

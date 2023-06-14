@@ -41,6 +41,7 @@ function QuizPage(props) {
                 duration={e.duration}
                 text={e.text}
                 post={e.tagline}
+                key={e.shortName}
                 img={require('../assets/images/quiz/' + e.logo)}
               />
             );
