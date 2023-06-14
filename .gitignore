@@ -10,6 +10,7 @@
 
 # misc
 **/.DS_Store
+.docker #used by the CLI for the docker password
 .env.local
 .env.development.local
 .env.test.local
