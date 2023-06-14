@@ -7,7 +7,12 @@ import 'react-app-polyfill/stable';
 // Basic react imports
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { Router } from 'react-router-dom';
+//import ReactDOM from 'react-dom';
+import { BrowserRouter as Router, Route, Switch } from 'react-router-dom'
+//import {
+//  createBrowserRouter,
+//  RouterProvider,
+//} from "react-router-dom";
 
 // redux
 import { Provider } from 'react-redux';
@@ -43,14 +48,12 @@ const onRedirectCallback = (appState) => {
 };
 
 //Renders the front end
-const container = document.getElementById('root');
-const root = createRoot(container);
+const root = createRoot(document.getElementById('root'));
 
 root.render(
   <Provider store={store}>
-    <Router history={customHistory}>
+    <Router>
       <App />
     </Router>
-  </Provider>,
-  document.getElementById('root')
+  </Provider>
 );
