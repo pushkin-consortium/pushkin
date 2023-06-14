@@ -1,7 +1,6 @@
 // ./src/components/Layout/Navigation.js
 
 import React, { Fragment, useEffect } from 'react';
-import { withRouter } from 'react-router-dom';
 import { LinkContainer } from 'react-router-bootstrap';
 
 //redux
@@ -63,4 +62,4 @@ const Header = (props) => {
   );
 };
 
-export default withRouter(connect(mapStateToProps)(Header));
+export default connect(mapStateToProps)(Header);
