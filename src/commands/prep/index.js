@@ -49,8 +49,10 @@ const publishLocalPackage = async (modDir, modName) => {
 };
 
 export function setEnv(debug) {
+  console.log("running setEnv()")
   try {
     console.log(`Setting front-end 'environment variable'`)
+    console.log("...")
     fs.writeFileSync(path.join(process.cwd(), 'pushkin/front-end/src', '.env.js'), `export const debug = ${debug}`)
   } catch (e) {
     console.error(`Unable to create .env.js`)
@@ -120,6 +122,7 @@ const prepWeb = async (expDir, expConfig, coreDir) => {
   return { moduleName, listAppendix: modListAppendix };
 };
 
+
 export const readConfig = (expDir) => {
   const expConfigPath = path.join(expDir, 'config.yaml');
   try {
@@ -131,6 +134,7 @@ export const readConfig = (expDir) => {
     throw err
   }
 }
+
 
 // the main prep function for prepping all experiments
 export const prep = async (experimentsDir, coreDir) => {

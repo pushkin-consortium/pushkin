@@ -43,11 +43,11 @@ export async function getPushkinSite(initDir, url) {
   // make sure nothing to be created already exists
   newDirs.forEach((d) => {
     const dir = path.join(initDir, d);
-    if (fs.existsSync(dir) && fs.lstatSync(dir).isDirectory()) { console.error(`Failed to initialize pushkin project: directory ${dir} already exists`); }
+    if (fs.existsSync(dir) && fs.lstatSync(dir).isDirectory()) { console.error(`Failed to initialize pushkin project: directory ${dir} already exists`); process.exit(1); }
   });
   newFiles.forEach((f) => {
     const file = path.join(initDir, f);
-    if (fs.existsSync(file) && !fs.lstatSync(file).isDirectory()) { console.error(`Failed to initialize pushkin project: file ${file} already exists`); }
+    if (fs.existsSync(file) && !fs.lstatSync(file).isDirectory()) { console.error(`Failed to initialize pushkin project: file ${file} already exists`); process.exit(1); }
   });
 
   // download files
@@ -95,6 +95,68 @@ export async function getPushkinSite(initDir, url) {
       })
   })
 }
+
+export async function copyPushkinSite(initDir, pathToSite) {
+  //For using a local Pushkin site template
+  process.chdir(initDir); // Node command to change directory
+
+  const newDirs = ['pushkin', 'experiments'];
+  const newFiles = ['pushkin.yaml'];
+
+  // make sure nothing to be created already exists
+  newDirs.forEach((d) => {
+    const dir = path.join(initDir, d);
+    if (fs.existsSync(dir) && fs.lstatSync(dir).isDirectory()) { console.error(`Failed to initialize pushkin project: directory ${dir} already exists`); process.exit(1); }
+  });
+  newFiles.forEach((f) => {
+    const file = path.join(initDir, f);
+    if (fs.existsSync(file) && !fs.lstatSync(file).isDirectory()) { console.error(`Failed to initialize pushkin project: file ${file} already exists`); process.exit(1);}
+  });
+
+  if (!pathToSite) {
+    console.error('No path provided.');
+    return;
+  }
+  // Check that path exists and has what we need
+  fs.existsSync(pathToSite, (exists) => {
+    if (!exists) {
+      console.error('That path does not exist. Try again');
+      return;
+    }})
+  fs.existsSync(path.join(pathToSite, "pushkin"), (exists) => {
+    if (!exists) {
+      console.error('Path to template does not contain a pushkin folder.');
+      return;
+    }
+  })
+  fs.existsSync(path.join(pathToSite, "users"), (exists) => {
+    if (!exists) {
+      console.error('Path to template does not contain a users folder.');
+      return;
+    }
+  })
+  // looks good
+  console.log(`retrieving from ${pathToSite}`);
+  console.log('be patient...');
+  try {
+    fs.cpSync(pathToSite, '.', {recursive: true})
+  } catch (error) {
+    console.log(`failed to copy pushkin site template: ${error}`);
+    throw error; 
+  }  
+  return new Promise((resolve, reject) => {
+    const pushkinYaml = fs.promises.rename('pushkin/pushkin.yaml.bak', './pushkin.yaml').catch((err) => { console.error(err); });
+    const configJS = fs.promises.rename('pushkin/config.js.bak', 'pushkin/front-end/src/config.js').catch((err) => { console.error(err); });
+    const mkExps = fs.promises.mkdir('experiments').catch((err) => { console.error(err); });
+    if (fs.existsSync('__MACOSX')) {
+      const shellresp = shell.rm('-rf','__MACOSX'); //fs doesn't have a stable directly removal function yet
+    }      
+    const apiPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'api').catch((err) => { console.error(err); });
+    const frontendPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'front-end').catch((err) => { console.error(err); });
+    return(Promise.all([apiPromise, frontendPromise, pushkinYaml, configJS, mkExps]));
+  })
+}
+
 
 // export async function pushkinInit() {
 //   //Deprecated. Shouldn't really need this. Keeping it as a useful example of working with Docker.

@@ -8,15 +8,18 @@ import 'core-js/stable';
 import 'regenerator-runtime/runtime';
 import { execSync, exec } from 'child_process'; // eslint-disable-line
 // subcommands
-import { listExpTemplates, getExpTemplate,  } from './commands/experiments/index.js';
-import { listSiteTemplates, getPushkinSite } from './commands/sites/index.js';
-import { awsInit, nameProject, addIAM, awsArmageddon, awsList, createAutoScale, syncs3 } from './commands/aws/index.js'
-import { prep, setEnv } from './commands/prep/index.js';
+import { listExpTemplates, getExpTemplate,  copyExpTemplate } from './commands/experiments/index.js';
+import { listSiteTemplates, getPushkinSite, copyPushkinSite } from './commands/sites/index.js';
+import { awsInit, nameProject, addIAM, awsArmageddon, awsList, createAutoScale } from './commands/aws/index.js'
+import prep from './commands/prep/index.js'; //has to be separate from other imports from prep/index.js; this is the default export
+import {setEnv} from './commands/prep/index.js';
 import { setupdb, setupTestTransactionsDB } from './commands/setupdb/index.js';
 import * as compose from 'docker-compose'
 import { Command } from 'commander'
 import inquirer from 'inquirer'
 import got from 'got';
+const shell = require('shelljs');
+
 const version = require("../package.json").version
 
 
@@ -239,6 +242,13 @@ const handleUpdateDB = async () => {
   return settingUpDB;
 }
 
+// For removing any .DS_Store files if present.
+const removeDS = () => {
+  console.log('Removing any .DS_Store files, if present.')
+  shell.rm('-rf', '*/.DS_Store');
+  shell.rm('-rf', './.DS_Store');
+}
+
 const handlePrep = async () => {
   moveToProjectRoot();
   const config = await loadConfig(path.join(process.cwd(), 'pushkin.yaml'));
@@ -322,44 +332,60 @@ const handleInstall = async (what) => {
     if (what == 'site') {
       const siteList = await listSiteTemplates();
       inquirer.prompt([
-          { type: 'list', name: 'sites', choices: Object.keys(siteList), default: 0, message: 'Which site template do you want to use?'}
+          { type: 'list', name: 'sites', choices: Object.keys(siteList).concat("path"), default: 0, message: 'Which site template do you want to use?'}
         ]).then(answers => {
           let siteType = answers.sites
-          getVersions(siteList[siteType])
-          .then((verList) => {
+          if (siteType == "path") {
             inquirer.prompt(
-              [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version? (Recommend:'.concat(Object.keys(verList)[0]).concat(')')}]
+              [{ type: 'input', name: 'path', message: 'What is the absolute path to your site template?'}]
             ).then(async (answers) => {
-              await getPushkinSite(process.cwd(),verList[answers.version])
-//              await setupTestTransactionsDB()
+              await copyPushkinSite(process.cwd(), answers.path)
             })
-          })
+          }else{
+            getVersions(siteList[siteType])
+            .then((verList) => {
+              inquirer.prompt(
+                [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version? (Recommend:'.concat(Object.keys(verList)[0]).concat(')')}]
+              ).then(async (answers) => {
+                await getPushkinSite(process.cwd(),verList[answers.version])
+  //              await setupTestTransactionsDB()
+              })
+            })  
+          }
         })
     } else {
       //definitely experiment then
       moveToProjectRoot()
-      const expList = await listExpTemplates();
       inquirer.prompt(
-        [{ type: 'list', name: 'experiments', choices: Object.keys(expList), default: 0, message: 'Which experiment template do you want to use?'}]
-      ).then(answers => {
-        let expType = answers.experiments
-        getVersions(expList[expType])
-        .then((verList) => {
+        [{ type: 'input', name: 'name', message: 'What do you want to call your experiment?'}]
+      ).then(async (answers) => {
+          const longName = answers.name
+          const shortName = longName.replace(/[^\w\s]/g, "").replace(/ /g,"_");
+          let config = await loadConfig('pushkin.yaml');
+          const expList = await listExpTemplates();
           inquirer.prompt(
-            [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version? (Recommend:'.concat(Object.keys(verList)[0]).concat(')')}]
+            [{ type: 'list', name: 'experiments', choices: Object.keys(expList).concat("path"), default: 0, message: 'Which experiment template do you want to use?'}]
           ).then(answers => {
-            let ver = answers.version
-            const url = verList[ver]
-            inquirer.prompt(
-              [{ type: 'input', name: 'name', message: 'What do you want to call your experiment?'}]
-            ).then(async (answers) => {
-                const longName = answers.name
-                const shortName = longName.replace(/[^A-Za-z0-9]/g, "");
-                let config = await loadConfig('pushkin.yaml');
-                getExpTemplate(path.join(process.cwd(), config.experimentsDir), url, longName, shortName, process.cwd())
+            let expType = answers.experiments
+            if (expType == "path") {
+              inquirer.prompt(
+                [{ type: 'input', name: 'path', message: 'What is the absolute path to your experiment template?'}]
+              ).then(async (answers) => {
+                await copyExpTemplate(path.join(process.cwd(), config.experimentsDir), answers.path, longName, shortName, process.cwd())
+              })
+            }else{
+              getVersions(expList[expType])
+              .then((verList) => {
+                inquirer.prompt(
+                  [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version? (Recommend:'.concat(Object.keys(verList)[0]).concat(')')}]
+                ).then(async (answers) => {
+                  let ver = answers.version
+                  const url = verList[ver]
+                  await getExpTemplate(path.join(process.cwd(), config.experimentsDir), url, longName, shortName, process.cwd())
+                })
             })
-          })
-        })
+          }
+        })     
       })
     }
   } catch(e) {
@@ -598,8 +624,9 @@ async function main() {
     .option('-nm, --nomigrations', 'Do not run migrations. Be sure database structure has not changed!', false)
     .action(async (options) => {
       let awaits
-      try{
-        if (options.nomigrations){
+      removeDS()
+      try {
+        if (options.nomigrations) {
           //only running prep
           awaits = [handlePrep()]
         } else {
@@ -618,6 +645,7 @@ async function main() {
     .description('Starts local deploy for debugging purposes. To start only the front end (no databases), see the manual.')
     .option('-nc, --nocache', 'Rebuild all images from scratch, without using the cache.', false)
     .action(async (options) => {
+      console.log("starting start...")
       moveToProjectRoot();
       try {
         console.log(`Setting front-end 'environment variable'`)
@@ -698,7 +726,7 @@ async function main() {
   program
     .command('utils <cmd>')
     .description(`Functions that are useful for backwards compatibility or debugging.\n
-      init: Updates test database. This is automatically run as part of 'pushkin prep'.\n
+      updateDB: Updates test database. This is automatically run as part of 'pushkin prep'.\n
       setup-transaction-db: Creates a local transactions db. Useful for users of old site templates who wish to use CLI v2+.\n
       aws-auto-scale: Setups up default autoscaling for an AWS deploy. Normally run as part of 'aws init'.`)
     .action(async (cmd) => {
@@ -737,5 +765,5 @@ async function main() {
 }
 
 main();
-//program.parseAsync(process.argv);
  
+//program.parseAsync(process.argv);
