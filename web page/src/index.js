@@ -60,7 +60,6 @@ class quizComponent extends React.Component {
   }
 
   render() {
-    const { match } = this.props;
 
     return (
       <div>
@@ -71,4 +70,4 @@ class quizComponent extends React.Component {
   }
 }
 
-export default withRouter(connect(mapStateToProps)(quizComponent));
+export default connect(mapStateToProps)(quizComponent);
