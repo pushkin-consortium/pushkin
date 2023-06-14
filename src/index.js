@@ -70,15 +70,8 @@ const updateS3 = async () => {
   }  
 }
 
-const updateDocker = async () => {
-  try {
-    console.log(`Confirming docker login.`)
-    execSync(`docker login`)
-  } catch (e) {
-    console.error(`Please log into DockerHub before continuing.\n Type '$ docker login' into the console.\n Provide your username and password when asked.`)
-    process.exit()
-  }
-
+const dockerLogin = async () => {
+  //get dockerhub id
   let DHID
   try {
     let config = await loadConfig(path.join(process.cwd(), 'pushkin.yaml'))
@@ -92,6 +85,25 @@ const updateDocker = async () => {
     throw new Error(`Your DockerHub ID has disappeared from pushkin.yaml.\n I am not sure how that happened.\n
       If you run '$ pushkin setDockerHub' and then retry aws update, it might work. Depending on exactly why your DockerHub ID wasn't in pushkin.yaml.`)
   }
+
+  try {
+    console.log(`Confirming docker login.`)
+    execSync(`cat .docker | docker login --username ${DHID} --password-stdin`)
+  } catch (e) {
+    console.error(`Automatic login to DockerHub failed. This might be because your ID or password are wrong.\n
+      Try running '$ pushkin setDockerHub' and reset then try again.\n
+      If that still fails, report an issue to Pushkin on GitHub. In the meantime, you can probably login manually\n
+      by typing '$ docker login' into the console.\n Provide your username and password when asked.\n
+      Then try '$ pushkin aws update' again.`)
+    process.exit()
+  }
+
+  return(DHID)
+}
+
+const updateDocker = async () => {
+
+  let DHID = await dockerLogin();
 
   try {
     return publishToDocker(DHID);
@@ -399,16 +411,16 @@ const inquirerPromise = async (type, name, message) => {
 }
 
 const handleAWSInit = async (force) => {
-  let temp
 
-  try {
-    execSync(`docker login`)
-  } catch (e) {
-    console.error(`Please log into DockerHub before continuing.\n Type '$ docker login' into the console.\n Provide your username and password when asked.`)
-    process.exit()
-  }
+ let DHID
+ try {
+   DHID = await dockerLogin(); 
+ } catch (error) {
+   console.log(error);
+   process.exit();
+ }
 
-  let config
+ let config
   try {
     config = await loadConfig(path.join(process.cwd(), 'pushkin.yaml'))
   } catch (e) {
@@ -416,11 +428,6 @@ const handleAWSInit = async (force) => {
     throw e
   }
 
-  if (config.DockerHubID == '') {
-    console.error(`Your DockerHub ID has not been configured. Please be sure you have a valid DockerHub ID and then run 'pushkin setDockerHub'.`)
-    process.exit()
-  }
-  
   let projName, useIAM, awsName, stdOut
 
   try {
@@ -615,6 +622,16 @@ async function main() {
             console.error(e)
             process.exit()
           }
+          inquirer.prompt([
+            { type: 'input', name: 'pw', message: 'What is your DockerHub password?'}
+          ]).then(async (answers) => {
+            fs.writeFileSync('.docker', answers.pw, err => {
+              if (err) {
+                console.error(err);
+              }
+              // file written successfully
+            });
+          })
         })
     })
 
