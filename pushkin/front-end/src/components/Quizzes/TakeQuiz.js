@@ -22,7 +22,7 @@ const TakeQuiz = (props) => {
   console.log(CONFIG.apiEndpoint.concat(quizName))
   return (
     <div>
-      <QuizComponent {...this.props} api={CONFIG.apiEndpoint.concat('/').concat(quizName)} />
+      <QuizComponent {...props} api={CONFIG.apiEndpoint.concat('/').concat(quizName)} />
     </div>
   );
 }
