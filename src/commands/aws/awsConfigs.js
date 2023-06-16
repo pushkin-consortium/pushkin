@@ -1,19 +1,24 @@
 export const policy = {
-    "Version": "2012-10-17",
+    "Version": "2008-10-17",
+    "Id": "PolicyForCloudFrontPrivateContent",
     "Statement": [
         {
-            "Sid": "PublicReadGetObject",
+            "Sid": "AllowCloudFrontServicePrincipal",
             "Effect": "Allow",
-            "Principal": "*",
-            "Action": [
-                "s3:GetObject"
-            ],
-            "Resource": [
-                "arn:aws:s3:::example.com/*"
-            ]
+            "Principal": {
+                "Service": "cloudfront.amazonaws.com"
+            },
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::example.com/*", //TODO: add bucket arn
+            "Condition": {
+                "StringEquals": {
+                  "AWS:SourceArn": "cloudfront" //TODO: add cloudfront arn
+                }
+            }
         }
     ]
-}
+  }
+
 
 export const cloudFront = {
     "CallerReference": "string",
@@ -35,11 +40,15 @@ export const cloudFront = {
                     "OriginAccessIdentity": ""
                 },
                 "ConnectionAttempts": 3,
-                "ConnectionTimeout": 10
+                "ConnectionTimeout": 10,
+                "OriginShield": {
+                    "Enabled": false
+                },
+                "OriginAccessControlId": "OACID"
             }
         ]
     },
-    "OriginGroups": {
+"OriginGroups": {
         "Quantity": 0
     },
     "DefaultCacheBehavior": {
@@ -64,7 +73,7 @@ export const cloudFront = {
             }
         },
         "SmoothStreaming": false,
-        "Compress": false,
+        "Compress": true,
         "LambdaFunctionAssociations": {
             "Quantity": 0
         },
@@ -105,9 +114,11 @@ export const cloudFront = {
             "Quantity": 0
         }
     },
-    "WebACLId": "",
-    "HttpVersion": "http2",
-    "IsIPV6Enabled": true
+    "WebACLId": "ACLID",
+    "HttpVersion": "http2and3",
+    "IsIPV6Enabled": true,
+    "ContinuousDeploymentPolicyId": "",
+    "Staging": false
 }
 
 export const dbConfig = {
@@ -461,6 +472,15 @@ export const alarmRDSHigh = {
     "TreatMissingData": "missing",
 }
 
+export const OriginAccessControl = {
+    "OriginAccessControlConfig": {
+        "Name": "pushkinOAC",
+        "Description": "",
+        "SigningProtocol": "sigv4",
+        "SigningBehavior": "always",
+        "OriginAccessControlOriginType": "s3"
+    }
+}
 
 // export const alarmRAMLow = {
 //     "AlarmName": "alarmRAMLow",

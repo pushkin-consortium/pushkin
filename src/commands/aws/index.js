@@ -5,7 +5,7 @@ import util from 'util';
 import pacMan from '../../pMan.js'; //which package manager is available?
 import { execSync } from 'child_process'; // eslint-disable-line
 import jsYaml from 'js-yaml';
-import { policy, cloudFront, dbConfig, rabbitTask, apiTask, workerTask, changeSet, corsPolicy, disableCloudfront, alarmRAMHigh, alarmCPUHigh, alarmRDSHigh, scalingPolicyTargets } from './awsConfigs.js'
+import { OriginAccessControl, policy, cloudFront, dbConfig, rabbitTask, apiTask, workerTask, changeSet, corsPolicy, disableCloudfront, alarmRAMHigh, alarmCPUHigh, alarmRDSHigh, scalingPolicyTargets } from './awsConfigs.js'
 import { setupTransactionsDB, runMigrations, getMigrations } from '../setupdb/index.js';
 import { updatePushkinJs } from '../prep/index.js'
 import inquirer from 'inquirer'
@@ -134,6 +134,7 @@ const deployFrontEnd = async (projName, awsName, useIAM, myDomain, myCertificate
     }
   })
 
+  OAC = getOAC(useIAM); //this will create if necessary. Returns OAC as promise.
 
   if (!bucketExists) {
     console.log("Bucket does not yet exist. Creating s3 bucket")
@@ -153,22 +154,8 @@ const deployFrontEnd = async (projName, awsName, useIAM, myDomain, myCertificate
     throw e
   }
 
-  console.log("Setting permissions")
-  let myCORSPolicy = JSON.parse(JSON.stringify(corsPolicy))
-  myCORSPolicy.Bucket = awsName 
-  policy.Statement[0].Resource = "arn:aws:s3:::".concat(awsName).concat("/*")
-  try {
-    await exec(`aws s3 website s3://${awsName} --profile ${useIAM} --index-document index.html --error-document index.html`)
-    await exec(`aws s3api put-bucket-policy --bucket `.concat(awsName).concat(` --policy '`).concat(JSON.stringify(policy)).concat(`' --profile ${useIAM}`))
-    await exec(`aws s3api put-bucket-cors --cli-input-json '${JSON.stringify(myCORSPolicy)}' --profile ${useIAM}`)
-  } catch (e) {
-    console.error('Problem setting bucket permissions for front-end')
-    throw e
-  }
-
 
   let myCloud, theCloud
-
   console.log(`Checking for CloudFront distribution`)
   let distributionExists = false;
   try {
@@ -206,6 +193,7 @@ const deployFrontEnd = async (projName, awsName, useIAM, myDomain, myCertificate
   if (!distributionExists) {
     console.log(`No existing cloudFront distribution for ${awsName}. Creating distribution.`)
     let myCloudFront = JSON.parse(JSON.stringify(cloudFront));
+    myCloudFront.Origins.Items[0].OriginAccessControlId = await OAC; //we'l need this before continuing.
     myCloudFront.CallerReference = awsName;
     myCloudFront.DefaultCacheBehavior.TargetOriginId = awsName;
     myCloudFront.Origins.Items[0].Id = awsName;
@@ -227,6 +215,22 @@ const deployFrontEnd = async (projName, awsName, useIAM, myDomain, myCertificate
       throw e
     }
 
+
+    console.log("Setting bucket permissions")
+    // FUBAR: commented out CORS and aws s3 website. Do we still need them?
+    //  let myCORSPolicy = JSON.parse(JSON.stringify(corsPolicy)) 
+    //  myCORSPolicy.Bucket = awsName 
+      policy.Statement[0].Resource = "arn:aws:s3:::".concat(awsName).concat("/*")
+      policy.Statement[0].Resource.Condition["AWS:SourceArn"] = theCloud.ARN
+      try {
+    //    await exec(`aws s3 website s3://${awsName} --profile ${useIAM} --index-document index.html --error-document index.html`) //https://awscli.amazonaws.com/v2/documentation/api/latest/reference/s3/website.html
+        await exec(`aws s3api put-bucket-policy --bucket `.concat(awsName).concat(` --policy '`).concat(JSON.stringify(policy)).concat(`' --profile ${useIAM}`))
+    //    await exec(`aws s3api put-bucket-cors --cli-input-json '${JSON.stringify(myCORSPolicy)}' --profile ${useIAM}`)
+      } catch (e) {
+        console.error('Problem setting bucket permissions for front-end')
+        throw e
+      }
+    
     console.log(`Updating awsResources with cloudfront info`)
     try {
       let awsResources = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
@@ -290,6 +294,55 @@ const deployFrontEnd = async (projName, awsName, useIAM, myDomain, myCertificate
   console.log(`Finished syncing files`)
 
   return theCloud.DomainName
+}
+
+const getOAC = async (useIAM) => {
+  const createOAC = async (useIAM) => {
+    try {
+      temp = exec('aws cloudfront create-origin-access-control --origin-access-control-config'.concat(JSON.stringify(OriginAccessControl)).concat(` --profile ${useIAM}`))
+    } catch (error) {
+      console.error(`Unable to create Origin Access Control`)
+      throw error
+    }
+    return Promise(temp.OriginAccessIdentify.Id)
+  }
+
+  console.log(`Checking to see if OAC already exists.`)
+
+  let awsResources
+  try {
+    awsResources = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
+  } catch (e) {
+    console.error(`Unable to read awsResources.js. That's strange.`)
+    console.error(e)
+    throw e
+  } 
+
+  let needOAC = false;
+
+  if (!awsResources.OAC) {
+    console.log(`No origin access control. Creating.`)
+    needOAC = true;
+  } else {
+    try {
+      temp = await exec(`aws cloudfront get-origin-access-control --id ${awsResources.OAC} --profile ${useIAM}`)
+    } catch (e) {
+      console.log(`Huh. I can't find that OAC. Making a new one.`)
+      needOAC = true;
+    }
+  }
+
+  if (needOAC) {
+    awsResources.OAC = await createOAC();
+    try {
+      fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');  
+    } catch (error) {
+      console.error(`Can't write to awsResources.js. That's strange.`)
+      throw error
+    }
+  }
+
+  return Promise(awsResources.OAC)
 }
 
 const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
@@ -1101,6 +1154,7 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
   let deployedFrontEnd
   try {
     deployedFrontEnd = deployFrontEnd(projName, awsName, useIAM, myDomain, myCertificate)
+    FUBAR
   } catch(e) {
     console.error(`Failed to deploy front end`)
     throw e
@@ -1189,12 +1243,20 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
   return
 }
 
+
+
 export async function nameProject(projName) {
   console.log(`Recording project name`)
   let awsResources = {}
   let stdOut, temp, pushkinConfig;
   awsResources.name = projName;
-  awsResources.awsName = projName.replace(/[^\w\s]/g, "").replace(/ /g,"-").concat(uuid()).toLowerCase();
+  // make a name for use as a bucket (AWS has rules)
+  temp = projName.replace(/[^\w\s]/g, "").replace(/ /g,"-").replace(/_/g,"-").concat(uuid()).toLowerCase();
+  if (temp.search(/[a-zA-Z]/g) != 0){
+    temp = "p".concat(temp)
+  }
+  awsResources.awsName = temp
+  //use regular expressions to remove underscores from project name
   try {
     stdOut = fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
   } catch(e) {
@@ -1204,7 +1266,7 @@ export async function nameProject(projName) {
 
   console.log("Resetting db info")
   try {
-    temp = await fs.promises.readFile(path.join(process.cwd(), 'pushkin.yaml'), 'utf8')
+    temp = fs.readFileSync(path.join(process.cwd(), 'pushkin.yaml'), 'utf8')
     pushkinConfig = jsYaml.safeLoad(temp)
   } catch (e) {
     console.error(`Couldn't load pushkin.yaml`)
@@ -1219,7 +1281,7 @@ export async function nameProject(projName) {
       // Leave port and user in place, since those are unlikely to change
     })    
     try {
-      await fs.promises.writeFile(path.join(process.cwd(), 'pushkin.yaml'), jsYaml.safeDump(pushkinConfig), 'utf8')
+      fs.promises.writeFile(path.join(process.cwd(), 'pushkin.yaml'), jsYaml.safeDump(pushkinConfig), 'utf8')
     } catch (e) {
       console.error(`Couldn't save pushkin.yaml`)
       throw e;
