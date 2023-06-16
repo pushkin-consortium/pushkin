@@ -1,3 +1,74 @@
+export const pushkinACL = {
+    "Name": "pushkinACL",
+    "Scope": "CLOUDFRONT",
+    "DefaultAction": {
+        "Allow": {}
+    },
+    "Description": "Default ACL for Pushkin",
+    "Rules": [
+        {
+            "Name": "AWS-AWSManagedRulesAmazonIpReputationList",
+            "Priority": 0,
+            "Statement": {
+                "ManagedRuleGroupStatement": {
+                    "VendorName": "AWS",
+                    "Name": "AWSManagedRulesAmazonIpReputationList"
+                }
+            },
+            "OverrideAction": {
+                "None": {}
+            },
+            "VisibilityConfig": {
+                "SampledRequestsEnabled": true,
+                "CloudWatchMetricsEnabled": true,
+                "MetricName": "AWS-AWSManagedRulesAmazonIpReputationList"
+            }
+        },
+        {
+            "Name": "AWS-AWSManagedRulesCommonRuleSet",
+            "Priority": 1,
+            "Statement": {
+                "ManagedRuleGroupStatement": {
+                    "VendorName": "AWS",
+                    "Name": "AWSManagedRulesCommonRuleSet"
+                }
+            },
+            "OverrideAction": {
+                "None": {}
+            },
+            "VisibilityConfig": {
+                "SampledRequestsEnabled": true,
+                "CloudWatchMetricsEnabled": true,
+                "MetricName": "AWS-AWSManagedRulesCommonRuleSet"
+            }
+        },
+        {
+            "Name": "AWS-AWSManagedRulesKnownBadInputsRuleSet",
+            "Priority": 2,
+            "Statement": {
+                "ManagedRuleGroupStatement": {
+                    "VendorName": "AWS",
+                    "Name": "AWSManagedRulesKnownBadInputsRuleSet"
+                }
+            },
+            "OverrideAction": {
+                "None": {}
+            },
+            "VisibilityConfig": {
+                "SampledRequestsEnabled": true,
+                "CloudWatchMetricsEnabled": true,
+                "MetricName": "AWS-AWSManagedRulesKnownBadInputsRuleSet"
+            }
+        }
+    ],
+    "VisibilityConfig": {
+        "SampledRequestsEnabled": true,
+        "CloudWatchMetricsEnabled": true,
+        "MetricName": "pushkinACL"
+    },
+}
+
+
 export const policy = {
     "Version": "2008-10-17",
     "Id": "PolicyForCloudFrontPrivateContent",

@@ -5,7 +5,7 @@ import util from 'util';
 import pacMan from '../../pMan.js'; //which package manager is available?
 import { execSync } from 'child_process'; // eslint-disable-line
 import jsYaml from 'js-yaml';
-import { OriginAccessControl, policy, cloudFront, dbConfig, rabbitTask, apiTask, workerTask, changeSet, corsPolicy, disableCloudfront, alarmRAMHigh, alarmCPUHigh, alarmRDSHigh, scalingPolicyTargets } from './awsConfigs.js'
+import { pushkinACL, OriginAccessControl, policy, cloudFront, dbConfig, rabbitTask, apiTask, workerTask, changeSet, corsPolicy, disableCloudfront, alarmRAMHigh, alarmCPUHigh, alarmRDSHigh, scalingPolicyTargets } from './awsConfigs.js'
 import { setupTransactionsDB, runMigrations, getMigrations } from '../setupdb/index.js';
 import { updatePushkinJs } from '../prep/index.js'
 import inquirer from 'inquirer'
@@ -134,7 +134,8 @@ const deployFrontEnd = async (projName, awsName, useIAM, myDomain, myCertificate
     }
   })
 
-  OAC = getOAC(useIAM); //this will create if necessary. Returns OAC as promise.
+  let OAC = getOAC(useIAM); //this will create if necessary. Returns OAC as promise.
+  let ACLarn = makeACL(useIAM); //this will create if necessary. Returns ACLID as promise.
 
   if (!bucketExists) {
     console.log("Bucket does not yet exist. Creating s3 bucket")
@@ -193,7 +194,8 @@ const deployFrontEnd = async (projName, awsName, useIAM, myDomain, myCertificate
   if (!distributionExists) {
     console.log(`No existing cloudFront distribution for ${awsName}. Creating distribution.`)
     let myCloudFront = JSON.parse(JSON.stringify(cloudFront));
-    myCloudFront.Origins.Items[0].OriginAccessControlId = await OAC; //we'l need this before continuing.
+    myCloudFront.Origins.Items[0].OriginAccessControlId = await OAC; //we'll need this before continuing.
+    myCloudFront.WebACLId = await ACLarn; //we'll need this before continuing.
     myCloudFront.CallerReference = awsName;
     myCloudFront.DefaultCacheBehavior.TargetOriginId = awsName;
     myCloudFront.Origins.Items[0].Id = awsName;
@@ -1154,7 +1156,6 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
   let deployedFrontEnd
   try {
     deployedFrontEnd = deployFrontEnd(projName, awsName, useIAM, myDomain, myCertificate)
-    FUBAR
   } catch(e) {
     console.error(`Failed to deploy front end`)
     throw e
@@ -1291,6 +1292,53 @@ export async function nameProject(projName) {
 
   return awsResources.awsName
 }
+
+const makeACL = async (useIAM) => {
+  //This function first checks for an ACL named pushkinACL. If so, return ARN.
+  //If not, create one and return the ARN.
+  //We don't store anything because the ACL is always called 'pushkinACL' and the ID and ARN can always be looked up if needed.
+  const findACL = (useIAM) => {
+    let ACLarn, temp
+    try {
+      temp = execSync(`aws wafv2 list-web-acls --scope CLOUDFRONT --profile ${useIAM}`)
+    } catch (e) {
+      console.error(`Unable to get list of ACLs`)
+      throw e
+    }
+    if (temp.stdout != "") {
+      JSON.parse(temp.stdout).WebACLs.forEach((d) => {
+        let tempCheck = false;
+        try {
+          tempCheck = (d.Name == 'pushkinACL')
+        } catch (e) {
+          console.warning(`Problem reading ACL list.`)
+          throw e
+        }
+        if (tempCheck) {
+          ACLarn = d.ARN
+        }
+      })    
+    }
+    return ACLarn
+  }
+
+  let ACLarn = findACL(useIAM);
+  if (!ACLarn) {
+    let temp
+    try {
+      temp = await exec(`aws wafv2 create-web-acl --name pushkinACL --scope CLOUDFRONT --default-action Allow={}) --profile ${useIAM} --rules `.concat(
+        JSON.stringify(pushkinACL.Rules)).concat(' --visibility-config ').concat(JSON.stringify(pushkinACL.VisibilityConfig)))
+    } catch (e) {
+      console.error(`Unable to create ACL`)
+      throw e
+    }
+    ACLarn = JSON.parse(temp.stdout).Summary.ACLarn
+  }
+  console.log(`ACL created`)
+  return ACLarn
+}
+
+
 
 export async function addIAM(iam) {
   let temp
