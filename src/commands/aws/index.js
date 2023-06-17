@@ -210,7 +210,7 @@ const deployFrontEnd = async (projName, awsName, useIAM, myDomain, myCertificate
       myCloudFront.ViewerCertificate.MinimumProtocolVersion = 'TLSv1.2_2019'
     }
     try {
-      myCloud = await exec(`aws cloudfront create-distribution --distribution-config '`.concat(JSON.stringify(myCloudFront)).concat(`' --profile ${useIAM}`))
+      myCloud = await exec(`aws cloudfront create-distribution --cli-input-json '`.concat(JSON.stringify(myCloudFront)).concat(`' --profile ${useIAM}`))
       theCloud = JSON.parse(myCloud.stdout).Distribution 
     } catch (e) {
       console.log('Could not set up cloudfront.')
@@ -300,13 +300,14 @@ const deployFrontEnd = async (projName, awsName, useIAM, myDomain, myCertificate
 
 const getOAC = async (useIAM) => {
   const createOAC = async (useIAM) => {
+    let temp
     try {
-      temp = exec('aws cloudfront create-origin-access-control --origin-access-control-config'.concat(JSON.stringify(OriginAccessControl)).concat(` --profile ${useIAM}`))
+      temp = await exec(`aws cloudfront create-origin-access-control --origin-access-control-config '`.concat(JSON.stringify(OriginAccessControl)).concat(`' --profile ${useIAM}`))
     } catch (error) {
       console.error(`Unable to create Origin Access Control`)
       throw error
     }
-    return Promise(temp.OriginAccessIdentify.Id)
+    return JSON.parse(temp.stdout).OriginAccessControl.Id
   }
 
   console.log(`Checking to see if OAC already exists.`)
@@ -335,7 +336,7 @@ const getOAC = async (useIAM) => {
   }
 
   if (needOAC) {
-    awsResources.OAC = await createOAC();
+    awsResources.OAC = await createOAC(useIAM);
     try {
       fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');  
     } catch (error) {
@@ -344,7 +345,7 @@ const getOAC = async (useIAM) => {
     }
   }
 
-  return Promise(awsResources.OAC)
+  return Promise.resolve(awsResources.OAC)
 }
 
 const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
@@ -1297,17 +1298,21 @@ const makeACL = async (useIAM) => {
   //This function first checks for an ACL named pushkinACL. If so, return ARN.
   //If not, create one and return the ARN.
   //We don't store anything because the ACL is always called 'pushkinACL' and the ID and ARN can always be looked up if needed.
-  const findACL = (useIAM) => {
-    let ACLarn, temp
+  const findACL = async (useIAM) => {
+    let ACLarn
+    let temp
     try {
-      temp = execSync(`aws wafv2 list-web-acls --scope CLOUDFRONT --profile ${useIAM}`)
+      temp = await exec(`aws wafv2 list-web-acls --scope CLOUDFRONT --profile ${useIAM}`)
     } catch (e) {
       console.error(`Unable to get list of ACLs`)
       throw e
     }
+    console.log(`ACL list retrieved ` + temp.stdout)
+    console.log(`more ACL list retrieved ` + JSON.parse(temp.stdout))
     if (temp.stdout != "") {
       JSON.parse(temp.stdout).WebACLs.forEach((d) => {
         let tempCheck = false;
+        console.log("d: " + d)
         try {
           tempCheck = (d.Name == 'pushkinACL')
         } catch (e) {
@@ -1322,7 +1327,7 @@ const makeACL = async (useIAM) => {
     return ACLarn
   }
 
-  let ACLarn = findACL(useIAM);
+  let ACLarn = await findACL(useIAM);
   if (!ACLarn) {
     let temp
     try {
@@ -1677,6 +1682,37 @@ export const awsArmageddon = async (useIAM) => {
 
   await Promise.all([ deletedCloudFront, deletedDBs, deletedLoadBalancer ]);
 
+  const deleteOACs = async (useIAM) => {
+    let temp
+    try {
+      temp = await exec(`aws cloudfront list-origin-access-controls --profile ${useIAM}`)
+    } catch (e) {
+      console.error(`Unable to get list of origin access controls`)
+      throw e
+    }
+    if (temp.stdout != "") {
+      JSON.parse(temp.stdout).OriginAccessControlList.Items.forEach((d) => {
+        let etag
+        try {
+          etag = execSync(`aws cloudfront get-origin-access-control --id ${d.Id} --profile ${useIAM}`).toString()
+        } catch (e) {
+          console.error(`Unable to get etag for origin access control ${d.Id}`)
+        }
+        etag = JSON.parse(etag.stdout).ETag
+        let deleteOAC
+        try {
+          deleteOAC = execSync(`aws cloudfront delete-origin-access-identity --id ${d.Id} --if-match ${etag} --profile ${useIAM}`).toString()
+        } catch (e) {
+          console.error(`Unable to delete origin access control ${d.Id}`)
+          console.error(e)
+          throw e
+        }
+      })
+    }
+    return true
+  }
+
+  let deletedOACs = deleteOACs(useIAM)
 
   const deleteTargetGroup = async () => {
     let deletedTargetGroup
@@ -1709,7 +1745,7 @@ export const awsArmageddon = async (useIAM) => {
     //nothing
   }
 
-  await Promise.all([ deletedCluster, deletedTargetGroup ])
+  await Promise.all([ deletedOACs, deletedCluster, deletedTargetGroup ])
 
   console.log(`Deleting security groups`)
   let deletedGroups

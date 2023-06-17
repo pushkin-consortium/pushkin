@@ -544,13 +544,11 @@ export const alarmRDSHigh = {
 }
 
 export const OriginAccessControl = {
-    "OriginAccessControlConfig": {
-        "Name": "pushkinOAC",
-        "Description": "",
-        "SigningProtocol": "sigv4",
-        "SigningBehavior": "always",
-        "OriginAccessControlOriginType": "s3"
-    }
+    "Name": "pushkinOAC",
+    "Description": "",
+    "SigningProtocol": "sigv4",
+    "SigningBehavior": "always",
+    "OriginAccessControlOriginType": "s3"
 }
 
 // export const alarmRAMLow = {
