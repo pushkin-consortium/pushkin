@@ -351,43 +351,79 @@ const getOAC = async (useIAM) => {
 }
 
 const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
-  console.log(`Creating ${dbType} database.`)
+  console.log(`Handling ${dbType} database.`)
   let stdOut, dbName, dbPassword
   dbName = projName.concat(dbType).replace(/[^A-Za-z0-9]/g, "")
 
-  //First, check to see if database exists
+  //First, check pushkin.yaml -- do we have a database already?
+  let temp
+  let pushkinConfig
+  let needDB = true;
   try {
-     stdOut = await exec(`aws rds describe-db-instances --profile ${useIAM}`)
+    temp = await fs.promises.readFile(path.join(process.cwd(), 'pushkin.yaml'), 'utf8')
+    pushkinConfig = jsYaml.safeLoad(temp)
   } catch (e) {
-    console.error(`Unable to get list of RDS databases`)
-    throw e
+    console.error(`Couldn't load pushkin.yaml`)
+    throw e;
   }
-  let foundDB = false;
-  JSON.parse(stdOut.stdout).DBInstances.forEach((db) => {
-    if (db.DBInstanceIdentifier == dbName.toLowerCase()) {
-      foundDB = true;
+  if (Object.keys(pushkinConfig.productionDBs).includes(dbName)) {
+    console.warn(`${dbName} is in pushkin.yaml. If that surprises you, look into it.\n Checking whether it is also on RDS.`)
+    //check whether it's fully configured in RDS
+    //First, check to see if database exists
+    try {
+      stdOut = await exec(`aws rds describe-db-instances --profile ${useIAM}`)
+    } catch (e) {
+      console.error(`Unable to get list of RDS databases`)
+      throw e
     }
-  })
-  if (foundDB) {
-    console.warn(`${dbName} already exists. If that surprises you, look into it.`)
-    //Could consider putting an optional break in here, make people acknowledge before going on.
-    return false;
-  }
-
-  //Updating list of AWS resources
-  console.log('Updated awsResources with db information')
-  try {
-    let awsResources = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
-    if (awsResources.dbs) {
-      awsResources.dbs.push(dbName)
+    let foundDB = false;
+    let retrievedDBInfo
+    JSON.parse(stdOut.stdout).DBInstances.forEach((db) => {
+      if (db.DBInstanceIdentifier == dbName.toLowerCase()) {
+        foundDB = true;
+        retrievedDBInfo = db
+      }
+    })
+    if (foundDB) {
+      //Does its parameters match what we expect?
+      let sameParams = true;
+      if (pushkinConfig.productionDBs[dbName].name != db.DBName) {sameParams = false}
+      if (pushkinConfig.productionDBs[dbName].user != db.MasterUsername) {sameParams = false}
+      //if (pushkinConfig.productionDBs[dbName].pass != FUBAR) {sameParams = false} //No way to check the password; assume if rest is correct, that's still correct
+      if (pushkinConfig.productionDBs[dbName].port != db.Endpoint.port) {sameParams = false}
+      if (pushkinConfig.productionDBs[dbName].host != db.Endpoint.Address) {sameParams = false}
+      if (sameParams) {
+        console.log(`${dbName} is already configured on RDS. Skipping.\n Note that if the password stored in the YAML is wrong, the CLI can't check that.`)
+      } else {
+        console.error(`${dbName} is already configured on RDS, but with different parameters.`)
+        console.error(`Pushkin.yaml has:`, pushkinConfig.productionDBs[dbName])
+        console.error(`RDS has:`, retrievedDBInfo)
+        process.exit()
+      }
     } else {
-      awsResources.dbs = [dbName]
+      console.warn(`Database listed in pushkin.yaml, but not found on RDS. Creating.`)
     }
-    fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
-  } catch (e) {
-    console.error(`Unable to update awsResources.js`)
-    console.error(e)
-  }    
+  } else {
+    try {
+      stdOut = await exec(`aws rds describe-db-instances --profile ${useIAM}`)
+    } catch (e) {
+      console.error(`Unable to get list of RDS databases`)
+      throw e
+    }
+    let foundDB = false;
+    let retrievedDBInfo
+    JSON.parse(stdOut.stdout).DBInstances.forEach((db) => {
+      if (db.DBInstanceIdentifier == dbName.toLowerCase()) {
+        foundDB = true;
+        retrievedDBInfo = db
+      }
+    })
+    if (foundDB) {
+      console.error(`Database ${dbName} found on RDS, but not listed in pushkin.yaml. This is a problem.\n
+        You will need to delete the database from RDS before continuing.`)
+      process.exit()
+    }
+  }
 
   dbPassword = Math.random().toString() //Pick random password for database
   let myDBConfig = JSON.parse(JSON.stringify(dbConfig));
@@ -416,13 +452,28 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
   }
 
   let dbEndpoint
-  try {
+ try {
      stdOut = await exec(`aws rds describe-db-instances --db-instance-identifier ${dbName} --profile ${useIAM}`)
      dbEndpoint = JSON.parse(stdOut.stdout);
   } catch (e) {
     console.error(`Problem getting ${dbType} endpoint.`)
     throw e
   }
+ 
+  //Updating list of AWS resources
+  console.log('Updated awsResources with db information')
+  try {
+    let awsResources = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
+    if (awsResources.dbs) {
+      awsResources.dbs.push(dbName)
+    } else {
+      awsResources.dbs = [dbName]
+    }
+    fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
+  } catch (e) {
+    console.error(`Unable to update awsResources.js`)
+    console.error(e)
+  }    
   
   const newDB = {
     "type": dbType,
@@ -1695,17 +1746,23 @@ export const awsArmageddon = async (useIAM) => {
     if (temp.stdout != "") {
       JSON.parse(temp.stdout).OriginAccessControlList.Items.forEach((d) => {
         let etag
+        let awsCommand = `aws cloudfront get-origin-access-control --id ${d.Id} --profile ${useIAM}`
         try {
-          etag = execSync(`aws cloudfront get-origin-access-control --id ${d.Id} --profile ${useIAM}`).toString()
+          etag = execSync(awsCommand).toString()
         } catch (e) {
           console.error(`Unable to get etag for origin access control ${d.Id}`)
+          console.error(`This command failed: ${awsCommand}`)
+          throw e
         }
-        etag = JSON.parse(etag.stdout).ETag
         let deleteOAC
+        console.log(d.Id)
+        console.log(etag)
+        let deleteOACcommand = `aws cloudfront delete-origin-access-identity --id ${d.Id} --if-match ${JSON.parse(etag).ETag} --profile ${useIAM}`
         try {
-          deleteOAC = execSync(`aws cloudfront delete-origin-access-identity --id ${d.Id} --if-match ${etag} --profile ${useIAM}`).toString()
+          deleteOAC = execSync(deleteOACcommand).toString()
         } catch (e) {
           console.error(`Unable to delete origin access control ${d.Id}`)
+          console.error(`This command failed: ${deleteOACcommand}`)
           console.error(e)
           throw e
         }
