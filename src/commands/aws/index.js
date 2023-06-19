@@ -1529,6 +1529,7 @@ export const awsArmageddon = async (useIAM) => {
 
     const checkDatabases = (dbId) => {
       let temp
+      console.log(`Checking database ${dbId} for deletion protection`)
       try {
         temp = execSync(`aws rds describe-db-instances --db-instance-identifier ${dbId} --profile ${useIAM}`).toString()
       } catch (e) {
@@ -1538,26 +1539,55 @@ export const awsArmageddon = async (useIAM) => {
       if (temp != "") {
         return (JSON.parse(temp).DBInstances[0].DeletionProtection == false)
       } else {
-        return ""
+        return false
       }
     }
 
     const wait = async () => {
       //Sometimes, I really miss loops
-      if (awsResources.dbs.every((db) => {return checkDatabases(db)})) {
-        let returnPromise = Promise.all([awsResources.dbs.map((db) => {
-          temp = exec(`aws rds delete-db-instance --db-instance-identifier ${db} --skip-final-snapshot --profile ${useIAM}`)
-        })])
-        awsResources.dbs = []; //Hopefully they were actually deleted
-        return returnPromise
-      } else {
+      let checked = awsResources.dbs.map((db) => {checkDatabases(db)})
+      if (checked.includes(false)) {
         console.log('Waiting for DBs to be deletable...')
-        setTimeout( wait, 20000 );        
+        setTimeout( wait, 20000 );
+      } else {
+        return Promise.all([awsResources.dbs.map((db) => {
+          console.log(`Deleting database ${db}`)
+          exec(`aws rds delete-db-instance --db-instance-identifier ${db} --skip-final-snapshot --profile ${useIAM}`)
+        })])
       }
+      console.log("really shouldn't ever get to this line!")
     }
 
     console.log('Waiting for DBs to be deletable...')
-    return wait();
+    await wait();
+
+    //now, wait for them to be deleted
+    const wait2 = async () => {
+      //Sometimes, I really miss loops
+
+      const confirmDBDeleted = (dbId) => {
+        let temp
+        try {
+          temp = execSync(`aws rds describe-db-instances --db-instance-identifier ${dbId} --profile ${useIAM}`).toString()
+        } catch (e) {
+          return true
+        }
+        // if it returned anything at all, then the db still exists
+        return false 
+      }
+  
+      let checked = awsResources.dbs.map((db) => {confirmDBDeleted(db)})
+      if (checked.includes(false)) {
+        console.log('Waiting for DBs to be deleted...')
+        setTimeout( wait, 20000 );
+      } else {
+        console.log(`Databases deleted`)
+        return true
+      }
+      console.log("really shouldn't ever get to this line!")
+    }
+
+    return await wait2()
   }
 
   let deletedDBs 
@@ -1815,26 +1845,6 @@ export const awsArmageddon = async (useIAM) => {
 
   await Promise.all([ deletedOACs, deletedCluster, deletedTargetGroup ])
 
-  console.log(`Deleting security groups`)
-  let deletedGroups
-
-  const deleteMyGroup = async (g) => {
-    let temp
-    try {
-      await exec(`aws ec2 describe-security-groups --group-names ${g} --profile ${useIAM}`)
-    } catch (e) {
-      //No security group by that name. Since we didn't keep track, this is not necessarily a surprise, so no warning message.
-      return true
-    }
-    try {
-      return exec(`aws ec2 delete-security-group --group-name ${g} --profile ${useIAM}`)
-    } catch(e) {
-      console.warn(`Unable to delete security group ${g}. PROBABLY this is because AWS needs something else to delete first.\n We recommend you retry 'pushkin aws armageddon' in a few minutes.`)
-      console.warn(e)
-      return true
-    }
-  }
-
   try {
     deletedGroups = Promise.all(["BalancerGroup", "DatabaseGroup", "ECSGroup"].map(deleteMyGroup))
   } catch (e) {
@@ -1873,6 +1883,28 @@ export const awsArmageddon = async (useIAM) => {
     console.error(`Unable to update awsResources.js`)
     console.error(e)
   }    
+
+  console.log(`Beore deleting security groups, wait for DBs to be completed deleted`)
+  console.log(`Deleting security groups`)
+  let deletedGroups
+
+  const deleteMyGroup = async (g) => {
+    let temp
+    try {
+      await exec(`aws ec2 describe-security-groups --group-names ${g} --profile ${useIAM}`)
+    } catch (e) {
+      //No security group by that name. Since we didn't keep track, this is not necessarily a surprise, so no warning message.
+      return true
+    }
+    try {
+      temp = exec(`aws ec2 delete-security-group --group-name ${g} --profile ${useIAM}`)
+    } catch(e) {
+      console.warn(`Unable to delete security group ${g}. PROBABLY this is because AWS needs something else to delete first.\n We recommend you retry 'pushkin aws armageddon' in a few minutes.`)
+      console.warn(e)
+      return true
+    }
+    return temp
+  }
 
   console.log(`The following resources were either not deleted or are still in the process of being deleted:`)
   await awsList(useIAM)
