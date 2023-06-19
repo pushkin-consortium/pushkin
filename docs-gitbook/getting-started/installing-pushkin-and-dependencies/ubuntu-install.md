@@ -33,8 +33,8 @@ $ sudo apt install curl
 To install the latest version of Node.js , follow [these instructions at NodeSource](https://github.com/nodesource/distributions/blob/master/README.md#installation-instructions). They are copied below for your convenience, but you should follow the link in case their instructions have changed.
 
 ```bash
-$ curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
-$ sudo apt install -y nodejs
+$ curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - &&\
+$ sudo apt-get install -y nodejs
 ```
 
 ![](../../.gitbook/assets/ubuntu2%20%281%29.gif)
