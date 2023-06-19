@@ -18,6 +18,7 @@ In order to have encryption&mdash;which you want!&mdash;you need a certificate. 
 4. Enter your domain preceded by an `*` \(thus 'gameswithwords.org' would be entered as `*.gameswithwords.org`\).
 5. If you registered your domain with AWS, use DNS validation. Otherwise, follow the instructions.
 6. IF you used AWS for your domain registration, Skip through the next couple steps and click "request". If you did not, it may be more complicated. ![](../.gitbook/SSL.mov)
+7. IF you used AWS for your domain registration, select the certficate from the list of certificates. Scroll down to "Domains" and click "Create records in Route 53". Select the domain from the list.
 
 At this point, you wait for your certificate to be issued. Depending on how you registered your domain, this may take variable amounts of time. For us, it usually only takes a few minutes.
 
