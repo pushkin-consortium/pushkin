@@ -1743,7 +1743,7 @@ export const awsArmageddon = async (useIAM) => {
       console.error(`Unable to get list of origin access controls`)
       throw e
     }
-    if (temp.stdout != "") {
+    if (temp.stdout != "" && JSON.parse(temp.stdout).OriginAccessControlList.Items) {
       JSON.parse(temp.stdout).OriginAccessControlList.Items.forEach((d) => {
         let etag
         let awsCommand = `aws cloudfront get-origin-access-control --id ${d.Id} --profile ${useIAM}`
@@ -1757,7 +1757,7 @@ export const awsArmageddon = async (useIAM) => {
         let deleteOAC
         console.log(d.Id)
         console.log(etag)
-        let deleteOACcommand = `aws cloudfront delete-origin-access-identity --id ${d.Id} --if-match ${JSON.parse(etag).ETag} --profile ${useIAM}`
+        let deleteOACcommand = `aws cloudfront delete-origin-access-control --id ${d.Id} --if-match ${JSON.parse(etag).ETag} --profile ${useIAM}`
         try {
           deleteOAC = execSync(deleteOACcommand).toString()
         } catch (e) {
@@ -1836,15 +1836,8 @@ export const awsArmageddon = async (useIAM) => {
     if (awsResources.awsName) {
       console.log(`Deleting s3 bucket`)
       try {
-        await exec(`aws s3api get-bucket-policy --bucket ${awsResources.awsName} --profile ${useIAM}`)
-      } catch (e) {
-        console.warn(`Unable to find bucket ${awsResources.awsName}. May have already been deleted. Skipping.`)
-//        awsResources.awsName = null;
-        return
-      }
-      try {
         await exec(`aws s3 rb s3://${awsResources.awsName} --force --profile ${useIAM}`)
-//        awsResources.awsName = null;
+        awsResources.awsName = null;
         return
       } catch (e) {
         console.error(`Unable to delete s3 bucket ${awsResources.awsName}`)

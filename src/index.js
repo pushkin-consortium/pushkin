@@ -293,7 +293,7 @@ const handleAWSList = async () => {
 const handleAWSArmageddon = async () => {
   let nukeMe
   try {
-    nukeMe = await inquirer.prompt([{ type: 'input', name: 'armageddon', message: `This command will DELETE your website. This cannot be undone.\n Are you SURE you want to do this?\n Confirm by typing 'armageddon'.`}])
+    nukeMe = await inquirer.prompt([{ type: 'input', name: 'armageddon', message: `This command will DELETE your website.\n And probably EVERYTHING ELSE you have on this AWS account.\n\n This cannot be undone.\n Are you SURE you want to do this?\n Confirm by typing 'armageddon'.`}])
   } catch (e) {
     console.error('Problem getting permission.\n', e)
     process.exit()
