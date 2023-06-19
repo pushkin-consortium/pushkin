@@ -210,7 +210,7 @@ const deployFrontEnd = async (projName, awsName, useIAM, myDomain, myCertificate
       myCloudFront.ViewerCertificate.MinimumProtocolVersion = 'TLSv1.2_2019'
     }
     try {
-      myCloud = await exec(`aws cloudfront create-distribution --cli-input-json '`.concat(JSON.stringify(myCloudFront)).concat(`' --profile ${useIAM}`))
+      myCloud = await exec(`aws cloudfront create-distribution --distribution-config '`.concat(JSON.stringify(myCloudFront)).concat(`' --profile ${useIAM}`))
       theCloud = JSON.parse(myCloud.stdout).Distribution 
     } catch (e) {
       console.log('Could not set up cloudfront.')
@@ -327,9 +327,11 @@ const getOAC = async (useIAM) => {
     console.log(`No origin access control. Creating.`)
     needOAC = true;
   } else {
+    let temp
     try {
       temp = await exec(`aws cloudfront get-origin-access-control --id ${awsResources.OAC} --profile ${useIAM}`)
     } catch (e) {
+      console.log(e)
       console.log(`Huh. I can't find that OAC. Making a new one.`)
       needOAC = true;
     }
@@ -367,7 +369,7 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
     }
   })
   if (foundDB) {
-    console.log(`${dbName} already exists. If that surprises you, look into it.`)
+    console.warn(`${dbName} already exists. If that surprises you, look into it.`)
     //Could consider putting an optional break in here, make people acknowledge before going on.
     return false;
   }
