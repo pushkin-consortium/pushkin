@@ -223,7 +223,7 @@ const deployFrontEnd = async (projName, awsName, useIAM, myDomain, myCertificate
     //  let myCORSPolicy = JSON.parse(JSON.stringify(corsPolicy)) 
     //  myCORSPolicy.Bucket = awsName 
       policy.Statement[0].Resource = "arn:aws:s3:::".concat(awsName).concat("/*")
-      policy.Statement[0].Resource.Condition["AWS:SourceArn"] = theCloud.ARN
+      policy.Statement[0].Condition["AWS:SourceArn"] = theCloud.ARN
       try {
     //    await exec(`aws s3 website s3://${awsName} --profile ${useIAM} --index-document index.html --error-document index.html`) //https://awscli.amazonaws.com/v2/documentation/api/latest/reference/s3/website.html
         await exec(`aws s3api put-bucket-policy --bucket `.concat(awsName).concat(` --policy '`).concat(JSON.stringify(policy)).concat(`' --profile ${useIAM}`))
@@ -1545,11 +1545,11 @@ export const awsArmageddon = async (useIAM) => {
     const wait = async () => {
       //Sometimes, I really miss loops
       if (awsResources.dbs.every((db) => {return checkDatabases(db)})) {
-        await Promise.all([awsResources.dbs.map((db) => {
+        let returnPromise = Promise.all([awsResources.dbs.map((db) => {
           temp = exec(`aws rds delete-db-instance --db-instance-identifier ${db} --skip-final-snapshot --profile ${useIAM}`)
         })])
         awsResources.dbs = []; //Hopefully they were actually deleted
-        return true
+        return returnPromise
       } else {
         console.log('Waiting for DBs to be deletable...')
         setTimeout( wait, 20000 );        
@@ -1557,7 +1557,7 @@ export const awsArmageddon = async (useIAM) => {
     }
 
     console.log('Waiting for DBs to be deletable...')
-    return await wait();
+    return wait();
   }
 
   let deletedDBs 
@@ -1766,6 +1766,15 @@ export const awsArmageddon = async (useIAM) => {
           console.error(e)
           throw e
         }
+        console.log(`Updating awsResources with cloudfront info`)
+        try {
+          let awsResources = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
+          awsResources.OAC = null
+          fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
+        } catch (e) {
+          console.error(`Unable to update awsResources.js`)
+          console.error(e)
+        }        
       })
     }
     return true
