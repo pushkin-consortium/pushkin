@@ -692,7 +692,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
   //make security group for load balancer. Start this process early, though it doesn't take super long.
   const makeBalancerGroup = async(useIAM) => {
     console.log(`Creating security group for load balancer`)
-    let SGCreate = `aws ec2 create-security-group --group-name BalancerGroup --description "For the load balancer" --profile ${useIAM}`
+    let SGCreate = `aws ec2 create-security-group --group-name BalancerGroup --description "For the load balancer" --tag-specifications 'ResourceType=security-group,Tags=[{Key=PUSHKIN,Value=${projName}}]' --profile ${useIAM}`
     let SGRule1 = `aws ec2 authorize-security-group-ingress --group-name BalancerGroup --ip-permissions IpProtocol=tcp,FromPort=80,ToPort=80,Ipv6Ranges='[{CidrIpv6=::/0}]',IpRanges='[{CidrIp=0.0.0.0/0}]' --profile ${useIAM}`
     let SGRule2 = `aws ec2 authorize-security-group-ingress --group-name BalancerGroup --ip-permissions IpProtocol=tcp,FromPort=443,ToPort=443,Ipv6Ranges='[{CidrIpv6=::/0}]',IpRanges='[{CidrIp=0.0.0.0/0}]' --profile ${useIAM}`
     let stdOut
@@ -733,7 +733,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
   //make security group for ECS cluster. Start this process early, though it doesn't take super long.
   const makeECSGroup = async(useIAM) => {
     console.log(`Creating security group for ECS cluster`)
-    let SGCreate = `aws ec2 create-security-group --group-name ECSGroup --description "For the ECS cluster" --profile ${useIAM}`
+    let SGCreate = `aws ec2 create-security-group --group-name ECSGroup --description "For the ECS cluster" --tag-specifications 'ResourceType=security-group,Tags=[{Key=PUSHKIN,Value=${projName}}]' --profile ${useIAM}`
     let stdOut
     let groupId
     try {
@@ -1099,7 +1099,7 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
 
   //Databases take BY FAR the longest, so start them right after certificate (certificate comes first or things get confused)
   const createDatabaseGroup = async (useIAM) => {
-    let SGCreate = `aws ec2 create-security-group --group-name DatabaseGroup --description "For connecting to databases" --profile ${useIAM}`
+    let SGCreate = `aws ec2 create-security-group --group-name DatabaseGroup --description "For connecting to databases" --tag-specifications 'ResourceType=security-group,Tags=[{Key=PUSHKIN,Value=${projName}}]' --profile ${useIAM}`
     let SGRule = `aws ec2 authorize-security-group-ingress --group-name DatabaseGroup --ip-permissions IpProtocol=tcp,FromPort=5432,ToPort=5432,Ipv6Ranges='[{CidrIpv6=::/0}]',IpRanges='[{CidrIp=0.0.0.0/0}]' --profile ${useIAM}`
     let stdOut
     try {
@@ -1522,7 +1522,7 @@ export const awsArmageddon = async (useIAM, killType) => {
     //Nothing. Might as well try deleting other things, too.
   }
 
-  const deleteDatabases = async () => {
+  const dbsToDeleteFunc = async () => {
     // Get list of DBs to delete
     let dbs = awsResources.dbs
     let respDBList
@@ -1549,6 +1549,10 @@ export const awsArmageddon = async (useIAM, killType) => {
         }
       }
     })
+    return dbs
+  }
+
+  const deleteDatabases = async (dbs) => {
 
     console.log(`Removing deletion protection from databases.`) 
     await Promise.all([
@@ -1633,9 +1637,10 @@ export const awsArmageddon = async (useIAM, killType) => {
     return await wait2()
   }
 
-  let deletedDBs 
+  let deletedDBs, dbsToDelete 
   try {
-    deletedDBs = deleteDatabases()
+    dbsToDelete = await dbsToDeleteFunc()
+    deletedDBs = deleteDatabases(dbsToDelete)
   } catch(e) {
     //Nothing
   }
@@ -1927,12 +1932,6 @@ export const awsArmageddon = async (useIAM, killType) => {
 
   await Promise.all([ deletedOACs, deletedCluster, deletedTargetGroup ])
 
-  try {
-    deletedGroups = Promise.all(["BalancerGroup", "DatabaseGroup", "ECSGroup"].map(deleteMyGroup))
-  } catch (e) {
-    // Do nothing
-  }
-
   const deleteBucket = async () => {
     if (awsResources.awsName) {
       console.log(`Deleting s3 bucket`)
@@ -1958,18 +1957,39 @@ export const awsArmageddon = async (useIAM, killType) => {
 
   await Promise.all([ deletedBucket ])
 
-  console.log(`Updating awsResources.js`)
-  try {
-    await fs.promises.writeFile(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
-  } catch (e) {
-    console.error(`Unable to update awsResources.js`)
-    console.error(e)
-  }    
+  console.log(`Before deleting security groups, wait for DBs to be completed deleted`)
+  const waitForDBDeletion = async (dbs) => {
+    let temp
+    const checkDBDeletion = (dbId) => {
+      let temp
+      try {
+        temp = execSync(`aws rds describe-db-instances --db-instance-identifier ${dbId} --profile ${useIAM}`).toString()
+      } catch (e) {
+        return true
+      }
+      // if it returned anything at all, then the db still exists
+      return false 
+    }
 
-  console.log(`Beore deleting security groups, wait for DBs to be completed deleted`)
-  await deletedDBs
+    const wait = async () => {
+      //Sometimes, I really miss loops
+      let checked = dbs.map((db) => {checkDBDeletion(db)})
+      if (checked.includes(false)) {
+        console.log('Waiting for DBs to be deleted...')
+        setTimeout( wait, 20000 );
+      } else {
+        console.log(`Databases deleted`)
+        return true
+      }
+      console.log("really shouldn't ever get to this line!")
+    }
+
+    return await wait()
+  }
+
+  await waitForDBDeletion(dbsToDelete); //shouldn't need this, but for some reason previous loop is insufficient
+
   console.log(`Deleting security groups`)
-  let deletedGroups
 
   const deleteMyGroup = async (g) => {
     let temp
@@ -1988,6 +2008,56 @@ export const awsArmageddon = async (useIAM, killType) => {
     }
     return temp
   }
+
+  const deleteSecurityGroups = async () => {
+    let groupsToDelete = []
+    let tempGroupList
+    try {
+      tempGroupList = await exec(`aws ec2 describe-security-groups --profile ${useIAM}`)
+    } catch (e) {
+      console.error(`Unable to list security groups`)
+      throw e
+    }
+    JSON.parse(tempGroupList.stdout).SecurityGroups.forEach((g) => {
+      if (g.GroupName!="default") { //can't delete the default!
+        if (!killTag) {
+          //kill them all
+          groupsToDelete.push(g.GroupName)
+        } else {
+          if (g.Tags[0].Value==killTag) {
+            groupsToDelete.push(g.GroupName)
+          }
+        }
+      }
+    })
+    return Promise.all(groupsToDelete.map((g) => deleteMyGroup(g)))
+  }
+
+  let deletedGroups 
+  try {
+    deletedGroups = deleteSecurityGroups()
+  } catch (e) {
+    // Do nothing
+  }
+
+  console.log(`Updating awsResources.js`)
+  let awsResourcesNull = {
+    name: projName,
+    awsName: null,
+    iam: useIAM,
+    dbs: [],
+    cloudFrontId: null,
+    ECSName: null,
+    OAC: null
+  }
+  try {
+    await fs.promises.writeFile(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResourcesNull), 'utf8');
+  } catch (e) {
+    console.error(`Unable to update awsResources.js`)
+    console.error(e)
+  }    
+
+  await deletedGroups
 
   console.log(`The following resources were either not deleted or are still in the process of being deleted:`)
   await awsList(useIAM)
