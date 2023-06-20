@@ -15,7 +15,7 @@ In order to have encryption&mdash;which you want!&mdash;you need a certificate. 
 1. First, make sure you are in the US-East-1 zone. \([This matters](https://medium.com/dailyjs/a-guide-to-deploying-your-react-app-with-aws-s3-including-https-a-custom-domain-a-cdn-and-58245251f081).\)
 2. In the AWS Certificate Manager, select "Provision Certificate"
 3. Request a public certificate.
-4. Enter your domain preceded by an `*` \(thus 'gameswithwords.org' would be entered as `*.gameswithwords.org`\).
+4. Enter two your domain preceded by an `*` \(thus 'gameswithwords.org' would be entered as `*.gameswithwords.org`\).
 5. If you registered your domain with AWS, use DNS validation. Otherwise, follow the instructions.
 6. IF you used AWS for your domain registration, Skip through the next couple steps and click "request". If you did not, it may be more complicated. ![](../.gitbook/SSL.mov)
 7. IF you used AWS for your domain registration, select the certficate from the list of certificates. Scroll down to "Domains" and click "Create records in Route 53". Select the domain from the list.
