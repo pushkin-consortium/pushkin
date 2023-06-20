@@ -226,12 +226,10 @@ const handleCreateAutoScale = async () => {
 const handleViewConfig = async (what) => {
   moveToProjectRoot();
   let x = await ((what=='site' | !what) ? loadConfig(path.join(process.cwd(), 'pushkin.yaml')) : '')
-  console.log(x)
   let exps = fs.readdirSync(path.join(process.cwd(), 'experiments'));
   let y = await Promise.all(exps.map(async (exp) => {
     return await (what == exp | !what) ? loadConfig(path.join(process.cwd(), 'experiments', exp, 'config.yaml')) : '';
   }));
-  console.log(y);
   //Thanks to https://stackoverflow.com/questions/49627044/javascript-how-to-await-multiple-promises
 }
 

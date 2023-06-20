@@ -210,7 +210,7 @@ const deployFrontEnd = async (projName, awsName, useIAM, myDomain, myCertificate
       myCloudFront.ViewerCertificate.MinimumProtocolVersion = 'TLSv1.2_2019'
     }
     try {
-      myCloud = await exec(`aws cloudfront create-distribution --distribution-config '`.concat(JSON.stringify(myCloudFront)).concat(`' --profile ${useIAM}`))
+      myCloud = await exec(`aws cloudfront create-distribution-with-tags --distribution-config '`.concat(JSON.stringify(myCloudFront)).concat(`' --profile ${useIAM}`))
       theCloud = JSON.parse(myCloud.stdout).Distribution 
     } catch (e) {
       console.log('Could not set up cloudfront.')
@@ -1690,112 +1690,153 @@ export const awsArmageddon = async (useIAM, killType) => {
   }
 
   const deleteCloudFront = async () => {
-    if (!awsResources.cloudFrontId) {
-      console.log(`No cloudfront distribution. Skipping.`)
-      return
-    }
-    let cloudConfig
-    let ETag
+
+    // First, get list of distributions we need to delete
+    let tempDists
     try {
-      temp = await exec(`aws cloudfront get-distribution-config --id ${awsResources.cloudFrontId} --profile ${useIAM}`)
-      cloudConfig = JSON.parse(temp.stdout).DistributionConfig
-      ETag = JSON.parse(temp.stdout).ETag
+      tempDists = await exec(`aws cloudfront list-distributions --profile ${useIAM}`)
     } catch (e) {
-      console.log(`Cannot find cloudfront distribution ${awsResources.cloudFrontId}. May have already been deleted. Skipping.`)      
-      awsResources.cloudFrontId = null
-      return
+      console.error(`Unable to get list of cloudfront distributions`)
+      throw e
     }
-
-    // disableCloudfront.Enabled = false
-    // disableCloudfront.CallerReference = cloudConfig.CallerReference
-    // disableCloudfront.Origins.Items[0].Id = cloudConfig.Origins.Items[0].Id
-    // disableCloudfront.Origins.Items[0].DomainName = cloudConfig.Origins.Items[0].DomainName
-    // disableCloudfront.Origins.Items[0].DomainName = cloudConfig.Origins.Items[0].DomainName
-    // disableCloudfront.DefaultCacheBehavior.TargetOriginId = cloudConfig.DefaultCacheBehavior.TargetOriginId
-    cloudConfig.Enabled = false //This is the only thing to update
-
-    console.log(`Disabling cloudfront distribution`)
-    let disableCloudFront
-    try {
-      disableCloudFront = exec(`aws cloudfront update-distribution \
-        --id ${awsResources.cloudFrontId} \
-        --if-match ${ETag} \
-        --distribution-config '${JSON.stringify(cloudConfig)}' --profile ${useIAM}`)        
-    } catch (e) {
-      console.error(`Possibly unable to disable cloudfront distribution.\n Sometimes this throws errors but works anyway, so we'll continue and see what happens...\n`)
-      disableCloudFront = true
-    }
-
-    const tempForETag = await disableCloudFront //This has to finish running first
-    ETag = JSON.parse(tempForETag.stdout).ETag
-    const checkCloudFront = async () => {
-      let distributionExists = false;
-      let distributionReady = false;
-      let temp
-      try {
-        temp = await exec(`aws cloudfront list-distributions --profile ${useIAM}`)
-      } catch (e) {
-        console.error(`Unable to get list of cloudfront distributions`)
-        throw e
-      }
-      if (temp.stdout != "") {
-        JSON.parse(temp.stdout).DistributionList.Items.forEach((d) => {
-          let tempCheck = false;
+    if (!tempDists.stdout) {
+      console.log(`No cloudfront distributions found. Skipping.`)
+      return true;
+    } else {
+      //found something
+      let distributions = [];
+      JSON.parse(tempDists.stdout).DistributionList.Items.forEach((d) => {
+        if (killTag) {
+          //check whether this is tagged to our project
+          let tempTagCheck
           try {
-            tempCheck = (d.Id == awsResources.cloudFrontId)
+            tempDists = execSync(`aws cloudfront list-tags-for-resource --resource ${d.ARN} --profile ${useIAM}`).toString()
           } catch (e) {
-            // Probably not a fully created cloudfront distribution.
-            // Probably can ignore this. 
-            console.warning(`Problem reading cloudFront distribution information.`)
+            console.error(`Unable to get tags for cloudfront distribution ${d.ARN}`)
             throw e
           }
-          if (tempCheck) {
-            distributionReady = ((d.Enabled == false) & (d.Status != "InProgress"))
-            distributionExists = true
-          }
-        })    
-      }
-      if (!distributionExists) {
-        console.error(`Unable to find cloudfront distribution. That is very strange.`)
-      }
-      return distributionReady
-    }
-
-    return new Promise((resolve, reject) => {
-
-      const wait = async () => {
-        //Sometimes, I really miss loops
-        let temp
-        let x = await checkCloudFront()
-        if (x) {
-          console.log(`Cloudfront is disabled. Deleting.`)
-          try {
-            await exec(`aws cloudfront delete-distribution --id ${awsResources.cloudFrontId} --if-match ${ETag} --profile ${useIAM}`)
-            awsResources.cloudFrontId = null
-            resolve(true)
-          } catch (e) {
-            console.error(`Unable to delete cloudfront distribution`)
-            try {
-              resolve(exec(`aws cloudfront get-distribution --id ${awsResources.cloudFrontId} --profile ${useIAM}`))
-            } catch (e) {
-              console.error(e)
-              if (JSON.parse(temp.stdout).Distribution.Status != "InProgress") {
-                console.error(`Unable to delete cloudfront distribution. It may be worth running pushkin aws armageddon again.`)
-                resolve(false)
-              }
+          JSON.parse(tempDists).Tags.Items.forEach((t) => {
+            if (t.Key == "PUSHKIN" & t.Value == projName) {
+              distributions.push(d.Id)
             }
-            console.error(e)
-          }
+          })
         } else {
-          console.log('Waiting for cloudfront distribution to be disabled...')
-          setTimeout( wait, 15000 );
+          //kill them all
+          distributions.push(d.Id)
         }
+      })
+
+      const checkCloudFront = async (distId) => {
+        let distributionExists = false;
+        let distributionReady = false;
+        let temp
+        try {
+          temp = await exec(`aws cloudfront list-distributions --profile ${useIAM}`)
+        } catch (e) {
+          console.error(`Unable to get list of cloudfront distributions`)
+          throw e
+        }
+        if (temp.stdout != "") {
+          JSON.parse(temp.stdout).DistributionList.Items.forEach((d) => {
+            let tempCheck = false;
+            try {
+              tempCheck = (d.Id == distId)
+            } catch (e) {
+              // Probably not a fully created cloudfront distribution.
+              // Probably can ignore this. 
+              console.warning(`Problem reading cloudFront distribution information.`)
+              throw e
+            }
+            if (tempCheck) {
+              distributionReady = ((d.Enabled == false) & (d.Status != "InProgress"))
+              distributionExists = true
+            }
+          })    
+        }
+        if (!distributionExists) {
+          console.error(`Unable to find cloudfront distribution ${distId}. That is very strange.`)
+        }
+        return distributionReady
       }
 
-      console.log('Waiting for cloudfront distribution to be disabled...')
-      wait();
-    })
+      // Now, disable and delete each distribution
+      return Promise.all(distributions.map(async (distId) => {
+        let cloudConfig
+        let ETag
+        try {
+          temp = await exec(`aws cloudfront get-distribution-config --id ${distId} --profile ${useIAM}`)
+          cloudConfig = JSON.parse(temp.stdout).DistributionConfig
+          ETag = JSON.parse(temp.stdout).ETag
+        } catch (e) {
+          console.log(`Cannot find cloudfront distribution ${distId}. May have already been deleted. Skipping.`)      
+          return true
+        }
+    
+        // disableCloudfront.Enabled = false
+        // disableCloudfront.CallerReference = cloudConfig.CallerReference
+        // disableCloudfront.Origins.Items[0].Id = cloudConfig.Origins.Items[0].Id
+        // disableCloudfront.Origins.Items[0].DomainName = cloudConfig.Origins.Items[0].DomainName
+        // disableCloudfront.Origins.Items[0].DomainName = cloudConfig.Origins.Items[0].DomainName
+        // disableCloudfront.DefaultCacheBehavior.TargetOriginId = cloudConfig.DefaultCacheBehavior.TargetOriginId
+        cloudConfig.Enabled = false //This is the only thing to update
+        console.log(`Disabling cloudfront distribution ` + distId)  
 
+        let disableCloudFront
+        try {
+          disableCloudFront = await exec(`aws cloudfront update-distribution \
+            --id ${distId} \
+            --if-match ${ETag} \
+            --distribution-config '${JSON.stringify(cloudConfig)}' --profile ${useIAM}`)        
+        } catch (e) {
+          console.error(`Possibly unable to disable cloudfront distribution ${distId}.\n Sometimes this throws errors but works anyway, so we'll continue and see what happens...\n`)
+          disableCloudFront = true
+        }
+
+        return new Promise((resolve, reject) => {
+          const wait = async () => {
+            //Sometimes, I really miss loops
+            let temp
+            let x = await checkCloudFront(distId)
+            if (x) {
+              console.log(`Cloudfront is disabled. Deleting.`)
+              //Apparently the ETag changes after disabling? So we need to get it again.
+              try {
+                temp = await exec(`aws cloudfront get-distribution-config --id ${distId} --profile ${useIAM}`)
+                cloudConfig = JSON.parse(temp.stdout).DistributionConfig
+                ETag = JSON.parse(temp.stdout).ETag
+              } catch (e) {
+                console.log(`Suddenly can't find cloudfront distribution ${distId}. Which is very strange, since we haven't deleted it yet. Skipping for now...`)      
+                return true
+              }
+              //Armed with the new ETag, we can delete the distribution
+              try {
+                await exec(`aws cloudfront delete-distribution --id ${distId} --if-match ${ETag} --profile ${useIAM}`)
+                awsResources.cloudFrontId = null
+                resolve(true)
+              } catch (e) {
+                console.error(`Unable to delete cloudfront distribution`)
+                try {
+                  resolve(exec(`aws cloudfront get-distribution --id ${distId} --profile ${useIAM}`))
+                } catch (e) {
+                  console.error(e)
+                  if (JSON.parse(temp.stdout).Distribution.Status != "InProgress") {
+                    console.error(`Unable to delete cloudfront distribution. It may be worth running pushkin aws armageddon again.`)
+                    resolve(false)
+                  }
+                }
+                console.error(e)
+              }
+            } else {
+              console.log(`Waiting for cloudfront distribution ${distId} to be disabled...`)
+              setTimeout( wait, 30000 );
+            }
+          }
+
+          console.log(`Waiting for cloudfront distribution ${distId} to be disabled...`)
+          wait();
+        })
+      }))
+    }
   }
 
   let deletedCloudFront 
