@@ -290,10 +290,45 @@ const handleAWSList = async () => {
   return awsList(useIAM.iam)
 }
 
+const handleAWSKill = async () => {
+  let nukeMe
+  try {
+    nukeMe = await inquirer.prompt([{ type: 'input', name: 'kill', message: `This command will DELETE your website.\n This cannot be undone.\n Are you SURE you want to do this?\n Confirm by typing 'kill my website'.`}])
+  } catch (e) {
+    console.error('Problem getting permission.\n', e)
+    process.exit()
+  }
+  if (nukeMe.kill != 'kill my website') {
+    console.log('That is probably wise. Exiting.')
+    return
+  }
+  let nukeMeTwice
+  try {
+    nukeMeTwice = await inquirer.prompt([{ type: 'input', name: 'kill', message: `Your database -- along with any data -- will be deleted.\n Confirm this is what you want by typing 'kill my data'.`}])
+  } catch (e) {
+    console.error('Problem getting permission.\n', e)
+    process.exit()
+  }
+  if (nukeMeTwice.kill != 'kill my data') {
+    console.log('That is probably wise. Exiting.')
+    return
+  }
+  console.log(`I hope you know what you are doing. This makes me nervous every time...`)
+  let useIAM
+  try {
+    useIAM = await inquirer.prompt([{ type: 'input', name: 'iam', message: 'Provide your AWS profile username that you want to use for managing this project.'}])
+  } catch (e) {
+    console.error('Problem getting AWS IAM username.\n', e)
+    process.exit()
+  }
+  return awsArmageddon(useIAM.iam, 'kill')
+}
+
+
 const handleAWSArmageddon = async () => {
   let nukeMe
   try {
-    nukeMe = await inquirer.prompt([{ type: 'input', name: 'armageddon', message: `This command will DELETE your website.\n And probably EVERYTHING ELSE you have on this AWS account.\n\n This cannot be undone.\n Are you SURE you want to do this?\n Confirm by typing 'armageddon'.`}])
+    nukeMe = await inquirer.prompt([{ type: 'input', name: 'armageddon', message: `This command will delete more or less EVERYTHING on your AWS account.\n This cannot be undone.\n Are you SURE you want to do this?\n Confirm by typing 'armageddon'.`}])
   } catch (e) {
     console.error('Problem getting permission.\n', e)
     process.exit()
@@ -321,7 +356,7 @@ const handleAWSArmageddon = async () => {
     console.error('Problem getting AWS IAM username.\n', e)
     process.exit()
   }
-  return awsArmageddon(useIAM.iam)
+  return awsArmageddon(useIAM.iam, 'armageddon')
 }
 
 const getVersions = async (url) => {
