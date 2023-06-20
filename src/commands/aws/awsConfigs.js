@@ -189,7 +189,15 @@ export const cloudFront = {
     "HttpVersion": "http2and3",
     "IsIPV6Enabled": true,
     "ContinuousDeploymentPolicyId": "",
-    "Staging": false
+    "Staging": false,
+    "Tags": {
+        "Items": [
+            {
+                "Key": "PUSHKIN",
+                "Value": "PUSHKIN"
+            }
+        ]
+    }
 }
 
 export const dbConfig = {
@@ -218,7 +226,13 @@ export const dbConfig = {
         "postgresql", "upgrade"
     ],
     "DeletionProtection": true,
-    "MaxAllocatedStorage": 1000
+    "MaxAllocatedStorage": 1000,
+    "Tags": [
+        {
+            "Key": "PUSHKIN",
+            "Value": ""
+        }
+    ],
 }
 
 export const rabbitTask = {

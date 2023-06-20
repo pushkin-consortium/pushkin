@@ -223,7 +223,7 @@ const deployFrontEnd = async (projName, awsName, useIAM, myDomain, myCertificate
     //  let myCORSPolicy = JSON.parse(JSON.stringify(corsPolicy)) 
     //  myCORSPolicy.Bucket = awsName 
       policy.Statement[0].Resource = "arn:aws:s3:::".concat(awsName).concat("/*")
-      policy.Statement[0].StringEquals.Condition["AWS:SourceArn"] = theCloud.ARN
+      policy.Statement[0].Condition.StringEquals["AWS:SourceArn"] = theCloud.ARN
       try {
     //    await exec(`aws s3 website s3://${awsName} --profile ${useIAM} --index-document index.html --error-document index.html`) //https://awscli.amazonaws.com/v2/documentation/api/latest/reference/s3/website.html
         await exec(`aws s3api put-bucket-policy --bucket `.concat(awsName).concat(` --policy '`).concat(JSON.stringify(policy)).concat(`' --profile ${useIAM}`))
@@ -431,6 +431,7 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
   myDBConfig.DBInstanceIdentifier = dbName
   myDBConfig.VpcSecurityGroupIds = [securityGroupID]
   myDBConfig.MasterUserPassword = dbPassword
+  myDBConfig.Tags[0].Value = projName
   try {
     stdOut = await exec(`aws rds create-db-instance --cli-input-json '`.concat(JSON.stringify(myDBConfig)).concat(`' --profile `).concat(useIAM))
   } catch(e) {
@@ -1417,7 +1418,7 @@ export async function addIAM(iam) {
   return
 }
 
-export const awsArmageddon = async (useIAM) => {
+export const awsArmageddon = async (useIAM, killType) => {
   // docker run --rm -it -v /Users/jkhartshorne/Downloads/HomeSeer/config.yml:/home/aws-nuke/config.yml -v ~/.aws:/home/aws-nuke/.aws rebuy/aws-nuke --profile trialPushkin --config /home/aws-nuke/config.yml --no-dry-run  
 
 // regions:
@@ -1452,11 +1453,26 @@ export const awsArmageddon = async (useIAM) => {
   } catch (e) {
     console.error(`Unable to load awsResources.js`)
   }    
+  const projName = awsResources.name; //can use this to identify resources needing deletion
+  const killTag = killType == "kill" ? projName : false
 
   const deleteCluster = async() => {
+    if (!killType) {
+      let temp
+      try {
+        temp = await exec(`aws ecs list-clusters --profile ${useIAM}`)
+      } catch (e) {
+        console.error(`Unable to list ECS clusters.\n` + e)
+        throw e
+      }
+      if (JSON.parse(temp.stdout).clusterArns.length > 1) {
+        console.warn(`Cannot automatically nuke all ECS clusters, only ones associated with this project. Full list of clusters includes:`)
+        JSON.parse(temp.stdout).clusterArns.map((c) => console.warn(c))
+      }
+    }
+        
     if (!awsResources.ECSName) {
-      console.log(`No cluster. Skipping.`)
-      return
+      awsResources.ECSName = projName.replace(/[^A-Za-z0-9]/g, ""); //won't be permanent. Doesn't matter.
     }
 
     try {
@@ -1464,7 +1480,7 @@ export const awsArmageddon = async (useIAM) => {
     } catch (e) {
       console.warn(`Unable to find ECS cluster ${awsResources.ECSName}. May have already been deleted.`)
       awsResources.ECSName = null
-      return
+      return true
     }
 
     console.log(`Stopping ECS services.`)
@@ -1486,28 +1502,49 @@ export const awsArmageddon = async (useIAM) => {
     console.log(`Deleting ECS Cluster ${awsResources.ECSName}.`)
     try {
       temp = await exec(`ecs-cli down --force --cluster ${awsResources.ECSName} --ecs-profile ${useIAM}`)
-      awsResources.ECSName = null
     } catch (e) {
-      console.warn(`Unable to delete cluster ${awsResources.ECSName}.`)
-      console.warn(e)
+      console.error(`Unable to delete cluster ${awsResources.ECSName}.`)
+      console.error(e)
     }
+    return true
   }
+
   let deletedCluster
   try {
     deletedCluster = deleteCluster()    
   } catch(e) {
-    //Nothing
+    //Nothing. Might as well try deleting other things, too.
   }
 
-
   const deleteDatabases = async () => {
-    if (awsResources.dbs == []) {
-      console.log(`No databases. Skipping.`)
-      return
+    // Get list of DBs to delete
+    let dbs = awsresources.dbs
+    let respDbList
+    try {
+      respDBList = await exec(`aws rds describe-db-instances --profile ${useIAM}`)
+    } catch(e) {
+      console.error(`Unable to list databases`)
+      throw e
     }
+    // Add any that aren't already in the list, if necessary
+    JSON.parse(respDBList.stdout).DBInstances.forEach((db) => {
+      if (!dbs.includes(db.DBInstanceIdentifier)) {
+        if (!killTag) {
+          //kill them all
+          dbs.push(db.DBInstanceIdentifier)
+        } else {
+          if (db.TagList.length>0){
+            db.TagList.forEach((tag) => {
+              if (tag.Key == "PUSHKIN" & tag.Value == killTag) {
+                dbs.push(db.DBInstanceIdentifier)
+              }
+            })
+          }
+        }
+      }
+    })
 
     console.log(`Removing deletion protection from databases.`) 
-    let dbs = awsResources.dbs
     await Promise.all([
       dbs.forEach((db) => {
       try {  
