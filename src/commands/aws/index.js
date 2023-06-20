@@ -1366,7 +1366,6 @@ const makeACL = async (useIAM) => {
     if (temp.stdout != "") {
       JSON.parse(temp.stdout).WebACLs.forEach((d) => {
         let tempCheck = false;
-        console.log("d: " + d)
         try {
           tempCheck = (d.Name == 'pushkinACL')
         } catch (e) {
@@ -1483,6 +1482,12 @@ export const awsArmageddon = async (useIAM, killType) => {
       return true
     }
 
+    if (JSON.parse(temp.stdout).clusters.length == 0) {
+      console.warn(`Unable to find ECS cluster ${awsResources.ECSName}. May have already been deleted.`)
+      awsResources.ECSName = null
+      return true
+    }
+
     console.log(`Stopping ECS services.`)
     const yamls = fs.readdirSync(path.join(process.cwd(), 'ECSTasks'));
     temp = await Promise.all([
@@ -1518,8 +1523,8 @@ export const awsArmageddon = async (useIAM, killType) => {
 
   const deleteDatabases = async () => {
     // Get list of DBs to delete
-    let dbs = awsresources.dbs
-    let respDbList
+    let dbs = awsResources.dbs
+    let respDBList
     try {
       respDBList = await exec(`aws rds describe-db-instances --profile ${useIAM}`)
     } catch(e) {
@@ -1822,8 +1827,6 @@ export const awsArmageddon = async (useIAM, killType) => {
           throw e
         }
         let deleteOAC
-        console.log(d.Id)
-        console.log(etag)
         let deleteOACcommand = `aws cloudfront delete-origin-access-control --id ${d.Id} --if-match ${JSON.parse(etag).ETag} --profile ${useIAM}`
         try {
           deleteOAC = execSync(deleteOACcommand).toString()
