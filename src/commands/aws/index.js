@@ -194,23 +194,24 @@ const deployFrontEnd = async (projName, awsName, useIAM, myDomain, myCertificate
   if (!distributionExists) {
     console.log(`No existing cloudFront distribution for ${awsName}. Creating distribution.`)
     let myCloudFront = JSON.parse(JSON.stringify(cloudFront));
-    myCloudFront.Origins.Items[0].OriginAccessControlId = await OAC; //we'll need this before continuing.
-    myCloudFront.WebACLId = await ACLarn; //we'll need this before continuing.
-    myCloudFront.CallerReference = awsName;
-    myCloudFront.DefaultCacheBehavior.TargetOriginId = awsName;
-    myCloudFront.Origins.Items[0].Id = awsName;
-    myCloudFront.Origins.Items[0].DomainName = awsName.concat('.s3.amazonaws.com');
+    myCloudFront.DistributionConfig.Origins.Items[0].OriginAccessControlId = await OAC; //we'll need this before continuing.
+    myCloudFront.DistributionConfig.WebACLId = await ACLarn; //we'll need this before continuing.
+    myCloudFront.DistributionConfig.CallerReference = awsName;
+    myCloudFront.DistributionConfig.DefaultCacheBehavior.TargetOriginId = awsName;
+    myCloudFront.DistributionConfig.Origins.Items[0].Id = awsName;
+    myCloudFront.DistributionConfig.Origins.Items[0].DomainName = awsName.concat('.s3.amazonaws.com');
+    myCloudFront.Tags.Items[0].Value = projName
     if (myDomain != "default") {
       // set up DNS
-      myCloudFront.Aliases.Quantity = 2
-      myCloudFront.Aliases.Items = [myDomain, 'www.'.concat(myDomain)]
-      myCloudFront.ViewerCertificate.CloudFrontDefaultCertificate = false
-      myCloudFront.ViewerCertificate.ACMCertificateArn = myCertificate
-      myCloudFront.ViewerCertificate.SSLSupportMethod = 'sni-only'
-      myCloudFront.ViewerCertificate.MinimumProtocolVersion = 'TLSv1.2_2019'
+      myCloudFront.DistributionConfig.Aliases.Quantity = 2
+      myCloudFront.DistributionConfig.Aliases.Items = [myDomain, 'www.'.concat(myDomain)]
+      myCloudFront.DistributionConfig.ViewerCertificate.CloudFrontDefaultCertificate = false
+      myCloudFront.DistributionConfig.ViewerCertificate.ACMCertificateArn = myCertificate
+      myCloudFront.DistributionConfig.ViewerCertificate.SSLSupportMethod = 'sni-only'
+      myCloudFront.DistributionConfig.ViewerCertificate.MinimumProtocolVersion = 'TLSv1.2_2019'
     }
     try {
-      myCloud = await exec(`aws cloudfront create-distribution-with-tags --distribution-config '`.concat(JSON.stringify(myCloudFront)).concat(`' --profile ${useIAM}`))
+      myCloud = await exec(`aws cloudfront create-distribution-with-tags --distribution-config-with-tags '`.concat(JSON.stringify(myCloudFront)).concat(`' --profile ${useIAM}`))
       theCloud = JSON.parse(myCloud.stdout).Distribution 
     } catch (e) {
       console.log('Could not set up cloudfront.')
@@ -1966,6 +1967,7 @@ export const awsArmageddon = async (useIAM, killType) => {
   }    
 
   console.log(`Beore deleting security groups, wait for DBs to be completed deleted`)
+  await deletedDBs
   console.log(`Deleting security groups`)
   let deletedGroups
 
