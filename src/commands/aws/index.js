@@ -938,7 +938,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
 
   let madeBalancer
   try {
-    madeBalancer = exec(`aws elbv2 create-load-balancer --name ${loadBalancerName} --type application --scheme internet-facing --subnets ${subnets.join(' ')} --security-groups ${BalancerSecurityGroupID} --tags '[{Key=PUSHKIN,Value=${projName}}]' --profile ${useIAM}`)
+    madeBalancer = exec(`aws elbv2 create-load-balancer --name ${loadBalancerName} --type application --scheme internet-facing --subnets ${subnets.join(' ')} --security-groups ${BalancerSecurityGroupID} --tags '[{"Key":"PUSHKIN","Value":"${projName}"}]' --profile ${useIAM}`)
   } catch (e) {
     console.error(`Unable to create application load balancer`)
     throw e
