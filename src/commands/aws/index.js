@@ -144,22 +144,22 @@ const makeRecordSet = async (myDomain, useIAM, projName, theCloud) => {
   recordSet.Changes[0].ResourceRecordSet.Name = myDomain
   recordSet.Changes[0].ResourceRecordSet.AliasTarget.DNSName = theCloud.DomainName
   recordSet.Changes[0].ResourceRecordSet.Type = "A"
-  recordSet.Changes[0].ResourceRecordSet.setIdentifier = projName
+  recordSet.Changes[0].ResourceRecordSet.SetIdentifier = projName
 
   recordSet.Changes[1].ResourceRecordSet.Name = myDomain
   recordSet.Changes[1].ResourceRecordSet.AliasTarget.DNSName = theCloud.DomainName
   recordSet.Changes[1].ResourceRecordSet.Type = "AAAA"
-  recordSet.Changes[1].ResourceRecordSet.setIdentifier = projName
+  recordSet.Changes[1].ResourceRecordSet.SetIdentifier = projName
 
   recordSet.Changes[2].ResourceRecordSet.Name = "www.".concat(myDomain) //forward from www
   recordSet.Changes[2].ResourceRecordSet.AliasTarget.DNSName = theCloud.DomainName
   recordSet.Changes[2].ResourceRecordSet.Type = "A"
-  recordSet.Changes[2].ResourceRecordSet.setIdentifier = projName
+  recordSet.Changes[2].ResourceRecordSet.SetIdentifier = projName
 
   recordSet.Changes[3].ResourceRecordSet.Name = "www.".concat(myDomain) //forward from www
   recordSet.Changes[3].ResourceRecordSet.AliasTarget.DNSName = theCloud.DomainName
   recordSet.Changes[3].ResourceRecordSet.Type = "AAAA"
-  recordSet.Changes[3].ResourceRecordSet.setIdentifier = projName
+  recordSet.Changes[3].ResourceRecordSet.SetIdentifier = projName
 
   let returnVal
   try {
@@ -437,7 +437,8 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
       }
     })
     if (foundDB) {
-      console.error(`Database ${dbName} found on RDS, but not listed in pushkin.yaml. This is a problem.\n
+      //We can't easily work around this, because we don't have the password saved anywhere!
+      console.warning(`Database ${dbName} found on RDS, but not listed in pushkin.yaml. This is a problem.\n
         You will need to delete the database from RDS before continuing.`)
       process.exit()
     }
@@ -518,7 +519,6 @@ const getDBInfo = async () => {
   }
   if (Object.keys(pushkinConfig.productionDBs).length >= 2 ) {
     let dbsByType = {}
-    //fubar - just changed this to assume JSON. Might not be right.
     Object.keys(pushkinConfig.productionDBs).forEach((d) => {
       dbsByType[pushkinConfig.productionDBs[d].type] = {
         "name": pushkinConfig.productionDBs[d].name,
@@ -1027,7 +1027,7 @@ const forwardAPI = async (myDomain, useIAM, balancerEndpoint, balancerZone, proj
     recordSet.Changes[0].ResourceRecordSet.AliasTarget.DNSName = balancerEndpoint
     recordSet.Changes[0].ResourceRecordSet.Type = "A"
     recordSet.Changes[0].ResourceRecordSet.AliasTarget.HostedZoneId = balancerZone
-    recordSet.Changes[0].ResourceRecordSet.setIdentifier = projName
+    recordSet.Changes[0].ResourceRecordSet.SetIdentifier = projName
     try {
       await exec(`aws route53 change-resource-record-sets --hosted-zone-id ${zoneID} --change-batch '${JSON.stringify(recordSet)}' --profile ${useIAM}`)
       console.log(`Updated record set for ${myDomain}.`)
