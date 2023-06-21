@@ -228,7 +228,7 @@ export async function setupTestTransactionsDB() {
   //To wait for db to be up, this ridiculously roundabout loop...
   const wait = async () => {
     //Sometimes, I really miss loops
-    let x = await exec (`docker ps -f name=pushkin_test_transaction_db_1`)
+    let x = await exec (`docker ps -f name=pushkin-test_transaction_db-1`)
           .then((x) => {
             console.log('...')
             return x.stdout.search('healthy')
@@ -245,7 +245,7 @@ export async function setupTestTransactionsDB() {
       );
 
     } else {
-      setTimeout( wait, 1000 );
+      setTimeout( wait, 2500 );
     }
   }
 
