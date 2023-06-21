@@ -116,6 +116,63 @@ export const syncS3 = async (awsName, useIAM) => {
   }  
 }
 
+const makeRecordSet = async (myDomain, useIAM, projName) => {
+  console.log(`Retrieving hostedzone ID for ${myDomain}`)
+  let zoneID, temp
+  try {
+    temp = await exec(`aws route53 list-hosted-zones-by-name --dns-name ${myDomain} --profile ${useIAM}`)
+  } catch (e) {
+    console.error(`Unable to retrieve hostedzone for ${myDomain}`)
+    throw e
+  }
+  try {
+    zoneID = JSON.parse(temp.stdout).HostedZones[0].Id.split("/hostedzone/")[1]
+  } catch (e) {
+    console.error(`Unable to parse hostedzone for ${myDomain}`)
+    throw e
+  }
+
+  let recordSet = {
+    "Comment": "",
+    "Changes": []
+  }
+  recordSet.Changes[0] = JSON.parse(JSON.stringify(changeSet));
+  recordSet.Changes[1] = JSON.parse(JSON.stringify(changeSet));
+  recordSet.Changes[2] = JSON.parse(JSON.stringify(changeSet));
+  recordSet.Changes[3] = JSON.parse(JSON.stringify(changeSet));
+
+  recordSet.Changes[0].ResourceRecordSet.Name = myDomain
+  recordSet.Changes[0].ResourceRecordSet.AliasTarget.DNSName = theCloud.DomainName
+  recordSet.Changes[0].ResourceRecordSet.Type = "A"
+  recordSet.Changes[0].ResourceRecordSet.setIdentifier = projName
+
+  recordSet.Changes[1].ResourceRecordSet.Name = myDomain
+  recordSet.Changes[1].ResourceRecordSet.AliasTarget.DNSName = theCloud.DomainName
+  recordSet.Changes[1].ResourceRecordSet.Type = "AAAA"
+  recordSet.Changes[1].ResourceRecordSet.setIdentifier = projName
+
+  recordSet.Changes[2].ResourceRecordSet.Name = "www.".concat(myDomain) //forward from www
+  recordSet.Changes[2].ResourceRecordSet.AliasTarget.DNSName = theCloud.DomainName
+  recordSet.Changes[2].ResourceRecordSet.Type = "A"
+  recordSet.Changes[2].ResourceRecordSet.setIdentifier = projName
+
+  recordSet.Changes[3].ResourceRecordSet.Name = "www.".concat(myDomain) //forward from www
+  recordSet.Changes[3].ResourceRecordSet.AliasTarget.DNSName = theCloud.DomainName
+  recordSet.Changes[3].ResourceRecordSet.Type = "AAAA"
+  recordSet.Changes[3].ResourceRecordSet.setIdentifier = projName
+
+  let returnVal
+  try {
+    returnVal = execSync(`aws route53 change-resource-record-sets --hosted-zone-id ${zoneID} --change-batch '${JSON.stringify(recordSet)}' --profile ${useIAM}`)
+    console.log(`Updated record set for ${myDomain}.`)
+   } catch (e) {
+    console.error(`Unable to create resource record set for ${myDomain}`)
+    throw e
+  }
+
+  return returnVal
+}
+
 const deployFrontEnd = async (projName, awsName, useIAM, myDomain, myCertificate) => {
   let temp
 
@@ -246,49 +303,9 @@ const deployFrontEnd = async (projName, awsName, useIAM, myDomain, myCertificate
   }
 
   if (myDomain != "default") {
-    console.log(`Retrieving hostedzone ID for ${myDomain}`)
-    let zoneID
     try {
-      temp = await exec(`aws route53 list-hosted-zones-by-name --dns-name ${myDomain} --profile ${useIAM}`)
-      zoneID = JSON.parse(temp.stdout).HostedZones[0].Id.split("/hostedzone/")[1]
+      makeRecordSet(myDomain, useIAM, projName) 
     } catch (e) {
-      console.error(`Unable to retrieve hostedzone for ${myDomain}`)
-      throw e
-    }
-
-    // The following will update the resource records, creating them if they don't already exist
-
-    console.log(`Updating record set for ${myDomain}`)
-    let recordSet = {
-      "Comment": "",
-      "Changes": []
-    }
-    recordSet.Changes[0] = JSON.parse(JSON.stringify(changeSet));
-    recordSet.Changes[1] = JSON.parse(JSON.stringify(changeSet));
-    recordSet.Changes[2] = JSON.parse(JSON.stringify(changeSet));
-    recordSet.Changes[3] = JSON.parse(JSON.stringify(changeSet));
-
-    recordSet.Changes[0].ResourceRecordSet.Name = myDomain
-    recordSet.Changes[0].ResourceRecordSet.AliasTarget.DNSName = theCloud.DomainName
-    recordSet.Changes[0].ResourceRecordSet.Type = "A"
-
-    recordSet.Changes[1].ResourceRecordSet.Name = myDomain
-    recordSet.Changes[1].ResourceRecordSet.AliasTarget.DNSName = theCloud.DomainName
-    recordSet.Changes[1].ResourceRecordSet.Type = "AAAA"
-
-    recordSet.Changes[2].ResourceRecordSet.Name = "www.".concat(myDomain) //forward from www
-    recordSet.Changes[2].ResourceRecordSet.AliasTarget.DNSName = theCloud.DomainName
-    recordSet.Changes[2].ResourceRecordSet.Type = "A"
-
-    recordSet.Changes[3].ResourceRecordSet.Name = "www.".concat(myDomain) //forward from www
-    recordSet.Changes[3].ResourceRecordSet.AliasTarget.DNSName = theCloud.DomainName
-    recordSet.Changes[3].ResourceRecordSet.Type = "AAAA"
-
-    try {
-      await exec(`aws route53 change-resource-record-sets --hosted-zone-id ${zoneID} --change-batch '${JSON.stringify(recordSet)}' --profile ${useIAM}`)
-      console.log(`Updated record set for ${myDomain}.`)
-     } catch (e) {
-      console.error(`Unable to create resource record set for ${myDomain}`)
       throw e
     }
   }
@@ -976,7 +993,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
 }
 
 
-const forwardAPI = async (myDomain, useIAM, balancerEndpoint, balancerZone) => {
+const forwardAPI = async (myDomain, useIAM, balancerEndpoint, balancerZone, projName) => {
 
   // This whole function can be skipped if not using custom domain
   // The API endpoint will have to be set manually
@@ -1005,6 +1022,7 @@ const forwardAPI = async (myDomain, useIAM, balancerEndpoint, balancerZone) => {
     recordSet.Changes[0].ResourceRecordSet.AliasTarget.DNSName = balancerEndpoint
     recordSet.Changes[0].ResourceRecordSet.Type = "A"
     recordSet.Changes[0].ResourceRecordSet.AliasTarget.HostedZoneId = balancerZone
+    recordSet.Changes[0].ResourceRecordSet.setIdentifier = projName
     try {
       await exec(`aws route53 change-resource-record-sets --hosted-zone-id ${zoneID} --change-batch '${JSON.stringify(recordSet)}' --profile ${useIAM}`)
       console.log(`Updated record set for ${myDomain}.`)
@@ -1268,7 +1286,7 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
     
     let apiForwarded
     try {
-      apiForwarded = forwardAPI(myDomain, useIAM, balancerEndpoint, balancerZone)
+      apiForwarded = forwardAPI(myDomain, useIAM, balancerEndpoint, balancerZone, projName)
     } catch(e) {
       console.error(`Unable to set up forwarding for API`)
       throw e
@@ -1852,6 +1870,66 @@ export const awsArmageddon = async (useIAM, killType) => {
     //Nothing
   }
 
+  const deleteResourceRecords = async (useIAM) => {
+    let temp
+    let pushkinConfig
+    try {
+      temp = await fs.promises.readFile(path.join(process.cwd(), 'pushkin.yaml'), 'utf8')
+      pushkinConfig = jsYaml.safeLoad(temp)
+    } catch (e) {
+      console.error(`Couldn't load pushkin.yaml`)
+      throw e;
+    }
+    let myDomain = pushkinConfig.info.rootDomain
+
+    console.log(`Deleting resource records for ${myDomain}`)
+
+    let zoneID
+    try {
+      temp = await exec(`aws route53 list-hosted-zones-by-name --dns-name ${myDomain} --profile ${useIAM}`).toString()
+      zoneID = JSON.parse(temp.stdout).HostedZones[0].Id.split("/hostedzone/")[1]
+    } catch (e) {
+      console.error(`Unable to retrieve hostedzone for ${myDomain}`)
+      throw e
+    }
+
+    let resourceRecords = {
+      "HostedZoneId": zoneID,
+      "ChangeBatch": {
+          "Comment": "",
+          "Changes": []
+      }
+    }
+
+    let tempRRList
+    try {
+      tempRRList = await exec(`aws route53 list-resource-record-sets --hosted-zone-id ${zoneID} --profile ${useIAM}`)
+    } catch (e) {
+      console.error(`Unable to retrieve resource records for ${myDomain}`)
+      throw e
+    }
+
+    JSON.parse(tempRRList.stdout).ResourceRecordSets.forEach((rr) => {
+      if (rr.SetIdentifier == projName) {
+        let recordSet = {
+          "Action": "DELETE",
+          "ResourceRecordSet": rr
+        }
+        resourceRecords.ChangeBatch.Changes.push(recordSet)
+      }
+    })
+
+    return exec(`aws route53 change-resource-record-sets --cli-input-json '${JSON.stringify(resourceRecords)}' --profile ${useIAM}`)
+  }
+
+  let deletedResourceRecords
+  try {
+    deletedResourceRecords = deleteResourceRecords(useIAM)
+  } catch(e) {
+    console.warn(`Unable to delete resource records`)
+    console.warn(e) //don't fail on this
+  }
+
   await Promise.all([ deletedCloudFront, deletedDBs, deletedLoadBalancer ]);
 
   const deleteOACs = async (useIAM) => {
@@ -2057,7 +2135,7 @@ export const awsArmageddon = async (useIAM, killType) => {
     console.error(e)
   }    
 
-  await deletedGroups
+  await Promise.all([ deletedGroups, deletedResourceRecords ]) //this stuff can wait for the end
 
   console.log(`The following resources were either not deleted or are still in the process of being deleted:`)
   await awsList(useIAM)
