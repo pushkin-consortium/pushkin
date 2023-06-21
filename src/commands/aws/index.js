@@ -116,7 +116,7 @@ export const syncS3 = async (awsName, useIAM) => {
   }  
 }
 
-const makeRecordSet = async (myDomain, useIAM, projName) => {
+const makeRecordSet = async (myDomain, useIAM, projName, theCloud) => {
   console.log(`Retrieving hostedzone ID for ${myDomain}`)
   let zoneID, temp
   try {
@@ -304,7 +304,7 @@ const deployFrontEnd = async (projName, awsName, useIAM, myDomain, myCertificate
 
   if (myDomain != "default") {
     try {
-      makeRecordSet(myDomain, useIAM, projName) 
+      makeRecordSet(myDomain, useIAM, projName, theCloud) 
     } catch (e) {
       throw e
     }
@@ -938,7 +938,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
 
   let madeBalancer
   try {
-    madeBalancer = exec(`aws elbv2 create-load-balancer --name ${loadBalancerName} --type application --scheme internet-facing --subnets ${subnets.join(' ')} --security-groups ${BalancerSecurityGroupID} --profile ${useIAM}`)
+    madeBalancer = exec(`aws elbv2 create-load-balancer --name ${loadBalancerName} --type application --scheme internet-facing --subnets ${subnets.join(' ')} --security-groups ${BalancerSecurityGroupID} --tags '[{Key=PUSHKIN,Value=${projName}}]' --profile ${useIAM}`)
   } catch (e) {
     console.error(`Unable to create application load balancer`)
     throw e
@@ -1003,9 +1003,14 @@ const forwardAPI = async (myDomain, useIAM, balancerEndpoint, balancerZone, proj
     let zoneID
     try {
       temp = await exec(`aws route53 list-hosted-zones-by-name --dns-name ${myDomain} --profile ${useIAM}`)
-      zoneID = JSON.parse(temp.stdout).HostedZones[0].Id.split("/hostedzone/")[1]
     } catch (e) {
       console.error(`Unable to retrieve hostedzone for ${myDomain}`)
+      throw e
+    }
+    try {
+      zoneID = JSON.parse(temp.stdout).HostedZones[0].Id.split("/hostedzone/")[1]
+    } catch (e) {
+      console.error(`Unable to parse hostedzone for ${myDomain}`)
       throw e
     }
 
@@ -1380,8 +1385,6 @@ const makeACL = async (useIAM) => {
       console.error(`Unable to get list of ACLs`)
       throw e
     }
-    console.log(`ACL list retrieved ` + temp.stdout)
-    console.log(`more ACL list retrieved ` + JSON.parse(temp.stdout))
     if (temp.stdout != "") {
       JSON.parse(temp.stdout).WebACLs.forEach((d) => {
         let tempCheck = false;
@@ -1664,6 +1667,7 @@ export const awsArmageddon = async (useIAM, killType) => {
   }
 
   const deleteStack = async () => {
+    //FUBAR Need to killize this
     try {
       await exec(`aws cloudformation describe-stacks --stack-name ${'amazon-ecs-cli-setup-'.concat(awsResources.name)} --profile ${useIAM}`)
     } catch (e) {
@@ -1680,6 +1684,7 @@ export const awsArmageddon = async (useIAM, killType) => {
   const deletedStack = deleteStack()
 
   const deleteLoadBalancer = async () => {
+    //FUBAR Need to killize this
     let deletedLoadBalancer
     if (awsResources.loadBalancerName) {
       console.log(`Deleting load balancer`)
@@ -1886,10 +1891,15 @@ export const awsArmageddon = async (useIAM, killType) => {
 
     let zoneID
     try {
-      temp = await exec(`aws route53 list-hosted-zones-by-name --dns-name ${myDomain} --profile ${useIAM}`).toString()
-      zoneID = JSON.parse(temp.stdout).HostedZones[0].Id.split("/hostedzone/")[1]
+      temp = await exec(`aws route53 list-hosted-zones-by-name --dns-name ${myDomain} --profile ${useIAM}`)
     } catch (e) {
       console.error(`Unable to retrieve hostedzone for ${myDomain}`)
+      throw e
+    }
+    try {
+      zoneID = JSON.parse(temp.stdout).HostedZones[0].Id.split("/hostedzone/")[1]
+    } catch (e) {
+      console.error(`Unable to parse hostedzone for ${myDomain}`)
       throw e
     }
 
@@ -1918,8 +1928,11 @@ export const awsArmageddon = async (useIAM, killType) => {
         resourceRecords.ChangeBatch.Changes.push(recordSet)
       }
     })
-
-    return exec(`aws route53 change-resource-record-sets --cli-input-json '${JSON.stringify(resourceRecords)}' --profile ${useIAM}`)
+    if (resourceRecords.ChangeBatch.Changes.length > 0) {
+      return exec(`aws route53 change-resource-record-sets --cli-input-json '${JSON.stringify(resourceRecords)}' --profile ${useIAM}`)
+    } else {
+      return true
+    }
   }
 
   let deletedResourceRecords
@@ -1933,6 +1946,7 @@ export const awsArmageddon = async (useIAM, killType) => {
   await Promise.all([ deletedCloudFront, deletedDBs, deletedLoadBalancer ]);
 
   const deleteOACs = async (useIAM) => {
+    //FUBAR Need to killize this
     let temp
     try {
       temp = await exec(`aws cloudfront list-origin-access-controls --profile ${useIAM}`)
@@ -1978,6 +1992,7 @@ export const awsArmageddon = async (useIAM, killType) => {
   let deletedOACs = deleteOACs(useIAM)
 
   const deleteTargetGroup = async () => {
+    //FUBAR Need to killize this
     let deletedTargetGroup
     if (awsResources.targGroupARN){
       console.log(`Deleting target group`)
@@ -2011,6 +2026,7 @@ export const awsArmageddon = async (useIAM, killType) => {
   await Promise.all([ deletedOACs, deletedCluster, deletedTargetGroup ])
 
   const deleteBucket = async () => {
+    //FUBAR Need to killize this
     if (awsResources.awsName) {
       console.log(`Deleting s3 bucket`)
       try {
@@ -2117,6 +2133,8 @@ export const awsArmageddon = async (useIAM, killType) => {
   } catch (e) {
     // Do nothing
   }
+
+  //FUBAR Should we delete ACL as well?
 
   console.log(`Updating awsResources.js`)
   let awsResourcesNull = {
