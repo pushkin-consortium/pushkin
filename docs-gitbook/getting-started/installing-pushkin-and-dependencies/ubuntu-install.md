@@ -61,7 +61,7 @@ Run the following:
 
 ```bash
 $ yarn config set prefix ~/.yarn
-$ echo 'export PATH="$PATH:`yarn global bin`"' >> ~/.bashrc
+$ echo -e '\nexport PATH="$PATH:`yarn global bin`"\n' >> ~/.bashrc
 $ source ~/.bashrc
 ```
 
