@@ -1248,6 +1248,9 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
     }
     try {
       stdOut = await exec(`aws logs put-retention-policy --log-group-name ecs/${projName} --retention-in-days 7 --profile ${useIAM}`)
+    } catch (e) {
+      console.error(`Unable to set retention policy for ECS log group`)
+      throw e
     }
   }
 
