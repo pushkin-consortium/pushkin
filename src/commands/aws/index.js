@@ -230,8 +230,8 @@ const deployFrontEnd = async (projName, awsName, useIAM, myDomain, myCertificate
       } catch (e) {
         // Probably not a fully created cloudfront distribution.
         // Probably can ignore this. 
-        console.warn(`Found an incompletely-specified cloudFront distribution. This may not be a problem, but you should check.`)
-        console.warn(`Worst-case scenario, run 'pushkin aws armageddon' and start over.`)
+        console.warn('\x1b[31m%s\x1b[0m', `Found an incompletely-specified cloudFront distribution. This may not be a problem, but you should check.`)
+        console.warn('\x1b[31m%s\x1b[0m', `Worst-case scenario, run 'pushkin aws armageddon' and start over.`)
       }
       if (tempCheck) {
         distributionExists = true;
@@ -385,7 +385,7 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
       throw e;
     }
     if (pushkinConfig.productionDBs && Object.keys(pushkinConfig.productionDBs).includes(dbType) && pushkinConfig.productionDBs[dbType].name == dbName) {
-      console.warn(`${dbName} is in pushkin.yaml. If that surprises you, look into it.\n Checking whether it is also on RDS.`)
+      console.warn('\x1b[31m%s\x1b[0m', `${dbName} is in pushkin.yaml. If that surprises you, look into it.\n Checking whether it is also on RDS.`)
       //check whether it's fully configured in RDS
       //First, check to see if database exists
       try {
@@ -405,11 +405,11 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
       if (foundDB) {
         //Does its parameters match what we expect?
         let sameParams = true;
-        if (pushkinConfig.productionDBs[dbType].name.toLowerCase() != retrievedDBInfo.DBName.toLowerCase()) {sameParams = false; console.warn(`Database name on RDS does not match pushkin.yaml`)}
+        if (pushkinConfig.productionDBs[dbType].name.toLowerCase() != retrievedDBInfo.DBName.toLowerCase()) {sameParams = false; console.warn('\x1b[31m%s\x1b[0m', `Database name on RDS does not match pushkin.yaml`)}
         if (pushkinConfig.productionDBs[dbType].user != retrievedDBInfo.MasterUsername) {sameParams = false; console.warn}
         //if (pushkinConfig.productionDBs[dbType].pass != FUBAR) {sameParams = false} //No way to check the password; assume if rest is correct, that's still correct
-        if (pushkinConfig.productionDBs[dbType].port != retrievedDBInfo.Endpoint.Port) {sameParams = false; console.warn(`Database port on RDS does not match pushkin.yaml`)}
-        if (pushkinConfig.productionDBs[dbType].host != retrievedDBInfo.Endpoint.Address) {sameParams = false; console.warn(`Database host on RDS does not match pushkin.yaml`)}
+        if (pushkinConfig.productionDBs[dbType].port != retrievedDBInfo.Endpoint.Port) {sameParams = false; console.warn('\x1b[31m%s\x1b[0m', `Database port on RDS does not match pushkin.yaml`)}
+        if (pushkinConfig.productionDBs[dbType].host != retrievedDBInfo.Endpoint.Address) {sameParams = false; console.warn('\x1b[31m%s\x1b[0m', `Database host on RDS does not match pushkin.yaml`)}
         if (sameParams) {
           console.log(`${dbName} is already configured on RDS. Skipping.\n Note that if the password stored in the YAML is wrong, the CLI can't check that.`)
           return false; //let's us skip creation later on
@@ -420,7 +420,7 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
           process.exit()
         }
       } else {
-        console.warn(`Database listed in pushkin.yaml, but not found on RDS. Creating.`)
+        console.warn('\x1b[31m%s\x1b[0m', `Database listed in pushkin.yaml, but not found on RDS. Creating.`)
         return true
       }
     } else {
@@ -440,7 +440,7 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
       })
       if (foundDB) {
         //We can't easily work around this, because we don't have the password saved anywhere!
-        console.warn(`Database ${dbName} found on RDS, but not listed in pushkin.yaml. This is a problem.\n
+        console.warn('\x1b[31m%s\x1b[0m', `Database ${dbName} found on RDS, but not listed in pushkin.yaml. This is a problem.\n
           You will need to delete the database from RDS before continuing.`)
         process.exit()
       } else {
@@ -1244,7 +1244,7 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
       stdOut = await exec(`aws logs create-log-group --log-group-name ecs/${projName} --profile ${useIAM}`)    
     } catch (e) {
       if (e.message.includes("already exists")) {
-        console.warn(`Log group ecs/${projName} for ECS already exists. Skipping creation.\n
+        console.warn('\x1b[31m%s\x1b[0m', `Log group ecs/${projName} for ECS already exists. Skipping creation.\n
         If this is a surprise, you should look into it.`)
       } else {
         console.error(`Unable to create log group for ECS`)
@@ -1439,7 +1439,7 @@ const makeACL = async (useIAM) => {
         try {
           tempCheck = (d.Name == 'pushkinACL')
         } catch (e) {
-          console.warn(`Problem reading ACL list.`)
+          console.warn('\x1b[31m%s\x1b[0m', `Problem reading ACL list.`)
           throw e
         }
         if (tempCheck) {
@@ -1535,8 +1535,8 @@ export const awsArmageddon = async (useIAM, killType) => {
         throw e
       }
       if (JSON.parse(temp.stdout).clusterArns.length > 1) {
-        console.warn(`Cannot automatically nuke all ECS clusters, only ones associated with this project. Full list of clusters includes:`)
-        JSON.parse(temp.stdout).clusterArns.map((c) => console.warn(c))
+        console.warn('\x1b[31m%s\x1b[0m', `Cannot automatically nuke all ECS clusters, only ones associated with this project. Full list of clusters includes:`)
+        JSON.parse(temp.stdout).clusterArns.map((c) => console.warn('\x1b[31m%s\x1b[0m', c))
       }
     }
         
@@ -1547,13 +1547,13 @@ export const awsArmageddon = async (useIAM, killType) => {
     try {
       temp = await exec(`aws ecs describe-clusters --clusters ${awsResources.ECSName} --profile ${useIAM}`)
     } catch (e) {
-      console.warn(`Unable to find ECS cluster ${awsResources.ECSName}. May have already been deleted.`)
+      console.warn('\x1b[31m%s\x1b[0m', `Unable to find ECS cluster ${awsResources.ECSName}. May have already been deleted.`)
       awsResources.ECSName = null
       return true
     }
 
     if (JSON.parse(temp.stdout).clusters.length == 0) {
-      console.warn(`Unable to find ECS cluster ${awsResources.ECSName}. May have already been deleted.`)
+      console.warn('\x1b[31m%s\x1b[0m', `Unable to find ECS cluster ${awsResources.ECSName}. May have already been deleted.`)
       awsResources.ECSName = null
       return true
     }
@@ -1567,8 +1567,8 @@ export const awsArmageddon = async (useIAM, killType) => {
           try {
            temp = exec(composeCommand, { cwd: path.join(process.cwd(), "ECStasks")})
           } catch(e) {
-            console.warn(`Unable to stop service ${yaml}.`)
-            console.warn(e)
+            console.warn('\x1b[31m%s\x1b[0m', `Unable to stop service ${yaml}.`)
+            console.warn('\x1b[31m%s\x1b[0m', e)
           }          
         }
       })
@@ -1629,7 +1629,7 @@ export const awsArmageddon = async (useIAM, killType) => {
       try {  
         temp = execSync(`aws rds describe-db-instances --db-instance-identifier ${db} --profile ${useIAM}`)
       } catch (e) {
-        console.warn(`Unable to find database ${db}. Possibly it was already deleted.`)
+        console.warn('\x1b[31m%s\x1b[0m', `Unable to find database ${db}. Possibly it was already deleted.`)
         let tempFunc = (x) => {
           return x.filter((d) => {return (d != db)}) // remove from list
         } 
@@ -1673,7 +1673,7 @@ export const awsArmageddon = async (useIAM, killType) => {
             dbDeletionResponse = exec(`aws rds delete-db-instance --db-instance-identifier ${db} --skip-final-snapshot --profile ${useIAM}`)
           } catch (e) {
             if (e.message.includes("already being deleted")) {
-              console.warn(`Database ${db} already being deleted.`)
+              console.warn('\x1b[31m%s\x1b[0m', `Database ${db} already being deleted.`)
               return true
             } else {
               console.error(e.message)
@@ -1734,7 +1734,7 @@ export const awsArmageddon = async (useIAM, killType) => {
     try {
       await exec(`aws cloudformation describe-stacks --stack-name ${'amazon-ecs-cli-setup-'.concat(awsResources.name)} --profile ${useIAM}`)
     } catch (e) {
-      console.warn(`Unable to find cloudformation stack ${'amazon-ecs-cli-setup-'.concat(awsResources.name)}. May have already been deleted. Skipping.`)
+      console.warn('\x1b[31m%s\x1b[0m', `Unable to find cloudformation stack ${'amazon-ecs-cli-setup-'.concat(awsResources.name)}. May have already been deleted. Skipping.`)
     }
     try {
       return exec(`aws cloudformation delete-stack --stack-name ${'amazon-ecs-cli-setup-'.concat(awsResources.name)} --profile ${useIAM}`)
@@ -1755,7 +1755,7 @@ export const awsArmageddon = async (useIAM, killType) => {
       try {
         temp = await exec(`aws elbv2 describe-load-balancers --names ${awsResources.loadBalancerName} --profile ${useIAM}`)
       } catch(e) {
-        console.warn(`Unable to find load balancer ${awsResources.loadBalancerName}. May have already been deleted. Skipping.`)
+        console.warn('\x1b[31m%s\x1b[0m', `Unable to find load balancer ${awsResources.loadBalancerName}. May have already been deleted. Skipping.`)
         awsResources.loadBalancerName = null
         return
       }
@@ -1836,7 +1836,7 @@ export const awsArmageddon = async (useIAM, killType) => {
             } catch (e) {
               // Probably not a fully created cloudfront distribution.
               // Probably can ignore this. 
-              console.warn(`Problem reading cloudFront distribution information.`)
+              console.warn('\x1b[31m%s\x1b[0m', `Problem reading cloudFront distribution information.`)
               throw e
             }
             if (tempCheck) {
@@ -2002,8 +2002,8 @@ export const awsArmageddon = async (useIAM, killType) => {
   try {
     deletedResourceRecords = deleteResourceRecords(useIAM)
   } catch(e) {
-    console.warn(`Unable to delete resource records`)
-    console.warn(e) //don't fail on this
+    console.warn('\x1b[31m%s\x1b[0m', `Unable to delete resource records`)
+    console.warn('\x1b[31m%s\x1b[0m', e) //don't fail on this
   }
 
   await Promise.all([ deletedCloudFront, deletedDBs, deletedLoadBalancer ]);
@@ -2062,7 +2062,7 @@ export const awsArmageddon = async (useIAM, killType) => {
       try {
         await exec(`aws elbv2 describe-target-groups --target-group-arns ${awsResources.targGroupARN} --profile ${useIAM}`)
       } catch (e) {
-        console.warn(`Unable to find target group ${awsResources.targGroupARN}. May have already been deleted. Skipping.`)
+        console.warn('\x1b[31m%s\x1b[0m', `Unable to find target group ${awsResources.targGroupARN}. May have already been deleted. Skipping.`)
         awsResources.targGroupARN = null
         return
       }
@@ -2159,8 +2159,8 @@ export const awsArmageddon = async (useIAM, killType) => {
     try {
       temp = exec(`aws ec2 delete-security-group --group-name ${g} --profile ${useIAM}`)
     } catch(e) {
-      console.warn(`Unable to delete security group ${g}. PROBABLY this is because AWS needs something else to delete first.\n We recommend you retry 'pushkin aws armageddon' in a few minutes.`)
-      console.warn(e)
+      console.warn('\x1b[31m%s\x1b[0m', `Unable to delete security group ${g}. PROBABLY this is because AWS needs something else to delete first.\n We recommend you retry 'pushkin aws armageddon' in a few minutes.`)
+      console.warn('\x1b[31m%s\x1b[0m', e)
       return true
     }
     return temp

@@ -154,8 +154,8 @@ const updateECS = async () => { //FUBAR needs way of getting useIAM
         try {
          temp = exec(composeCommand, { cwd: path.join(process.cwd(), "ECStasks")})
         } catch(e) {
-          console.warn(`Unable to update service ${yaml}.`)
-          console.warn(e)
+          console.warn('\x1b[31m%s\x1b[0m', `Unable to update service ${yaml}.`)
+          console.warn('\x1b[31m%s\x1b[0m', e)
         }          
       }
     })
@@ -608,7 +608,7 @@ async function main() {
         case 'update':
           try {
             //await handleAWSUpdate();
-            console.warn(`Not currently implemented. Sorry.`)
+            console.warn('\x1b[31m%s\x1b[0m', `Not currently implemented. Sorry.`)
           } catch(e) {
             console.error(e.message);
             process.exit();

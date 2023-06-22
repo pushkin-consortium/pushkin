@@ -378,7 +378,7 @@ export const prep = async (experimentsDir, coreDir) => {
     console.log(`updating docker-compose.dev.yml`)
     fs.writeFileSync(composeFileLoc, jsYaml.safeDump(compFile), 'utf8');
   } catch (e) { 
-    console.error('Failed to create new compose file', e); 
+    console.error('Failed to create new compose file', e.message); 
     process.exit()
   }
 

@@ -226,7 +226,7 @@ const initExperiment = async (expDir, expName, longName, rootDir) => {
     compFile = jsYaml.safeLoad(fs.readFileSync(composeFileLoc), 'utf8'); 
     console.log('loaded compFile')
   } catch (e) { 
-    console.error('Failed to load main docker compose file: ',e);
+    console.error('Failed to load main docker compose file: ',e.message);
     process.exit() 
   }
   await workerPromise //Need this to write docker-compose file
@@ -241,7 +241,7 @@ const initExperiment = async (expDir, expName, longName, rootDir) => {
   try {
     fs.writeFileSync(composeFileLoc, jsYaml.safeDump(compFile), 'utf8');
   } catch (e) { 
-    console.error('Failed to create new compose file', e); 
+    console.error('Failed to create new compose file', e.message); 
     process.exit()
   }
 
