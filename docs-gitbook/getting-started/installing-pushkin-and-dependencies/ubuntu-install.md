@@ -30,11 +30,23 @@ $ sudo apt install curl
 
 ### Install Node.js
 
-To install the latest version of Node.js , follow [these instructions at NodeSource](https://github.com/nodesource/distributions/blob/master/README.md#installation-instructions). They are copied below for your convenience, but you should follow the link in case their instructions have changed.
+To install Node.js, first run the following command to install nvm:
 
 ```bash
-$ curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
-$ sudo apt install -y nodejs
+$ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
+```
+
+Then use nvm to install Node.js:
+
+```bash
+$ nvm install 20.2.0
+```
+
+In case the preferred version of Node.js is changed, use the following commands to update:
+
+```bash
+$ nvm install <node_version>
+$ nvm use <node_version>
 ```
 
 ![](../../.gitbook/assets/ubuntu2%20%281%29.gif)
