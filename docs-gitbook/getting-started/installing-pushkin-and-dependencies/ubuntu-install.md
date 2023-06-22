@@ -13,8 +13,7 @@ These instructions were created using Ubuntu 18.04 and the apt package manager. 
 * [Install and configure Yarn](ubuntu-install.md#install-and-configure-yarn)
 * [Install Yalc](ubuntu-install.md#install-yalc)
 * [Install pushkin-cli](ubuntu-install.md#install-pushkin-cli)
-* [Install and configure Docker Engine](ubuntu-install.md#install-and-configure-docker-engine)
-* [Install and configure Docker Compose](ubuntu-install.md#install-and-configure-docker-compose)
+* [Install and configure Docker Engine and Docker Compose](ubuntu-install.md#install-and-configure-docker-engine-and-docker-compose)
 * [Next steps](ubuntu-install.md#next-steps)
 
 ### Install curl
@@ -34,6 +33,7 @@ To install Node.js, first run the following command to install nvm:
 
 ```bash
 $ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
+$ source ~/.bashrc 
 ```
 
 Then use nvm to install Node.js:
@@ -117,41 +117,46 @@ $ pushkin --version
 
 and reading the output.
 
-### Install and configure Docker Engine
+### Install and configure Docker Engine and Docker Compose
 
 Next, install Docker Engine [using these instructions](https://docs.docker.com/engine/install/ubuntu/) \(copied below for convenience\).
 
 ```bash
-$ sudo apt update
-$ sudo apt install apt-transport-https ca-certificates curl gnupg-agent software-properties-common
-$ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+$ sudo apt-get update
+$ sudo apt-get install ca-certificates curl gnupg
 ```
 
 ![](../../.gitbook/assets/ubuntu7%20%281%29.gif)
 
-Verify the fingerprint of the key by running this command:
+Add Docker’s official GPG key:
 
 ```bash
-$ sudo apt-key fingerprint 0EBFCD88
+$ sudo install -m 0755 -d /etc/apt/keyrings
+$ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+$ sudo chmod a+r /etc/apt/keyrings/docker.gpg
 ```
 
-Your output should look like this:
+Use the following command to set up the repository:
 
 ```bash
-pub   rsa4096 2017-02-22 [SCEA]
-      9DC8 5822 9FC7 DD38 854A  E2D8 8D81 803C 0EBF CD88
-uid           [ unknown] Docker Release (CE deb) <docker@docker.com>
-sub   rsa4096 2017-02-22 [S]
+$ echo \
+  "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 ```
 
 ![](../../.gitbook/assets/ubuntu8%20%281%29.gif)
 
-Next, add the repository and install Docker Engine.
+Next, update the apt package index:
 
 ```bash
-$ sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-$ sudo apt update
-$ sudo apt install docker-ce docker-ce-cli containerd.io
+$ sudo apt-get update
+```
+
+Install Docker Engine, containerd, and Docker Compose:
+
+```bash
+$ sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 ```
 
 ![](../../.gitbook/assets/ubuntu9%20%281%29.gif)
@@ -162,7 +167,7 @@ Check that Docker Engine is installed correctly by running:
 $ sudo docker run hello-world
 ```
 
-If Docker Engine installed correctly, this should generate some output, including:
+If Docker Engine and Docker Compose are installed correctly, this should generate some output, including:
 
 ```bash
 Hello from Docker!
@@ -181,18 +186,6 @@ $ docker run hello-world
 ```
 
 ![](../../.gitbook/assets/ubuntu11%20%281%29.gif)
-
-### Install and configure Docker Compose
-
-Follow [these instructions](https://docs.docker.com/compose/install/#install-compose-on-linux-systems) \(copied below for convenience\) to install Docker Compose.
-
-```bash
-$ sudo curl -L "https://github.com/docker/compose/releases/download/1.26.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-$ sudo chmod +x /usr/local/bin/docker-compose
-$ docker-compose --version
-```
-
-![](../../.gitbook/assets/ubuntu12%20%281%29.gif)
 
 ### Next steps
 
