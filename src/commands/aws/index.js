@@ -1663,14 +1663,29 @@ export const awsArmageddon = async (useIAM, killType) => {
       } else {
         return Promise.all([awsResources.dbs.map((db) => {
           console.log(`Deleting database ${db}`)
-          exec(`aws rds delete-db-instance --db-instance-identifier ${db} --skip-final-snapshot --profile ${useIAM}`)
+          let dbDeletionResponse
+          try {
+            dbDeletionResponse = exec(`aws rds delete-db-instance --db-instance-identifier ${db} --skip-final-snapshot --profile ${useIAM}`)
+          } catch (e) {
+            if (e.stderr.includes("already being deleted")) {
+              console.warn(`Database ${db} already being deleted.`)
+              return true
+            } else {
+              console.error(e)
+              throw e
+            }
+          }
         })])
       }
       console.log("really shouldn't ever get to this line!")
     }
 
     console.log('Waiting for DBs to be deletable...')
-    await wait();
+    try {
+      await wait();
+    } catch (e) {
+      throw e
+    }
 
     //now, wait for them to be deleted
     const wait2 = async () => {
