@@ -275,9 +275,16 @@ export const apiTask = {
         ],
         "ports": [
             "80:80/tcp"
-            ]
+            ],
+        "logging": {
+            "driver": "awslogs"
+            "options":
+            "awslogs-group": "FUBAR"
+            "awslogs-region": "us-east-1"
+            "awslogs-stream-prefix": "FUBAR"
         }
-    }
+      }
+    } 
 }
 
 export const workerTask = {
@@ -292,7 +299,14 @@ export const workerTask = {
         "command": [
             "bash", 
             "start.sh"
-        ]
+        ],
+        "logging": {
+            "driver": "awslogs"
+            "options":
+            "awslogs-group": "FUBAR"
+            "awslogs-region": "us-east-1"
+            "awslogs-stream-prefix": "FUBAR"
+        }
       }   
     }
 }

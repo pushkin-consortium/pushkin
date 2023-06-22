@@ -594,7 +594,7 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs, ECS
         try {
           console.log(`Running ECS compose for ${name}`)
           let balancerCommand = (targGroupARN ? `--target-groups "targetGroupArn=${targGroupARN},containerName=${name},containerPort=${port}"` : '')
-          let composeCommand = `ecs-cli compose -f ${yaml} -p ${yaml.split('.')[0]} service up --cluster-config ${ECSName} --scheduling-strategy DAEMON `.concat(balancerCommand)
+          let composeCommand = `ecs-cli compose -f ${yaml} -p ${yaml.split('.')[0]} service up --ecs-profile ${useIAM} --cluster-config ${ECSName} --scheduling-strategy DAEMON `.concat(balancerCommand)
           compose = exec(composeCommand, { cwd: path.join(process.cwd(), "ECStasks")})
         } catch (e) {
           console.error(`Failed to run ecs-cli compose service on ${yaml}`)
@@ -631,6 +631,8 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs, ECS
   myRabbitTask.services['message-queue'].environment.RABBITMQ_ERLANG_COOKIE = rabbitCookie;
   apiTask.services['api'].environment.AMQP_ADDRESS = rabbitAddress;
   apiTask.services['api'].image = `${DHID}/api:latest`
+  apiTask.services['api'].logging['awslogs-group'] = `/ecs/${projName}`
+  apiTask.services['api'].logging['awslogs-stream-prefix'] = `/ecs/api/${projName}`
 
   let docker_compose
   try {
@@ -670,7 +672,9 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs, ECS
       task.services[w] = {}
       task.services[w].image = `${DHID}/${w}:latest`
       task.services[w].mem_limit = workerTask.services.EXPERIMENT_NAME.mem_limit
-      //Note that "DB_USER", "DB_NAME", "DB_PASS", "DB_URL" are redundant with "DB_SMARTURL"
+      task.services['w'].logging['awslogs-group'] = `/ecs/${projName}`
+      task.services['w'].logging['awslogs-stream-prefix'] = `/ecs/${w}/${projName}`
+          //Note that "DB_USER", "DB_NAME", "DB_PASS", "DB_URL" are redundant with "DB_SMARTURL"
       //For simplicity, newer versions of pushkin-worker will expect DB_SMARTURL
       //However, existing deploys won't have that. So both sets of information are maintained
       //for backwards compatibility, at least for the time being. 
@@ -1233,6 +1237,22 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
 
   const completedDBs = recordDBs(Promise.all([initializedMainDB, initializedTransactionDB]))
 
+  const createLogGroup = async (useIAM, projName) => {
+    //Log group for ECS
+    let stdOut
+    try {
+      stdOut = await exec(`aws logs create-log-group --log-group-name ecs/${projName} --profile ${useIAM}`)    
+    } catch (e) {
+      console.error(`Unable to create log group for ECS`)
+      throw e
+    }
+    try {
+      stdOut = await exec(`aws logs put-retention-policy --log-group-name ecs/${projName} --retention-in-days 7 --profile ${useIAM}`)
+    }
+  }
+
+  const createdLogGroups = createLogGroup(useIAM, projName)
+
   //pushing stuff to DockerHub
   let publishedToDocker
   try {
@@ -1535,7 +1555,7 @@ export const awsArmageddon = async (useIAM, killType) => {
     temp = await Promise.all([
       yamls.forEach((yaml) => {
         if (yaml != "ecs-params.yml"){
-          let composeCommand = `ecs-cli compose -f ${yaml} -p ${yaml.split('.')[0]} --cluster ${awsResources.ECSName} service rm --ecs-profile ${useIAM}`
+          let composeCommand = `ecs-cli compose -f ${yaml} -p ${yaml.split('.')[0]} --ecs-profile ${useIAM} --cluster ${awsResources.ECSName} service rm`
           try {
            temp = exec(composeCommand, { cwd: path.join(process.cwd(), "ECStasks")})
           } catch(e) {
@@ -1548,7 +1568,7 @@ export const awsArmageddon = async (useIAM, killType) => {
 
     console.log(`Deleting ECS Cluster ${awsResources.ECSName}.`)
     try {
-      temp = await exec(`ecs-cli down --force --cluster ${awsResources.ECSName} --ecs-profile ${useIAM}`)
+      temp = await exec(`ecs-cli down --force --ecs-profile ${useIAM} --cluster ${awsResources.ECSName}`)
     } catch (e) {
       console.error(`Unable to delete cluster ${awsResources.ECSName}.`)
       console.error(e)

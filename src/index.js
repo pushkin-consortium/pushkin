@@ -533,7 +533,7 @@ const handleAWSInit = async (force) => {
   } catch(e) {
     throw e
   }
-  console.log("done")
+  console.log("finished aws init")
 
   return
 }
@@ -559,7 +559,7 @@ const killLocal = async () => {
     console.error('Problem with removing volumes and images docker: ', err)
     process.exit();
   }
-  console.log('done')
+  console.log('Completed kill')
   return;  
 }
 
