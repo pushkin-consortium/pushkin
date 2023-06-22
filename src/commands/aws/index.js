@@ -935,7 +935,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
   try {
     console.log('Launching ECS cluster')
     //Note that cluster is named here, although that should match the default anyway.
-    const ecsCommand = `ecs-cli up --force --keypair my-pushkin-key-pair --capability-iam --size 1 --instance-type t2.small --cluster ${ECSName} --security-group ${ecsSecurityGroupID} --vpc ${myVPC} --subnets ${subnets.join(' ')} --ecs-profile ${useIAM}`
+    const ecsCommand = `ecs-cli up --force --keypair my-pushkin-key-pair --capability-iam --ecs-profile ${useIAM} --size 1 --instance-type t2.small --cluster ${ECSName} --security-group ${ecsSecurityGroupID} --vpc ${myVPC} --subnets ${subnets.join(' ')}`
     launchedECS = exec(ecsCommand)
   } catch (e) {
     console.error(`Unable to launch cluster ${ECSName}.`)
