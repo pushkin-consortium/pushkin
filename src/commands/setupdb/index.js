@@ -233,7 +233,7 @@ export async function setupTestTransactionsDB() {
             console.log('...')
             return x.stdout.search('healthy')
           },
-          err => {console.error(err)})
+          err => {console.error(err.message)})
     if (x > 0) {
 
       await setupTransactionsDB(pushkinConfig.databases.localtransactiondb)
@@ -272,7 +272,7 @@ export async function setupdb(coreDBs, mainExpDir) {
             console.log('...')
             return x.stdout.search('healthy')
           },
-          err => {console.error(err)})
+          err => {console.error(err.message)})
     if (x > 0) {
 
       await runMigrations(dbsToExps, coreDBs)

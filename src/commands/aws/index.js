@@ -1672,7 +1672,7 @@ export const awsArmageddon = async (useIAM, killType) => {
           try {
             dbDeletionResponse = exec(`aws rds delete-db-instance --db-instance-identifier ${db} --skip-final-snapshot --profile ${useIAM}`)
           } catch (e) {
-            if (e.stderr.includes("already being deleted")) {
+            if (e.message.includes("already being deleted")) {
               console.warn(`Database ${db} already being deleted.`)
               return true
             } else {

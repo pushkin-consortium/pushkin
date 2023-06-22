@@ -214,10 +214,10 @@ const initExperiment = async (expDir, expName, longName, rootDir) => {
     console.error("Unable to update config.yaml");
     throw e
   }
-  const apiPromise = promiseExpFolderInit(expDir, expConfig.apiControllers.location, rootDir, expName.concat('_api'), 'pushkin/api').catch((err) => { console.error(err); });
-  const webPromise = promiseExpFolderInit(expDir, expConfig.webPage.location, rootDir, expName.concat('_web'), 'pushkin/front-end').catch((err) => { console.error(err); });
+  const apiPromise = promiseExpFolderInit(expDir, expConfig.apiControllers.location, rootDir, expName.concat('_api'), 'pushkin/api').catch((err) => { console.error(err.message); });
+  const webPromise = promiseExpFolderInit(expDir, expConfig.webPage.location, rootDir, expName.concat('_web'), 'pushkin/front-end').catch((err) => { console.error(err.message); });
   //note that Worker uses a different function, because it doesn't need yalc; it's published straight to Docker
-  const workerPromise = promiseFolderInit(expDir, 'worker').catch((err) => { console.error(err); });
+  const workerPromise = promiseFolderInit(expDir, 'worker').catch((err) => { console.error(err.message); });
 
   // write out new compose file with worker service
   const composeFileLoc = path.join(path.join(rootDir, 'pushkin'), 'docker-compose.dev.yml');
