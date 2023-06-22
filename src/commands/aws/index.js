@@ -230,8 +230,8 @@ const deployFrontEnd = async (projName, awsName, useIAM, myDomain, myCertificate
       } catch (e) {
         // Probably not a fully created cloudfront distribution.
         // Probably can ignore this. 
-        console.warning(`Found an incompletely-specified cloudFront distribution. This may not be a problem, but you should check.`)
-        console.warning(`Worst-case scenario, run 'pushkin aws armageddon' and start over.`)
+        console.warn(`Found an incompletely-specified cloudFront distribution. This may not be a problem, but you should check.`)
+        console.warn(`Worst-case scenario, run 'pushkin aws armageddon' and start over.`)
       }
       if (tempCheck) {
         distributionExists = true;
@@ -373,138 +373,158 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
   let stdOut, dbName, dbPassword
   dbName = projName.concat(dbType).replace(/[^A-Za-z0-9]/g, "")
 
-  //First, check pushkin.yaml -- do we have a database already?
-  let temp
-  let pushkinConfig
-  let needDB = true;
-  try {
-    temp = await fs.promises.readFile(path.join(process.cwd(), 'pushkin.yaml'), 'utf8')
-    pushkinConfig = jsYaml.safeLoad(temp)
-  } catch (e) {
-    console.error(`Couldn't load pushkin.yaml`)
-    throw e;
-  }
-  if (Object.keys(pushkinConfig.productionDBs).includes(dbName)) {
-    console.warn(`${dbName} is in pushkin.yaml. If that surprises you, look into it.\n Checking whether it is also on RDS.`)
-    //check whether it's fully configured in RDS
-    //First, check to see if database exists
+  const doINeedDB = async (dbName, dbType, useIAM) => {
+    //First, check pushkin.yaml -- do we have a database already?
+    let temp
+    let pushkinConfig
     try {
-      stdOut = await exec(`aws rds describe-db-instances --profile ${useIAM}`)
+      temp = await fs.promises.readFile(path.join(process.cwd(), 'pushkin.yaml'), 'utf8')
+      pushkinConfig = jsYaml.safeLoad(temp)
     } catch (e) {
-      console.error(`Unable to get list of RDS databases`)
-      throw e
+      console.error(`Couldn't load pushkin.yaml`)
+      throw e;
     }
-    let foundDB = false;
-    let retrievedDBInfo
-    JSON.parse(stdOut.stdout).DBInstances.forEach((db) => {
-      if (db.DBInstanceIdentifier == dbName.toLowerCase()) {
-        foundDB = true;
-        retrievedDBInfo = db
+    if (Object.keys(pushkinConfig.productionDBs).includes(dbType) && pushkinConfig.productionDBs[dbType].name == dbName) {
+      console.warn(`${dbName} is in pushkin.yaml. If that surprises you, look into it.\n Checking whether it is also on RDS.`)
+      //check whether it's fully configured in RDS
+      //First, check to see if database exists
+      try {
+        stdOut = await exec(`aws rds describe-db-instances --profile ${useIAM}`)
+      } catch (e) {
+        console.error(`Unable to get list of RDS databases`)
+        throw e
       }
-    })
-    if (foundDB) {
-      //Does its parameters match what we expect?
-      let sameParams = true;
-      if (pushkinConfig.productionDBs[dbName].name != db.DBName) {sameParams = false}
-      if (pushkinConfig.productionDBs[dbName].user != db.MasterUsername) {sameParams = false}
-      //if (pushkinConfig.productionDBs[dbName].pass != FUBAR) {sameParams = false} //No way to check the password; assume if rest is correct, that's still correct
-      if (pushkinConfig.productionDBs[dbName].port != db.Endpoint.port) {sameParams = false}
-      if (pushkinConfig.productionDBs[dbName].host != db.Endpoint.Address) {sameParams = false}
-      if (sameParams) {
-        console.log(`${dbName} is already configured on RDS. Skipping.\n Note that if the password stored in the YAML is wrong, the CLI can't check that.`)
+      let foundDB = false;
+      let retrievedDBInfo
+      JSON.parse(stdOut.stdout).DBInstances.forEach((db) => {
+        if (db.DBInstanceIdentifier == dbName.toLowerCase()) {
+          foundDB = true;
+          retrievedDBInfo = db
+        }
+      })
+      if (foundDB) {
+        //Does its parameters match what we expect?
+        let sameParams = true;
+        if (pushkinConfig.productionDBs[dbType].name.toLowerCase() != retrievedDBInfo.DBName.toLowerCase()) {sameParams = false; console.warn(`Database name on RDS does not match pushkin.yaml`)}
+        if (pushkinConfig.productionDBs[dbType].user != retrievedDBInfo.MasterUsername) {sameParams = false; console.warn}
+        //if (pushkinConfig.productionDBs[dbType].pass != FUBAR) {sameParams = false} //No way to check the password; assume if rest is correct, that's still correct
+        if (pushkinConfig.productionDBs[dbType].port != retrievedDBInfo.Endpoint.Port) {sameParams = false; console.warn(`Database port on RDS does not match pushkin.yaml`)}
+        if (pushkinConfig.productionDBs[dbType].host != retrievedDBInfo.Endpoint.Address) {sameParams = false; console.warn(`Database host on RDS does not match pushkin.yaml`)}
+        if (sameParams) {
+          console.log(`${dbName} is already configured on RDS. Skipping.\n Note that if the password stored in the YAML is wrong, the CLI can't check that.`)
+          return false; //let's us skip creation later on
+        } else {
+          console.error(`${dbName} is already configured on RDS, but with different parameters.`)
+          console.error(`Pushkin.yaml has:`, pushkinConfig.productionDBs[dbType])
+          console.error(`RDS has:`, retrievedDBInfo)
+          process.exit()
+        }
       } else {
-        console.error(`${dbName} is already configured on RDS, but with different parameters.`)
-        console.error(`Pushkin.yaml has:`, pushkinConfig.productionDBs[dbName])
-        console.error(`RDS has:`, retrievedDBInfo)
-        process.exit()
+        console.warn(`Database listed in pushkin.yaml, but not found on RDS. Creating.`)
+        return true
       }
     } else {
-      console.warn(`Database listed in pushkin.yaml, but not found on RDS. Creating.`)
+      try {
+        stdOut = await exec(`aws rds describe-db-instances --profile ${useIAM}`)
+      } catch (e) {
+        console.error(`Unable to get list of RDS databases`)
+        throw e
+      }
+      let foundDB = false;
+      let retrievedDBInfo
+      JSON.parse(stdOut.stdout).DBInstances.forEach((db) => {
+        if (db.DBInstanceIdentifier == dbName.toLowerCase()) {
+          foundDB = true;
+          retrievedDBInfo = db
+        }
+      })
+      if (foundDB) {
+        //We can't easily work around this, because we don't have the password saved anywhere!
+        console.warn(`Database ${dbName} found on RDS, but not listed in pushkin.yaml. This is a problem.\n
+          You will need to delete the database from RDS before continuing.`)
+        process.exit()
+      } else {
+        return true
+      }
     }
-  } else {
+  }
+
+  let needDB = await doINeedDB(dbName, dbType, useIAM)
+  if (needDB) {
+    dbPassword = Math.random().toString() //Pick random password for database
+    let myDBConfig = JSON.parse(JSON.stringify(dbConfig));
+    myDBConfig.DBName = dbName
+    myDBConfig.DBInstanceIdentifier = dbName
+    myDBConfig.VpcSecurityGroupIds = [securityGroupID]
+    myDBConfig.MasterUserPassword = dbPassword
+    myDBConfig.Tags[0].Value = projName
     try {
-      stdOut = await exec(`aws rds describe-db-instances --profile ${useIAM}`)
-    } catch (e) {
-      console.error(`Unable to get list of RDS databases`)
+      stdOut = await exec(`aws rds create-db-instance --cli-input-json '`.concat(JSON.stringify(myDBConfig)).concat(`' --profile `).concat(useIAM))
+    } catch(e) {
+      console.error(`Unable to create database ${dbType}`)
       throw e
     }
-    let foundDB = false;
-    let retrievedDBInfo
-    JSON.parse(stdOut.stdout).DBInstances.forEach((db) => {
-      if (db.DBInstanceIdentifier == dbName.toLowerCase()) {
-        foundDB = true;
-        retrievedDBInfo = db
+
+    console.log(`Database ${dbType} created with following:`, myDBConfig)
+    console.log(`Database ${dbType} created.`)
+
+    try {
+      // should hang until instance is available
+      console.log(`Waiting for ${dbType} to spool up. This may take a while...`)
+      stdOut = await exec(`aws rds wait db-instance-available --db-instance-identifier ${dbName} --profile ${useIAM}`)
+      console.log(`${dbType} is spooled up!`)
+    } catch (e) {
+      console.error(`Problem waiting for ${dbType} to spool up.`)
+      throw e
+    }
+
+    let dbEndpoint
+    try {
+        stdOut = await exec(`aws rds describe-db-instances --db-instance-identifier ${dbName} --profile ${useIAM}`)
+        dbEndpoint = JSON.parse(stdOut.stdout);
+    } catch (e) {
+      console.error(`Problem getting ${dbType} endpoint.`)
+      throw e
+    }
+  
+    //Updating list of AWS resources
+    console.log('Updated awsResources with db information')
+    try {
+      let awsResources = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
+      if (awsResources.dbs) {
+        awsResources.dbs.push(dbName)
+      } else {
+        awsResources.dbs = [dbName]
       }
-    })
-    if (foundDB) {
-      //We can't easily work around this, because we don't have the password saved anywhere!
-      console.warning(`Database ${dbName} found on RDS, but not listed in pushkin.yaml. This is a problem.\n
-        You will need to delete the database from RDS before continuing.`)
-      process.exit()
+      fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
+    } catch (e) {
+      console.error(`Unable to update awsResources.js`)
+      console.error(e)
+    }    
+    
+    const newDB = {
+      "type": dbType,
+      "name": dbName, 
+      "host": dbEndpoint.DBInstances[0].Endpoint.Address, 
+      "user": myDBConfig.MasterUsername, 
+      "pass": myDBConfig.MasterUserPassword,
+      "port": myDBConfig.Port
     }
-  }
-
-  dbPassword = Math.random().toString() //Pick random password for database
-  let myDBConfig = JSON.parse(JSON.stringify(dbConfig));
-  myDBConfig.DBName = dbName
-  myDBConfig.DBInstanceIdentifier = dbName
-  myDBConfig.VpcSecurityGroupIds = [securityGroupID]
-  myDBConfig.MasterUserPassword = dbPassword
-  myDBConfig.Tags[0].Value = projName
-  try {
-    stdOut = await exec(`aws rds create-db-instance --cli-input-json '`.concat(JSON.stringify(myDBConfig)).concat(`' --profile `).concat(useIAM))
-  } catch(e) {
-    console.error(`Unable to create database ${dbType}`)
-    throw e
-  }
-
-  console.log(`Database ${dbType} created with following:`, myDBConfig)
-  console.log(`Database ${dbType} created.`)
-
-  try {
-    // should hang until instance is available
-    console.log(`Waiting for ${dbType} to spool up. This may take a while...`)
-    stdOut = await exec(`aws rds wait db-instance-available --db-instance-identifier ${dbName} --profile ${useIAM}`)
-    console.log(`${dbType} is spooled up!`)
-  } catch (e) {
-    console.error(`Problem waiting for ${dbType} to spool up.`)
-    throw e
-  }
-
-  let dbEndpoint
- try {
-     stdOut = await exec(`aws rds describe-db-instances --db-instance-identifier ${dbName} --profile ${useIAM}`)
-     dbEndpoint = JSON.parse(stdOut.stdout);
-  } catch (e) {
-    console.error(`Problem getting ${dbType} endpoint.`)
-    throw e
-  }
- 
-  //Updating list of AWS resources
-  console.log('Updated awsResources with db information')
-  try {
-    let awsResources = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
-    if (awsResources.dbs) {
-      awsResources.dbs.push(dbName)
-    } else {
-      awsResources.dbs = [dbName]
+    
+    return newDB
+  } else {
+    //Already set up. Just return the info.
+    let temp
+    let pushkinConfig
+    try {
+      temp = await fs.promises.readFile(path.join(process.cwd(), 'pushkin.yaml'), 'utf8')
+      pushkinConfig = jsYaml.safeLoad(temp)
+    } catch (e) {
+      console.error(`Couldn't load pushkin.yaml`)
+      throw e;
     }
-    fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
-  } catch (e) {
-    console.error(`Unable to update awsResources.js`)
-    console.error(e)
-  }    
-  
-  const newDB = {
-    "type": dbType,
-    "name": dbName, 
-    "host": dbEndpoint.DBInstances[0].Endpoint.Address, 
-    "user": myDBConfig.MasterUsername, 
-    "pass": myDBConfig.MasterUserPassword,
-    "port": myDBConfig.Port
+    return pushkinConfig.productionDBs[dbType]
   }
-  
-  return newDB
 }
  
 const getDBInfo = async () => {
@@ -1391,7 +1411,7 @@ const makeACL = async (useIAM) => {
         try {
           tempCheck = (d.Name == 'pushkinACL')
         } catch (e) {
-          console.warning(`Problem reading ACL list.`)
+          console.warn(`Problem reading ACL list.`)
           throw e
         }
         if (tempCheck) {
@@ -1773,7 +1793,7 @@ export const awsArmageddon = async (useIAM, killType) => {
             } catch (e) {
               // Probably not a fully created cloudfront distribution.
               // Probably can ignore this. 
-              console.warning(`Problem reading cloudFront distribution information.`)
+              console.warn(`Problem reading cloudFront distribution information.`)
               throw e
             }
             if (tempCheck) {
