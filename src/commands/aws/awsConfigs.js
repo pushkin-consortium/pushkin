@@ -278,10 +278,11 @@ export const apiTask = {
             ],
         "logging": {
             "driver": "awslogs"
-            "options":
-            "awslogs-group": "FUBAR"
-            "awslogs-region": "us-east-1"
-            "awslogs-stream-prefix": "FUBAR"
+            "options": {
+                "awslogs-group": "FUBAR"
+                "awslogs-region": "us-east-1"
+                "awslogs-stream-prefix": "FUBAR"
+            }
         }
       }
     } 
@@ -302,10 +303,11 @@ export const workerTask = {
         ],
         "logging": {
             "driver": "awslogs"
-            "options":
-            "awslogs-group": "FUBAR"
-            "awslogs-region": "us-east-1"
-            "awslogs-stream-prefix": "FUBAR"
+            "options": {
+                "awslogs-group": "FUBAR"
+                "awslogs-region": "us-east-1"
+                "awslogs-stream-prefix": "FUBAR"
+            }
         }
       }   
     }
