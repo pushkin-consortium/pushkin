@@ -55,10 +55,14 @@ $ nvm use <node_version>
 
 You will next want to install the Yarn package manager. Official instructions \(copied below for convenience\) are available [here](https://classic.yarnpkg.com/en/docs/install/#debian-stable).
 
+Use npm, which comes bundled with Node.js that you just installed:
 ```bash
-$ curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
-$ echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
-$ sudo apt update && sudo apt install yarn
+$ npm install --global yarn
+```
+
+Then check that Yarn is installed by running:
+```bash
+yarn --version
 ```
 
 ![](../../.gitbook/assets/ubuntu3%20%281%29.gif)
@@ -69,7 +73,7 @@ Run the following:
 
 ```bash
 $ yarn config set prefix ~/.yarn
-$ echo 'export PATH="$PATH:`yarn global bin`"' >> ~/.bashrc
+$ echo -e '\nexport PATH="$PATH:`yarn global bin`"\n' >> ~/.bashrc
 $ source ~/.bashrc
 ```
 
