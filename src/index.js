@@ -134,7 +134,7 @@ const updateMigrations = async () => {
   }    
 }
 
-const updateECS = async () => {
+const updateECS = async () => { //FUBAR needs way of getting useIAM
   console.log(`Updating ECS services.`)
 
   let ECSName
@@ -150,7 +150,7 @@ const updateECS = async () => {
   return Promise.all(
     yamls.forEach((yaml) => {
       if (yaml != "ecs-params.yml"){
-        let composeCommand = `ecs-cli compose -f ${yaml} -p ${yaml.split('.')[0]} service up --cluster-config ${ECSName} --force-deployment`
+        let composeCommand = `ecs-cli compose -f ${yaml} -p ${yaml.split('.')[0]} service up --ecs-profile ${useIAM} --cluster-config ${ECSName} --force-deployment`
         try {
          temp = exec(composeCommand, { cwd: path.join(process.cwd(), "ECStasks")})
         } catch(e) {
@@ -607,7 +607,8 @@ async function main() {
           break;
         case 'update':
           try {
-            await handleAWSUpdate();
+            //await handleAWSUpdate();
+            console.warn(`Not currently implemented. Sorry.`)
           } catch(e) {
             console.error(e);
             process.exit();
