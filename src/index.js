@@ -246,7 +246,7 @@ const handleUpdateDB = async () => {
   try {
     settingUpDB = await setupdb(config.databases, path.join(process.cwd(), config.experimentsDir));
   } catch (err) {
-    console.error(err);
+    console.error(err.message);
     process.exit();
   }
   return settingUpDB;
@@ -271,7 +271,7 @@ const handlePrep = async () => {
       path.join(process.cwd(), config.coreDir)
     );
   } catch (err) {
-    console.error(err);
+    console.error(err.message);
     process.exit();
   }
   return;  
@@ -498,7 +498,7 @@ const handleAWSInit = async (force) => {
     try {
       projName = await inquirer.prompt([ { type: 'input', name: 'name', message: 'Name your project'}])
     } catch(e) {
-      console.error(e)
+      console.error(e.message)
       process.exit()
     }
     try {
@@ -525,7 +525,7 @@ const handleAWSInit = async (force) => {
   try {
     addedIAM = addIAM(useIAM.iam) //this doesn't need to be synchronous      
   } catch(e) {
-    console.error(e)
+    console.error(e.message)
     process.exit()
   }
   try {
@@ -577,7 +577,7 @@ async function main() {
         try {
           handleInstall(what)  
         } catch(e) {
-          console.error(e)
+          console.error(e.message)
           process.exit()
         }
       }else{
@@ -601,7 +601,7 @@ async function main() {
             setEnv(false) //asynchronous
             await handleAWSInit(options.force);
           } catch(e) {
-            console.error(e)
+            console.error(e.message)
             process.exit();
           }
           break;
@@ -610,7 +610,7 @@ async function main() {
             //await handleAWSUpdate();
             console.warn(`Not currently implemented. Sorry.`)
           } catch(e) {
-            console.error(e);
+            console.error(e.message);
             process.exit();
           }
           break;
@@ -618,7 +618,7 @@ async function main() {
           try {
             await handleAWSArmageddon();
           } catch(e) {
-            console.error(e);
+            console.error(e.message);
             process.exit();
           }
           break;
@@ -626,7 +626,7 @@ async function main() {
           try {
             await handleAWSList();
           } catch(e) {
-            console.error(e);
+            console.error(e.message);
             process.exit();
           }
           break;
@@ -647,7 +647,7 @@ async function main() {
           try {
             config = await loadConfig(path.join(process.cwd(), 'pushkin.yaml'));
           } catch(e) {
-            console.error(e)
+            console.error(e.message)
             process.exit();
           }
           config.DockerHubID = answers.ID;
@@ -655,7 +655,7 @@ async function main() {
             fs.writeFileSync(path.join(process.cwd(), 'pushkin.yaml'), jsYaml.safeDump(config))
           } catch (e) {
             console.error('Unable to rewrite pushkin.yaml.')
-            console.error(e)
+            console.error(e.message)
             process.exit()
           }
           inquirer.prompt([
@@ -663,7 +663,7 @@ async function main() {
           ]).then(async (answers) => {
             fs.writeFileSync('.docker', answers.pw, err => {
               if (err) {
-                console.error(err);
+                console.error(err.message);
               }
               // file written successfully
             });
@@ -687,7 +687,7 @@ async function main() {
           awaits = [handlePrep(), handleUpdateDB()];
         }
       } catch (e) {
-        console.error(e)
+        console.error(e.message)
         process.exit();
       }
       return await Promise.all(awaits);
@@ -789,7 +789,7 @@ async function main() {
           try {
             await handleUpdateDB();
           } catch(e) {
-            console.error(e)
+            console.error(e.message)
             process.exit();
           }
           break;
@@ -797,7 +797,7 @@ async function main() {
           try {
             await setupTestTransactionsDB();
           } catch(e) {
-            console.error(e);
+            console.error(e.message);
             process.exit();
           }
           break;
@@ -805,7 +805,7 @@ async function main() {
           try {
             await handleCreateAutoScale();
           } catch(e) {
-            console.error(e);
+            console.error(e.message);
             process.exit();
           }
           break;

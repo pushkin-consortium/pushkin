@@ -298,7 +298,7 @@ const deployFrontEnd = async (projName, awsName, useIAM, myDomain, myCertificate
       fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
     } catch (e) {
       console.error(`Unable to update awsResources.js`)
-      console.error(e)
+      console.error(e.message)
     }    
   }
 
@@ -335,7 +335,7 @@ const getOAC = async (useIAM) => {
     awsResources = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
   } catch (e) {
     console.error(`Unable to read awsResources.js. That's strange.`)
-    console.error(e)
+    console.error(e.message)
     throw e
   } 
 
@@ -384,7 +384,7 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
       console.error(`Couldn't load pushkin.yaml`)
       throw e;
     }
-    if (Object.keys(pushkinConfig.productionDBs).includes(dbType) && pushkinConfig.productionDBs[dbType].name == dbName) {
+    if (pushkinConfig.productionDBs && Object.keys(pushkinConfig.productionDBs).includes(dbType) && pushkinConfig.productionDBs[dbType].name == dbName) {
       console.warn(`${dbName} is in pushkin.yaml. If that surprises you, look into it.\n Checking whether it is also on RDS.`)
       //check whether it's fully configured in RDS
       //First, check to see if database exists
@@ -499,7 +499,7 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
       fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
     } catch (e) {
       console.error(`Unable to update awsResources.js`)
-      console.error(e)
+      console.error(e.message)
     }    
     
     const newDB = {
@@ -581,7 +581,7 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs, ECS
               let y = JSON.parse(x.stdout).clusters[0]
               return y.registeredContainerInstancesCount
             },
-            err => {console.error(err)})
+            err => {console.error(err.message)})
       if (x > 0) {
         try {
           console.log(`Writing ECS task list ${name}`)
@@ -614,7 +614,7 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs, ECS
       fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
     } catch (e) {
       console.error(`Unable to update awsResources.js`)
-      console.error(e)
+      console.error(e.message)
     }    
 
     console.log('Waiting for ECS cluster to start...')
@@ -957,7 +957,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
     fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
   } catch (e) {
     console.error(`Unable to update awsResources.js`)
-    console.error(e)
+    console.error(e.message)
   }    
 
   let madeBalancer
@@ -982,7 +982,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
     fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
   } catch (e) {
     console.error(`Unable to update awsResources.js`)
-    console.error(e)
+    console.error(e.message)
   }    
 
   temp = await madeBalancer //need this for the next step
@@ -1243,8 +1243,13 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
     try {
       stdOut = await exec(`aws logs create-log-group --log-group-name ecs/${projName} --profile ${useIAM}`)    
     } catch (e) {
-      console.error(`Unable to create log group for ECS`)
-      throw e
+      if (e.message.includes("already exists")) {
+        console.warn(`Log group ecs/${projName} for ECS already exists. Skipping creation.\n
+        If this is a surprise, you should look into it.`)
+      } else {
+        console.error(`Unable to create log group for ECS`)
+        throw e  
+      }
     }
     try {
       stdOut = await exec(`aws logs put-retention-policy --log-group-name ecs/${projName} --retention-in-days 7 --profile ${useIAM}`)
@@ -1574,7 +1579,7 @@ export const awsArmageddon = async (useIAM, killType) => {
       temp = await exec(`ecs-cli down --force --ecs-profile ${useIAM} --cluster ${awsResources.ECSName}`)
     } catch (e) {
       console.error(`Unable to delete cluster ${awsResources.ECSName}.`)
-      console.error(e)
+      console.error(e.message)
     }
     return true
   }
@@ -1671,7 +1676,7 @@ export const awsArmageddon = async (useIAM, killType) => {
               console.warn(`Database ${db} already being deleted.`)
               return true
             } else {
-              console.error(e)
+              console.error(e.message)
               throw e
             }
           }
@@ -1735,7 +1740,7 @@ export const awsArmageddon = async (useIAM, killType) => {
       return exec(`aws cloudformation delete-stack --stack-name ${'amazon-ecs-cli-setup-'.concat(awsResources.name)} --profile ${useIAM}`)
     } catch (e) {
       console.error(`Unable to delete cloudformation stack ${'amazon-ecs-cli-setup-'.concat(awsResources.name)}.`)
-      console.error(e)
+      console.error(e.message)
       return
     }
   }
@@ -1760,7 +1765,7 @@ export const awsArmageddon = async (useIAM, killType) => {
         awsResources.loadBalancerName = null
       } catch (e) {
         console.error(`Unable to delete load balancer ${awsResources.loadBalancerName}`)
-        console.error(e)
+        console.error(e.message)
       }    
     } else {
       console.log(`No load balancer. Skipping.`)
@@ -1905,13 +1910,13 @@ export const awsArmageddon = async (useIAM, killType) => {
                 try {
                   resolve(exec(`aws cloudfront get-distribution --id ${distId} --profile ${useIAM}`))
                 } catch (e) {
-                  console.error(e)
+                  console.error(e.message)
                   if (JSON.parse(temp.stdout).Distribution.Status != "InProgress") {
                     console.error(`Unable to delete cloudfront distribution. It may be worth running pushkin aws armageddon again.`)
                     resolve(false)
                   }
                 }
-                console.error(e)
+                console.error(e.message)
               }
             } else {
               console.log(`Waiting for cloudfront distribution ${distId} to be disabled...`)
@@ -2030,7 +2035,7 @@ export const awsArmageddon = async (useIAM, killType) => {
         } catch (e) {
           console.error(`Unable to delete origin access control ${d.Id}`)
           console.error(`This command failed: ${deleteOACcommand}`)
-          console.error(e)
+          console.error(e.message)
           throw e
         }
         console.log(`Updating awsResources with cloudfront info`)
@@ -2040,7 +2045,7 @@ export const awsArmageddon = async (useIAM, killType) => {
           fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
         } catch (e) {
           console.error(`Unable to update awsResources.js`)
-          console.error(e)
+          console.error(e.message)
         }        
       })
     }
@@ -2066,7 +2071,7 @@ export const awsArmageddon = async (useIAM, killType) => {
         awsResources.targGroupARN = null
       } catch (e) {
         console.error(`Unable to delete associated target group`)
-        console.error(e)
+        console.error(e.message)
       }
     } else {
       console.log(`No target group. Skipping.`)
@@ -2208,7 +2213,7 @@ export const awsArmageddon = async (useIAM, killType) => {
     await fs.promises.writeFile(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResourcesNull), 'utf8');
   } catch (e) {
     console.error(`Unable to update awsResources.js`)
-    console.error(e)
+    console.error(e.message)
   }    
 
   await Promise.all([ deletedGroups, deletedResourceRecords ]) //this stuff can wait for the end

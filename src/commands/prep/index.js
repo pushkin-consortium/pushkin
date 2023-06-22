@@ -151,7 +151,7 @@ export const prep = async (experimentsDir, coreDir) => {
         console.log("Cleaned up front-end/experiments.js")        
       }
     } catch (e) {
-      console.error(e)
+      console.error(e.message)
     }
     const webPageAttachListFile = path.join(coreDir, 'front-end/src/experiments.js');
     let cleanedWeb
@@ -180,7 +180,7 @@ export const prep = async (experimentsDir, coreDir) => {
       try {
         expConfig = readConfig(expDir);
       } catch (err) {
-        console.error(err);
+        console.error(err.message);
         reject(new Error(`Failed to read experiment config file for `.concat(exp).concat(err)))
       }
       let preppedApi;
@@ -199,7 +199,7 @@ export const prep = async (experimentsDir, coreDir) => {
   try {
     preppedAPI = Promise.all(expDirs.map(prepAPIWrapper))
   } catch (err) {
-    console.error(err);
+    console.error(err.message);
     process.exit();
   }
   
@@ -243,7 +243,7 @@ export const prep = async (experimentsDir, coreDir) => {
       try {
         expConfig = readConfig(expDir);
       } catch (err) {
-        console.error(err);
+        console.error(err.message);
         reject(new Error(`Failed to read experiment config file for `.concat(exp).concat(err)))
       }
       let webPageIncludes;
@@ -260,7 +260,7 @@ export const prep = async (experimentsDir, coreDir) => {
   try {
     webPageIncludes = Promise.all(expDirs.map(prepWebWrapper))
   } catch (err) {
-    console.error(err);
+    console.error(err.message);
     process.exit();
   }
 
@@ -329,7 +329,7 @@ export const prep = async (experimentsDir, coreDir) => {
   try {
     preppedWorkers = Promise.all(expDirs.map(prepWorkerWrapper))
   } catch (err) {
-    console.error(err);
+    console.error(err.message);
     throw(err);
   }
 
