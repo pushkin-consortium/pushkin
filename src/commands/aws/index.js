@@ -298,7 +298,7 @@ const deployFrontEnd = async (projName, awsName, useIAM, myDomain, myCertificate
       fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
     } catch (e) {
       console.error(`Unable to update awsResources.js`)
-      console.error(e.message)
+      console.error(e)
     }    
   }
 
@@ -335,7 +335,7 @@ const getOAC = async (useIAM) => {
     awsResources = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
   } catch (e) {
     console.error(`Unable to read awsResources.js. That's strange.`)
-    console.error(e.message)
+    console.error(e)
     throw e
   } 
 
@@ -499,7 +499,7 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
       fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
     } catch (e) {
       console.error(`Unable to update awsResources.js`)
-      console.error(e.message)
+      console.error(e)
     }    
     
     const newDB = {
@@ -581,7 +581,7 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs, ECS
               let y = JSON.parse(x.stdout).clusters[0]
               return y.registeredContainerInstancesCount
             },
-            err => {console.error(err.message)})
+            err => {console.error(err)})
       if (x > 0) {
         try {
           console.log(`Writing ECS task list ${name}`)
@@ -614,7 +614,7 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs, ECS
       fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
     } catch (e) {
       console.error(`Unable to update awsResources.js`)
-      console.error(e.message)
+      console.error(e)
     }    
 
     console.log('Waiting for ECS cluster to start...')
@@ -631,8 +631,8 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs, ECS
   myRabbitTask.services['message-queue'].environment.RABBITMQ_ERLANG_COOKIE = rabbitCookie;
   apiTask.services['api'].environment.AMQP_ADDRESS = rabbitAddress;
   apiTask.services['api'].image = `${DHID}/api:latest`
-  apiTask.services['api'].logging['awslogs-group'] = `/ecs/${projName}`
-  apiTask.services['api'].logging['awslogs-stream-prefix'] = `/ecs/api/${projName}`
+  apiTask.services['api'].logging.options['awslogs-group'] = `ecs/${projName}`
+  apiTask.services['api'].logging.options['awslogs-stream-prefix'] = `ecs/api/${projName}`
 
   let docker_compose
   try {
@@ -653,6 +653,7 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs, ECS
     throw e
   }
 
+  console.log(`ECS task creation waiting on DBs`)
   temp = await completedDBs; //Next part won't run if DBs aren't done
   const dbInfoByTask = await getDBInfo();
 
@@ -669,11 +670,10 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs, ECS
       let expName = w.split("_worker")[0]
       task.version = workerTask.version;
       task.services = {};
-      task.services[w] = {}
+      task.services[w] = workerTask.services["EXPERIMENT_NAME"]
       task.services[w].image = `${DHID}/${w}:latest`
-      task.services[w].mem_limit = workerTask.services.EXPERIMENT_NAME.mem_limit
-      task.services['w'].logging['awslogs-group'] = `/ecs/${projName}`
-      task.services['w'].logging['awslogs-stream-prefix'] = `/ecs/${w}/${projName}`
+      task.services[w].logging.options['awslogs-group'] = `ecs/${projName}`
+      task.services[w].logging.options['awslogs-stream-prefix'] = `ecs/${w}/${projName}`
           //Note that "DB_USER", "DB_NAME", "DB_PASS", "DB_URL" are redundant with "DB_SMARTURL"
       //For simplicity, newer versions of pushkin-worker will expect DB_SMARTURL
       //However, existing deploys won't have that. So both sets of information are maintained
@@ -686,7 +686,6 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs, ECS
         "DB_URL": dbInfoByTask['Main'].endpoint,
         "TRANSACTION_DATABASE_URL": `postgres://${dbInfoByTask['Transaction'].username}:${dbInfoByTask['Transaction'].password}@${dbInfoByTask['Transaction'].endpoint}:/${dbInfoByTask['Transaction'].port}/${dbInfoByTask['Transaction'].name}`
       }
-      task.services[w].command = workerTask.services["EXPERIMENT_NAME"].command
       return ecsCompose(yaml, task, name)
     })
   } catch (e) {
@@ -957,7 +956,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
     fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
   } catch (e) {
     console.error(`Unable to update awsResources.js`)
-    console.error(e.message)
+    console.error(e)
   }    
 
   let madeBalancer
@@ -982,7 +981,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
     fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
   } catch (e) {
     console.error(`Unable to update awsResources.js`)
-    console.error(e.message)
+    console.error(e)
   }    
 
   temp = await madeBalancer //need this for the next step
@@ -1579,7 +1578,7 @@ export const awsArmageddon = async (useIAM, killType) => {
       temp = await exec(`ecs-cli down --force --ecs-profile ${useIAM} --cluster ${awsResources.ECSName}`)
     } catch (e) {
       console.error(`Unable to delete cluster ${awsResources.ECSName}.`)
-      console.error(e.message)
+      console.error(e)
     }
     return true
   }
@@ -1676,7 +1675,7 @@ export const awsArmageddon = async (useIAM, killType) => {
               console.warn('\x1b[31m%s\x1b[0m', `Database ${db} already being deleted.`)
               return true
             } else {
-              console.error(e.message)
+              console.error(e)
               throw e
             }
           }
@@ -1740,7 +1739,7 @@ export const awsArmageddon = async (useIAM, killType) => {
       return exec(`aws cloudformation delete-stack --stack-name ${'amazon-ecs-cli-setup-'.concat(awsResources.name)} --profile ${useIAM}`)
     } catch (e) {
       console.error(`Unable to delete cloudformation stack ${'amazon-ecs-cli-setup-'.concat(awsResources.name)}.`)
-      console.error(e.message)
+      console.error(e)
       return
     }
   }
@@ -1765,7 +1764,7 @@ export const awsArmageddon = async (useIAM, killType) => {
         awsResources.loadBalancerName = null
       } catch (e) {
         console.error(`Unable to delete load balancer ${awsResources.loadBalancerName}`)
-        console.error(e.message)
+        console.error(e)
       }    
     } else {
       console.log(`No load balancer. Skipping.`)
@@ -1910,13 +1909,13 @@ export const awsArmageddon = async (useIAM, killType) => {
                 try {
                   resolve(exec(`aws cloudfront get-distribution --id ${distId} --profile ${useIAM}`))
                 } catch (e) {
-                  console.error(e.message)
+                  console.error(e)
                   if (JSON.parse(temp.stdout).Distribution.Status != "InProgress") {
                     console.error(`Unable to delete cloudfront distribution. It may be worth running pushkin aws armageddon again.`)
                     resolve(false)
                   }
                 }
-                console.error(e.message)
+                console.error(e)
               }
             } else {
               console.log(`Waiting for cloudfront distribution ${distId} to be disabled...`)
@@ -2035,7 +2034,7 @@ export const awsArmageddon = async (useIAM, killType) => {
         } catch (e) {
           console.error(`Unable to delete origin access control ${d.Id}`)
           console.error(`This command failed: ${deleteOACcommand}`)
-          console.error(e.message)
+          console.error(e)
           throw e
         }
         console.log(`Updating awsResources with cloudfront info`)
@@ -2045,7 +2044,7 @@ export const awsArmageddon = async (useIAM, killType) => {
           fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
         } catch (e) {
           console.error(`Unable to update awsResources.js`)
-          console.error(e.message)
+          console.error(e)
         }        
       })
     }
@@ -2071,7 +2070,7 @@ export const awsArmageddon = async (useIAM, killType) => {
         awsResources.targGroupARN = null
       } catch (e) {
         console.error(`Unable to delete associated target group`)
-        console.error(e.message)
+        console.error(e)
       }
     } else {
       console.log(`No target group. Skipping.`)
@@ -2213,7 +2212,7 @@ export const awsArmageddon = async (useIAM, killType) => {
     await fs.promises.writeFile(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResourcesNull), 'utf8');
   } catch (e) {
     console.error(`Unable to update awsResources.js`)
-    console.error(e.message)
+    console.error(e)
   }    
 
   await Promise.all([ deletedGroups, deletedResourceRecords ]) //this stuff can wait for the end

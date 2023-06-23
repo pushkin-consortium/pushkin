@@ -214,10 +214,10 @@ const initExperiment = async (expDir, expName, longName, rootDir) => {
     console.error("Unable to update config.yaml");
     throw e
   }
-  const apiPromise = promiseExpFolderInit(expDir, expConfig.apiControllers.location, rootDir, expName.concat('_api'), 'pushkin/api').catch((err) => { console.error(err.message); });
-  const webPromise = promiseExpFolderInit(expDir, expConfig.webPage.location, rootDir, expName.concat('_web'), 'pushkin/front-end').catch((err) => { console.error(err.message); });
+  const apiPromise = promiseExpFolderInit(expDir, expConfig.apiControllers.location, rootDir, expName.concat('_api'), 'pushkin/api').catch((err) => { console.error(err); });
+  const webPromise = promiseExpFolderInit(expDir, expConfig.webPage.location, rootDir, expName.concat('_web'), 'pushkin/front-end').catch((err) => { console.error(err); });
   //note that Worker uses a different function, because it doesn't need yalc; it's published straight to Docker
-  const workerPromise = promiseFolderInit(expDir, 'worker').catch((err) => { console.error(err.message); });
+  const workerPromise = promiseFolderInit(expDir, 'worker').catch((err) => { console.error(err); });
 
   // write out new compose file with worker service
   const composeFileLoc = path.join(path.join(rootDir, 'pushkin'), 'docker-compose.dev.yml');
@@ -226,7 +226,7 @@ const initExperiment = async (expDir, expName, longName, rootDir) => {
     compFile = jsYaml.safeLoad(fs.readFileSync(composeFileLoc), 'utf8'); 
     console.log('loaded compFile')
   } catch (e) { 
-    console.error('Failed to load main docker compose file: ',e.message);
+    console.error('Failed to load main docker compose file: ',e);
     process.exit() 
   }
   await workerPromise //Need this to write docker-compose file
@@ -241,7 +241,7 @@ const initExperiment = async (expDir, expName, longName, rootDir) => {
   try {
     fs.writeFileSync(composeFileLoc, jsYaml.safeDump(compFile), 'utf8');
   } catch (e) { 
-    console.error('Failed to create new compose file', e.message); 
+    console.error('Failed to create new compose file', e); 
     process.exit()
   }
 

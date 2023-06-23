@@ -233,7 +233,7 @@ export async function setupTestTransactionsDB() {
             console.log('...')
             return x.stdout.search('healthy')
           },
-          err => {console.error(err.message)})
+          err => {console.error(err)})
     if (x > 0) {
 
       await setupTransactionsDB(pushkinConfig.databases.localtransactiondb)
@@ -241,7 +241,7 @@ export async function setupTestTransactionsDB() {
       return compose.stop({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml'})
       .then(
         out => { console.log(out.out, 'Database updated. Shutting down...')},
-        err => { console.log('something went wrong:', err.message)}
+        err => { console.log('something went wrong:', err)}
       );
 
     } else {
@@ -272,7 +272,7 @@ export async function setupdb(coreDBs, mainExpDir) {
             console.log('...')
             return x.stdout.search('healthy')
           },
-          err => {console.error(err.message)})
+          err => {console.error(err)})
     if (x > 0) {
 
       await runMigrations(dbsToExps, coreDBs)
@@ -283,7 +283,7 @@ export async function setupdb(coreDBs, mainExpDir) {
       return compose.stop({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml'})
       .then(
         out => { console.log(out.out, 'Database updated. Shutting down...')},
-        err => { console.log('something went wrong:', err.message)}
+        err => { console.log('something went wrong:', err)}
       );
 
     } else {

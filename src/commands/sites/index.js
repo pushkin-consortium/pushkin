@@ -78,8 +78,8 @@ export async function getPushkinSite(initDir, url) {
       var zip = new admZip('temp.zip');
       await zip.extractAllTo('.', true);
       await Promise.all([
-        await fs.promises.rename('pushkin/pushkin.yaml.bak', './pushkin.yaml').catch((err) => { console.error(err.message); }),
-        await fs.promises.rename('pushkin/config.js.bak', 'pushkin/front-end/src/config.js').catch((err) => { console.error(err.message); })
+        await fs.promises.rename('pushkin/pushkin.yaml.bak', './pushkin.yaml').catch((err) => { console.error(err); }),
+        await fs.promises.rename('pushkin/config.js.bak', 'pushkin/front-end/src/config.js').catch((err) => { console.error(err); })
       ]);
       try {
         //Make sure files with passwords don't get tracked in github
@@ -89,18 +89,16 @@ export async function getPushkinSite(initDir, url) {
         throw e
       }
 
-      fs.promises.mkdir('experiments').catch((err) => { console.error(err.message); });
+      fs.promises.mkdir('experiments').catch((err) => { console.error(err); });
       if (fs.existsSync('__MACOSX')) {
         const shellresp = shell.rm('-rf','__MACOSX'); //fs doesn't have a stable directly removal function yet
       }      
       fs.promises.unlink('temp.zip');
-
-        const apiPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'api').catch((err) => { console.error(err.message); });
-        const frontendPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'front-end').catch((err) => { console.error(err.message); });
-        await Promise.all([apiPromise, frontendPromise]);
-        resolve(true);
+      const apiPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'api').catch((err) => { console.error(err); });
+      const frontendPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'front-end').catch((err) => { console.error(err); });
+      await Promise.all([apiPromise, frontendPromise]);
+      resolve(true);
       })
-  })
 }
 
 export async function copyPushkinSite(initDir, pathToSite) {
@@ -152,14 +150,14 @@ export async function copyPushkinSite(initDir, pathToSite) {
     throw error; 
   }  
   return new Promise((resolve, reject) => {
-    const pushkinYaml = fs.promises.rename('pushkin/pushkin.yaml.bak', './pushkin.yaml').catch((err) => { console.error(err.message); });
-    const configJS = fs.promises.rename('pushkin/config.js.bak', 'pushkin/front-end/src/config.js').catch((err) => { console.error(err.message); });
-    const mkExps = fs.promises.mkdir('experiments').catch((err) => { console.error(err.message); });
+    const pushkinYaml = fs.promises.rename('pushkin/pushkin.yaml.bak', './pushkin.yaml').catch((err) => { console.error(err); });
+    const configJS = fs.promises.rename('pushkin/config.js.bak', 'pushkin/front-end/src/config.js').catch((err) => { console.error(err); });
+    const mkExps = fs.promises.mkdir('experiments').catch((err) => { console.error(err); });
     if (fs.existsSync('__MACOSX')) {
       const shellresp = shell.rm('-rf','__MACOSX'); //fs doesn't have a stable directly removal function yet
     }      
-    const apiPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'api').catch((err) => { console.error(err.message); });
-    const frontendPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'front-end').catch((err) => { console.error(err.message); });
+    const apiPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'api').catch((err) => { console.error(err); });
+    const frontendPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'front-end').catch((err) => { console.error(err); });
     return(Promise.all([apiPromise, frontendPromise, pushkinYaml, configJS, mkExps]));
   })
 }
