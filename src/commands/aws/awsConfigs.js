@@ -253,7 +253,7 @@ export const rabbitTask = {
           "4369:4369/tcp",
           "15672:15672/tcp",
           "25672:25672/tcp"
-        ]    
+        ],    
         "logging": {
             "driver": "awslogs",
             "options": {
