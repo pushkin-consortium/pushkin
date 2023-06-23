@@ -254,8 +254,16 @@ export const rabbitTask = {
           "15672:15672/tcp",
           "25672:25672/tcp"
         ]    
+        "logging": {
+            "driver": "awslogs",
+            "options": {
+                "awslogs-group": "FUBAR",
+                "awslogs-region": "us-east-1",
+                "awslogs-stream-prefix": "FUBAR"
+            }
+        }
       }
-    }
+    } 
 }
 
 export const apiTask = {
