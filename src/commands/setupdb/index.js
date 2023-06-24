@@ -199,7 +199,7 @@ export async function setupTestTransactionsDB() {
     }
     composeFile.volumes.test_transaction_db_volume = null
     try {
-      console.log(`Updating pushkin/docker-compose.dev.yml`)
+      console.log(`Updating pushkin/docker-compose.dev.yml to include transation db`)
       await fs.promises.writeFile(path.join(process.cwd(), 'pushkin/docker-compose.dev.yml'), jsYaml.safeDump(composeFile))
     } catch (e) {
       console.error(`Failed to write pushkin/docker-compose.dev.yml`)
@@ -253,6 +253,7 @@ export async function setupTestTransactionsDB() {
   const dbStarted = await wait(); //this variable doesn't get used.
 
   // migrate and seed for each database
+  //FUBAR
 }
 
 

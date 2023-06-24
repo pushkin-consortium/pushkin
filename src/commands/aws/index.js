@@ -1894,7 +1894,7 @@ export const awsArmageddon = async (useIAM, killType) => {
                 ETag = JSON.parse(temp.stdout).ETag
               } catch (e) {
                 console.log(`Suddenly can't find cloudfront distribution ${distId}. Which is very strange, since we haven't deleted it yet. Skipping for now...`)      
-                return true
+                resolve(true)
               }
               //Armed with the new ETag, we can delete the distribution
               try {
