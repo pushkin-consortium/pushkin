@@ -1,5 +1,5 @@
 import path from 'path';
-import fs from 'fs';
+import fs from 'graceful-fs';
 import jsYaml from 'js-yaml';
 import knex from 'knex';
 import * as compose from 'docker-compose'

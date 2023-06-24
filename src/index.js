@@ -2,7 +2,7 @@
 
 import commandLineArgs from 'command-line-args';
 import jsYaml from 'js-yaml';
-import fs from 'fs';
+import fs from 'graceful-fs';
 import path from 'path';
 import 'core-js/stable';
 import 'regenerator-runtime/runtime';

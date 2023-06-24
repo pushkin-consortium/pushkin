@@ -1,5 +1,5 @@
 import { v4 as uuid } from 'uuid';
-import fs from 'fs';
+import fs from 'graceful-fs';
 import path from 'path';
 import util from 'util';
 import pacMan from '../../pMan.js'; //which package manager is available?

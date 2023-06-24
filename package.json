@@ -37,6 +37,7 @@
     "corejs": "^1.0.0",
     "docker-compose": "^0.23.5",
     "got": "^11.5.1",
+    "graceful-fs": "^4.2.11",
     "inquirer": "^7.3.2",
     "js-yaml": "^3.14.0",
     "knex": "^0.21.5",

@@ -1,4 +1,4 @@
-import fs from 'fs';
+import fs from 'graceful-fs';
 import util from 'util';
 import path from 'path';
 import sa from 'superagent';

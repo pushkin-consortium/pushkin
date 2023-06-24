@@ -1,6 +1,6 @@
 import path from 'path';
 //import { promises as fs } from 'fs';
-import fs from 'fs';
+import fs from 'graceful-fs';
 import jsYaml from 'js-yaml';
 import util from 'util';
 import { execSync } from 'child_process'; // eslint-disable-line
