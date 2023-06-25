@@ -69,7 +69,14 @@ CMD ["bash","start.sh"]`
 
 (This final step is pretty well explained in the yalc README)
 
-You should be good to go. 
+You should be good to go. When you make changes to pushkin-worker, you'll need to:
+
+1. Go to the root directory of your dev version of pushkin-worker.
+2. Run `yarn build; yalc publish`
+3. Go to the `worker` directory within the experiment folder.
+4. Run `yalc update pushkin-worker`
+
+Again, if you are testing a development version of `pushkin-client` or `pushkin-api`, follow the above instructions with the obvious substitutions.
 
 ## Pushkin jsPsych
 
