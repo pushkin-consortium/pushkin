@@ -6,7 +6,7 @@ import pacMan from '../../pMan.js'; //which package manager is available?
 import { execSync } from 'child_process'; // eslint-disable-line
 import jsYaml from 'js-yaml';
 import { pushkinACL, OriginAccessControl, policy, cloudFront, dbConfig, rabbitTask, apiTask, workerTask, changeSet, corsPolicy, disableCloudfront, alarmRAMHigh, alarmCPUHigh, alarmRDSHigh, scalingPolicyTargets } from './awsConfigs.js'
-import { setupTransactionsDB, runMigrations, getMigrations } from '../setupdb/index.js';
+import { migrateTransactionsDB, runMigrations, getMigrations } from '../setupdb/index.js';
 import { updatePushkinJs } from '../prep/index.js'
 import inquirer from 'inquirer'
 const exec = util.promisify(require('child_process').exec);
@@ -1292,11 +1292,11 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
     throw e
   }
 
-  const setupTransactionsWrapper = async () => {
+  const setupTransactionsWrapper = async () => {//FUBAR I DON'T THINK THIS IS RIGHT
     let info = await completedDBs
     let setupTransactionsTable
     try {
-      setupTransactionsTable = setupTransactionsDB(info.productionDBs.Transaction);
+      setupTransactionsTable = migrateTransactionsDB(info.productionDBs.Transaction);
     } catch (e) {
       throw e    
     }

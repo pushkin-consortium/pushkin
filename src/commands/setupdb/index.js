@@ -236,7 +236,7 @@ export async function setupTestTransactionsDB() {
           err => {console.error(err)})
     if (x > 0) {
 
-      await setupTransactionsDB(pushkinConfig.databases.localtransactiondb)
+      await migrateTransactionsDB(pushkinConfig.databases.localtransactiondb)
 
       return compose.stop({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml'})
       .then(
@@ -280,7 +280,7 @@ export async function setupdb(coreDBs, mainExpDir) {
     // let info = await completedDBs
     // let setupTransactionsTable
     // try {
-    //   setupTransactionsTable = setupTransactionsDB(info.productionDBs.Transaction);
+    //   setupTransactionsTable = migrateTransactionsDB(info.productionDBs.Transaction);
       return compose.stop({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml'})
       .then(
         out => { console.log(out.out, 'Database updated. Shutting down...')},
@@ -298,7 +298,7 @@ export async function setupdb(coreDBs, mainExpDir) {
   // migrate and seed for each database
 }
 
-export async function setupTransactionsDB(dbInfo){
+export async function migrateTransactionsDB(dbInfo){
   console.log(`See if a migrations file for transactions exists`)
   const migDir = path.join(process.cwd(), "coreMigrations")
   try {
