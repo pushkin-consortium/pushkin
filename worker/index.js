@@ -16,7 +16,17 @@ const connection = {
 	database: process.env.DB_NAME,
 };
 
-console.log(connection)
+const transactionOps = {
+	tableName: `test_transaction_db`,
+	connection: {
+		host: `localhost`,
+		user: `postgres`,
+		password: `example`,
+		database: `test_transaction_db`,
+	}
+}
+
+console.log(connection);
 
 const worker = new pWorker(options);
 worker.init()
@@ -25,7 +35,7 @@ worker.init()
 			console.log(`handling test method got data: ${data}`);
 			return `successfully got ${data}`;
 		});
-		worker.useHandler(defaultHandler, connection, 'pushkintemplate', false);
+		worker.useHandler(defaultHandler, connection, 'pushkintemplate', transactionOps);
 		worker.start();
 	})
 	.catch(err => {
