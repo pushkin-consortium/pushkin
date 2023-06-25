@@ -29,7 +29,7 @@ class PushkinWorker {
 		});
 	}
 	handle(method, handler) {
-		console.log(`handling ${method} with ${handler}`);
+		console.log(`defining handler 2`)
 		this.handlers.set(method, handler);
 	}
 	// useDefaultHandles(dbUrl, dbTablePrefix, transactionOps) {
@@ -39,6 +39,7 @@ class PushkinWorker {
 	// 	});
 	// }
 	useHandler(ahandler, connection, dbTablePrefix, transactionOps) {
+		console.log(`using handler ${ahandler}`);
 		const handler = new ahandler(connection, dbTablePrefix, transactionOps);
 		let methods = handler.methods();
 		methods.forEach(h => {
@@ -61,7 +62,9 @@ class PushkinWorker {
 							// try to call a handler
 							if (!this.handlers.has(req.method))
 								throw new Error(`no handler found to handle method ${req.method}`);
+							console.log(`handling with ${req.method}`)
 							const sessId = req.sessionId;
+							console.log(`handling with ${req.method}`)
 							return this.handlers.get(req.method)(sessId, req.data, req.params);
 						})
 						.then(res => {
@@ -125,19 +128,39 @@ class DefaultHandler {
 		} //fubar -- get rid of debug
 
 		this.pg_main = knex(this.knexInfo); 
+		console.log(`checking logging`)
+		console.log(transactionOps)
 		this.logging = transactionOps ? true : false;
 		if (this.logging) {
-			this.trans_table = transactionOps.tableName;
-			this.pg_trans = knex({ client: 'pg', connection: transactionOps.url });
-			this.trans_mapper = transactionOps.mapper;
+			try {
+				this.trans_table = transactionOps.tableName;
+				this.pg_trans = knex({ client: 'pg', connection: transactionOps.connection, debug: true }); //fubar get rid of debug when not needed
+				//this.trans_mapper = transactionOps.mapper;	
+			} catch (error) {
+				console.error(`Problem setting up logger: ${error}`)
+				console.error(`Turning off logging.`)
+				this.logging = false;
+			}
 		}
+		console.log(`Checked logging`)
 	}
 
 	async logTransaction(knexCommand) {
 		console.log('this.logging: ', this.logging)
 		if (!this.logging) return knexCommand;
-		const toInsert = this.trans_mapper(knexCommand.toString());
-		await this.pg_trans(this.trans_table).insert(toInsert);
+//		const toInsert = this.trans_mapper(knexCommand.toString());
+//		const toInsert = {
+//			query: knexCommand.toString(),
+//			bindings: '',
+//			created_at: new Date()
+//		}
+//		console.log(`logging transaction: ${JSON.stringify(toInsert)}`)
+		try {
+			let temp
+	//		await this.pg_trans(this.trans_table).insert(toInsert);
+		} catch (error) {
+			console.error(`Problem logging transaction: ${error}`)
+		}
 		return knexCommand;
 	}
 
@@ -171,8 +194,12 @@ class DefaultHandler {
 			created_at: new Date()
 		}
 		console.log('to insert:\n ',toInsert)
-
-		const userCount = (await this.pg_main(this.tables.users).where('user_id', userId).count('*'))[0].count;
+		try {
+			const userCount = (await this.pg_main(this.tables.users).where('user_id', userId).count('*'))[0].count;
+		} catch (error) {
+			console.error(`Problem checking if user exists: ${error}`)
+			throw error
+		}
 		console.log('userCount: ', userCount)
 		if (userCount>0) {
 			console.log(`user ${userId} already exists. No need to recreate.`)
@@ -180,7 +207,14 @@ class DefaultHandler {
 			return {user_id: userId}
 		} else {
 			console.log(`Adding ${userId} to users ${this.tables.users}.`)
-			return this.logTransaction(this.pg_main(this.tables.users).insert(toInsert));
+			let returnVal
+			try {
+				returnVal = this.logTransaction(this.pg_main(this.tables.users).insert(toInsert));
+			} catch (error) {
+				console.error(`Problem inserting user: ${error}`)
+				throw error
+			}
+			return returnVal
 		}
 	}
 
@@ -213,13 +247,14 @@ class DefaultHandler {
 
 		console.log(`inserting response for user ${data.user_id}: ${trim(JSON.stringify(data.data_string), 100)}`);
 
-
-		return this.logTransaction(this.pg_main(this.tables.stimResp).insert({
+		let toInsert = {
 			user_id: data.user_id,
 			stimulus: JSON.stringify(data.data_string.stimulus).substring(0,1000),
 			response: JSON.stringify(data.data_string),
 			created_at: new Date()
-		}));
+		}
+		console.log('to insert:\n ',toInsert)
+		return this.logTransaction(this.pg_main(this.tables.stimResp).insert(toInsert));
 	}
 
 	async insertMetaResponse(sessId, data) {
