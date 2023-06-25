@@ -29,7 +29,6 @@ class PushkinWorker {
 		});
 	}
 	handle(method, handler) {
-		console.log(`defining handler 2`)
 		this.handlers.set(method, handler);
 	}
 	// useDefaultHandles(dbUrl, dbTablePrefix, transactionOps) {
@@ -39,7 +38,6 @@ class PushkinWorker {
 	// 	});
 	// }
 	useHandler(ahandler, connection, dbTablePrefix, transactionOps) {
-		console.log(`using handler ${ahandler}`);
 		const handler = new ahandler(connection, dbTablePrefix, transactionOps);
 		let methods = handler.methods();
 		methods.forEach(h => {
@@ -62,9 +60,7 @@ class PushkinWorker {
 							// try to call a handler
 							if (!this.handlers.has(req.method))
 								throw new Error(`no handler found to handle method ${req.method}`);
-							console.log(`handling with ${req.method}`)
 							const sessId = req.sessionId;
-							console.log(`handling with ${req.method}`)
 							return this.handlers.get(req.method)(sessId, req.data, req.params);
 						})
 						.then(res => {
@@ -128,8 +124,7 @@ class DefaultHandler {
 		} //fubar -- get rid of debug
 
 		this.pg_main = knex(this.knexInfo); 
-		console.log(`checking logging`)
-		console.log(transactionOps)
+		console.log(`checking logging: ${JSON.stringify(transactionOps)}`)
 		this.logging = transactionOps ? true : false;
 		if (this.logging) {
 			try {
@@ -146,18 +141,19 @@ class DefaultHandler {
 	}
 
 	async logTransaction(knexCommand) {
-		console.log('this.logging: ', this.logging)
 		if (!this.logging) return knexCommand;
 //		const toInsert = this.trans_mapper(knexCommand.toString());
-//		const toInsert = {
-//			query: knexCommand.toString(),
-//			bindings: '',
-//			created_at: new Date()
-//		}
-//		console.log(`logging transaction: ${JSON.stringify(toInsert)}`)
+		console.log(`knexCommand ` + knexCommand.toString());
+		const toInsert = {
+		//	query: knexCommand.toSQL().toNative().sql,
+		//	bindings: knexCommand.toSQL().toNative().bindings,
+			query: knexCommand.toString(),
+			bindings: '',
+			created_at: new Date()
+		}
 		try {
-			let temp
-	//		await this.pg_trans(this.trans_table).insert(toInsert);
+			console.log(`logging transaction: ${JSON.stringify(toInsert)}`)
+			await this.pg_trans(this.trans_table).insert(toInsert);
 		} catch (error) {
 			console.error(`Problem logging transaction: ${error}`)
 		}
@@ -173,7 +169,7 @@ class DefaultHandler {
 		if (!data.experiment)
 			throw new Error('startExperiment got invalid userID');
 
-		const results = 'Completed this experiment with flying colors'; //stub
+		const results = {message: `Completed this experiment with flying colors`}; //stub
 
 		return this.logTransaction(this.pg_main(this.tables.userResults).insert({
 			user_id: data.user_id,
@@ -194,8 +190,10 @@ class DefaultHandler {
 			created_at: new Date()
 		}
 		console.log('to insert:\n ',toInsert)
+		let userCount
 		try {
-			const userCount = (await this.pg_main(this.tables.users).where('user_id', userId).count('*'))[0].count;
+			let temp = await this.pg_main(this.tables.users).where('user_id', userId).count('*')
+			userCount = temp[0].count;
 		} catch (error) {
 			console.error(`Problem checking if user exists: ${error}`)
 			throw error
@@ -214,7 +212,7 @@ class DefaultHandler {
 				console.error(`Problem inserting user: ${error}`)
 				throw error
 			}
-			return returnVal
+			return {user_id: userId}
 		}
 	}
 
