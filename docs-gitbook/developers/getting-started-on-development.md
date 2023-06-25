@@ -15,6 +15,7 @@ There are a number of tutorials on Docker. For ongoing use, this [cheatsheet](ht
 
 ## Testing Pushkin Modules Locally
 
+### Using Jest tests
 For information on running tests with Jest, see [Testing Pushkin with Jest](https://languagelearninglab.gitbook.io/pushkin/advanced/testing-pushkin-with-jest)
 
 The content on this page may be out of date - stay tuned for edits!
@@ -35,6 +36,10 @@ Currently, the most convenient way to test new version of Pushkin modules locall
 That is, modify the path of the Pushkin module to the local test version, so that Yarn will find it locally rather than in the npm repository.
 
 After you `yarn add` all of the dependencies, you can write the test codes.
+
+### npm link for pushkin-worker, pushkin-api, and pushkin-client
+
+If you are working on any of the utility packages (pushkin-worker, pushkin-api, pushkin-client), trying out your new code is not straightforward. These packages are included into the experiments and sites via npm. Normally, that means you can only include published versions. You can get around this using [`npm link`](https://docs.npmjs.com/cli/v9/commands/npm-link?v=true#description). In addition to the official npm documentation, there are plenty of useful discussions online.
 
 ## Pushkin jsPsych
 
