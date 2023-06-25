@@ -9,6 +9,7 @@ databases:
     user: 'postgres'
     pass: 'example'
     url: 'test_db'
+    port: '5432'
     name: 'test_db'
     host: 'localhost'
 
