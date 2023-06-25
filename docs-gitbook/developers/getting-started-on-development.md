@@ -37,9 +37,39 @@ That is, modify the path of the Pushkin module to the local test version, so tha
 
 After you `yarn add` all of the dependencies, you can write the test codes.
 
-### npm link for pushkin-worker, pushkin-api, and pushkin-client
+### yalc for pushkin-worker, pushkin-api, and pushkin-client
 
-If you are working on any of the utility packages (pushkin-worker, pushkin-api, pushkin-client), trying out your new code is not straightforward. These packages are included into the experiments and sites via npm. Normally, that means you can only include published versions. You can get around this using [`npm link`](https://docs.npmjs.com/cli/v9/commands/npm-link?v=true#description). In addition to the official npm documentation, there are plenty of useful discussions online.
+If you are working on any of the utility packages (pushkin-worker, pushkin-api, pushkin-client), trying out your new code is not straightforward. These packages are included into the experiments and sites via npm. Normally, that means you can only include published versions. We can get around this using [`yalc`](https://github.com/wclr/yalc).
+
+(Note that for those familiar with using [`npm link`](https://docs.npmjs.com/cli/v9/commands/npm-link?v=true#description), that won't work here because we use a Docker environment to test sites. Supposedly there is a way to hack Docker compatibility into your usage of npm link, but it seems too complex relative to the solution here.) 
+
+Briefly, suppose you are testing out a new version of pushkin-worker. You'll have a directory with a pushkin site you are working on and an experiment in it for which you want to try out the new version of pushkin-worker. 
+
+1. Install yalc: `yarn global add yalc`
+2. Go to the `worker` directory within the experiment folder. Typically this will be [project root]/experiments/[experiment name]/worker. 
+3. Run `yalc publish`
+3. Go to the root directory of your dev version of pushkin-worker.
+4. Run `yalc add pushkin-worker`.
+5. Open the Dockerfile in that directory and edit it to copy yalc files:
+
+`COPY .yalc /usr/src/app/.yalc/
+COPY ./yalc.lock /usr/src/app/`
+
+These lines need to come BEFORE the WORKDIR is changed. So for example:
+
+`FROM --platform=linux/amd64 node:20.2
+COPY Dockerfile index.js package.json start.sh yarn.lock /usr/src/app/
+COPY .yalc /usr/src/app/.yalc/
+COPY ./yalc.lock /usr/src/app/
+WORKDIR /usr/src/app
+RUN yarn install --production
+RUN apt-get update && apt-get install -qy netcat
+EXPOSE 8000
+CMD ["bash","start.sh"]`
+
+(This final step is pretty well explained in the yalc README)
+
+You should be good to go. 
 
 ## Pushkin jsPsych
 
