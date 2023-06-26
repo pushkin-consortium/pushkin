@@ -8,10 +8,10 @@ databases:
   localtestdb:
     user: 'postgres'
     pass: 'example'
-    url: 'test_db'
+    url: 'localhost'
     port: '5432'
     name: 'test_db'
-    host: 'localhost'
+    host: 'test_db'
 
 # basic site configuration
 info:
