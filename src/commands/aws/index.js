@@ -501,6 +501,7 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
       "type": dbType,
       "name": dbName, 
       "host": dbEndpoint.DBInstances[0].Endpoint.Address, 
+      "url": dbEndpoint.DBInstances[0].Endpoint.Address, //this is same as 'host' for AWS, but different for local deploy in Docker
       "user": myDBConfig.MasterUsername, 
       "pass": myDBConfig.MasterUserPassword,
       "port": myDBConfig.Port
@@ -597,7 +598,7 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs, ECS
         }
         return compose
       } else {
-        console.log('...')
+        console.log('Waiting for ECS to spool up...')
         setTimeout( wait, 10000 );
       }
     }
@@ -678,10 +679,14 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs, ECS
       task.services[w].environment = {
         "AMQP_ADDRESS" : rabbitAddress,
         "DB_USER": dbInfoByTask['Main'].username,
-        "DB_NAME": dbInfoByTask['Main'].name,
+        "DB_DB": dbInfoByTask['Main'].name,
         "DB_PASS": dbInfoByTask['Main'].password,
         "DB_URL": dbInfoByTask['Main'].endpoint,
-        "TRANSACTION_DATABASE_URL": `postgres://${dbInfoByTask['Transaction'].username}:${dbInfoByTask['Transaction'].password}@${dbInfoByTask['Transaction'].endpoint}:/${dbInfoByTask['Transaction'].port}/${dbInfoByTask['Transaction'].name}`
+        //"TRANS_URL": `postgres://${dbInfoByTask['Transaction'].username}:${dbInfoByTask['Transaction'].password}@${dbInfoByTask['Transaction'].endpoint}:/${dbInfoByTask['Transaction'].port}/${dbInfoByTask['Transaction'].name}`
+        "TRANS_USER": dbInfoByTask['Transaction'].username,
+        "TRANS_DB": dbInfoByTask['Transaction'].name,
+        "TRANS_PASS": dbInfoByTask['Transaction'].password,
+        "TRANS_URL": dbInfoByTask['Transaction'].endpoint,
       }
       return ecsCompose(yaml, task, name)
     })
@@ -1292,11 +1297,13 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
     throw e
   }
 
-  const setupTransactionsWrapper = async () => {//FUBAR I DON'T THINK THIS IS RIGHT
+  const setupTransactionsWrapper = async () => {
     let info = await completedDBs
+    let transMigrations = new Map()
+    transMigrations.set('Transaction', [{ migrations: path.join(process.cwd(), 'coreMigrations'), seeds: '' }]); 
     let setupTransactionsTable
     try {
-      setupTransactionsTable = migrateTransactionsDB(info.productionDBs.Transaction);
+      setupTransactionsTable = runMigrations(transMigrations , info.productionDBs)
     } catch (e) {
       throw e    
     }
@@ -1306,6 +1313,7 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
   try {
     setupTransactionsTable = setupTransactionsWrapper()
   } catch (e) {
+    console.error(`Unable to run migrations for transactions DB`)
     throw e
   }
 

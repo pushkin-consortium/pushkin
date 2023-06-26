@@ -283,13 +283,9 @@ export const prep = async (experimentsDir, coreDir) => {
     let AMQP_ADDRESS
     // Recall, compFile is docker-compose.dev.yml, and is defined outside this function.
     try {
-      Object.keys(compFile.services[workerName].environment).forEach((e) => {
-        if (compFile.services[workerName].environment[e].includes("AMQP_ADDRESS")) { 
-          AMQP_ADDRESS = compFile.services[workerName].environment[e].split("=")[1] 
-        }
-      }) 
+      AMQP_ADDRESS = compFile.services[workerName].environment["AMQP_ADDRESS"].split("=")[1] 
     } catch (e) {
-      console.error(`Problem with updating environment variables for ${workerName}`)
+      console.error(`Problem finding AMQP address for ${workerName}`)
       console.error(`Value of service ${workerName} in docker-compose.dev.yml:\n ${JSON.stringify(compFile.services[workerName])}`)
       throw e
     }   
@@ -298,8 +294,13 @@ export const prep = async (experimentsDir, coreDir) => {
     compFile.services[workerName].environment.AMQP_ADDRESS = AMQP_ADDRESS || 'amqp://message-queue:5672'
     compFile.services[workerName].environment.DB_USER = pushkinYAML.databases.localtestdb.user
     compFile.services[workerName].environment.DB_PASS = pushkinYAML.databases.localtestdb.pass
-    compFile.services[workerName].environment.DB_URL = pushkinYAML.databases.localtestdb.url
-    compFile.services[workerName].environment.DB_NAME = pushkinYAML.databases.localtestdb.name
+    compFile.services[workerName].environment.DB_HOST = pushkinYAML.databases.localtestdb.host
+    compFile.services[workerName].environment.DB_DB = pushkinYAML.databases.localtestdb.name
+    compFile.services[workerName].environment.TRANS_USER = pushkinYAML.databases.localtransactiondb.user
+    compFile.services[workerName].environment.TRANS_PASS = pushkinYAML.databases.localtransactiondb.pass
+    compFile.services[workerName].environment.TRANS_HOST = pushkinYAML.databases.localtransactiondb.host
+    compFile.services[workerName].environment.TRANS_DB = pushkinYAML.databases.localtransactiondb.name
+    compFile.services[workerName].environment.TRANS_PORT = pushkinYAML.databases.localtransactiondb.port
 
     let workerBuild
     try {
