@@ -278,7 +278,7 @@ export const prep = async (experimentsDir, coreDir) => {
     }
     const workerConfig = expConfig.worker;
     const workerName = `${exp}_worker`.toLowerCase(); //Docker names must all be lower case
-    const workerLoc = path.join(expDir, workerConfig.location);
+    const workerLoc = path.join(expDir, workerConfig.location).replace(/ /g, '\\ '); //handle spaces in path
 
     let AMQP_ADDRESS
     // Recall, compFile is docker-compose.dev.yml, and is defined outside this function.
