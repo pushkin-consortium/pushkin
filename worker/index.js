@@ -10,20 +10,19 @@ const options = {
 };
 
 const connection = {
-	host: process.env.DB_URL,
+	host: process.env.DB_HOST,
 	user: process.env.DB_USER,
 	password: process.env.DB_PASS,
-	database: process.env.DB_NAME,
+	database: process.env.DB_DB,
 };
 
 const transactionOps = {
-	tableName: "transactions",
+	tableName: 'transactions',
 	connection: {
-		host: process.env.TRANS_URL,
-		user: process.env.TRANS_USER,
-		password: process.env.TRANS_PASS,
-		database: process.env.TRANS_NAME,
-		port: process.env.TRANS_PORT,
+			host: process.env.TRANS_HOST,
+			user: process.env.TRANS_USER,
+			password: process.env.TRANS_PASS,
+			database: process.env.TRANS_DB,
 	}
 }
 
