@@ -156,7 +156,7 @@ $ sudo apt-get update
 Install Docker Engine, containerd, and Docker Compose:
 
 ```bash
-$ sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+$ sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose docker-compose-plugin
 ```
 
 ![](../../.gitbook/assets/ubuntu9%20%281%29.gif)
