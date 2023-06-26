@@ -1,12 +1,10 @@
 ---
-description: Start here to build install Pushkin and its dependencies on Windows 10.
+description: Start here to build install Pushkin and its dependencies on Windows 10, then continue to Ubuntu Linux to finish installation.
 ---
 
 # Windows 10
 
-To install Pushkin, Windows users will have to install the Windows Subsystem for Linux (WSL) 2 and then follow the instructions for Ubuntu Linux. 
-
-Note that this process will require restarting your computer multiple times. [This tutorial](https://docs.microsoft.com/en-us/windows/wsl/install-win10) explains how to configure WSL 2 and install a Linux distribution from the Microsoft Store. We recommend using Ubuntu 18.04 or 20.04. 
+To install Pushkin, Windows users will have to install the Windows Subsystem for Linux (WSL) 2. Note that this process will require restarting your computer multiple times. [This tutorial](https://docs.microsoft.com/en-us/windows/wsl/install-win10) explains how to configure WSL 2 and install a Linux distribution from the Microsoft Store. We recommend using Ubuntu 20.04. 
 
 Pushkin requires using WSL 2. To check which version of WSL you are using, run the following command in Windows Powershell:
 
