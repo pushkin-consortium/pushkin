@@ -1,5 +1,4 @@
 const workers = require('pushkin-worker');
-const transInfo = require('../../../pushkin.yaml')
 const pWorker = workers.pushkinWorker;
 const defaultHandler = workers.defaultHandler;
 
@@ -20,11 +19,11 @@ const connection = {
 const transactionOps = {
 	tableName: "transactions",
 	connection: {
-		host: transInfo.databases.localtransactiondb.host,
-		user: transInfo.databases.localtransactiondb.user,
-		password: transInfo.databases.localtransactiondb.pass,
-		database: transInfo.databases.localtransactiondb.name,
-		port: transInfo.databases.localtransactiondb.port
+		host: process.env.TRANS_URL,
+		user: process.env.TRANS_USER,
+		password: process.env.TRANS_PASS,
+		database: process.env.TRANS_NAME,
+		port: process.env.TRANS_PORT,
 	}
 }
 
