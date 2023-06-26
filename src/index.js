@@ -11,8 +11,8 @@ import { execSync, exec } from 'child_process'; // eslint-disable-line
 import { listExpTemplates, getExpTemplate,  copyExpTemplate } from './commands/experiments/index.js';
 import { listSiteTemplates, getPushkinSite, copyPushkinSite } from './commands/sites/index.js';
 import { awsInit, nameProject, addIAM, awsArmageddon, awsList, createAutoScale } from './commands/aws/index.js'
-import prep from './commands/prep/index.js'; //has to be separate from other imports from prep/index.js; this is the default export
-import {setEnv} from './commands/prep/index.js';
+//import prep from './commands/prep/index.js'; //has to be separate from other imports from prep/index.js; this is the default export
+import {prep, setEnv} from './commands/prep/index.js';
 import { setupdb, setupTestTransactionsDB } from './commands/setupdb/index.js';
 import * as compose from 'docker-compose'
 import { Command } from 'commander'
@@ -49,18 +49,156 @@ const loadConfig = (configFile) => {
   })
 };
 
-const handleAWSUpdate = async () => {
-  let useIAM
+
+const updateS3 = async () => {
+  let awsName, useIAM
   try {
-    useIAM = await inquirer.prompt([{ type: 'input', name: 'iam', message: 'Provide your AWS profile username that you want to use for managing this project.'}])
+    let awsResources = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
+    awsName = awsResources.awsName
+    useIAM = awsResources.iam
   } catch (e) {
-    console.error('Problem getting AWS IAM username.\n', e)
+    console.error(`Unable to read deployment config`)
+    throw e
+  }    
+
+  let syncMe
+  try {
+    return syncS3(awsName, useIAM)
+  } catch(e) {
+    console.error(`Unable to sync local build with s3 bucket`)
+    throw e
+  }  
+}
+
+const dockerLogin = async () => {
+  //get dockerhub id
+  let DHID
+  try {
+    let config = await loadConfig(path.join(process.cwd(), 'pushkin.yaml'))
+    DHID = config.DockerHubID
+  } catch (e) {
+    console.error(`Unable to load pushkin.yaml`)
     throw e
   }
 
-  console.log(`Loading deployment config`)
-  //FUBAR
+  if (DHID == '') {
+    throw new Error(`Your DockerHub ID has disappeared from pushkin.yaml.\n I am not sure how that happened.\n
+      If you run '$ pushkin setDockerHub' and then retry aws update, it might work. Depending on exactly why your DockerHub ID wasn't in pushkin.yaml.`)
+  }
 
+  try {
+    console.log(`Confirming docker login.`)
+    execSync(`cat .docker | docker login --username ${DHID} --password-stdin`)
+  } catch (e) {
+    console.error(`Automatic login to DockerHub failed. This might be because your ID or password are wrong.\n
+      Try running '$ pushkin setDockerHub' and reset then try again.\n
+      If that still fails, report an issue to Pushkin on GitHub. In the meantime, you can probably login manually\n
+      by typing '$ docker login' into the console.\n Provide your username and password when asked.\n
+      Then try '$ pushkin aws update' again.`)
+    process.exit()
+  }
+
+  return(DHID)
+}
+
+const updateDocker = async () => {
+
+  let DHID = await dockerLogin();
+
+  try {
+    return publishToDocker(DHID);
+  } catch(e) {
+    console.error('Unable to publish images to DockerHub')
+    throw e
+  }
+}
+
+const updateMigrations = async () => {
+  let experimentsDir, productionDBs
+  try {
+    let config = await loadConfig(path.join(process.cwd(), 'pushkin.yaml'))
+    experimentsDir = config.experimentsDir
+    productionDBs = config.productionDBs
+  } catch (e) {
+    console.error(`Unable to load pushkin.yaml`)
+    throw e
+  }
+  console.log(`Handling migrations`)
+  let ranMigrations
+  try {
+    let dbsToExps = await getMigrations(path.join(process.cwd(), experimentsDir), true)
+    return runMigrations(dbsToExps, productionDBs)
+  } catch (e) {
+    console.error(`Unable to run database migrations`)
+    throw e
+  }    
+}
+
+const updateECS = async () => { //FUBAR needs way of getting useIAM
+  console.log(`Updating ECS services.`)
+
+  let ECSName
+  try {
+    let config = await loadConfig(path.join(process.cwd(), 'pushkin.yaml'))
+    ECSName = config.ECSName
+  } catch (e) {
+    console.error(`Unable to load pushkin.yaml`)
+    throw e
+  }
+
+  const yamls = fs.readdirSync(path.join(process.cwd(), 'ECSTasks'));
+  return Promise.all(
+    yamls.forEach((yaml) => {
+      if (yaml != "ecs-params.yml"){
+        let composeCommand = `ecs-cli compose -f ${yaml} -p ${yaml.split('.')[0]} service up --ecs-profile ${useIAM} --cluster-config ${ECSName} --force-deployment`
+        try {
+         temp = exec(composeCommand, { cwd: path.join(process.cwd(), "ECStasks")})
+        } catch(e) {
+          console.warn('\x1b[31m%s\x1b[0m', `Unable to update service ${yaml}.`)
+          console.warn('\x1b[31m%s\x1b[0m', e)
+        }          
+      }
+    })
+  )
+}
+
+const handleAWSUpdate = async () => {
+
+  console.log(`Loading deployment config`)
+
+  let publishedToDocker
+  try {
+    publishedToDocker = updateDocker();
+  } catch(e) {
+    throw e
+  }
+
+  let syncMe
+  try {
+    syncMe = updateS3()
+  } catch(e) {
+    throw e
+  }
+
+  let ranMigrations
+  try {
+    ranMigrations = updateMigrations()
+  } catch (e) {
+    throw e
+  }    
+
+  await Promise.all([ publishedToDocker, syncMe, ranMigrations ]) 
+  //Technically only publishedToDocker needs to finish before we update ECS
+  //But waiting for everything increases that likelihood
+
+ let compose
+  try {
+    compose = updateECS()
+  } catch (e) {
+    throw e
+  }
+
+  return compose // this is a promise, so can be awaited
 }
 
 
@@ -68,7 +206,7 @@ const handleCreateAutoScale = async () => {
   let projName
   try {
     let temp = loadConfig(path.join(process.cwd(), 'pushkin.yaml'))  
-    projName = temp.info.projName.replace(/[^\w\s]/g, "").replace(/ /g,"")
+    projName = temp.info.projName.replace(/[^A-Za-z0-9]/g, "")
   } catch (e) {
     console.error(`Unable to find project name`)
     throw e
@@ -88,12 +226,10 @@ const handleCreateAutoScale = async () => {
 const handleViewConfig = async (what) => {
   moveToProjectRoot();
   let x = await ((what=='site' | !what) ? loadConfig(path.join(process.cwd(), 'pushkin.yaml')) : '')
-  console.log(x)
   let exps = fs.readdirSync(path.join(process.cwd(), 'experiments'));
   let y = await Promise.all(exps.map(async (exp) => {
     return await (what == exp | !what) ? loadConfig(path.join(process.cwd(), 'experiments', exp, 'config.yaml')) : '';
   }));
-  console.log(y);
   //Thanks to https://stackoverflow.com/questions/49627044/javascript-how-to-await-multiple-promises
 }
 
@@ -127,6 +263,8 @@ const handlePrep = async () => {
   moveToProjectRoot();
   const config = await loadConfig(path.join(process.cwd(), 'pushkin.yaml'));
   let out;
+  console.log(path.join(process.cwd(), config.experimentsDir))
+  console.log(path.join(process.cwd(), config.coreDir))
   try {
     out = await prep(
       path.join(process.cwd(), config.experimentsDir),
@@ -150,10 +288,45 @@ const handleAWSList = async () => {
   return awsList(useIAM.iam)
 }
 
+const handleAWSKill = async () => {
+  let nukeMe
+  try {
+    nukeMe = await inquirer.prompt([{ type: 'input', name: 'kill', message: `This command will DELETE your website.\n This cannot be undone.\n Are you SURE you want to do this?\n Confirm by typing 'kill my website'.`}])
+  } catch (e) {
+    console.error('Problem getting permission.\n', e)
+    process.exit()
+  }
+  if (nukeMe.kill != 'kill my website') {
+    console.log('That is probably wise. Exiting.')
+    return
+  }
+  let nukeMeTwice
+  try {
+    nukeMeTwice = await inquirer.prompt([{ type: 'input', name: 'kill', message: `Your database -- along with any data -- will be deleted.\n Confirm this is what you want by typing 'kill my data'.`}])
+  } catch (e) {
+    console.error('Problem getting permission.\n', e)
+    process.exit()
+  }
+  if (nukeMeTwice.kill != 'kill my data') {
+    console.log('That is probably wise. Exiting.')
+    return
+  }
+  console.log(`I hope you know what you are doing. This makes me nervous every time...`)
+  let useIAM
+  try {
+    useIAM = await inquirer.prompt([{ type: 'input', name: 'iam', message: 'Provide your AWS profile username that you want to use for managing this project.'}])
+  } catch (e) {
+    console.error('Problem getting AWS IAM username.\n', e)
+    process.exit()
+  }
+  return awsArmageddon(useIAM.iam, 'kill')
+}
+
+
 const handleAWSArmageddon = async () => {
   let nukeMe
   try {
-    nukeMe = await inquirer.prompt([{ type: 'input', name: 'armageddon', message: `This command will DELETE your website. This cannot be undone.\n Are you SURE you want to do this?\n Confirm by typing 'armageddon'.`}])
+    nukeMe = await inquirer.prompt([{ type: 'input', name: 'armageddon', message: `This command will delete more or less EVERYTHING on your AWS account.\n This cannot be undone.\n Are you SURE you want to do this?\n Confirm by typing 'armageddon'.`}])
   } catch (e) {
     console.error('Problem getting permission.\n', e)
     process.exit()
@@ -181,7 +354,7 @@ const handleAWSArmageddon = async () => {
     console.error('Problem getting AWS IAM username.\n', e)
     process.exit()
   }
-  return awsArmageddon(useIAM.iam)
+  return awsArmageddon(useIAM.iam, 'armageddon')
 }
 
 const getVersions = async (url) => {
@@ -222,7 +395,7 @@ const handleInstall = async (what) => {
                 [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version? (Recommend:'.concat(Object.keys(verList)[0]).concat(')')}]
               ).then(async (answers) => {
                 await getPushkinSite(process.cwd(),verList[answers.version])
-  //              await setupTestTransactionsDB()
+                await setupTestTransactionsDB() //Not distributed with sites since it's the same for all of them.
               })
             })  
           }
@@ -273,16 +446,16 @@ const inquirerPromise = async (type, name, message) => {
 }
 
 const handleAWSInit = async (force) => {
-  let temp
 
-  try {
-    execSync(`docker login`)
-  } catch (e) {
-    console.error(`Please log into DockerHub before continuing.\n Type '$ docker login' into the console.\n Provide your username and password when asked.`)
-    process.exit()
-  }
+ let DHID
+ try {
+   DHID = await dockerLogin(); 
+ } catch (error) {
+   console.log(error);
+   process.exit();
+ }
 
-  let config
+ let config
   try {
     config = await loadConfig(path.join(process.cwd(), 'pushkin.yaml'))
   } catch (e) {
@@ -290,11 +463,6 @@ const handleAWSInit = async (force) => {
     throw e
   }
 
-  if (config.DockerHubID == '') {
-    console.error(`Your DockerHub ID has not been configured. Please be sure you have a valid DockerHub ID and then run 'pushkin setDockerHub'.`)
-    process.exit()
-  }
-  
   let projName, useIAM, awsName, stdOut
 
   try {
@@ -365,7 +533,7 @@ const handleAWSInit = async (force) => {
   } catch(e) {
     throw e
   }
-  console.log("done")
+  console.log("finished aws init")
 
   return
 }
@@ -391,7 +559,7 @@ const killLocal = async () => {
     console.error('Problem with removing volumes and images docker: ', err)
     process.exit();
   }
-  console.log('done')
+  console.log('Completed kill')
   return;  
 }
 
@@ -439,7 +607,8 @@ async function main() {
           break;
         case 'update':
           try {
-            await handleAWSUpdate();
+            //await handleAWSUpdate();
+            console.warn('\x1b[31m%s\x1b[0m', `Not currently implemented. Sorry.`)
           } catch(e) {
             console.error(e);
             process.exit();
@@ -489,6 +658,16 @@ async function main() {
             console.error(e)
             process.exit()
           }
+          inquirer.prompt([
+            { type: 'input', name: 'pw', message: 'What is your DockerHub password?'}
+          ]).then(async (answers) => {
+            fs.writeFileSync('.docker', answers.pw, err => {
+              if (err) {
+                console.error(err);
+              }
+              // file written successfully
+            });
+          })
         })
     })
 
@@ -545,13 +724,13 @@ async function main() {
             out => { 
               console.log(out.out, 'Starting. You may not be able to load localhost for a minute or two.')
             },
-            err => { console.log('something went wrong:', err.message)}
+            err => { console.log('something went wrong:', err)}
           );
       } else {
         compose.upAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: true, commandOptions: ["--build","--remove-orphans"]})
           .then(
             out => { console.log(out.out, 'Starting. You may not be able to load localhost for a minute or two.')},
-            err => { console.log('something went wrong:', err.message)}
+            err => { console.log('something went wrong:', err)}
           );        
       }
       //exec('docker-compose -f pushkin/docker-compose.dev.yml up --build --remove-orphans;');
@@ -566,7 +745,7 @@ async function main() {
       compose.stop({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml'})
         .then(
           out => { console.log(out.out, 'done')},
-          err => { console.log('something went wrong:', err.message)}
+          err => { console.log('something went wrong:', err)}
         );
       //exec('docker-compose -f pushkin/docker-compose.dev.yml up --build --remove-orphans;');
       return;      
@@ -639,4 +818,5 @@ async function main() {
 }
 
 main();
+ 
 //program.parseAsync(process.argv);

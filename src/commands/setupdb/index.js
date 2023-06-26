@@ -228,7 +228,7 @@ export async function setupTestTransactionsDB() {
   //To wait for db to be up, this ridiculously roundabout loop...
   const wait = async () => {
     //Sometimes, I really miss loops
-    let x = await exec (`docker ps -f name=pushkin_test_transaction_db_1`)
+    let x = await exec (`docker ps -f name=pushkin-test_transaction_db-1`)
           .then((x) => {
             console.log('...')
             return x.stdout.search('healthy')
@@ -241,11 +241,11 @@ export async function setupTestTransactionsDB() {
       return compose.stop({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml'})
       .then(
         out => { console.log(out.out, 'Database updated. Shutting down...')},
-        err => { console.log('something went wrong:', err.message)}
+        err => { console.log('something went wrong:', err)}
       );
 
     } else {
-      setTimeout( wait, 1000 );
+      setTimeout( wait, 2500 );
     }
   }
 
@@ -283,7 +283,7 @@ export async function setupdb(coreDBs, mainExpDir) {
       return compose.stop({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml'})
       .then(
         out => { console.log(out.out, 'Database updated. Shutting down...')},
-        err => { console.log('something went wrong:', err.message)}
+        err => { console.log('something went wrong:', err)}
       );
 
     } else {

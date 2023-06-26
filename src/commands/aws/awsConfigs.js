@@ -1,113 +1,205 @@
-export const policy = {
-    "Version": "2012-10-17",
-    "Statement": [
+export const pushkinACL = {
+    "Name": "pushkinACL",
+    "Scope": "CLOUDFRONT",
+    "DefaultAction": {
+        "Allow": {}
+    },
+    "Description": "Default ACL for Pushkin",
+    "Rules": [
         {
-            "Sid": "PublicReadGetObject",
-            "Effect": "Allow",
-            "Principal": "*",
-            "Action": [
-                "s3:GetObject"
-            ],
-            "Resource": [
-                "arn:aws:s3:::example.com/*"
-            ]
+            "Name": "AWS-AWSManagedRulesAmazonIpReputationList",
+            "Priority": 0,
+            "Statement": {
+                "ManagedRuleGroupStatement": {
+                    "VendorName": "AWS",
+                    "Name": "AWSManagedRulesAmazonIpReputationList"
+                }
+            },
+            "OverrideAction": {
+                "None": {}
+            },
+            "VisibilityConfig": {
+                "SampledRequestsEnabled": true,
+                "CloudWatchMetricsEnabled": true,
+                "MetricName": "AWS-AWSManagedRulesAmazonIpReputationList"
+            }
+        },
+        {
+            "Name": "AWS-AWSManagedRulesCommonRuleSet",
+            "Priority": 1,
+            "Statement": {
+                "ManagedRuleGroupStatement": {
+                    "VendorName": "AWS",
+                    "Name": "AWSManagedRulesCommonRuleSet"
+                }
+            },
+            "OverrideAction": {
+                "None": {}
+            },
+            "VisibilityConfig": {
+                "SampledRequestsEnabled": true,
+                "CloudWatchMetricsEnabled": true,
+                "MetricName": "AWS-AWSManagedRulesCommonRuleSet"
+            }
+        },
+        {
+            "Name": "AWS-AWSManagedRulesKnownBadInputsRuleSet",
+            "Priority": 2,
+            "Statement": {
+                "ManagedRuleGroupStatement": {
+                    "VendorName": "AWS",
+                    "Name": "AWSManagedRulesKnownBadInputsRuleSet"
+                }
+            },
+            "OverrideAction": {
+                "None": {}
+            },
+            "VisibilityConfig": {
+                "SampledRequestsEnabled": true,
+                "CloudWatchMetricsEnabled": true,
+                "MetricName": "AWS-AWSManagedRulesKnownBadInputsRuleSet"
+            }
         }
-    ]
+    ],
+    "VisibilityConfig": {
+        "SampledRequestsEnabled": true,
+        "CloudWatchMetricsEnabled": true,
+        "MetricName": "pushkinACL"
+    },
 }
 
+
+export const policy = {
+    "Version": "2008-10-17",
+    "Id": "PolicyForCloudFrontPrivateContent",
+    "Statement": [
+        {
+            "Sid": "AllowCloudFrontServicePrincipal",
+            "Effect": "Allow",
+            "Principal": {
+                "Service": "cloudfront.amazonaws.com"
+            },
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::example.com/*", //TODO: add bucket arn
+            "Condition": {
+                "StringEquals": {
+                  "AWS:SourceArn": "cloudfront" //TODO: add cloudfront arn
+                }
+            }
+        }
+    ]
+  }
+
+
 export const cloudFront = {
-    "CallerReference": "string",
-    "Aliases": {
-        "Quantity": 0
-    },
-    "DefaultRootObject": "index.html",
-    "Origins": {
-        "Quantity": 1,
+    "Tags": {
         "Items": [
             {
-                "Id": "bucket",
-                "DomainName": "URL",
-                "OriginPath": "",
-                "CustomHeaders": {
-                    "Quantity": 0
-                },
-                "S3OriginConfig": {
-                    "OriginAccessIdentity": ""
-                },
-                "ConnectionAttempts": 3,
-                "ConnectionTimeout": 10
+                "Key": "PUSHKIN",
+                "Value": "PUSHKIN"
             }
         ]
     },
-    "OriginGroups": {
-        "Quantity": 0
-    },
-    "DefaultCacheBehavior": {
-        "TargetOriginId": "bucket",
-        "TrustedSigners": {
-            "Enabled": false,
+    "DistributionConfig": {
+        "CallerReference": "string",
+        "Aliases": {
             "Quantity": 0
         },
-        "ViewerProtocolPolicy": "redirect-to-https",
-        "AllowedMethods": {
-            "Quantity": 2,
+        "DefaultRootObject": "index.html",
+        "Origins": {
+            "Quantity": 1,
             "Items": [
-                "HEAD",
-                "GET"
-            ],
-            "CachedMethods": {
+                {
+                    "Id": "bucket",
+                    "DomainName": "URL",
+                    "OriginPath": "",
+                    "CustomHeaders": {
+                        "Quantity": 0
+                    },
+                    "S3OriginConfig": {
+                        "OriginAccessIdentity": ""
+                    },
+                    "ConnectionAttempts": 3,
+                    "ConnectionTimeout": 10,
+                    "OriginShield": {
+                        "Enabled": false
+                    },
+                    "OriginAccessControlId": "OACID"
+                }
+            ]
+        },
+    "OriginGroups": {
+            "Quantity": 0
+        },
+        "DefaultCacheBehavior": {
+            "TargetOriginId": "bucket",
+            "TrustedSigners": {
+                "Enabled": false,
+                "Quantity": 0
+            },
+            "ViewerProtocolPolicy": "redirect-to-https",
+            "AllowedMethods": {
                 "Quantity": 2,
                 "Items": [
                     "HEAD",
                     "GET"
-                ]
-            }
+                ],
+                "CachedMethods": {
+                    "Quantity": 2,
+                    "Items": [
+                        "HEAD",
+                        "GET"
+                    ]
+                }
+            },
+            "SmoothStreaming": false,
+            "Compress": true,
+            "LambdaFunctionAssociations": {
+                "Quantity": 0
+            },
+            "FieldLevelEncryptionId": "",
+            "CachePolicyId": "658327ea-f89d-4fab-a63d-7e88639e58f6"
         },
-        "SmoothStreaming": false,
-        "Compress": false,
-        "LambdaFunctionAssociations": {
+        "CacheBehaviors": {
             "Quantity": 0
         },
-        "FieldLevelEncryptionId": "",
-        "CachePolicyId": "658327ea-f89d-4fab-a63d-7e88639e58f6"
-    },
-    "CacheBehaviors": {
-        "Quantity": 0
-    },
-    "CustomErrorResponses": {
-        "Quantity": 1,
-        "Items": [
-            {
-                "ErrorCode": 403,
-                "ResponsePagePath": "/index.html",
-                "ResponseCode": "200",
-                "ErrorCachingMinTTL": 60
+        "CustomErrorResponses": {
+            "Quantity": 1,
+            "Items": [
+                {
+                    "ErrorCode": 403,
+                    "ResponsePagePath": "/index.html",
+                    "ResponseCode": "200",
+                    "ErrorCachingMinTTL": 60
+                }
+            ]
+        },
+        "Comment": "",
+        "Logging": {
+            "Enabled": false,
+            "IncludeCookies": false,
+            "Bucket": "",
+            "Prefix": ""
+        },
+        "PriceClass": "PriceClass_All",
+        "Enabled": true,
+        "ViewerCertificate": {
+            "CloudFrontDefaultCertificate": true,
+            "MinimumProtocolVersion": "TLSv1",
+            "CertificateSource": "cloudfront"
+        },
+        "Restrictions": {
+            "GeoRestriction": {
+                "RestrictionType": "none",
+                "Quantity": 0
             }
-        ]
-    },
-    "Comment": "",
-    "Logging": {
-        "Enabled": false,
-        "IncludeCookies": false,
-        "Bucket": "",
-        "Prefix": ""
-    },
-    "PriceClass": "PriceClass_All",
-    "Enabled": true,
-    "ViewerCertificate": {
-        "CloudFrontDefaultCertificate": true,
-        "MinimumProtocolVersion": "TLSv1",
-        "CertificateSource": "cloudfront"
-    },
-    "Restrictions": {
-        "GeoRestriction": {
-            "RestrictionType": "none",
-            "Quantity": 0
-        }
-    },
-    "WebACLId": "",
-    "HttpVersion": "http2",
-    "IsIPV6Enabled": true
+        },
+        "WebACLId": "ACLID",
+        "HttpVersion": "http2and3",
+        "IsIPV6Enabled": true,
+        "ContinuousDeploymentPolicyId": "",
+        "Staging": false,
+    }
 }
 
 export const dbConfig = {
@@ -136,7 +228,13 @@ export const dbConfig = {
         "postgresql", "upgrade"
     ],
     "DeletionProtection": true,
-    "MaxAllocatedStorage": 1000
+    "MaxAllocatedStorage": 1000,
+    "Tags": [
+        {
+            "Key": "PUSHKIN",
+            "Value": ""
+        }
+    ],
 }
 
 export const rabbitTask = {
@@ -155,9 +253,17 @@ export const rabbitTask = {
           "4369:4369/tcp",
           "15672:15672/tcp",
           "25672:25672/tcp"
-        ]    
+        ],    
+        "logging": {
+            "driver": "awslogs",
+            "options": {
+                "awslogs-group": "FUBAR",
+                "awslogs-region": "us-east-1",
+                "awslogs-stream-prefix": "FUBAR"
+            }
+        }
       }
-    }
+    } 
 }
 
 export const apiTask = {
@@ -177,9 +283,17 @@ export const apiTask = {
         ],
         "ports": [
             "80:80/tcp"
-            ]
+            ],
+        "logging": {
+            "driver": "awslogs",
+            "options": {
+                "awslogs-group": "FUBAR",
+                "awslogs-region": "us-east-1",
+                "awslogs-stream-prefix": "FUBAR"
+            }
         }
-    }
+      }
+    } 
 }
 
 export const workerTask = {
@@ -194,7 +308,15 @@ export const workerTask = {
         "command": [
             "bash", 
             "start.sh"
-        ]
+        ],
+        "logging": {
+            "driver": "awslogs",
+            "options": {
+                "awslogs-group": "FUBAR",
+                "awslogs-region": "us-east-1",
+                "awslogs-stream-prefix": "FUBAR"
+            }
+        }
       }   
     }
 }
@@ -461,6 +583,13 @@ export const alarmRDSHigh = {
     "TreatMissingData": "missing",
 }
 
+export const OriginAccessControl = {
+    "Name": "pushkinOAC",
+    "Description": "",
+    "SigningProtocol": "sigv4",
+    "SigningBehavior": "always",
+    "OriginAccessControlOriginType": "s3"
+}
 
 // export const alarmRAMLow = {
 //     "AlarmName": "alarmRAMLow",

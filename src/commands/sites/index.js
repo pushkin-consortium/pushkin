@@ -66,34 +66,39 @@ export async function getPushkinSite(initDir, url) {
     console.error('Unable to download from specified site. Make sure your internet is on. If it is on but this error repeats, ask for help on the Pushkin forum.');
     throw error;
   }
-  return new Promise((resolve, reject) => {
-    sa
-      .get(zipball_url)
-      .on('error', function(error){
-        console.error('Download failed: ',error);
-        process.exit();
-      })
-      .pipe(fs.createWriteStream('temp.zip'))
-      .on('finish', async () => {
-        console.log('finished downloading');
-        var zip = new admZip('temp.zip');
-        await zip.extractAllTo('.', true);
-        await Promise.all([
-          fs.promises.rename('pushkin/pushkin.yaml.bak', './pushkin.yaml').catch((err) => { console.error(err); }),
-          fs.promises.rename('pushkin/config.js.bak', 'pushkin/front-end/src/config.js').catch((err) => { console.error(err); })
-        ]);
-        fs.promises.mkdir('experiments').catch((err) => { console.error(err); });
-        if (fs.existsSync('__MACOSX')) {
-          const shellresp = shell.rm('-rf','__MACOSX'); //fs doesn't have a stable directly removal function yet
-        }      
-        fs.promises.unlink('temp.zip');
+  sa
+    .get(zipball_url)
+    .on('error', function(error){
+      console.error('Download failed: ',error);
+      process.exit();
+    })
+    .pipe(fs.createWriteStream('temp.zip'))
+    .on('finish', async () => {
+      console.log('finished downloading');
+      var zip = new admZip('temp.zip');
+      await zip.extractAllTo('.', true);
+      await Promise.all([
+        await fs.promises.rename('pushkin/pushkin.yaml.bak', './pushkin.yaml').catch((err) => { console.error(err); }),
+        await fs.promises.rename('pushkin/config.js.bak', 'pushkin/front-end/src/config.js').catch((err) => { console.error(err); })
+      ]);
+      try {
+        //Make sure files with passwords don't get tracked in github
+        fs.writeFileSync('.gitignore', 'pushkin.yaml');
+      } catch (e) {
+        console.error('Unable to update .gitignore when extracting pushkin.yaml')
+        throw e
+      }
 
-        const apiPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'api').catch((err) => { console.error(err); });
-        const frontendPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'front-end').catch((err) => { console.error(err); });
-        await Promise.all([apiPromise, frontendPromise]);
-        resolve(true);
+      fs.promises.mkdir('experiments').catch((err) => { console.error(err); });
+      if (fs.existsSync('__MACOSX')) {
+        const shellresp = shell.rm('-rf','__MACOSX'); //fs doesn't have a stable directly removal function yet
+      }      
+      fs.promises.unlink('temp.zip');
+      const apiPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'api').catch((err) => { console.error(err); });
+      const frontendPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'front-end').catch((err) => { console.error(err); });
+      await Promise.all([apiPromise, frontendPromise]);
+      resolve(true);
       })
-  })
 }
 
 export async function copyPushkinSite(initDir, pathToSite) {
