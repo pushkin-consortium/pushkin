@@ -11,6 +11,7 @@ worker:
     links:
       - message-queue
       - test_db
+      - test_transaction_db
     environment:
       AMQP_ADDRESS: 'amqp://message-queue:5672'
       DB_USER: "postgres"
