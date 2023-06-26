@@ -1,10 +1,9 @@
-import jsPsych from 'pushkin-jspsych';
+import jsPsychHtmlKeyboardResponse from '@jspsych/plugin-html-keyboard-response';
 
 const timeline = []
 
-
 var hello_trial = {
-    type: 'html-keyboard-response',
+    type: jsPsychHtmlKeyboardResponse,
     stimulus: 'Hello world!'
 }
 
