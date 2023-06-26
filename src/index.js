@@ -4,6 +4,34 @@ import amqp from 'amqplib';
 import knex from 'knex';
 const trim = (s, len) => s.length > len ? s.substring(0, len) : s;
 
+const mysql_real_escape_string = (str) => {
+	//Thanks https://stackoverflow.com/a/7760578/3291354
+    return str.replace(/[\0\x08\x09\x1a\n\r"'\\\%]/g, function (char) {
+        switch (char) {
+            case "\0":
+                return "\\0";
+            case "\x08":
+                return "\\b";
+            case "\x09":
+                return "\\t";
+            case "\x1a":
+                return "\\z";
+            case "\n":
+                return "\\n";
+            case "\r":
+                return "\\r";
+            case "\"":
+            case "'":
+            case "\\":
+            case "%":
+                return "\\"+char; // prepends a backslash to backslash, percent,
+                                  // and double/single quotes
+            default:
+                return char;
+        }
+    });
+}
+
 class PushkinWorker {
 	constructor(options) {
 		this.amqpAddress = options.amqpAddress;
@@ -123,18 +151,44 @@ class DefaultHandler {
 			debug: true
 		} //fubar -- get rid of debug
 
-		this.pg_main = knex(this.knexInfo); 
+		try {
+			this.pg_main = knex(this.knexInfo); 
+		} catch (error) {
+			console.error(`Problem setting up on main db: ${error}`)
+			throw error
+		}
+		console.log("check that we are connected to the main db")
+		try {
+			this.pg_main(this.tables.users)
+				.then(rows => {
+					console.log("testing: " + rows)
+				})
+		} catch (error) {
+			console.error(`Problem with simple select from transaction DB: ${error}`)
+		}
 		console.log(`checking logging: ${JSON.stringify(transactionOps)}`)
 		this.logging = transactionOps ? true : false;
 		if (this.logging) {
 			try {
 				this.trans_table = transactionOps.tableName;
-				this.pg_trans = knex({ client: 'pg', connection: transactionOps.connection, debug: true }); //fubar get rid of debug when not needed
-				//this.trans_mapper = transactionOps.mapper;	
+				this.pg_trans = knex({ 
+					client: 'pg', 
+					version: '11', 
+					connection: transactionOps.connection, 
+					debug: true }); //fubar get rid of debug when not needed
 			} catch (error) {
 				console.error(`Problem setting up logger: ${error}`)
 				console.error(`Turning off logging.`)
 				this.logging = false;
+			}
+			console.log("check that we are connected to the transaction db")
+			try {
+				this.pg_trans(this.trans_table)
+					.then(rows => {
+						console.log("testing: " + rows)
+					})
+			} catch (error) {
+				console.error(`Problem with simple select from transaction DB: ${error}`)
 			}
 		}
 		console.log(`Checked logging`)
@@ -142,8 +196,6 @@ class DefaultHandler {
 
 	async logTransaction(knexCommand) {
 		if (!this.logging) return knexCommand;
-//		const toInsert = this.trans_mapper(knexCommand.toString());
-		console.log(`knexCommand ` + knexCommand.toString());
 		const toInsert = {
 		//	query: knexCommand.toSQL().toNative().sql,
 		//	bindings: knexCommand.toSQL().toNative().bindings,
@@ -153,10 +205,15 @@ class DefaultHandler {
 		}
 		try {
 			console.log(`logging transaction: ${JSON.stringify(toInsert)}`)
-			await this.pg_trans(this.trans_table).insert(toInsert);
+			let temp = await this.pg_trans(this.trans_table).insert({
+				query: mysql_real_escape_string(knexCommand.toString()),
+				bindings: '',
+				created_at: new Date()
+			})
+			console.log("sent to log: " + temp.toString())
 		} catch (error) {
 			console.error(`Problem logging transaction: ${error}`)
-		}
+		}		
 		return knexCommand;
 	}
 
