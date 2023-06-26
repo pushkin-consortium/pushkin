@@ -1,5 +1,5 @@
 import path from 'path';
-import fs from 'fs';
+import fs from 'graceful-fs';
 import jsYaml from 'js-yaml';
 import knex from 'knex';
 import * as compose from 'docker-compose'
@@ -199,7 +199,7 @@ export async function setupTestTransactionsDB() {
     }
     composeFile.volumes.test_transaction_db_volume = null
     try {
-      console.log(`Updating pushkin/docker-compose.dev.yml`)
+      console.log(`Updating pushkin/docker-compose.dev.yml to include transation db`)
       await fs.promises.writeFile(path.join(process.cwd(), 'pushkin/docker-compose.dev.yml'), jsYaml.safeDump(composeFile))
     } catch (e) {
       console.error(`Failed to write pushkin/docker-compose.dev.yml`)
@@ -236,7 +236,7 @@ export async function setupTestTransactionsDB() {
           err => {console.error(err)})
     if (x > 0) {
 
-      await setupTransactionsDB(pushkinConfig.databases.localtransactiondb)
+      await migrateTransactionsDB(pushkinConfig.databases.localtransactiondb)
 
       return compose.stop({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml'})
       .then(
@@ -253,6 +253,7 @@ export async function setupTestTransactionsDB() {
   const dbStarted = await wait(); //this variable doesn't get used.
 
   // migrate and seed for each database
+  //FUBAR
 }
 
 
@@ -279,7 +280,7 @@ export async function setupdb(coreDBs, mainExpDir) {
     // let info = await completedDBs
     // let setupTransactionsTable
     // try {
-    //   setupTransactionsTable = setupTransactionsDB(info.productionDBs.Transaction);
+    //   setupTransactionsTable = migrateTransactionsDB(info.productionDBs.Transaction);
       return compose.stop({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml'})
       .then(
         out => { console.log(out.out, 'Database updated. Shutting down...')},
@@ -297,7 +298,7 @@ export async function setupdb(coreDBs, mainExpDir) {
   // migrate and seed for each database
 }
 
-export async function setupTransactionsDB(dbInfo){
+export async function migrateTransactionsDB(dbInfo){
   console.log(`See if a migrations file for transactions exists`)
   const migDir = path.join(process.cwd(), "coreMigrations")
   try {

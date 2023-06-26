@@ -1,4 +1,4 @@
-import fs from 'fs';
+import fs from 'graceful-fs';
 import util from 'util';
 import path from 'path';
 import sa from 'superagent';
@@ -158,7 +158,7 @@ export async function copyPushkinSite(initDir, pathToSite) {
     }      
     const apiPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'api').catch((err) => { console.error(err); });
     const frontendPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'front-end').catch((err) => { console.error(err); });
-    return(Promise.all([apiPromise, frontendPromise, pushkinYaml, configJS, mkExps]));
+    resolve(Promise.all([apiPromise, frontendPromise, pushkinYaml, configJS, mkExps]));
   })
 }
 

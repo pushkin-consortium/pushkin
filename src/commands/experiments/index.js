@@ -1,4 +1,4 @@
-import fs from 'fs';
+import fs from 'graceful-fs';
 import path from 'path';
 import sa from 'superagent';
 import admZip from 'adm-zip';

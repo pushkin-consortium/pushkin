@@ -2,7 +2,7 @@
 
 import commandLineArgs from 'command-line-args';
 import jsYaml from 'js-yaml';
-import fs from 'fs';
+import fs from 'graceful-fs';
 import path from 'path';
 import 'core-js/stable';
 import 'regenerator-runtime/runtime';
@@ -387,6 +387,7 @@ const handleInstall = async (what) => {
               [{ type: 'input', name: 'path', message: 'What is the absolute path to your site template?'}]
             ).then(async (answers) => {
               await copyPushkinSite(process.cwd(), answers.path)
+              await setupTestTransactionsDB() //Not distributed with sites since it's the same for all of them.
             })
           }else{
             getVersions(siteList[siteType])
@@ -394,7 +395,7 @@ const handleInstall = async (what) => {
               inquirer.prompt(
                 [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version? (Recommend:'.concat(Object.keys(verList)[0]).concat(')')}]
               ).then(async (answers) => {
-                await getPushkinSite(process.cwd(),verList[answers.version])
+                await getPushkinSite(process.cwd(), verList[answers.version])
                 await setupTestTransactionsDB() //Not distributed with sites since it's the same for all of them.
               })
             })  

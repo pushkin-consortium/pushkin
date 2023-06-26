@@ -1,12 +1,12 @@
 import { v4 as uuid } from 'uuid';
-import fs from 'fs';
+import fs from 'graceful-fs';
 import path from 'path';
 import util from 'util';
 import pacMan from '../../pMan.js'; //which package manager is available?
 import { execSync } from 'child_process'; // eslint-disable-line
 import jsYaml from 'js-yaml';
 import { pushkinACL, OriginAccessControl, policy, cloudFront, dbConfig, rabbitTask, apiTask, workerTask, changeSet, corsPolicy, disableCloudfront, alarmRAMHigh, alarmCPUHigh, alarmRDSHigh, scalingPolicyTargets } from './awsConfigs.js'
-import { setupTransactionsDB, runMigrations, getMigrations } from '../setupdb/index.js';
+import { migrateTransactionsDB, runMigrations, getMigrations } from '../setupdb/index.js';
 import { updatePushkinJs } from '../prep/index.js'
 import inquirer from 'inquirer'
 const exec = util.promisify(require('child_process').exec);
@@ -277,15 +277,10 @@ const deployFrontEnd = async (projName, awsName, useIAM, myDomain, myCertificate
 
 
     console.log("Setting bucket permissions")
-    // FUBAR: commented out CORS and aws s3 website. Do we still need them?
-    //  let myCORSPolicy = JSON.parse(JSON.stringify(corsPolicy)) 
-    //  myCORSPolicy.Bucket = awsName 
       policy.Statement[0].Resource = "arn:aws:s3:::".concat(awsName).concat("/*")
       policy.Statement[0].Condition.StringEquals["AWS:SourceArn"] = theCloud.ARN
       try {
-    //    await exec(`aws s3 website s3://${awsName} --profile ${useIAM} --index-document index.html --error-document index.html`) //https://awscli.amazonaws.com/v2/documentation/api/latest/reference/s3/website.html
         await exec(`aws s3api put-bucket-policy --bucket `.concat(awsName).concat(` --policy '`).concat(JSON.stringify(policy)).concat(`' --profile ${useIAM}`))
-    //    await exec(`aws s3api put-bucket-cors --cli-input-json '${JSON.stringify(myCORSPolicy)}' --profile ${useIAM}`)
       } catch (e) {
         console.error('Problem setting bucket permissions for front-end')
         throw e
@@ -1297,11 +1292,11 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
     throw e
   }
 
-  const setupTransactionsWrapper = async () => {
+  const setupTransactionsWrapper = async () => {//FUBAR I DON'T THINK THIS IS RIGHT
     let info = await completedDBs
     let setupTransactionsTable
     try {
-      setupTransactionsTable = setupTransactionsDB(info.productionDBs.Transaction);
+      setupTransactionsTable = migrateTransactionsDB(info.productionDBs.Transaction);
     } catch (e) {
       throw e    
     }
@@ -1899,7 +1894,7 @@ export const awsArmageddon = async (useIAM, killType) => {
                 ETag = JSON.parse(temp.stdout).ETag
               } catch (e) {
                 console.log(`Suddenly can't find cloudfront distribution ${distId}. Which is very strange, since we haven't deleted it yet. Skipping for now...`)      
-                return true
+                resolve(true)
               }
               //Armed with the new ETag, we can delete the distribution
               try {
