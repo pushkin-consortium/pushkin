@@ -294,12 +294,12 @@ export const prep = async (experimentsDir, coreDir) => {
     compFile.services[workerName].environment.AMQP_ADDRESS = AMQP_ADDRESS || 'amqp://message-queue:5672'
     compFile.services[workerName].environment.DB_USER = pushkinYAML.databases.localtestdb.user
     compFile.services[workerName].environment.DB_PASS = pushkinYAML.databases.localtestdb.pass
-    compFile.services[workerName].environment.DB_URL = pushkinYAML.databases.localtestdb.host
-    compFile.services[workerName].environment.DB_NAME = pushkinYAML.databases.localtestdb.name
+    compFile.services[workerName].environment.DB_HOST = pushkinYAML.databases.localtestdb.host
+    compFile.services[workerName].environment.DB_DB = pushkinYAML.databases.localtestdb.name
     compFile.services[workerName].environment.TRANS_USER = pushkinYAML.databases.localtransactiondb.user
     compFile.services[workerName].environment.TRANS_PASS = pushkinYAML.databases.localtransactiondb.pass
-    compFile.services[workerName].environment.TRANS_URL = pushkinYAML.databases.localtransactiondb.host
-    compFile.services[workerName].environment.TRANS_NAME = pushkinYAML.databases.localtransactiondb.name
+    compFile.services[workerName].environment.TRANS_HOST = pushkinYAML.databases.localtransactiondb.host
+    compFile.services[workerName].environment.TRANS_DB = pushkinYAML.databases.localtransactiondb.name
     compFile.services[workerName].environment.TRANS_PORT = pushkinYAML.databases.localtransactiondb.port
 
     let workerBuild

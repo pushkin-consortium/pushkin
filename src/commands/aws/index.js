@@ -679,15 +679,14 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs, ECS
       task.services[w].environment = {
         "AMQP_ADDRESS" : rabbitAddress,
         "DB_USER": dbInfoByTask['Main'].username,
-        "DB_NAME": dbInfoByTask['Main'].name,
+        "DB_DB": dbInfoByTask['Main'].name,
         "DB_PASS": dbInfoByTask['Main'].password,
         "DB_URL": dbInfoByTask['Main'].endpoint,
         //"TRANS_URL": `postgres://${dbInfoByTask['Transaction'].username}:${dbInfoByTask['Transaction'].password}@${dbInfoByTask['Transaction'].endpoint}:/${dbInfoByTask['Transaction'].port}/${dbInfoByTask['Transaction'].name}`
         "TRANS_USER": dbInfoByTask['Transaction'].username,
-        "TRANS_NAME": dbInfoByTask['Transaction'].name,
+        "TRANS_DB": dbInfoByTask['Transaction'].name,
         "TRANS_PASS": dbInfoByTask['Transaction'].password,
         "TRANS_URL": dbInfoByTask['Transaction'].endpoint,
-        "TRANS_URL": dbInfoByTask['Transaction'].port //should just be standard port for the AWS deploy
       }
       return ecsCompose(yaml, task, name)
     })
