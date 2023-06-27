@@ -31,7 +31,14 @@ const publishLocalPackage = async (modDir, modName) => {
       exec(pacMan.concat(' install --mutex network'), { cwd: modDir })
         .then(() => {
           console.log(`Building ${modName} from ${modDir}`);
-          exec(buildCmd, { cwd: modDir })
+          exec(buildCmd, { cwd: modDir },
+            (error) => {
+              if (error) {
+                console.error(`Problem building ${modName}`);
+                console.error(error)
+                process.exit();
+              }
+            })
             .then(() => {
               console.log(`${modName} is built`);
               exec('yalc publish --push', { cwd: modDir })

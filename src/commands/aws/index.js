@@ -96,13 +96,14 @@ const buildFE = function (projName) {
       buildCmd = pacRunner.concat(' build-if-changed')
     }
     let builtWeb
-    try {
-      console.log("Building combined front-end")
-      builtWeb = exec(buildCmd, { cwd: path.join(process.cwd(), 'pushkin/front-end') }).then(console.log("Installed combined front-end"))
-    } catch (err) {
-      console.error('Problem installing and buiding combined front-end')
-      throw err
-    }
+    console.log("Building combined front-end")
+    builtWeb = exec(buildCmd, { cwd: path.join(process.cwd(), 'pushkin/front-end') })
+      .on('error', (error) => {
+        console.error('Problem installing and buiding combined front-end')
+        console.error(error)
+        process.exit()
+      })
+      .then(console.log("Installed combined front-end"))
     resolve(builtWeb)
   })
 }
@@ -125,6 +126,10 @@ const makeRecordSet = async (myDomain, useIAM, projName, theCloud) => {
   } catch (e) {
     console.error(`Unable to retrieve hostedzone for ${myDomain}`)
     throw e
+  }
+  if (JSON.parse(temp.stdout).HostedZones.length == 0) {
+    console.error(`No hostedzone found for ${myDomain}`)
+    throw new Error(`No hostedzone found for ${myDomain}`)
   }
   try {
     zoneID = JSON.parse(temp.stdout).HostedZones[0].Id.split("/hostedzone/")[1]
@@ -337,7 +342,7 @@ const getOAC = async (useIAM) => {
 
   let needOAC = false;
 
-  if (!awsResources.OAC) {
+  if (awsResources && !awsResources.OAC) {
     console.log(`No origin access control. Creating.`)
     needOAC = true;
   } else {
@@ -487,7 +492,7 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
     console.log('Updated awsResources with db information')
     try {
       let awsResources = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
-      if (awsResources.dbs) {
+      if (awsResources && awsResources.dbs) {
         awsResources.dbs.push(dbName)
       } else {
         awsResources.dbs = [dbName]
@@ -1033,6 +1038,10 @@ const forwardAPI = async (myDomain, useIAM, balancerEndpoint, balancerZone, proj
       console.error(`Unable to retrieve hostedzone for ${myDomain}`)
       throw e
     }
+    if (JSON.parse(temp.stdout).HostedZones.length == 0) {
+      console.error(`No hostedzone found for ${myDomain}`)
+      throw new Error(`No hostedzone found for ${myDomain}`)
+    }
     try {
       zoneID = JSON.parse(temp.stdout).HostedZones[0].Id.split("/hostedzone/")[1]
     } catch (e) {
@@ -1500,47 +1509,93 @@ export const awsArmageddon = async (useIAM, killType) => {
   } catch (e) {
     console.error(`Unable to load awsResources.js`)
   }    
-  const projName = awsResources.name; //can use this to identify resources needing deletion
+  let projName
+  if (awsResources) {
+    projName = awsResources.name; //can use this to identify resources needing deletion
+  } else {
+    if (killType == "kill") {
+      console.warn('\x1b[31m%s\x1b[0m', `Unable to find awsResources.js. You won't be able to run kill.\n Either delete AWS deploy manually or run aws armageddon to delete everything including things not related to your project..`)
+    }
+  }
   const killTag = killType == "kill" ? projName : false
+
 
   const deleteStack = async () => {
     console.log(`Deleting cloudformation stacks`)
-    let stacksToDelete = []
-    let stackList
-    try {
-      stackList = await exec(`aws cloudformation list-stacks --profile ${useIAM}`)
-    } catch (e) {
-      console.error(`Unable to list cloudformation stacks`)
-      throw e
-    }
-    if (JSON.parse(stackList.stdout).StackSummaries) {
-      JSON.parse(stackList.stdout).StackSummaries.forEach((s) => {
-        if (killTag && s.Tags.length > 0) {
-          if (s.Tags[0].Value == killTag) {
-            stacksToDelete.push(s.StackId)
+    const getStackList = async (stackType) => {
+      let stacksToDelete = []
+      let stackList
+      try {
+        stackList = await exec(`aws cloudformation list-stacks --profile ${useIAM}`)
+      } catch (e) {
+        console.error(`Unable to list cloudformation stacks`)
+        throw e
+      }
+      if (JSON.parse(stackList.stdout).StackSummaries) {
+        JSON.parse(stackList.stdout).StackSummaries.forEach((s) => {
+          if (stackType == "deletable") {
+            if (s.StackStatus == "Active") {
+              if (killTag && s.Tags.length > 0) {
+                if (s.Tags[0].Value == killTag) {
+                  stacksToDelete.push(s.StackId)
+                }
+              } else {
+                stacksToDelete.push(s.StackId)
+              }
+            }                
           }
-        } else {
-          stacksToDelete.push(s.StackId)
-        }
-      })
+          if (stackType == "alive") {
+            if (s.StackStatus == "Active" | s.StackStatus == "In progress") {
+              if (killTag && s.Tags.length > 0) {
+                if (s.Tags[0].Value == killTag) {
+                  stacksToDelete.push(s.StackId)
+                }
+              } else {
+                stacksToDelete.push(s.StackId)
+              }
+            }                
+          }
+        })
+      }
+      return stacksToDelete
+    }
+
+    let stacksToDelete
+    try {
+      stacksToDelete = await getStackList("deletable");
+    } catch (e) {
+      throw e
     }
 
     return new Promise((resolve, reject) => {
       if (stacksToDelete.length > 0) {
-        await Promise.all(
-          stacksToDelete.map(async (s) => {
-            console.log(`Deleting stack ${s}`)
-            try {
-              return await exec(`aws cloudformation delete-stack --stack-name ${s} --profile ${useIAM}`)
-            } catch (e) {
-              console.warn('\x1b[31m%s\x1b[0m', `Unable to find cloudformation stack ${s}. May have already been deleted. Skipping.`)
-              return true
-            }
-          })
-        )
+        stacksToDelete.map(async (s) => {
+          console.log(`Deleting stack ${s}`)
+          try {
+            return await exec(`aws cloudformation delete-stack --stack-name ${s} --profile ${useIAM}`)
+          } catch (e) {
+            console.warn('\x1b[31m%s\x1b[0m', `Unable to find cloudformation stack ${s}. May have already been deleted. Skipping.`)
+            return true
+          }
+        })
 
         const awaitStacks = async () => {
-          FUBAR
+          let remainingStacks = [];
+          try {
+            remainingStacks = await getStackList("alive");
+          } catch (e) {
+            throw e
+          }
+          if (remainingStacks.length > 0) {
+            setTimeout(awaitStacks, 5000)
+          } else {
+            resolve(true)
+          }
+        }
+        try {
+          awaitStacks();
+        } catch (e) {
+          throw e
         }
       } else {
         resolve(true)
@@ -1572,7 +1627,7 @@ export const awsArmageddon = async (useIAM, killType) => {
     } else {
       console.warn('\x1b[31m%s\x1b[0m', `Only nuking clusters associated with this project. Full list of clusters includes:`)
       console.warn('\x1b[31m%s\x1b[0m', c);
-      if (!awsResources.ECSName) {
+      if (awsResources && !awsResources.ECSName) {
         awsResources.ECSName = projName.replace(/[^A-Za-z0-9]/g, ""); //won't be permanent. Doesn't matter.
       }
       try {
@@ -1663,7 +1718,7 @@ export const awsArmageddon = async (useIAM, killType) => {
     // Get list of DBs to delete
     let dbs = []
     try {
-      if (awsResources.dbs) {
+      if (awsResources && awsResources.dbs) {
         awsResources.dbs.forEach((db) => {
           dbs.push(db)
         })
@@ -1826,7 +1881,7 @@ export const awsArmageddon = async (useIAM, killType) => {
   const deleteLoadBalancer = async () => {
     //FUBAR Need to killize this
     let deletedLoadBalancer
-    if (awsResources.loadBalancerName) {
+    if (awsResources && awsResources.loadBalancerName) {
       console.log(`Deleting load balancer`)
       let temp
       try {
@@ -2036,6 +2091,11 @@ export const awsArmageddon = async (useIAM, killType) => {
       console.error(`Unable to retrieve hostedzone for ${myDomain}`)
       throw e
     }
+    if (JSON.parse(temp.stdout).HostedZones.length == 0) {
+      console.warn(`No hostedzone found for ${myDomain}`)
+      //skip deleting resource records
+      return true
+    }
     try {
       zoneID = JSON.parse(temp.stdout).HostedZones[0].Id.split("/hostedzone/")[1]
     } catch (e) {
@@ -2133,29 +2193,35 @@ export const awsArmageddon = async (useIAM, killType) => {
 
   const deleteTargetGroup = async () => {
     //FUBAR Need to killize this
-    let deletedTargetGroup
-    if (awsResources.targGroupARN){
-      console.log(`Deleting target group`)
-      try {
-        await exec(`aws elbv2 describe-target-groups --target-group-arns ${awsResources.targGroupARN} --profile ${useIAM}`)
-      } catch (e) {
-        console.warn('\x1b[31m%s\x1b[0m', `Unable to find target group ${awsResources.targGroupARN}. May have already been deleted. Skipping.`)
-        awsResources.targGroupARN = null
-        return
-      }
-      try {
-        deletedTargetGroup = exec(`aws elbv2 delete-target-group --target-group-arn ${awsResources.targGroupARN} --profile ${useIAM}`)
-        awsResources.targGroupARN = null
-      } catch (e) {
-        console.error(`Unable to delete associated target group`)
-        console.error(e)
-      }
+    let getTargetGroups
+    try {
+      getTargetGroups = await exec(`aws elbv2 describe-target-groups --profile ${useIAM}`)
+    } catch (e) {
+      console.error(`Unable to list target groups`)
+      throw e
+    }
+    let targetGroups = JSON.parse(getTargetGroups.stdout).TargetGroups.map((tg) => {return tg.TargetGroupArn})
+    if (targetGroups.length > 0) {
+      return Promise.all(targetGroups.map(async (tg) => {      
+        try {
+          await exec(`aws elbv2 describe-target-groups --target-group-arns ${tg} --profile ${useIAM}`)
+        } catch (e) {
+          console.warn('\x1b[31m%s\x1b[0m', `Unable to find target group ${tg}. May have already been deleted. Skipping.`)
+          return true
+        }
+        try {
+          deletedTargetGroup = exec(`aws elbv2 delete-target-group --target-group-arn ${tg} --profile ${useIAM}`)
+        } catch (e) {
+          console.error(`Unable to delete associated target group`)
+          console.error(e)
+        }
+      }))  
     } else {
       console.log(`No target group. Skipping.`)
+      return true
     }
-
-    return deletedTargetGroup
   }
+
   let deletedTargetGroup 
   try {
     deletedTargetGroup = deleteTargetGroup()    
@@ -2167,7 +2233,7 @@ export const awsArmageddon = async (useIAM, killType) => {
 
   const deleteBucket = async () => {
     //FUBAR Need to killize this
-    if (awsResources.awsName) {
+    if (awsResources && awsResources.awsName) {
       console.log(`Deleting s3 bucket`)
       try {
         await exec(`aws s3 rb s3://${awsResources.awsName} --force --profile ${useIAM}`)

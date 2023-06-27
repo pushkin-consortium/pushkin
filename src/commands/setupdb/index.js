@@ -269,7 +269,7 @@ export async function setupdb(coreDBs, mainExpDir) {
   //But just in case, this ridiculously roundabout loop...
   const wait = async () => {
     //Sometimes, I really miss loops
-    let x = await exec (`docker ps -f name=pushkin-test_db-1`)
+    let x = await exec (`docker ps --format "{{.Names}} {{.Status}}" | grep "pushkin[-_]test_db-1"`)
           .then((x) => {
             console.log('Waiting for test db...')
             return x.stdout.search('healthy')
@@ -317,7 +317,7 @@ export async function migrateTransactionsDB(coreDBs){
   //To wait for db to be up, this ridiculously roundabout loop...
   const wait = async () => {
     //Sometimes, I really miss loops
-    let x = await exec (`docker ps -f name=pushkin-test_transaction_db-1`)
+    let x = await exec (`docker ps --format "{{.Names}} {{.Status}}" | grep "pushkin[-_]test_db-1"`)
           .then((x) => {
             console.log('Waiting for test transaction db...')
             return x.stdout.search('healthy')
