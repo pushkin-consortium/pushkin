@@ -9,6 +9,7 @@ import { pushkinACL, OriginAccessControl, policy, cloudFront, dbConfig, rabbitTa
 import { migrateTransactionsDB, runMigrations, getMigrations } from '../setupdb/index.js';
 import { updatePushkinJs } from '../prep/index.js'
 import inquirer from 'inquirer'
+import { kill } from 'process';
 const exec = util.promisify(require('child_process').exec);
 const mkdir = util.promisify(require('fs').mkdir);
 
@@ -1492,33 +1493,6 @@ export async function addIAM(iam) {
 }
 
 export const awsArmageddon = async (useIAM, killType) => {
-  // docker run --rm -it -v /Users/jkhartshorne/Downloads/HomeSeer/config.yml:/home/aws-nuke/config.yml -v ~/.aws:/home/aws-nuke/.aws rebuy/aws-nuke --profile trialPushkin --config /home/aws-nuke/config.yml --no-dry-run  
-
-// regions:
-// - us-east-1
-
-// account-blacklist:
-// - "999999999999" # production
-
-// resource-types:
-//   # only nuke these resources
-//   targets:
-//   - S3Object
-//   - S3Bucket
-//   - ECSTaskDefinition
-//   - ECSCluster
-//   - ECSClusterInstance
-//   - ECSService
-//   - RDSInstance
-//   - CloudFormationStack
-//   - LaunchConfiguration
-//   - EC2Volume
-//   - EC2SecurityGroup
-//   - EC2Instance
-//   - ELBv2TargetGroup
-
-// accounts:
-//   "625162337273": {}
 
   let temp, awsResources
   try {
@@ -1529,41 +1503,127 @@ export const awsArmageddon = async (useIAM, killType) => {
   const projName = awsResources.name; //can use this to identify resources needing deletion
   const killTag = killType == "kill" ? projName : false
 
-  const deleteCluster = async() => {
-    if (!killType) {
-      let temp
-      try {
-        temp = await exec(`aws ecs list-clusters --profile ${useIAM}`)
-      } catch (e) {
-        console.error(`Unable to list ECS clusters.\n` + e)
-        throw e
-      }
-      if (JSON.parse(temp.stdout).clusterArns.length > 1) {
-        console.warn('\x1b[31m%s\x1b[0m', `Cannot automatically nuke all ECS clusters, only ones associated with this project. Full list of clusters includes:`)
-        JSON.parse(temp.stdout).clusterArns.map((c) => console.warn('\x1b[31m%s\x1b[0m', c))
-      }
-    }
-        
-    if (!awsResources.ECSName) {
-      awsResources.ECSName = projName.replace(/[^A-Za-z0-9]/g, ""); //won't be permanent. Doesn't matter.
-    }
-
+  const deleteStack = async () => {
+    console.log(`Deleting cloudformation stacks`)
+    let stacksToDelete = []
+    let stackList
     try {
-      temp = await exec(`aws ecs describe-clusters --clusters ${awsResources.ECSName} --profile ${useIAM}`)
+      stackList = await exec(`aws cloudformation list-stacks --profile ${useIAM}`)
     } catch (e) {
-      console.warn('\x1b[31m%s\x1b[0m', `Unable to find ECS cluster ${awsResources.ECSName}. May have already been deleted.`)
-      awsResources.ECSName = null
-      return true
+      console.error(`Unable to list cloudformation stacks`)
+      throw e
+    }
+    if (JSON.parse(stackList.stdout).StackSummaries) {
+      JSON.parse(stackList.stdout).StackSummaries.forEach((s) => {
+        if (killTag && s.Tags.length > 0) {
+          if (s.Tags[0].Value == killTag) {
+            stacksToDelete.push(s.StackId)
+          }
+        } else {
+          stacksToDelete.push(s.StackId)
+        }
+      })
     }
 
-    if (JSON.parse(temp.stdout).clusters.length == 0) {
-      console.warn('\x1b[31m%s\x1b[0m', `Unable to find ECS cluster ${awsResources.ECSName}. May have already been deleted.`)
-      awsResources.ECSName = null
-      return true
+    return new Promise((resolve, reject) => {
+      if (stacksToDelete.length > 0) {
+        await Promise.all(
+          stacksToDelete.map(async (s) => {
+            console.log(`Deleting stack ${s}`)
+            try {
+              return await exec(`aws cloudformation delete-stack --stack-name ${s} --profile ${useIAM}`)
+            } catch (e) {
+              console.warn('\x1b[31m%s\x1b[0m', `Unable to find cloudformation stack ${s}. May have already been deleted. Skipping.`)
+              return true
+            }
+          })
+        )
+
+        const awaitStacks = async () => {
+          FUBAR
+        }
+      } else {
+        resolve(true)
+      }
+    })
+ }
+ 
+  const deletedStack = await deleteStack()
+
+  const deleteCluster = async() => {
+    await deletedStack; //probably need this gone first.
+    let runningClusters = []
+    let clustersToKill = []
+    let temp
+    try {
+      temp = await exec(`aws ecs list-clusters --profile ${useIAM}`)
+    } catch (e) {
+      console.error(`Unable to list ECS clusters.\n` + e)
+      throw e
     }
+    if (JSON.parse(temp.stdout).clusterArns.length > 0) {
+      JSON.parse(temp.stdout).clusterArns.map((c) => {
+        runningClusters.push(c)
+      })
+    }
+    
+    if (!killTag) {
+      clustersToKill = runningClusters
+    } else {
+      console.warn('\x1b[31m%s\x1b[0m', `Only nuking clusters associated with this project. Full list of clusters includes:`)
+      console.warn('\x1b[31m%s\x1b[0m', c);
+      if (!awsResources.ECSName) {
+        awsResources.ECSName = projName.replace(/[^A-Za-z0-9]/g, ""); //won't be permanent. Doesn't matter.
+      }
+      try {
+        temp = await exec(`aws ecs describe-clusters --clusters ${awsResources.ECSName} --profile ${useIAM}`)
+      } catch (e) {
+        console.warn('\x1b[31m%s\x1b[0m', `Unable to find ECS cluster ${awsResources.ECSName}. May have already been deleted.`)
+        awsResources.ECSName = null
+        return true
+      }
+      if (JSON.parse(temp.stdout).clusters.length == 0) {
+        console.warn('\x1b[31m%s\x1b[0m', `Unable to find ECS cluster ${awsResources.ECSName}. May have already been deleted.`)
+        awsResources.ECSName = null
+        return true
+      } else {
+        JSON.parse(temp.stdout).clusters.forEach((c) => {
+          if (c.clusterName == awsResources.ECSName) {
+            clustersToKill.push(c.clusterArn)
+          }
+        })
+        if (clustersToKill.length == 0) {
+          console.warn('\x1b[31m%s\x1b[0m', `Unable to find ECS cluster ${awsResources.ECSName}. May have already been deleted.`)
+          awsResources.ECSName = null
+          return true
+        }  
+      }
+    }
+    console.log(`Deleting these ECS clusters: ` + clustersToKill.join(', '))
 
     console.log(`Stopping ECS services.`)
-    const yamls = fs.readdirSync(path.join(process.cwd(), 'ECSTasks'));
+    await Promise.all(
+      clustersToKill.map(async (c) => {
+        try {
+          temp = await exec(`aws ecs list-tasks --cluster ${c} --profile ${useIAM}`)
+        } catch (e) {
+          console.error(`Unable to list tasks for cluster ${c}.`)
+          throw e
+        }
+        let tasksToKill = JSON.parse(temp.stdout).taskArns
+        let killedTasks
+        if (tasksToKill.length > 0) {
+          killedTasks = Promise.all(
+            tasksToKill.map((t) => {
+              console.log(`killing task: ` + t)
+              return exec(`aws ecs stop-task --cluster ${c} --task ${t} --profile ${useIAM}`)
+            }
+          ))
+        }
+        return killedTasks
+      })
+    )
+/*     const yamls = fs.readdirSync(path.join(process.cwd(), 'ECSTasks'));
     temp = await Promise.all([
       yamls.forEach((yaml) => {
         if (yaml != "ecs-params.yml"){
@@ -1577,27 +1637,40 @@ export const awsArmageddon = async (useIAM, killType) => {
         }
       })
     ])
-
-    console.log(`Deleting ECS Cluster ${awsResources.ECSName}.`)
-    try {
-      temp = await exec(`ecs-cli down --force --ecs-profile ${useIAM} --cluster ${awsResources.ECSName}`)
-    } catch (e) {
-      console.error(`Unable to delete cluster ${awsResources.ECSName}.`)
-      console.error(e)
-    }
-    return true
+ */
+    let killedClusters = clustersToKill.map(async (c) => {
+      console.log(`Deleting ECS Cluster ${c}.`)
+      try {
+        temp = exec(`aws ecs delete-cluster --profile ${useIAM} --cluster ${c}`)
+      } catch (e) {
+        console.error(`Unable to delete cluster ${c}.`)
+        console.error(e)
+      }
+      return temp
+    })
+    return killedClusters
   }
 
   let deletedCluster
   try {
     deletedCluster = deleteCluster()    
   } catch(e) {
-    //Nothing. Might as well try deleting other things, too.
+    console.warn('\x1b[31m%s\x1b[0m', e)
+    //Don't exit. Might as well try deleting other things, too.
   }
 
   const dbsToDeleteFunc = async () => {
     // Get list of DBs to delete
-    let dbs = awsResources.dbs
+    let dbs = []
+    try {
+      if (awsResources.dbs) {
+        awsResources.dbs.forEach((db) => {
+          dbs.push(db)
+        })
+      }  
+    } catch (error) {
+      console.warn('\x1b[31m%s\x1b[0m', error)
+    }
     let respDBList
     try {
       respDBList = await exec(`aws rds describe-db-instances --profile ${useIAM}`)
@@ -1637,7 +1710,7 @@ export const awsArmageddon = async (useIAM, killType) => {
         let tempFunc = (x) => {
           return x.filter((d) => {return (d != db)}) // remove from list
         } 
-        awsResources.dbs = tempFunc(awsResources.dbs)
+        dbs = tempFunc(dbs)
         return
       }
       return exec(`aws rds modify-db-instance --db-instance-identifier ${db} --no-deletion-protection --apply-immediately --profile ${useIAM}`)
@@ -1665,23 +1738,39 @@ export const awsArmageddon = async (useIAM, killType) => {
 
     const wait = async () => {
       //Sometimes, I really miss loops
-      let checked = awsResources.dbs.map((db) => {checkDatabases(db)})
+      let checked = dbs.map((db) => {checkDatabases(db)})
       if (checked.includes(false)) {
         console.log('Waiting for DBs to be deletable...')
         setTimeout( wait, 20000 );
       } else {
-        return Promise.all([awsResources.dbs.map((db) => {
+        return Promise.all([dbs.map(async (db) => {
           console.log(`Deleting database ${db}`)
-          let dbDeletionResponse
+          //check whether DB is already being deleted
+          let dbStatus
           try {
-            dbDeletionResponse = exec(`aws rds delete-db-instance --db-instance-identifier ${db} --skip-final-snapshot --profile ${useIAM}`)
+            dbStatus = await exec(`aws rds describe-db-instances --GWWTest`)
           } catch (e) {
-            if (e.message.includes("already being deleted")) {
-              console.warn('\x1b[31m%s\x1b[0m', `Database ${db} already being deleted.`)
-              return true
-            } else {
-              console.error(e)
-              throw e
+            console.error(`Unable to get information about dbs`)
+            console.error(e)
+          }
+          let dbCanDelete
+          dbStatus.DBInstances.forEach((db) => {
+            if (db.DBInstanceIdentifier == db) {
+              dbCanDelete = db.DBINstanceStatus != "deleting"
+            }
+          })
+          if (dbCanDelete) {
+            let dbDeletionResponse
+            try {
+              dbDeletionResponse = exec(`aws rds delete-db-instance --db-instance-identifier ${db} --skip-final-snapshot --profile ${useIAM}`)
+            } catch (e) {
+              if (e.message.includes("already being deleted")) {
+                console.warn('\x1b[31m%s\x1b[0m', `Database ${db} already being deleted.`)
+                return true
+              } else {
+                console.error(`Uncaught db deletion error: ` + e)
+                throw e
+              }
             }
           }
         })])
@@ -1711,7 +1800,7 @@ export const awsArmageddon = async (useIAM, killType) => {
         return false 
       }
   
-      let checked = awsResources.dbs.map((db) => {confirmDBDeleted(db)})
+      let checked = dbs.map((db) => {confirmDBDeleted(db)})
       if (checked.includes(false)) {
         console.log('Waiting for DBs to be deleted...')
         setTimeout( wait, 20000 );
@@ -1730,26 +1819,10 @@ export const awsArmageddon = async (useIAM, killType) => {
     dbsToDelete = await dbsToDeleteFunc()
     deletedDBs = deleteDatabases(dbsToDelete)
   } catch(e) {
-    //Nothing
+    console.warn('\x1b[31m%s\x1b[0m', e)
   }
 
-  const deleteStack = async () => {
-    //FUBAR Need to killize this
-    try {
-      await exec(`aws cloudformation describe-stacks --stack-name ${'amazon-ecs-cli-setup-'.concat(awsResources.name)} --profile ${useIAM}`)
-    } catch (e) {
-      console.warn('\x1b[31m%s\x1b[0m', `Unable to find cloudformation stack ${'amazon-ecs-cli-setup-'.concat(awsResources.name)}. May have already been deleted. Skipping.`)
-    }
-    try {
-      return exec(`aws cloudformation delete-stack --stack-name ${'amazon-ecs-cli-setup-'.concat(awsResources.name)} --profile ${useIAM}`)
-    } catch (e) {
-      console.error(`Unable to delete cloudformation stack ${'amazon-ecs-cli-setup-'.concat(awsResources.name)}.`)
-      console.error(e)
-      return
-    }
-  }
-  const deletedStack = deleteStack()
-
+  
   const deleteLoadBalancer = async () => {
     //FUBAR Need to killize this
     let deletedLoadBalancer
@@ -2119,6 +2192,7 @@ export const awsArmageddon = async (useIAM, killType) => {
   await Promise.all([ deletedBucket ])
 
   console.log(`Before deleting security groups, wait for DBs to be completed deleted`)
+
   const waitForDBDeletion = async (dbs) => {
     let temp
     const checkDBDeletion = (dbId) => {
