@@ -3,7 +3,7 @@ import pushkinClient from 'pushkin-client';
 import { initJsPsych } from 'jspsych';
 import { withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
-import timeline_basic from './experiment';
+import { createTimeline } from './experiment';
 import jsYaml from 'js-yaml';
 const fs = require('fs');
 
@@ -41,11 +41,11 @@ class quizComponent extends React.Component {
 
     jsPsych.data.addProperties({user_id: this.props.userID}); //See https://www.jspsych.org/core_library/jspsych-data/#jspsychdataaddproperties
     await pushkin.connect(this.props.api);
-    await pushkin.prepExperimentRun(this.props.userID);
+    //await pushkin.prepExperimentRun(this.props.userID);
     
-    const timeline = pushkin.setSaveAfterEachStimulus(timeline_basic);
+    const timeline = createTimeline(jsPsych);
 
-    await jsPsych.run(timeline);
+    jsPsych.run(timeline);
 
     document.getElementById('jsPsychTarget').focus();
     this.setState({ loading: false });
