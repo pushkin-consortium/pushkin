@@ -269,8 +269,9 @@ export async function setupdb(coreDBs, mainExpDir) {
   //But just in case, this ridiculously roundabout loop...
   const wait = async () => {
     //Sometimes, I really miss loops
-    let x = await exec (`docker ps --format "{{.Names}} {{.Status}}" | grep "pushkin[-_]test_db[-_]1"`)
+    let x = await exec (`docker ps --format "{{.Names}} {{.Status}}" | awk '/pushkin[-_]test_db[-_]1/ {print $0}'`)
           .then((x) => {
+            console.log(x)
             console.log('Waiting for test db...')
             return x.stdout.search('healthy')
           },
@@ -317,7 +318,7 @@ export async function migrateTransactionsDB(coreDBs){
   //To wait for db to be up, this ridiculously roundabout loop...
   const wait = async () => {
     //Sometimes, I really miss loops
-    let x = await exec (`docker ps --format "{{.Names}} {{.Status}}" | grep "pushkin[-_]test_transaction_db[-_]1"`)
+    let x = await exec (`docker ps --format "{{.Names}} {{.Status}}" | awk '/pushkin[-_]test_transaction_db[-_]1/ {print $0}'`)
           .then((x) => {
             console.log('Waiting for test transaction db...')
             return x.stdout.search('healthy')
@@ -326,7 +327,7 @@ export async function migrateTransactionsDB(coreDBs){
     if (x > 0) {
 
       let transMigrations = new Map()
-      console.log(`Starting migrations for test transactios DB.`)
+      console.log(`Starting migrations for test transactions DB.`)
       transMigrations.set('localtransactiondb', [{ migrations: path.join(process.cwd(), 'coreMigrations'), seeds: '' }]); 
       await runMigrations(transMigrations, coreDBs)
       return new Promise((resolve, reject) => {      

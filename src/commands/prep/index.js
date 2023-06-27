@@ -27,31 +27,19 @@ const publishLocalPackage = async (modDir, modName) => {
       buildCmd = pacRunner.concat(' build-if-changed')
     }
     console.log(`Installing dependencies for ${modDir}`);
-    try {
-      exec(pacMan.concat(' install --mutex network'), { cwd: modDir })
+    exec(pacMan.concat(' install --mutex network'), { cwd: modDir })
+      .then(() => {
+        console.log(`Building ${modName} from ${modDir}`);
+        exec(buildCmd, { cwd: modDir })
         .then(() => {
-          console.log(`Building ${modName} from ${modDir}`);
-          exec(buildCmd, { cwd: modDir },
-            (error) => {
-              if (error) {
-                console.error(`Problem building ${modName}`);
-                console.error(error)
-                process.exit();
-              }
-            })
+          console.log(`${modName} is built`);
+          exec('yalc publish --push', { cwd: modDir })
             .then(() => {
-              console.log(`${modName} is built`);
-              exec('yalc publish --push', { cwd: modDir })
-                .then(() => {
-                  console.log(`${modName} is published locally via yalc`);
-                  resolve(modName)
-                })
+              console.log(`${modName} is published locally via yalc`);
+              resolve(modName)
             })
         })
-    } catch (e) {
-      console.error(`Problem updating ${modName}`)
-      throw(e)
-    }
+      })
   })
 };
 

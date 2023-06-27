@@ -97,14 +97,17 @@ const buildFE = function (projName) {
     }
     let builtWeb
     console.log("Building combined front-end")
-    builtWeb = exec(buildCmd, { cwd: path.join(process.cwd(), 'pushkin/front-end') })
-      .on('error', (error) => {
-        console.error('Problem installing and buiding combined front-end')
-        console.error(error)
-        process.exit()
+    try {
+      builtWeb = exec(buildCmd, { cwd: path.join(process.cwd(), 'pushkin/front-end') })
+      .then(() => {
+        console.log("Installed combined front-end")
+        resolve(builtWeb)
       })
-      .then(console.log("Installed combined front-end"))
-    resolve(builtWeb)
+    } catch (error) {
+      console.error('Problem installing and buiding combined front-end')
+      console.error(error)
+      process.exit()
+    }
   })
 }
 
