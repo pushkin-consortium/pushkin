@@ -34,14 +34,15 @@ class quizComponent extends React.Component {
   async startExperiment() {
     this.setState({ experimentStarted: true });
 
+    await pushkin.connect(this.props.api);
+    await pushkin.prepExperimentRun(this.props.userID);
+
     const jsPsych = initJsPsych({
       display_element: document.getElementById('jsPsychTarget'),
       on_finish: this.endExperiment.bind(this),
     });
 
     jsPsych.data.addProperties({user_id: this.props.userID}); //See https://www.jspsych.org/core_library/jspsych-data/#jspsychdataaddproperties
-    await pushkin.connect(this.props.api);
-    //await pushkin.prepExperimentRun(this.props.userID);
     
     const timeline = createTimeline(jsPsych);
 
