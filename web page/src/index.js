@@ -1,7 +1,6 @@
 import React from 'react';
 import pushkinClient from 'pushkin-client';
 import { initJsPsych } from 'jspsych';
-import { withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
 import { createTimeline } from './experiment';
 import jsYaml from 'js-yaml';
