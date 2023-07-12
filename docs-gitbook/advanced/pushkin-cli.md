@@ -39,7 +39,7 @@ The CLI has the following subcommands:
 
 Syntax: `pushkin config [what]`
 
-View config file for `what` , replacing `what` with `site` or any of the installed experiments by name. Defaults to all.
+View config file for _**what**_ , replacing **_what_** with **_site_** or any of the installed experiments by name. Defaults to all.
 
 ### install site
 
