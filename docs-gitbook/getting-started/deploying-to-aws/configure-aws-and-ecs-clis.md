@@ -14,7 +14,7 @@ Navigate to *My Account* and enable access to billing data for IAM users.
 
 ![](../../.gitbook/assets/aws_10.gif)
 
-Select *Users* in the left sidebar and click **Add user**. 
+Navigate back to [Identity and Access Management](https://console.aws.amazon.com/iam/), select *Users* in the left sidebar and click **Add user**. 
 
 ![](../../.gitbook/assets/aws_12.gif)
 
@@ -26,7 +26,7 @@ Under the *Add user to group* tab, select **Create group**. Call the group name 
 
 ![](../../.gitbook/assets/aws_14.gif)
 
-Click through the *Tags* page, review your setings and click **Create user**. Download the CSV with login information.
+Click through the *Tags* page, review your settings and click **Create user**. Download the CSV with login information.
 
 ![](../../.gitbook/assets/aws_15.gif)
 
@@ -34,7 +34,7 @@ Return to the *Users* page and select the **Security credentials** tab for the `
 
 ![](../../.gitbook/assets/aws_16.gif)
 
-Under *Access keys*, click **Create access keys**. Download the CSV with the Access Key ID and Secret Access Key for later reference.
+Under *Access keys*, click **Create access keys**. Then, under users, click `Administrator` and copy the _ARN_ code and store it somewhere for future reference.
 
 ![](../../.gitbook/assets/aws_17.gif)
 
