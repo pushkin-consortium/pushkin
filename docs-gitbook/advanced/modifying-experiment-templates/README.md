@@ -34,8 +34,8 @@ Most Pushkin native experiment templates will include the following files for ed
 This file contains some settings you can customize for the experiment. Currently, the default settings in every experiment template are:
 
 * **fontColor**: Set the color for the experiment's font. This can be a web color name, a hex color code, or rgb setting. The default setting is "black."
-* **fontSize**: Set the font family. This accepts any font family universally available to web browsers.
-* **fontFamily**: Set the font family. 
+* **fontSize**: Set the font size. 
+* **fontFamily**: Set the font family. This accepts any font family universally available to web browsers.
 
 ### stim.js
 
