@@ -34,7 +34,7 @@ Return to the *Users* page and select the **Security credentials** tab for the `
 
 ![](../../.gitbook/assets/aws_16.gif)
 
-Under *Access keys*, click **Create access keys**. Then, under users, click `Administrator` and copy the _ARN_ code and store it somewhere for future reference.
+Under *Access keys*, click **Create access keys**.
 
 ![](../../.gitbook/assets/aws_17.gif)
 
