@@ -32,31 +32,20 @@ Head to the [AWS EC2 console](https://console.aws.amazon.com/ec2/v2/home) and, i
 
 ![](../../.gitbook/assets/2%20%281%29.gif)
 
-Click on the _Launch Instance_ button. In the left sidebar, click the _Free tier only_ check box.
-
-![](../../.gitbook/assets/4%20%281%29.gif)
-
-Then, scroll down to **Ubuntu Server 18.04 LTS** and click _Select_.
+Click on the _Launch Instance_ button. 
 
 ![](../../.gitbook/assets/3%20%281%29.gif)
 
-On the next page, click _Review and launch_ in the bottom-right corner.
+Scroll down to the **Application and OS Images (Amazon Machine Image)** and under the **Quick Start** tab and click on Ubuntu. The default selected should say _Free tier eligible_, but if it doesn't, click on the box and select a version that is free. 
 
-![](../../.gitbook/assets/5%20%281%29.gif)
+Now, scroll down to the **Key pair (login)** option, and on the bottom right, click on **Create new key pair**, create a new key pair and give it a name, \(e.g., "pushkin-testing-key"\), set it to **RSA** key type and change the private key format to **.ppk**. **Make sure to dowload this file, keep it somewhere as this will be necessary to connect your instance later**
 
-Next, under the **Security Groups** heading, select _Edit Security Groups_ on the right-hand side.
 
-![](../../.gitbook/assets/6%20%281%29.gif)
+Next, on the right of the **Network settings** heading, select _Edit_.
 
-Select _Add rule_ scroll down and, under _Type_, choose **HTTP** in the drop-down menu. Then, select _Add rule_ again and, under _Type_, select "HTTPS". Then click _Review and Launch_ in the bottom-right corner.
+Select _Add security group rule_, under _Type_, choose **HTTP** in the drop-down menu. Then, select _Add rule_ again and, under _Type_, select "HTTPS". 
 
-![](../../.gitbook/assets/7%20%281%29.gif)
-
-Click **Launch** then create a new key pair and give it a name, \(e.g., "pushkin-testing-key"\) and press **Download Key Pair**. Keep track of where this key has downloaded \(it will have a ".pem" extension\), as you will need this to connect to your instance later.
-
-![](../../.gitbook/assets/8%20%281%29.gif)
-
-Once the key has downloaded, press **Launch Instance**.
+Now, click on **Launch Instance**.
 
 ![](../../.gitbook/assets/9%20%281%29.gif)
 
@@ -65,30 +54,6 @@ Next, in the box that says "Your instances are now launching," click the instanc
 ![](../../.gitbook/assets/10%20%281%29.gif)
 
 This will take you to the AWS EC2 console. You should keep this window open.
-
-### Install and configure PuTTY
-
-Now that you have launched the Ubuntu instance, you can connect to it. We recommend using PuTTY for this. Instructions for configuring PuTTY to connect to your EC2 instance can be found [here](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/putty.html) and are copied here for convenience.
-
-First, download and install [PuTTY](https://www.chiark.greenend.org.uk/~sgtatham/putty/).
-
-![](../../.gitbook/assets/15%20%281%29.gif)
-
-In the Windows start menu, open **PuTTYgen**.
-
-Under **Type of key to generate**, choose **RSA**. If you're using an older version of PuTTYgen, choose **SSH-2 RSA**.
-
-![](../../.gitbook/assets/23%20%281%29.gif)
-
-Choose **Load**. By default, PuTTYgen displays only files with the extension ".ppk". To locate your ".pem" file, choose the option to display all file types. Select the ".pem" file and choose **Open**. On the notice that pops up, choose **OK**.
-
-![](../../.gitbook/assets/24%20%281%29.gif)
-
-To save the key in the format that PuTTY can use, choose **Save private key**. PuTTYgen displays a warning about saving the key without a passphrase. Choose **Yes**.
-
-![](../../.gitbook/assets/25%20%281%29.gif)
-
-Specify the same name for the key that you used for the key pair \(in this example, "pushkin-testing-key"\) and choose **Save**. PuTTY automatically adds the ".ppk" file extension. After this you can close PuTTYgen.
 
 ### Connect to your EC2 instance
 
@@ -110,13 +75,12 @@ Ensure that the _Port value_ is **22**, the under _Connection type_ select **SSH
 
 ![](../../.gitbook/assets/18%20%281%29.gif)
 
-In the Category pane, expand **Connection**, expand **SSH**, then choose **Auth**.
+In the Category pane, expand **Connection**, expand **SSH**, expand **Auth**, then choose **Credentials**.
 
-![](../../.gitbook/assets/19%20%281%29.gif)
 
-Choose **Browse**, then select the ".ppk" file you generated for your key pair and choose **Open**.
+Select the ".ppk" file you generated for your key pair and choose **Open**.
 
-![](../../.gitbook/assets/20%20%281%29.gif)
+
 
 If you plan to start the session again later, you can save the session information. Under _Category_, choose **Session**, enter a name for the session in _Saved Sessions_, and then choose **Save**.
 
