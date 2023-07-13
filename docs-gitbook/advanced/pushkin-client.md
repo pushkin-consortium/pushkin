@@ -62,7 +62,7 @@ A convenience function. Uses loadScript and Promise.all in the backend.
 
 **Returns:** Promise. Resolves upon affirmation.
 
-Sends a POST request to \[expapi\]/startExperiment to allow the backend to prepare stimuli for the experiment, if need be. Depends on defaults being enable in the experiment’s API and worker.
+Sends a POST request to \[expapi\]/startExperiment to allow the backend to prepare stimuli for the experiment, if need be. Depends on defaults being enabled in the experiment’s API and worker.
 
 ### getAllStimuli
 
@@ -70,7 +70,7 @@ Sends a POST request to \[expapi\]/startExperiment to allow the backend to prepa
 
 **Returns:** Promise. Resolves to an array of jsPsych stimuli.
 
-Obtains the stimuli for this experiment in one request. Depends on defaults being enable in the experiment’s API and worker.
+Obtains the stimuli for this experiment in one request. Depends on defaults being enabled in the experiment’s API and worker.
 
 ### setSaveAfterEachStimulus
 
@@ -106,9 +106,9 @@ Likely not wanted to be invoked directly by most users. Easiest to use if added 
 
 **Arguments:** None
 
-**Returns:** Promise. Reolves upon successfully notifying the worker.
+**Returns:** Promise. Resolves upon successfully notifying the worker.
 
-Notify the worker that the experiment has ended and it can stop preparing for future stimuli. This should probably be called whenever the user leaves a page in the middle of an experiment as well.
+Notify the worker that the experiment has ended and that it can stop preparing for future stimuli. This should probably be called whenever the user leaves a page in the middle of an experiment as well.
 
 ### customApiCall
 
@@ -124,7 +124,7 @@ Notify the worker that the experiment has ended and it can stop preparing for fu
 
 * **httpMethod** : string \(optional\)
 
-  A lowercase string of an http method to call the endpoint, such as “get” or “put”.
+  A lowercase string of an HTTP method to call the endpoint, such as “get” or “put”.
 
 **Returns:** Promise. Resolves with response data.
 
