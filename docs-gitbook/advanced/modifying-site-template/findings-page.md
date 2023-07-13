@@ -2,7 +2,7 @@
 
 ## Add a Findings Card
 
-To add a card in the findings page, open `FindingsData.js` located in `components/Findings`. You should see an array of objects that looks like this:
+To add a card to the findings page, open `FindingsData.js` located in `components/Findings`. You should see an array of objects that looks like this:
 
 ```javascript
 const findingsData = [
@@ -36,13 +36,13 @@ const findingsData = [
 ];
 ```
 
-You can edit five of the properties: **title**, **image**, **description**, **link**, and **url** in each object, in order to change the content in each findings card. You can add more by copy and pasting from { through }, making sure that you have a comma after } any time there is another { following.
+You can edit five of the properties: **title**, **image**, **description**, **link**, and **url** in each object, in order to change the content in each findings card. You can add more by copying and pasting from { through }, making sure that you have a comma after } any time there is another { following.
 
-To add a external link, set link property to `true` and fill the url property. Then a Read More button will appear in the findings card.
+To add an external link, set link property to `true` and fill the url property. Then a Read More button will appear on the findings card.
 
 ## CardGroup
 
-The `<CardGroup>` component renders cards as a single, attached element with equal width and height columns. We wrapped card components in `<CardGroup>` inside a `<Container>` in findings page.
+The `<CardGroup>` component renders cards as a single, attached element with equal width and height columns. We wrapped card components in `<CardGroup>` inside a `<Container>` in the findings page.
 
 ## Align Card Vertically in CardGroup
 
