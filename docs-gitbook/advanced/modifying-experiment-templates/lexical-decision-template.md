@@ -16,7 +16,7 @@ When **correctiveFeedback** is set to true, the bounding box will change color t
 
 **word\_1**: Word displayed on top in fixation box
 
-**word\_2**: Word displayed on bottom in fixation box
+**word\_2**: Word displayed on the bottom in fixation box
 
 **both\_words**: If true, 'Y' is the correct answer \(both word\_1 and word\_2 are real words\). If false, 'N' is the correct answer \(both or only one of word\_1 and word\_2 are not real words\)
 
@@ -116,7 +116,7 @@ Say you have created the following table of stimuli for your experiment.
 | CLEB   | CLED   | false      | false   |
 | AFTY   | AFLY   | false      | false   |
 
-In order to be able to use these stimuli in the lexical decision experiment, you must use a table to JSON converter such as [this one](https://tableconvert.com/) to format it correctly for jsPsych. 
+In order to be able to use these stimuli in the lexical decision experiment, you must use a table-to-JSON converter such as [this one](https://tableconvert.com/) to format it correctly for jsPsych. 
 
 Once it has been converted, paste the JSON into the `stim.js` file, which should now look like this:
 
