@@ -1,6 +1,6 @@
 # React Bootstrap
 
-The pushkin site template uses [React-Bootstrap](https://react-bootstrap.github.io/) as its front end UI library. It is a complete re-implementation of the Bootstrap components using React. It has no dependency on either bootstrap.js or jQuery.
+The pushkin site template uses [React-Bootstrap](https://react-bootstrap.github.io/) as its front-end UI library. It is a complete re-implementation of the Bootstrap components using React. It has no dependency on either bootstrap.js or jQuery.
 
 ## Import Libraries
 
@@ -15,7 +15,7 @@ import { Button } from 'react-bootstrap';
 
 ## Inline Styling
 
-In React, inline styles are not specified as a string. Instead they are specified with an object whose key is the camelCased version of the style name, and whose value is the style’s value, usually a string:
+In React, inline styles are not specified as a string. Instead, they are specified with an object whose key is the camelCased version of the style name, and whose value is the style’s value, usually a string:
 
 ```css
 const styles = {
@@ -47,7 +47,7 @@ React lets you add CSS inline, written as attributes and passed to elements:
 
 ## Spacing
 
-React Bootstrap spacing is a utility which assigns responsive margin or padding classes to elements to modify its display position.
+React Bootstrap spacing is a utility that assigns responsive margin or padding classes to elements to modify their display position.
 
 The classes are named using the format {property}{sides}-{size} for xs and {property}{sides}-{breakpoint}-{size} for sm, md, lg, and xl.
 
