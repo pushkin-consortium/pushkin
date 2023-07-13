@@ -43,7 +43,7 @@ The full name of your experiment. This is used as a display name on the website 
 
 ## shortName
 
-This is a short, more computer friendly version of you experiment’s name. It should be unique as it is used as the folder name in the experiments folder.
+This is a short, more computer-friendly version of your experiment’s name. It should be unique as it is used as the folder name in the experiments folder.
 
 ## apiControllers
 
@@ -51,7 +51,7 @@ Note that this is an array. As many API controllers can be used as needed.
 
 ### mountPath
 
-URL this controller’s endpoint will be available at. Full path is /api/\[mountPath\].
+URL this controller’s endpoint will be available at. The full path is /api/\[mountPath\].
 
 ### location
 
