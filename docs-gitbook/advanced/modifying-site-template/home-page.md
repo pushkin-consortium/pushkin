@@ -4,7 +4,7 @@
 
 To add a quiz, run `pushkin install experiment`. Select the experiment template of choice \([see this list for the options](../modifying-experiment-templates/#current-templates)\). This will create a pushkin experiment template in the `experiments/` folder.
 
-Open the `config.js` located in your experiment folder, modify the experiment name, shortName, logo, text etc.
+Open the `config.js` located in your experiment folder, and modify the experiment name, shortName, logo, text, etc.
 
 ```javascript
 experimentName: &fullName 'mind Experiment'
@@ -75,7 +75,7 @@ Then the new quiz card will be automatically added to the home page.
 </Jumbotron>
 ```
 
-It includes a link to the feedback page, an archor tag wrapped in `<LinkContainer>` component.
+It includes a link to the feedback page and an anchor tag wrapped in `<LinkContainer>` component.
 
 ## CardDeck
 
@@ -83,7 +83,7 @@ The `<CardDeck>` creates a grid of cards that are of equal height and width. The
 
 ## Card
 
-[Bootstrap’s cards](https://react-bootstrap.netlify.app/components/cards/) provide a flexible and extensible content container with multiple variants and options:
+[Bootstrap’s cards](https://react-bootstrap.netlify.app/components/cards/) provides a flexible and extensible content container with multiple variants and options:
 
 > * Body: Use `<Card.Body>` to pad content inside a `<Card>`.
 > * Title, text, and links: Using `<Card.Title>`, `<Card.Subtitle>`, and `<Card.Text>` inside the `<Card.Body>` will line them up nicely. `<Card.Link>` are used to line up links next to each other.
