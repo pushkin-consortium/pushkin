@@ -18,7 +18,7 @@ When **correctiveFeedback** is set to true, the bounding box will change color t
 
 **word\_2**: Word displayed on bottom in fixation box
 
-**both\_words**: If true, 'Y' is the correct answer \(both word\_1 and word\_2 are real words\). If false, one or both of the words is not a real world and the correct answer is 'N'
+**both\_words**: If true, 'Y' is the correct answer \(both word\_1 and word\_2 are real words\). If false, 'N' is the correct answer \(both or only one of word\_1 and word\_2 are not real words\)
 
 **related**: If true, the words are related to each other \(e.g. leaf and tree\). If false, the words are unrelated \(e.g. sock and tree\).
 
