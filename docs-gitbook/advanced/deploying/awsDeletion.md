@@ -13,19 +13,19 @@ The pushkin CLI will delete resources it was responsible for creating. Run:
 $ pushkin aws armageddon
 ```
 
-This will leave in place your IAM users, any database snapshots, and task definitions, but otherwise everything is deleted INCLUDING YOUR DATA (unless you have snapshots), so use this with caution. 
+This will leave in place your IAM users, any database snapshots, and task definitions, but otherwise, everything is deleted INCLUDING YOUR DATA (unless you have snapshots), so use this with caution. 
 
 When the program finishes running, it will list any deletable resources that were not successfully deleted. Sometimes, running `pushkin aws armageddon` more than once will remove the hold-outs. If not...
 
 ## Console
 
-The CLI does its best to remove things it was responsible for creating. However, if you creating anything outside the CLI, or if AWS changes how some things work, or if `pushkin aws init` crashed when running, the CLI may not be able to delete everything. In that case, you should use the AWS CLI:
+The CLI does its best to remove things it was responsible for creating. However, if you are creating anything outside the CLI or if AWS changes how some things work, or if `pushkin aws init` crashes when running, the CLI may not be able to delete everything. In that case, you should use the AWS CLI:
 
 1. Go to the [RDS service](https://console.aws.amazon.com/rds). Click on "DB Instances". For each instance:
 
 	A. Choose Modify.
 
-	B. Scroll to the bottom and deselect `Enable deletion proection`.
+	B. Scroll to the bottom and deselect `Enable deletion protection`.
 	
 	C. On the next page, choose to apply changes immediately.
 	
@@ -49,7 +49,7 @@ Finally, go to the [S3 service](https://s3.console.aws.amazon.com/s3). Choose yo
 
 ------
 
-At this point, you've deleted mostly everything. We have not deleted any database snapshots or backups. We did not delete SSL certificates or domain names, which you created during initial deploy. We also didn't delete any ECS task definitions, because that does not appear to be possible. 
+At this point, you've deleted mostly everything. We have not deleted any database snapshots or backups. We did not delete SSL certificates or domain names, which you created during the initial deploy. We also didn't delete any ECS task definitions, because that does not appear to be possible. 
 
-However, we have deleted everything that costs a significant amount of money, or would interfere with re-deploying your pushkin site. Note that DB snapshots aren't free to store (they are cheap, though), and your domain name may be on auto-renewal. If you really want to get rid of *everything*, the best bet is to delete your account itself.
+However, we have deleted everything that costs a significant amount of money or would interfere with re-deploying your pushkin site. Note that DB snapshots aren't free to store (they are cheap, though), and your domain name may be on auto-renewal. If you really want to get rid of *everything*, the best bet is to delete your account itself.
 
