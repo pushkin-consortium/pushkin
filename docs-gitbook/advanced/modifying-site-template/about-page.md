@@ -1,10 +1,10 @@
 # About Page
 
-The about page is wrapped in a fluid `Container` component, which is a full width container, spanning the entire width of the viewport.
+The About page is wrapped in a fluid `Container` component, which is a full-width container, spanning the entire width of the viewport.
 
 ## Card Image Overlays
 
-The `<Card.ImgOverlay>` component turns an image into a card background and overlay your card’s text:
+The `<Card.ImgOverlay>` component turns an image into a card background and overlays your card’s text:
 
 ```jsx
 <Card className="bg-dark text-white">
@@ -25,7 +25,7 @@ The `<Card.ImgOverlay>` component turns an image into a card background and over
 
 ## Add a Team Member In About Page
 
-To add a team member in the about page, open `People.js` located in `components/TeamMember`, it should be an array of objects look like this:
+To add a team member to the About page, open `People.js` located in `components/TeamMember`, it should be an array of objects that look like this:
 
 ```javascript
 const people = [
@@ -47,7 +47,7 @@ const people = [
 ]
 ```
 
-Each object contains three properties: name, image and description. Edit the name and description properties in `People.js`.
+Each object contains three properties: name, image, and description. Edit the name and description properties in `People.js`.
 
 To add a profile picture of the team member. Copy the image file into the `assets/images/teamMember` folder.
 
