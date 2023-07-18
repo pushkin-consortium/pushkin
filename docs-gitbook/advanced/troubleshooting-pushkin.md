@@ -25,7 +25,7 @@ This can happen when your database is still configured for another Pushkin site 
 ### Error: no space left on device
 If you are using Pushkin on an Amazon EC2 instance and have several experiments installed, you may run out of space on your instance. If you get an error stating that there is no space left on your device, you will need to increase the amount of disk space allocated to your instance in order to continue.
 
-At the time of writing, the AWS Free Tier includes [30 GB of Elastic Block storage](https://aws.amazon.com/free/?all-free-tier.sort-by=item.additionalFields.SortRank&all-free-tier.sort-order=asc&awsf.Free%20Tier%20Categories=categories%23storage)&mdash;the kind of storage your EC2 instance uses&mdash;for the first 12 months of your AWS membership. Remember that deploying Pushkin to AWS also includes uses some of that storage. Increasing from the default 8 GB of storage to 16 GB might be a good start.
+At the time of writing, the AWS Free Tier includes [30 GB of Elastic Block storage](https://aws.amazon.com/free/?all-free-tier.sort-by=item.additionalFields.SortRank&all-free-tier.sort-order=asc&awsf.Free%20Tier%20Categories=categories%23storage)&mdash;the kind of storage your EC2 instance uses&mdash;for the first 12 months of your AWS membership. Remember that deploying Pushkin to AWS also includes using some of that storage. Increasing from the default 8 GB of storage to 16 GB might be a good start.
 
 [This tutorial](https://medium.com/findworka/how-to-increase-disk-size-for-an-ec2-instance-on-aws-b82181df6215) explains how to increase the disk size of your EC2 instance.
 

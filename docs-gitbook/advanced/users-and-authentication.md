@@ -48,7 +48,7 @@ const Header = props => {
 
 Note that `userEffect` is a React [lifecycle hook for functional components](https://itnext.io/add-state-and-lifecycle-methods-to-function-components-with-react-hooks-8e2bdc44d43d). It gets triggered when the component is loaded, as well as any time the values of `isAuthenticated, props.userID` or `user` change.
 
-In principle, this saga could be triggered elsewhere. One thing to keep track of is that because it is asyncronous, components \(including the header\) may load before the user has been set.
+In principle, this saga could be triggered elsewhere. One thing to keep track of is that because it is asynchronous, components \(including the header\) may load before the user has been set.
 
 ## Generating UserIDs
 
@@ -79,7 +79,7 @@ If authentication is enabled, then userIDs can be supplied by auth0. We use code
 </Auth0Provider>,
 ```
 
-As you can see, it looks a lot like the Redux providor. It works similarly: children get access to a few useful variables and methods. You can see this in `react-auth0-spa.js`:
+As you can see, it looks a lot like the Redux provider. It works similarly: children get access to a few useful variables and methods. You can see this in `react-auth0-spa.js`:
 
 ```jsx
 return (

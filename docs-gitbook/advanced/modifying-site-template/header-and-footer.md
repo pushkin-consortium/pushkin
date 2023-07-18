@@ -4,7 +4,7 @@ The `Header.js` and `Footer.js` components are located in `pushkin/front-end/src
 
 ## Navbar logo
 
-To Change the logo in the navbar, copy your logo image into the `pushkin/front-end/src/assets/logo` folder, modify the path in `src={require("../../assets/images/logo/NavbarLogo.png")}` in the `<Navbar.Brand>`. You can also modify the logo’s size using `width` and `height` attribute in the `<img />` tag.
+To Change the logo in the navbar, copy your logo image into the `pushkin/front-end/src/assets/logo` folder, modify the path in `src={require("../../assets/images/logo/NavbarLogo.png")}` in the `<Navbar.Brand>`. You can also modify the logo’s size using the `width` and `height` attributes in the `<img />` tag.
 
 ## Navbar Color Schemes
 

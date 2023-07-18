@@ -39,7 +39,7 @@ The CLI has the following subcommands:
 
 Syntax: `pushkin config [what]`
 
-View config file for `what` , replacing `what` with `site` or any of the installed experiments by name. Defaults to all.
+View config file for _**what**_, replacing **_what_** with **_site_** or any of the installed experiments by name. Defaults to all.
 
 ### install site
 
@@ -73,7 +73,7 @@ Running `pushkin start --help` will display help for the command.
 
 #### Details
 
-The code for `prep` is a bit convoluted \(sorry\). It loops through each experiment in the experiments folder \(as defined by `pushkin.yaml`\). For each experiment, it does thie following:
+The code for `prep` is a bit convoluted \(sorry\). It loops through each experiment in the experiments folder \(as defined by `pushkin.yaml`\). For each experiment, it does the following:
 
 * It compiles and then tarballs the api controllers. These are moved to `pushkin/api/tempPackages`. This package is then added as a local package to `pushkin/api/package.json`, which allows them to be called during production.
 * It compiles the worker and then builds a docker image for it. It is then added to `docker-compose.dev.yml` so that docker knows to include it when the website is built.
@@ -81,7 +81,7 @@ The code for `prep` is a bit convoluted \(sorry\). It loops through each experim
 
 Finally, it updates `pushkin/front-end/src/experiments.js` to list each experiment, along with key information from the experiment’s config file. This will be read by the front end to build the list of experiments to display to potential participants.
 
-Note that before any of this happens, `prep` actually goes through and deletes all old tempPackages, cleans up the package.jsons and docker-compose-dev.yml and empties experiments.js. Thus, to delete an experiment, all you have to do is delete it’s folder from the experiment folder. \(Of course, that won’t get rid of the docker image for the worker, so you’ll need to clean those up by hand periodically.\)
+Note that before any of this happens, `prep` actually goes through and deletes all old tempPackages, cleans up the package.jsons and docker-compose-dev.yml, and empties experiments.js. Thus, to delete an experiment, all you have to do is delete its folder from the experiment folder. \(Of course, that won’t get rid of the docker image for the worker, so you’ll need to clean those up by hand periodically.\)
 
 ### start
 
@@ -117,5 +117,5 @@ Complete reset of the local docker, including containers, volumes, and third-par
 
 Syntax: `pushkin help [command]`
 
-Provides information on a specific pushkin command, you can add the command after help \(e.g. `pushkin help prep` to learn about the prep command and its options\). Defaults to a list of all commands and general information about each if no command specified.
+Provides information on a specific pushkin command, you can add the command after help \(e.g. `pushkin help prep` to learn about the prep command and its options\). Defaults to a list of all commands and general information about each if no command is specified.
 

@@ -12,20 +12,20 @@ To install this experiment template, use the command `pushkin install experiment
 
 **displayType**: Setting for how target words or text are isolated. Option of either:
 
-1. "moving": display full target text on the page, with dashes replacing words/text to mimic reading rate
+1. "moving": display full target text on the page, with dashes replacing words/text to mimic the reading rate
 2. "separate": display each word/chunk of text independently on separate pages.
 
-**displayRate**: Setting for structure of the text and units of target text to be displayed together. Option of:
+**displayRate**: Setting for the structure of the text and units of target text to be displayed together. Option of:
 
 * "word" for displaying word-by-word \(one word at a time, with remaining words replaced with dashes\).
-* "chunk" for setting your own break points using + signs in your sentence stimuli to indicate chunks of text to be displayed together \(i.e. 1 or more words at once\), one at a time. _Be sure to have the + sign before and after each chunk: for example, "+This is+ the target+ sentence.+"_
+* "chunk" for setting your own breakpoints using + signs in your sentence stimuli to indicate chunks of text to be displayed together \(i.e. 1 or more words at once\), one at a time. _Be sure to have the + sign before and after each chunk: for example, "+This is+ the target+ sentence.+"_
 * "sentence word" for showing sentence by sentence. The last sentence in the stimulus automatically becomes the target sentence, with the words displayed one at a time.
 * "sentence chunk" for showing sentence by sentence. The last sentence in the stimulus automatically becomes the target sentence, with the chunks displayed one at a time - chunks must be separated by + signs.
 * "sentence" without word or chunk, it will default to word.
 
 ## stim.js
 
-**sentence:** The sentence or text to be read. See above for details on how to note what chunks of words should be displayed together for self-paced reading display rate.
+**sentence:** The sentence or text to be read. See above for details on how to note what chunks of words should be displayed together for a self-paced reading display rate.
 
 ## Example: Customizing a self-paced reading experiment
 
@@ -107,7 +107,7 @@ Say you have created the list of sentences for your experiment and marked where 
 | +The careful argument+ was a statement+ which no opponent+ could easily argue with.+         |
 | +The charming neighborhood+ was a district+ which young couples+ could comfortably live in.+ |
 
-In order to be able to use these stimuli in the self-paced reading experiment, you must use a table to JSON converter such as [this one](https://tableconvert.com/) to format it correctly for jsPsych. 
+In order to be able to use these stimuli in the self-paced reading experiment, you must use a table-to-JSON converter such as [this one](https://tableconvert.com/) to format it correctly for jsPsych. 
 
 Once it has been converted, paste the JSON into the `stim.js` file, which should now look like this:
 

@@ -10,7 +10,7 @@ To install this experiment template, use the command `pushkin install experiment
 
 ### config.js
 
-When **correctiveFeedback** is set to true: the two-alternative forced choice question will indicate if participant's response was correct \(in green font\) or not \(in red font\). For the likert scale or slider, text indicating if the sentence was grammatical or ungrammatical will show. For all response types, when this is set to false, a fixation cross appears instead of corrective feedback.
+When **correctiveFeedback** is set to true: the two-alternative forced choice question will indicate if the participant's response was correct \(in green font\) or not \(in red font\). For the likert scale or slider, text indicating if the sentence was grammatical or ungrammatical will show. For all response types, when this is set to false, a fixation cross appears instead of corrective feedback.
 
 **responseType**: Set whether the response type is 2-alternative forced choice \(set to "2afc"\), 5 item likert scale \(set to "likert"\), or a slider from 0-100 \(set to "slider"\).
 
@@ -121,7 +121,7 @@ Say you have created the following table of stimuli for your experiment.
 | This is an example\.  | This an example\.       |
 
 
-In order to be able to use these stimuli in the grammaticality judgment experiment, you must use a table to JSON converter such as [this one](https://tableconvert.com/) to format it correctly for jsPsych. 
+In order to be able to use these stimuli in the grammaticality judgment experiment, you must use a table-to-JSON converter such as [this one](https://tableconvert.com/) to format it correctly for jsPsych. 
 
 Once it has been converted, paste the JSON into the `stim.js` file. You may need to manually add spaces, as the file should now look like this:
 
