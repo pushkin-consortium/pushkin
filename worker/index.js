@@ -10,13 +10,23 @@ const options = {
 };
 
 const connection = {
-	host: process.env.DB_URL,
+	host: process.env.DB_HOST,
 	user: process.env.DB_USER,
 	password: process.env.DB_PASS,
-	database: process.env.DB_NAME,
+	database: process.env.DB_DB,
 };
 
-console.log(connection)
+const transactionOps = {
+	tableName: 'transactions',
+	connection: {
+			host: process.env.TRANS_HOST,
+			user: process.env.TRANS_USER,
+			password: process.env.TRANS_PASS,
+			database: process.env.TRANS_DB,
+	}
+}
+
+console.log(connection);
 
 const worker = new pWorker(options);
 worker.init()
@@ -25,7 +35,7 @@ worker.init()
 			console.log(`handling test method got data: ${data}`);
 			return `successfully got ${data}`;
 		});
-		worker.useHandler(defaultHandler, connection, 'pushkintemplate', false);
+		worker.useHandler(defaultHandler, connection, 'pushkintemplate', transactionOps);
 		worker.start();
 	})
 	.catch(err => {

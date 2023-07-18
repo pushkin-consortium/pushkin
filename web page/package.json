@@ -12,11 +12,12 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "buffer": "^6.0.3",
     "build-if-changed": "^1.5.5",
-    "js-yaml": "^3.14.0",
+    "js-yaml": "^4.1.0",
     "pushkin-client": "^1.5.0",
     "pushkin-jspsych": "^1.0.1",
-    "react": "^16.13.1",
+    "react": "^18.2.0",
     "react-router-dom": "^5.2.0"
   },
   "devDependencies": {
