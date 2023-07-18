@@ -271,7 +271,6 @@ export async function setupdb(coreDBs, mainExpDir) {
     //Sometimes, I really miss loops
     let x = await exec (`docker ps --format "{{.Names}} {{.Status}}" | awk '/pushkin[-_]test_db[-_]1/ {print $0}'`)
           .then((x) => {
-            console.log(x)
             console.log('Waiting for test db...')
             return x.stdout.search('healthy')
           },
