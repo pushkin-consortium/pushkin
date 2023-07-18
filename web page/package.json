@@ -7,7 +7,8 @@
     "build/*"
   ],
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "build": "babel src -d build; cp -r src/assets build/"
   },
   "author": "",
   "license": "MIT",
