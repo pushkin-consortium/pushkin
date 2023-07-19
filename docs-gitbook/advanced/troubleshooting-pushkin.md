@@ -1,5 +1,9 @@
 # Troubleshooting Pushkin
 
+### error: connection error
+
+Make sure you are logged into your docker by running the following command: `docker login`
+
 ### error: database "test\_db" does not exist
 
 In cases where your database does not successfully get set up, it's possible that Postgres is clogging port 5432 on your computer. To check if this is the case run the following in Terminal/your command line: `sudo lsof -i tcp:5432`
