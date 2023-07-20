@@ -300,7 +300,7 @@ export const prep = async (experimentsDir, coreDir) => {
     let workerBuild
     try {
       console.log(`Building docker image for ${workerName}`)
-      workerBuild = exec(`docker buildx build ${workerLoc} --platform linux/amd64,linux/arm64,linux/arm/v7 -t ${workerName}`)
+      workerBuild = exec(`docker build ${workerLoc} -t ${workerName}`)
     } catch(e) {
       console.error(`Problem building worker for ${exp}`)
       throw (e)
