@@ -7,7 +7,7 @@ import { execSync } from 'child_process'; // eslint-disable-line
 import jsYaml from 'js-yaml';
 import { pushkinACL, OriginAccessControl, policy, cloudFront, dbConfig, rabbitTask, apiTask, workerTask, changeSet, corsPolicy, disableCloudfront, alarmRAMHigh, alarmCPUHigh, alarmRDSHigh, scalingPolicyTargets } from './awsConfigs.js'
 import { migrateTransactionsDB, runMigrations, getMigrations } from '../setupdb/index.js';
-import { updatePushkinJs } from '../prep/index.js'
+import { updatePushkinJs, readConfig } from '../prep/index.js'
 import inquirer from 'inquirer'
 import { kill } from 'process';
 const exec = util.promisify(require('child_process').exec);
@@ -63,6 +63,8 @@ const publishToDocker = function (DHID) {
       throw e
     }
   }
+
+  await rebuiltWorkers; //can't push until these are built
 
   let pushedWorkers
   try {
@@ -1248,6 +1250,41 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
 
    return pushkinConfig;
   }
+
+  const rebuildWorker = async function(exp){
+    console.log(`Rebuilding AWS-compatible worker for`, exp);
+    const expDir = path.join(path.join(process.cwd(), pushkinConfig.experimentsDir), exp)
+    if (!fs.lstatSync(expDir).isDirectory()) return('');
+    let expConfig;
+    try {
+      expConfig = readConfig(expDir);
+    } catch (err) {
+      console.error(`Failed to read experiment config file for `.concat(exp));
+      throw err;
+    }
+    const workerConfig = expConfig.worker;
+    const workerName = `${exp}_worker`.toLowerCase(); //Docker names must all be lower case
+    const workerLoc = path.join(expDir, workerConfig.location).replace(/ /g, '\\ '); //handle spaces in path
+
+    let workerBuild
+    try {
+      workerBuild = exec(`docker build ${workerLoc} -t ${workerName} --load`)
+    } catch(e) {
+      console.error(`Problem building worker for ${exp}`)
+      throw (e)
+    }
+    return workerBuild;
+  }
+
+  const expDirs = fs.readdirSync(path.join(process.cwd(), pushkinConfig.experimentsDir));
+  let rebuiltWorkers
+  try {
+    rebuiltWorkers = Promise.all(expDirs.map(prepWorkerWrapper))
+  } catch (err) {
+    console.error(err);
+    throw(err);
+  }
+
 
   const completedDBs = recordDBs(Promise.all([initializedMainDB, initializedTransactionDB]))
 
