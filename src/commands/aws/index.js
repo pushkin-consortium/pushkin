@@ -89,7 +89,7 @@ const buildFE = function (projName) {
     let buildCmd
     if (packageJson.dependencies['build-if-changed'] == null) {
       console.log(modName, " does not have build-if-changed installed. Recommend installation for faster runs of prep.")
-      buildCmd = pacMan.concat(' run build --mutex network')
+      buildCmd = pacMan.concat(' --mutex network run build')
     } else {
       console.log("Using build-if-changed for ",projName)
       const pacRunner = (pacMan == 'yarn') ? 'yarn' : 'npx'

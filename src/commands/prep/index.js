@@ -20,7 +20,7 @@ const publishLocalPackage = async (modDir, modName) => {
     let buildCmd
     if (packageJson.dependencies['build-if-changed'] == null) {
       console.log(modName, " does not have build-if-changed installed. Recommend installation for faster runs of prep.")
-      buildCmd = pacMan.concat(' run build --mutex network')
+      buildCmd = pacMan.concat(' --mutex network run build')
     } else {
       console.log("Using build-if-changed for ",modName)
       const pacRunner = (pacMan == 'yarn') ? 'yarn' : 'npx'
@@ -211,7 +211,7 @@ export const prep = async (experimentsDir, coreDir) => {
     try {
       if (packageJson.dependencies['build-if-changed'] == null) {
         console.log(where, " does not have build-if-changed installed. Recommend installation for faster runs of prep.")
-        execSync(pacMan.concat(' run build --mutex network'), { cwd: where })
+        execSync(pacMan.concat(' --mutex network run build'), { cwd: where })
       } else {
         console.log("Using build-if-changed for", where)
         const pacRunner = (pacMan == 'yarn') ? 'yarn' : 'npx'
