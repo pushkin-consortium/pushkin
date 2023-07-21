@@ -208,7 +208,7 @@ const initExperiment = async (expDir, expName, longName, rootDir) => {
     throw err;
   }
   expConfig.experimentName = longName;
-  expConfig.shortName = longName.slice(0,10).replace(/\s/g, '');
+  expConfig.shortName = expName;
 
   try {
     fs.writeFileSync(path.join(expDir, 'config.yaml'), jsYaml.safeDump(expConfig), 'utf8');
