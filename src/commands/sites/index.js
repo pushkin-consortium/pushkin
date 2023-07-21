@@ -25,7 +25,7 @@ export const promiseFolderInit = async (initDir, dir) => {
     updatePushkinJs(); //synchronous
     setEnv(false); //synchronous
     console.log(`Building front end`)
-    await exec(pacMan.concat(' run build'), { cwd: path.join(initDir, dir) })
+    await exec(pacMan.concat(' run build --mutex network'), { cwd: path.join(initDir, dir) })
     console.log(`${dir} is built`);
   } catch(e) {
     console.error(`Problem installing dependencies for ${dir}`)
