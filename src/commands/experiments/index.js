@@ -30,7 +30,7 @@ const promiseExpFolderInit = async (initDir, dir, rootDir, modName, buildPath) =
       exec(pacMan.concat(' install --mutex network'), { cwd: path.join(initDir, dir) })
         .then(() => {
           console.log(`Building ${modName} from ${dir}`);
-          exec(pacMan.concat(' run build'), { cwd: path.join(initDir, dir) })
+          exec(pacMan.concat(' run build --mutex network'), { cwd: path.join(initDir, dir) })
             .then(() => {
               console.log(`${modName} is built`);
               exec('yalc publish', { cwd: path.join(initDir, dir) })
