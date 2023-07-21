@@ -27,7 +27,7 @@ const publishLocalPackage = async (modDir, modName) => {
       buildCmd = pacRunner.concat(' build-if-changed')
     }
     console.log(`Installing dependencies for ${modDir}`);
-    exec(pacMan.concat(' install --mutex network'), { cwd: modDir })
+    exec(pacMan.concat(' --mutex network install'), { cwd: modDir })
       .then(() => {
         console.log(`Building ${modName} from ${modDir}`);
         exec(buildCmd, { cwd: modDir })

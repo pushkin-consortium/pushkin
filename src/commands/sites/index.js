@@ -20,7 +20,7 @@ export function listSiteTemplates() {
 export const promiseFolderInit = async (initDir, dir) => {
   console.log(`Installing dependencies for ${dir}`);
   try {
-    await exec(pacMan.concat(' install --mutex network'), { cwd: path.join(initDir, dir) })
+    await exec(pacMan.concat(' --mutex network install'), { cwd: path.join(initDir, dir) })
     console.log(`Building ${dir}`);
     updatePushkinJs(); //synchronous
     setEnv(false); //synchronous
