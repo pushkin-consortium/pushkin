@@ -9,7 +9,7 @@ To install Pushkin, Windows users will have to install the Windows Subsystem for
 Pushkin requires using WSL 2. To check which version of WSL you are using, run the following command in Windows Powershell:
 
 ```bash
-$ wsl --list --verbose
+ wsl --list --verbose
 ```
 
 ![](../../.gitbook/assets/wsl1.gif)
@@ -17,7 +17,7 @@ $ wsl --list --verbose
 This will give you a list of your installed Linux distributions and what version of WSL they are using. If your distribution is using WSL 1, run:
 
 ```bash
-$ wsl --set-version <distribution name> 2
+ wsl --set-version <distribution name> 2
 ```
 
 The distribution name should be the name given in the previous list for your Linux distribution.
@@ -31,8 +31,8 @@ After you have enabled WSL 2 and installed Ubuntu, you will probably also want t
 Next, run the following commands in the Ubuntu terminal to update your Ubuntu packages. This (and other commands with `sudo` in front of them) will prompt you to give the Ubuntu password you set up when you installed it. It will also prompt you to respond with `y` and press ENTER to confirm that you would like to install or update software. 
 
 ```bash
-$ sudo apt update
-$ sudo apt upgrade
+ sudo apt update
+ sudo apt upgrade
 ```
 
 ![](../../.gitbook/assets/wsl2.gif)

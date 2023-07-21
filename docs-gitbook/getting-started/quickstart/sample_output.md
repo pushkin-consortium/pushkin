@@ -187,7 +187,7 @@ Removing intermediate container f4a24c61033d
 Step 7/9 : RUN yarn build
  ---> Running in 4e789ea668f8
 yarn run v1.22.4
-$ rm -rf build/* && babel src -d build && cp src/controllers.json build/
+ rm -rf build/* && babel src -d build && cp src/controllers.json build/
 Successfully compiled 1 file with Babel (551ms).
 Done in 0.89s.
 Removing intermediate container 4e789ea668f8
@@ -351,7 +351,7 @@ Removing intermediate container f4a24c61033d
 Step 7/9 : RUN yarn build
  ---> Running in 4e789ea668f8
 yarn run v1.22.4
-$ rm -rf build/* && babel src -d build && cp src/controllers.json build/
+ rm -rf build/* && babel src -d build && cp src/controllers.json build/
 Successfully compiled 1 file with Babel (551ms).
 Done in 0.89s.
 Removing intermediate container 4e789ea668f8

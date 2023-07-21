@@ -21,7 +21,7 @@
 The Pushkin command-line package is available via **Yarn**. We highly recommend a global install in order to make working with Pushkin projects as easy as possible:
 
 ```bash
-$ yarn global add pushkin-cli
+ yarn global add pushkin-cli
 ```
 
 #### update
@@ -29,7 +29,7 @@ $ yarn global add pushkin-cli
 To update the Pushkin CLI to the most recently released version, run:
 
 ```bash
-$ yarn global upgrade pushkin-cli --latest
+ yarn global upgrade pushkin-cli --latest
 ```
 
 Any subcommand that affects a specific project must be run from a folder inside the project you wish to modify.
