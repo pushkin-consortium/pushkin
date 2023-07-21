@@ -1570,7 +1570,7 @@ export const awsArmageddon = async (useIAM, killType) => {
       throw e
     }
 
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       if (stacksToDelete.length > 0) {
         stacksToDelete.map(async (s) => {
           console.log(`Deleting stack ${s}`)
