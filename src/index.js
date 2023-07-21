@@ -391,9 +391,14 @@ const handleInstall = async (what) => {
             })
           }else if (siteType == "url") {
             inquirer.prompt(
-              [{ type: 'input', name: 'path', message: 'What is the url for your site template? This should begin with "https://api.github.com/repos/" and end with "/releases".'}]
-            ).then(async (answers) => {
-              getVersions(answers)
+              [{ type: 'input', name: 'url', message: 'What is the url for your site template? This should begin with "https://", but accepts either api.github.com or github.com URLs.'}]
+            ).then((answers) => {
+              let templateURL = answers.url
+              // Check whether url is for GitHub API and, if not, convert it
+              if (templateURL.startsWith('https://github.com')) {
+                templateURL = templateURL.replace('https://github.com', 'https://api.github.com/repos')
+              }
+              getVersions(templateURL)
               .then((verList) => {
                 inquirer.prompt(
                   [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version?'}]
