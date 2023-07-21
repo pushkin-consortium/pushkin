@@ -27,10 +27,10 @@ const promiseExpFolderInit = async (initDir, dir, rootDir, modName, buildPath) =
   return new Promise ((resolve, reject) => {
     console.log(`Installing dependencies for ${dir}`);
     try {
-      exec(pacMan.concat(' install --mutex network'), { cwd: path.join(initDir, dir) })
+      exec(pacMan.concat(' --mutex network install'), { cwd: path.join(initDir, dir) })
         .then(() => {
           console.log(`Building ${modName} from ${dir}`);
-          exec(pacMan.concat(' run build'), { cwd: path.join(initDir, dir) })
+          exec(pacMan.concat(' --mutex network run build'), { cwd: path.join(initDir, dir) })
             .then(() => {
               console.log(`${modName} is built`);
               exec('yalc publish', { cwd: path.join(initDir, dir) })
@@ -208,7 +208,7 @@ const initExperiment = async (expDir, expName, longName, rootDir) => {
     throw err;
   }
   expConfig.experimentName = longName;
-  expConfig.shortName = longName.slice(0,10).replace(/\s/g, '');
+  expConfig.shortName = expName;
 
   try {
     fs.writeFileSync(path.join(expDir, 'config.yaml'), jsYaml.safeDump(expConfig), 'utf8');
