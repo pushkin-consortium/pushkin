@@ -379,7 +379,7 @@ const handleInstall = async (what) => {
     if (what == 'site') {
       const siteList = await listSiteTemplates();
       inquirer.prompt([
-          { type: 'list', name: 'sites', choices: Object.keys(siteList).concat("path"), default: 0, message: 'Which site template do you want to use?'}
+          { type: 'list', name: 'sites', choices: Object.keys(siteList).concat("path","url"), default: 0, message: 'Which site template do you want to use?'}
         ]).then(answers => {
           let siteType = answers.sites
           if (siteType == "path") {
@@ -388,6 +388,20 @@ const handleInstall = async (what) => {
             ).then(async (answers) => {
               await copyPushkinSite(process.cwd(), answers.path)
               await setupTestTransactionsDB() //Not distributed with sites since it's the same for all of them.
+            })
+          }else if (siteType == "url") {
+            inquirer.prompt(
+              [{ type: 'input', name: 'path', message: 'What is the url for your site template? This should begin with "https://api.github.com/repos/" and end with "/releases".'}]
+            ).then(async (answers) => {
+              getVersions(answers)
+              .then((verList) => {
+                inquirer.prompt(
+                  [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version?'}]
+                ).then(async (answers) => {
+                  await getPushkinSite(process.cwd(), verList[answers.version])
+                  await setupTestTransactionsDB() //Not distributed with sites since it's the same for all of them.
+                })
+              })
             })
           }else{
             getVersions(siteList[siteType])
