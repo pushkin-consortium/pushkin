@@ -4,7 +4,7 @@ volumes:
   test_db_volume: null
 services:
   api:
-    build: ./api
+    image: ./api
     environment: 
       AMQP_ADDRESS: 'amqp://message-queue:5672'
       PORT: 3000
@@ -28,7 +28,7 @@ services:
     volumes:
       - 'message_queue_volume:/var/lib/rabbitmq'
   server:
-    build: ./front-end
+    image: ./front-end
     environment:
       NODE_ENV: 'debug'
       API_PORT: '3000'
