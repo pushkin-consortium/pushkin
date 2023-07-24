@@ -17,6 +17,6 @@ Start Docker, navigate to the location you want to install your Pushkin site, an
 
 If your Pushkin site and the CLI repo are in the same parent directory, you can simply run `node ../pushkin-cli/build/index.js install site`. You can access the other CLI commands by replacing `pushkin` in the same way with `node ../pushkin-cli/build/index.js`.
 
-## How to use unpublished templates?
+## How do I use unpublished templates?
 
 If you want to run an unpublished site or experiment template, you can select "url" after running `install site` or `install experiment`. When prompted, enter the URL to the releases of the relevant GitHub repo. The URL should begin with "https://" and end with "releases", but either the api.github.com or github.com URL will work.
