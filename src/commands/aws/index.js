@@ -13,7 +13,7 @@ import { kill } from 'process';
 const exec = util.promisify(require('child_process').exec);
 const mkdir = util.promisify(require('fs').mkdir);
 
-const publishToDocker = async (DHID) => {
+const publishToDocker = async (DHID, rebuiltWorkers) => {
   console.log('Publishing images to DockerHub')
   console.log("Building API")
   try {
@@ -174,7 +174,60 @@ const makeRecordSet = async (myDomain, useIAM, projName, theCloud) => {
   recordSet.Changes[3].ResourceRecordSet.SetIdentifier = projName
 
   let returnVal
+
+  // if there was a failed init, there may already be resource record sets
+  // which will cause this to fail. So, we'll try to delete them first.
+  let existingRecords
   try {
+    existingRecords = await exec(`aws route53 list-resource-record-sets --hosted-zone-id ${zoneID} --profile ${useIAM}`)
+  } catch (e) {
+    console.error(`Unable to list resource record sets for ${myDomain}`)
+    throw e
+  }
+  if (JSON.parse(existingRecords.stdout).ResourceRecordSets.length > 0) {
+    console.log(`Deleting existing resource record sets for ${myDomain}`)
+    try {
+      await exec(`aws route53 change-resource-record-sets --hosted-zone-id ${zoneID} --change-batch '{ "Changes": [ { "Action": "DELETE", "ResourceRecordSet": ${JSON.stringify(JSON.parse(existingRecords.stdout).ResourceRecordSets[0])} } ] }' --profile ${useIAM}`)
+    } catch (e) {
+      console.error(`Unable to delete resource record sets for ${myDomain}`)
+    }
+  }
+
+  const waitForRecordSetDeletion = async (zoneID, useIAM) => {
+    let existingRecords
+    while (true) {
+      try {
+        existingRecords = await exec(`aws route53 list-resource-record-sets --hosted-zone-id ${zoneID} --profile ${useIAM}`)
+      } catch (e) {
+        console.error(`Unable to list resource record sets for ${zoneID}`)
+        throw e
+      }
+
+      
+      if (JSON.parse(existingRecords.stdout).ResourceRecordSets.map((r) => {
+        if (r.SetIdentifier) {
+          console.log(`found SetIdentifier ${r.SetIdentifier} for ${r}`)
+          return true
+        } else {
+          console.log(`No SetIdentifier ${r.SetIdentifier} for ${r}`)
+          return false
+        }
+      }).includes(true)) {
+        console.log(`Waiting for resource record sets to be deleted for zone ${zoneID}...`)
+      } else {
+        console.log(`All resource record sets for zone ${zoneID} have been deleted.`)
+        break
+      }
+  
+      console.log(`Waiting for resource record sets to be deleted for zone ${zoneID}...`)
+      await new Promise(resolve => setTimeout(resolve, 5000))
+    }
+  }
+
+  await waitForRecordSetDeletion(zoneID, useIAM)
+  
+  try {
+    console.log(`Creating resource record sets for ${myDomain}`)
     returnVal = execSync(`aws route53 change-resource-record-sets --hosted-zone-id ${zoneID} --change-batch '${JSON.stringify(recordSet)}' --profile ${useIAM}`)
     console.log(`Updated record set for ${myDomain}.`)
    } catch (e) {
@@ -1280,7 +1333,7 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
   const expDirs = fs.readdirSync(path.join(process.cwd(), pushkinConfig.experimentsDir));
   let rebuiltWorkers
   try {
-    rebuiltWorkers = Promise.all(expDirs.map(prepWorkerWrapper))
+    rebuiltWorkers = Promise.all(expDirs.map(rebuildWorker))
   } catch (err) {
     console.error(err);
     throw(err);
@@ -1316,7 +1369,7 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
   //pushing stuff to DockerHub
   let publishedToDocker
   try {
-    publishedToDocker = publishToDocker(DHID);
+    publishedToDocker = publishToDocker(DHID, rebuiltWorkers);
   } catch(e) {
     console.error('Unable to publish images to DockerHub')
     throw e
@@ -1520,8 +1573,6 @@ const makeACL = async (useIAM) => {
   console.log(`ACL created`)
   return ACLarn
 }
-
-
 
 export async function addIAM(iam) {
   let temp
@@ -1919,7 +1970,6 @@ export const awsArmageddon = async (useIAM, killType) => {
             console.error(e)
           }
           if (JSON.parse(dbStatus.stdout).DBInstances[0].DBInstanceStatus != "deleting") {
-            console.log(JSON.parse(dbStatus.stdout).DBInstanceStatus != "deleting")
             let dbDeletionResponse
             console.log(`Deleting database ${db}`)
             try {
@@ -1948,30 +1998,33 @@ export const awsArmageddon = async (useIAM, killType) => {
     //now, wait for them to be deleted
     const wait2 = async () => {
       //Sometimes, I really miss loops
-
-      const confirmDBDeleted = (dbId) => {
-        let temp
-        try {
-          temp = execSync(`aws rds describe-db-instances --db-instance-identifier ${dbId} --profile ${useIAM}`).toString()
-        } catch (e) {
-          return true
+      return new Promise((resolve, reject) => {
+        const confirmDBDeleted = () => {
+          let temp
+          try {
+            temp = execSync(`aws rds describe-db-instances --profile ${useIAM}`).toString()
+          } catch (e) {
+            console.error(`Unable to get list of databases`)
+            throw e
+          }
+          return (JSON.parse(temp).DBInstances.length == 0)
         }
-        // if it returned anything at all, then the db still exists
-        return false 
-      }
-  
-      let checked = dbs.map((db) => {confirmDBDeleted(db)})
-      if (checked.includes(false)) {
-        console.log('Waiting for DBs to be deleted...')
-        setTimeout( wait, 20000 );
-      } else {
-        console.log(`Databases confirmed deleted`)
-        return true
-      }
-      console.log("really shouldn't ever get to this line!")
+        let confirmedDeleted
+        try {
+          confirmedDeleted = confirmDBDeleted()
+        } catch (e) {
+          throw e
+        }
+        if (confirmedDeleted){
+          console.log(`Databases confirmed deleted`)
+          resolve(true)        
+        } else {
+          console.log('Waiting for DBs to be deleted...')
+          setTimeout( wait2, 20000 );
+        }
+        console.log("really shouldn't ever get to this line!")
+      })
     }
-
-    return await wait2()
   }
 
   let deletedDBs, dbsToDelete 
@@ -2239,9 +2292,9 @@ export const awsArmageddon = async (useIAM, killType) => {
       throw e;
     }
     let myDomain = pushkinConfig.info.rootDomain
-
+  
     console.log(`Deleting resource records for ${myDomain}`)
-
+  
     let zoneID
     try {
       temp = await exec(`aws route53 list-hosted-zones-by-name --dns-name ${myDomain} --profile ${useIAM}`)
@@ -2260,7 +2313,7 @@ export const awsArmageddon = async (useIAM, killType) => {
       console.error(`Unable to parse hostedzone for ${myDomain}`)
       throw e
     }
-
+  
     let resourceRecords = {
       "HostedZoneId": zoneID,
       "ChangeBatch": {
@@ -2268,7 +2321,7 @@ export const awsArmageddon = async (useIAM, killType) => {
           "Changes": []
       }
     }
-
+  
     let tempRRList
     try {
       tempRRList = await exec(`aws route53 list-resource-record-sets --hosted-zone-id ${zoneID} --profile ${useIAM}`)
@@ -2276,9 +2329,8 @@ export const awsArmageddon = async (useIAM, killType) => {
       console.error(`Unable to retrieve resource records for ${myDomain}`)
       throw e
     }
-
     JSON.parse(tempRRList.stdout).ResourceRecordSets.forEach((rr) => {
-      if (rr.SetIdentifier == projName) {
+      if (rr.SetIdentifier == projName | (!killTag & rr.SetIdentifier)) {
         let recordSet = {
           "Action": "DELETE",
           "ResourceRecordSet": rr
@@ -2287,6 +2339,7 @@ export const awsArmageddon = async (useIAM, killType) => {
       }
     })
     if (resourceRecords.ChangeBatch.Changes.length > 0) {
+      console.log(`aws route53 change-resource-record-sets --cli-input-json '${JSON.stringify(resourceRecords)}' --profile ${useIAM}`)
       return exec(`aws route53 change-resource-record-sets --cli-input-json '${JSON.stringify(resourceRecords)}' --profile ${useIAM}`)
     } else {
       return true
@@ -2295,7 +2348,7 @@ export const awsArmageddon = async (useIAM, killType) => {
 
   let deletedResourceRecords
   try {
-    deletedResourceRecords = deleteResourceRecords(useIAM)
+    deletedResourceRecords = deleteResourceRecords(useIAM, projName)
   } catch(e) {
     console.warn('\x1b[31m%s\x1b[0m', `Unable to delete resource records`)
     console.warn('\x1b[31m%s\x1b[0m', e) //don't fail on this
@@ -2416,37 +2469,7 @@ export const awsArmageddon = async (useIAM, killType) => {
   await Promise.all([ deletedBucket ])
 
   console.log(`Before deleting security groups, wait for DBs to be completed deleted`)
-
-  const waitForDBDeletion = async (dbs) => {
-    let temp
-    const checkDBDeletion = (dbId) => {
-      let temp
-      try {
-        temp = execSync(`aws rds describe-db-instances --db-instance-identifier ${dbId} --profile ${useIAM}`).toString()
-      } catch (e) {
-        return true
-      }
-      // if it returned anything at all, then the db still exists
-      return false 
-    }
-
-    const wait = async () => {
-      //Sometimes, I really miss loops
-      let checked = dbs.map((db) => {checkDBDeletion(db)})
-      if (checked.includes(false)) {
-        console.log('Waiting for DBs to be deleted...')
-        setTimeout( wait, 20000 );
-      } else {
-        console.log(`Databases deleted`)
-        return true
-      }
-      console.log("really shouldn't ever get to this line!")
-    }
-
-    return await wait()
-  }
-
-  await waitForDBDeletion(dbsToDelete); //shouldn't need this, but for some reason previous loop is insufficient
+  await deletedDBs //just being extra sure. This was awaited before.
 
   console.log(`Deleting security groups`)
 
