@@ -397,12 +397,16 @@ const handleInstall = async (what) => {
             })
           }else if (siteType == "url") {
             inquirer.prompt(
-              [{ type: 'input', name: 'url', message: 'What is the url for your site template? This should begin with "https://", but accepts either api.github.com or github.com URLs.'}]
+              [{ type: 'input', name: 'url', message: 'What is the url for your site template? This should begin with "https://" and end with "releases", but either api.github.com or github.com URLs are accepted.'}]
             ).then((answers) => {
               let templateURL = answers.url
               // Check whether URL is for GitHub API and, if not, convert it so it works with getPushkinSite()
               if (templateURL.startsWith('https://github.com')) {
                 templateURL = templateURL.replace('github.com', 'api.github.com/repos')
+              }
+              // Check URL to make sure it doesn't end with slash, since that will mess up GitHub API URLs
+              if (templateURL.endsWith('/')) {
+                templateURL = templateURL.slice(0,-1) // Remove the last character (i.e. '/')
               }
               getVersions(templateURL)
               .then((verList) => {
