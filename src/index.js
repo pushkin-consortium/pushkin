@@ -358,14 +358,20 @@ const handleAWSArmageddon = async () => {
 }
 
 const getVersions = async (url) => {
+  //Function: getVersions()
+   //Retrieves URLs for versions of site and experiment templates.
+   //Parameters:
+   // url - a GitHub API URL to the releases of a site or experiment template repo
+   //Returns:
+   // verList - an object with keys as version names and values as GitHub API URLs for each version
   let response
   let body
   let verList = {}
   try {
     const response = await got(url);
     body = JSON.parse(response.body)
-    body.forEach((r) => {
-      verList[r.tag_name] = r.url;
+    body.forEach((r) => { // Loop through the objects corresponding to each version
+      verList[r.tag_name] = r.url; // Fill out verList object with GitHub API URLs for each version
     })
   } catch (error) {
     console.error('Problem parsing github JSON');
@@ -394,9 +400,9 @@ const handleInstall = async (what) => {
               [{ type: 'input', name: 'url', message: 'What is the url for your site template? This should begin with "https://", but accepts either api.github.com or github.com URLs.'}]
             ).then((answers) => {
               let templateURL = answers.url
-              // Check whether url is for GitHub API and, if not, convert it
+              // Check whether URL is for GitHub API and, if not, convert it so it works with getPushkinSite()
               if (templateURL.startsWith('https://github.com')) {
-                templateURL = templateURL.replace('https://github.com', 'https://api.github.com/repos')
+                templateURL = templateURL.replace('github.com', 'api.github.com/repos')
               }
               getVersions(templateURL)
               .then((verList) => {
