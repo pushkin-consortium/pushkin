@@ -1918,9 +1918,7 @@ export const awsArmageddon = async (useIAM, killType) => {
             console.error(`Unable to get information about ${db}`)
             console.error(e)
           }
-          console.log(JSON.parse(dbStatus.stdout))
           if (JSON.parse(dbStatus.stdout).DBInstances[0].DBInstanceStatus != "deleting") {
-            console.log(JSON.parse(dbStatus.stdout).DBInstanceStatus)
             console.log(JSON.parse(dbStatus.stdout).DBInstanceStatus != "deleting")
             let dbDeletionResponse
             console.log(`Deleting database ${db}`)
@@ -2006,7 +2004,7 @@ export const awsArmageddon = async (useIAM, killType) => {
         let temp
       
         try {
-          temp = await exec(`aws elbv2 describe-listeners --load-balancer-name ${loadBalancerName} --profile ${useIAM}`)
+          temp = await exec(`aws elbv2 describe-listeners --load-balancer-arn ${loadBalancerName} --profile ${useIAM}`)
         } catch (e) {
           console.error(`Unable to list listeners for load balancer ${loadBalancerName}.`)
           throw e
@@ -2028,7 +2026,7 @@ export const awsArmageddon = async (useIAM, killType) => {
         // Wait for listeners to be deleted
         while (true) {
           try {
-            temp = await exec(`aws elbv2 describe-listeners --load-balancer-name ${loadBalancerName} --profile ${useIAM}`)
+            temp = await exec(`aws elbv2 describe-listeners --load-balancer-arn ${loadBalancerName} --profile ${useIAM}`)
           } catch (e) {
             console.error(`Unable to list listeners for load balancer ${loadBalancerName}.`)
             throw e
@@ -2513,7 +2511,6 @@ export const awsArmageddon = async (useIAM, killType) => {
     ECSName: null,
     OAC: null
   }
-  console.log(awsResourcesNull)
   // Remove undefined properties
   Object.keys(awsResourcesNull).forEach((key) => {
     if (awsResourcesNull[key] === undefined) {
