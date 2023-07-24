@@ -428,7 +428,7 @@ const handleInstall = async (what) => {
                 console.log("now setting up transactions db")
                 await setupTestTransactionsDB() //Not distributed with sites since it's the same for all of them.
               })
-            })  
+            })
           }
         })
     } else {
@@ -442,7 +442,7 @@ const handleInstall = async (what) => {
           let config = await loadConfig('pushkin.yaml');
           const expList = await listExpTemplates();
           inquirer.prompt(
-            [{ type: 'list', name: 'experiments', choices: Object.keys(expList).concat("path"), default: 0, message: 'Which experiment template do you want to use?'}]
+            [{ type: 'list', name: 'experiments', choices: Object.keys(expList).concat("path","url"), default: 0, message: 'Which experiment template do you want to use?'}]
           ).then(answers => {
             let expType = answers.experiments
             if (expType == "path") {
@@ -450,6 +450,30 @@ const handleInstall = async (what) => {
                 [{ type: 'input', name: 'path', message: 'What is the absolute path to your experiment template?'}]
               ).then(async (answers) => {
                 await copyExpTemplate(path.join(process.cwd(), config.experimentsDir), answers.path, longName, shortName, process.cwd())
+              })
+            } else if (expType == "url") {
+              inquirer.prompt(
+                [{ type: 'input', name: 'url', message: 'What is the url for your experiment template? This should begin with "https://" and end with "releases", but either api.github.com or github.com URLs are accepted.'}]
+              ).then((answers) => {
+                let templateURL = answers.url
+                // Check whether URL is for GitHub API and, if not, convert it so it works with getPushkinSite()
+                if (templateURL.startsWith('https://github.com')) {
+                  templateURL = templateURL.replace('github.com', 'api.github.com/repos')
+                }
+                // Check URL to make sure it doesn't end with slash, since that will mess up GitHub API URLs
+                if (templateURL.endsWith('/')) {
+                  templateURL = templateURL.slice(0,-1) // Remove the last character (i.e. '/')
+                }
+                getVersions(templateURL)
+                .then((verList) => {
+                  inquirer.prompt(
+                    [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version?'}]
+                  ).then(async (answers) => {
+                    let ver = answers.version
+                    const url = verList[ver]
+                    await getExpTemplate(path.join(process.cwd(), config.experimentsDir), url, longName, shortName, process.cwd())
+                  })
+                })
               })
             }else{
               getVersions(expList[expType])
@@ -461,9 +485,9 @@ const handleInstall = async (what) => {
                   const url = verList[ver]
                   await getExpTemplate(path.join(process.cwd(), config.experimentsDir), url, longName, shortName, process.cwd())
                 })
-            })
-          }
-        })     
+              })
+            }
+          })
       })
     }
   } catch(e) {
