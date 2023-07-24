@@ -13,7 +13,7 @@ import { kill } from 'process';
 const exec = util.promisify(require('child_process').exec);
 const mkdir = util.promisify(require('fs').mkdir);
 
-const publishToDocker = function (DHID) {
+const publishToDocker = async (DHID) => {
   console.log('Publishing images to DockerHub')
   console.log("Building API")
   try {
@@ -31,6 +31,7 @@ const publishToDocker = function (DHID) {
     throw e
   }
 
+  //note: don't need to rebuild server, because we use S3
   let docker_compose
   try {
     docker_compose = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'pushkin/docker-compose.dev.yml'), 'utf8'));
@@ -50,7 +51,7 @@ const publishToDocker = function (DHID) {
       return ''
     }
 
-    console.log(`Building ${s}`)
+    console.log(`Pushkin ${s}`)
     try {
       execSync(`docker tag ${service.image} ${DHID}/${service.image}:latest`)
     } catch(e) {

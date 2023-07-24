@@ -300,7 +300,9 @@ export const prep = async (experimentsDir, coreDir) => {
     let workerBuild
     try {
       console.log(`Building docker image for ${workerName}`)
-      workerBuild = exec(`docker buildx build ${workerLoc} --platform linux/${process.arch} -t ${workerName} --load`)
+      let dockerCommand = `docker buildx build ${workerLoc} --platform linux/${process.arch} -t ${workerName} --load`
+      console.log(dockerCommand)
+      workerBuild = exec(dockerCommand)
     } catch(e) {
       console.error(`Problem building worker for ${exp}`)
       throw (e)
@@ -329,7 +331,7 @@ export const prep = async (experimentsDir, coreDir) => {
     throw(err);
   }
 
-  const tempAwait = await Promise.all([webPageIncludes, preppedAPI, cleanedWeb])
+  const tempAwait = await Promise.all([webPageIncludes, cleanedWeb, preppedAPI])
 
   // Deal with Web page includes
   let finalWebPages = tempAwait[0]
@@ -385,5 +387,30 @@ export const prep = async (experimentsDir, coreDir) => {
     throw e
   }
 
-  return Promise.all([installedApi, installedWeb]);
+  await Promise.all([installedApi, installedWeb]);
+  try {
+    fs.copyFileSync('pushkin/front-end/src/experiments.js', 'pushkin/front-end/experiments.js');
+  } catch (e) {
+    console.error("Couldn't copy experiments.js. Make sure it exists and is in the right place.")
+    process.exit();
+  }
+  
+  console.log("Building API")
+  let builtAPI
+  try {
+    builtAPI = exec(`docker buildx build --platform linux/${process.arch} -t api:latest pushkin/api`, {cwd: process.cwd()})
+  } catch(e) {
+    console.error(`Problem building API`)
+    throw e
+  }
+  console.log("Building server")
+  let builtServer
+  try {
+    builtServer = exec(`docker buildx build --platform linux/${process.arch} -t server:latest pushkin/front-end`, {cwd: process.cwd()})
+  } catch(e) {
+    console.error(`Problem building API`)
+    throw e
+  }
+
+  return Promise.all([builtAPI, builtServer]);
 };
