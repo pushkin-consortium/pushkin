@@ -18,7 +18,7 @@ To get the latest news and updates on Pushkin, sign up for our newsletter [here]
     * Windows 10
       * [Windows Subsystem for Linux](getting-started/installing-pushkin-and-dependencies/windows-install.md) (preferred)
       * [AWS EC2 Instance](getting-started/installing-pushkin-and-dependencies/ec2-install.md) 
-  * [Ubuntu Linux](getting-started/installing-pushkin-and-dependencies/ubuntu-install.md)
+    * [Ubuntu Linux](getting-started/installing-pushkin-and-dependencies/ubuntu-install.md)
   * [Quickstart](getting-started/quickstart/)
   * [Deploying to AWS](getting-started/deploying-to-aws/README.md)
     * [Install required software.](getting-started/deploying-to-aws/install-required-software.md)
