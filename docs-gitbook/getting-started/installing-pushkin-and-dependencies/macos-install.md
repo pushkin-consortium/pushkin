@@ -82,6 +82,8 @@ Next, install [Docker](https://docs.docker.com/install/).
 
 ![](../../.gitbook/assets/ezgif.com-video-to-gif-5-%20%281%29%20%281%29.gif)
 
+Confirm that you have at least Docker Engine 23.0 and Docker Desktop 4.19. 
+
 ### Next steps
 
 Great! You're all done. Head over [here](../quickstart/) to build a basic Pushkin site and experiment.
