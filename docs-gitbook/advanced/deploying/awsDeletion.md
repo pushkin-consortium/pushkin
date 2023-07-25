@@ -10,7 +10,7 @@
 The pushkin CLI will delete resources it was responsible for creating. Run:
 
 ```bash
-$ pushkin aws armageddon
+ pushkin aws armageddon
 ```
 
 This will leave in place your IAM users, any database snapshots, and task definitions, but otherwise, everything is deleted INCLUDING YOUR DATA (unless you have snapshots), so use this with caution. 

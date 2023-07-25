@@ -7,13 +7,13 @@ The content on this page may be out of date - stay tuned for edits!
 Install Jest using `yarn`:
 
 ```bash
-$ yarn add --dev jest
+ yarn add --dev jest
 ```
 
 To use Babel, install required dependencies via `yarn`:
 
 ```bash
-$ yarn add --dev babel-jest @babel/core @babel/preset-env
+ yarn add --dev babel-jest @babel/core @babel/preset-env
 ```
 
 Configure Babel to target your current version of Node by creating a `babel.config.js` file in the root of your project:

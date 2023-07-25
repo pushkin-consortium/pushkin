@@ -24,8 +24,8 @@ Make sure Docker is running by running the command `docker info`; if it isn't, y
 Open a terminal window. Create an empty directory \(e.g., `pushkin_quickstart`\) and enter this directory using the following commands:
 
 ```bash
-$ mkdir pushkin_quickstart
-$ cd pushkin_quickstart/
+ mkdir pushkin_quickstart
+ cd pushkin_quickstart/
 ```
 
 ![](../../.gitbook/assets/quickstart_1.gif)
@@ -35,7 +35,7 @@ $ cd pushkin_quickstart/
 Install your first pushkin site the in the directory you just created:
 
 ```bash
-$ pushkin install site
+ pushkin install site
 ```
 
 You will be asked to select a site template to use. Choose **default**, then choose the recommended version.
@@ -117,7 +117,7 @@ The one you should *definitely* change is `salt`. This is used to encrypt privat
 To create a new experiment from the boilerplate template Pushkin provides, run
 
 ```bash
-$ pushkin install experiment
+ pushkin install experiment
 ```
 
 Choose a **basic** experiment. When prompted, name your experiment `vocab` and choose the recommended version. Repeat the process to add **basic** experiments called `mind` and `whichenglish` as well.
@@ -160,7 +160,7 @@ Each experiment has its own folder. Within this experiment-specific folder, ther
 Keeping all the files for an experiment within the same root folder is convenient for development, but not for actually deploying the website. To redistribute the experiment files to the right places, run:
 
 ```bash
-$ pushkin prep
+ pushkin prep
 ```
 
 ![](../../.gitbook/assets/quickstart_4.gif)
@@ -213,7 +213,7 @@ Coming soon!
 Now, let’s look at your website! Make sure Docker is running by running the command `docker info`; if it is not, you can run `dockerd` or `sudo dockerd` to start it. Next, run:
 
 ```bash
-$ pushkin start
+ pushkin start
 ```
 
 ![](../../.gitbook/assets/quickstart_5.gif)
@@ -232,7 +232,7 @@ Note: You will not be able to locally test a default site if you are using an AW
 When you are done looking at your website, stop it by running:
 
 ```bash
-$ pushkin stop
+ pushkin stop
 ```
 ![](../../.gitbook/assets/quickstart_7.gif)
 
@@ -243,8 +243,8 @@ If you don’t do that, the web server will keep running in Docker until you qui
 Every time you update code or add an experiment, you’ll need to run pushkin prep again:
 
 ```bash
-$ pushkin prep
-$ pushkin start
+ pushkin prep
+ pushkin start
 ```
 ### Viewing your database with a Postgres manager
 By default, the Pushkin creates a database called `test_db` where your data is stored. (This is explained in further detail [here](../../advanced/experiment-structure/experiment-config-files.md#database).) In order to view your database and easily see your data, you should install a Postgres Manager such as [SQLPro for Postgres](https://macpostgresclient.com/), which costs $7.99/month after the free trial ends. Free and open-source managers are also available \(e.g., [pgAdmin](https://www.pgadmin.org/download/)). Or, if you become very comfortable connecting to postgres through the command line \(not documented in this tutorial\), then you may not need a Postgres manager.

@@ -2,25 +2,26 @@
 
 ## Skip to section
 
-* [installation](pushkin-cli.md#installation)
-	* [update](pushkin-cli.md#update)
-* [commands](pushkin-cli.md#commands)
-	* [config](pushkin-cli.md#config)
-	* [install site](pushkin-cli.md#install-site)
-	* [install experiment](pushkin-cli.md#install-experiment)
-	* [updateDB](pushkin-cli.md#updatedb)
-	* [prep](pushkin-cli.md#prep)
-	* [start](pushkin-cli.md#start)
-	* [stop](pushkin-cli.md#stop)
-	* [kill](pushkin-cli.md#kill)
-	* [armageddon](pushkin-cli.md#armageddon)
-	* [help](pushkin-cli.md#help)
+- [installation](pushkin-cli.md#installation)
+  - [update](pushkin-cli.md#update)
+- [commands](pushkin-cli.md#commands)
+  - [config](pushkin-cli.md#config)
+  - [install site](pushkin-cli.md#install-site)
+  - [install experiment](pushkin-cli.md#install-experiment)
+  - [updateDB](pushkin-cli.md#updatedb)
+  - [prep](pushkin-cli.md#prep)
+  - [start](pushkin-cli.md#start)
+  - [stop](pushkin-cli.md#stop)
+  - [kill](pushkin-cli.md#kill)
+  - [armageddon](pushkin-cli.md#armageddon)
+  - [help](pushkin-cli.md#help)
 
 ### installation
+
 The Pushkin command-line package is available via **Yarn**. We highly recommend a global install in order to make working with Pushkin projects as easy as possible:
 
 ```bash
-$ yarn global add pushkin-cli
+ yarn global add pushkin-cli
 ```
 
 #### update
@@ -28,7 +29,7 @@ $ yarn global add pushkin-cli
 To update the Pushkin CLI to the most recently released version, run:
 
 ```bash
-$ yarn global upgrade pushkin-cli --latest
+ yarn global upgrade pushkin-cli --latest
 ```
 
 Any subcommand that affects a specific project must be run from a folder inside the project you wish to modify.
@@ -45,7 +46,7 @@ View config file for _**what**_, replacing **_what_** with **_site_** or any of 
 
 Syntax: `pushkin install site`
 
-Downloads Pushkin site template. It first will prompt for which site template \(currently only "default"\), then which version. Most often, the latest version will be the best option.
+Downloads Pushkin site template. It first will prompt for which site template, then which version. Most often, the latest version will be the best option.
 
 ### install experiment
 
@@ -57,7 +58,7 @@ Downloads an experiment template. First will prompt for which experiment templat
 
 Syntax: `pushkin updateDB`
 
-Runs migrations and seeds for experiments to update the database. This is set up to ensure experiments using the same database \(as defined in `pushkin.yaml`\) are migrated at the same time to avoid errors with the knex\_migrations table. This is automatically run as part of `pushkin prep`
+Runs migrations and seeds for experiments to update the database. This is set up to ensure experiments using the same database \(as defined in `pushkin.yaml`\) are migrated at the same time to avoid errors with the knex_migrations table. This is automatically run as part of `pushkin prep`
 
 ### prep
 
@@ -75,9 +76,9 @@ Running `pushkin start --help` will display help for the command.
 
 The code for `prep` is a bit convoluted \(sorry\). It loops through each experiment in the experiments folder \(as defined by `pushkin.yaml`\). For each experiment, it does the following:
 
-* It compiles and then tarballs the api controllers. These are moved to `pushkin/api/tempPackages`. This package is then added as a local package to `pushkin/api/package.json`, which allows them to be called during production.
-* It compiles the worker and then builds a docker image for it. It is then added to `docker-compose.dev.yml` so that docker knows to include it when the website is built.
-* It compiles and tarballs `web page` and moves it to `pushkin/front-end/tempPackages`. This package is then added as a local package to `pushkin/front-end/tempPackages`.
+- It compiles and then tarballs the api controllers. These are moved to `pushkin/api/tempPackages`. This package is then added as a local package to `pushkin/api/package.json`, which allows them to be called during production.
+- It compiles the worker and then builds a docker image for it. It is then added to `docker-compose.dev.yml` so that docker knows to include it when the website is built.
+- It compiles and tarballs `web page` and moves it to `pushkin/front-end/tempPackages`. This package is then added as a local package to `pushkin/front-end/tempPackages`.
 
 Finally, it updates `pushkin/front-end/src/experiments.js` to list each experiment, along with key information from the experiment’s config file. This will be read by the front end to build the list of experiments to display to potential participants.
 
@@ -105,17 +106,16 @@ Stops the local deploy. This will not remove the local docker images. To do that
 
 Syntax: `pushkin kill`
 
-Removes all containers and volumes from local Docker, as well as pushkin-specific images. Sometimes, if you having issues developing or seeing updates to your Pushkin project, it may be helpful to run this command to ensure docker isn't holding any problematic code or issues in containers.
+Removes all containers and volumes from local Docker, as well as pushkin-specific images. Sometimes, if you're having issues developing or seeing updates to your Pushkin project, it may be helpful to run this command to ensure docker isn't holding any problematic code or issues in containers.
 
 ### armageddon
 
 Syntax: `pushkin armageddon`
 
-Complete reset of the local docker, including containers, volumes, and third-party images. Sometimes, if you having issues developing or seeing updates to your Pushkin project, it may be helpful to run this command to ensure docker isn't holding any problematic code or issues in containers/images. This may generate some error messages, which you can safely ignore.
+Complete reset of the local docker, including containers, volumes, and third-party images. Sometimes, if you're having issues developing or seeing updates to your Pushkin project, it may be helpful to run this command to ensure docker isn't holding any problematic code or issues in containers/images. This may generate some error messages, which you can safely ignore.
 
 ### help
 
 Syntax: `pushkin help [command]`
 
 Provides information on a specific pushkin command, you can add the command after help \(e.g. `pushkin help prep` to learn about the prep command and its options\). Defaults to a list of all commands and general information about each if no command is specified.
-
