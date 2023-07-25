@@ -396,6 +396,7 @@ const handleInstall = async (what) => {
                 [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version? (Recommend:'.concat(Object.keys(verList)[0]).concat(')')}]
               ).then(async (answers) => {
                 await getPushkinSite(process.cwd(), verList[answers.version])
+                console.log("now setting up transactions db")
                 await setupTestTransactionsDB() //Not distributed with sites since it's the same for all of them.
               })
             })  
@@ -734,7 +735,6 @@ async function main() {
             err => { console.log('something went wrong:', err)}
           );        
       }
-      //exec('docker-compose -f pushkin/docker-compose.dev.yml up --build --remove-orphans;');
       return;      
     })
 
@@ -748,7 +748,6 @@ async function main() {
           out => { console.log(out.out, 'done')},
           err => { console.log('something went wrong:', err)}
         );
-      //exec('docker-compose -f pushkin/docker-compose.dev.yml up --build --remove-orphans;');
       return;      
     })
 
@@ -759,14 +758,21 @@ async function main() {
 
   program
     .command('armageddon')
-    .description('Complete reset of the local docker. This will generate some error messages, which you can safely ignore.')
+    .description('Complete reset of the local docker. This will generate some error messages, which you can safely ignore. WARNING This will NOT discriminate between Pushkin-related Docker images and other Docker images you may be using.')
     .action(async () => {
+      console.log(`Deleting all local docker images, including those not related to Pushkin...`)
       try {
-        await exec('docker stop $(docker ps -aq); docker rm $(docker ps -aq); docker network prune -f; docker rmi -f $(docker images --filter dangling=true -qa); docker volume rm $(docker volume ls --filter dangling=true -q); docker rmi -f $(docker images -qa);')
+        await exec('docker stop $(docker ps -aq); docker rm $(docker ps -aq); docker network prune -f; docker rmi -f $(docker images --filter dangling=true -qa); docker volume rm $(docker volume ls --filter dangling=true -q); docker rmi -f $(docker images -qa)')
       } catch (err) {
         console.err(err);
       }
-      return;
+      console.log(`Now running docker system prune. This will take a while...`)
+      try {
+        await exec('docker system prune)')
+      } catch (err) {
+        console.err(err);
+      }
+     return;
     })
 
   program

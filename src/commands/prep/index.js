@@ -20,31 +20,26 @@ const publishLocalPackage = async (modDir, modName) => {
     let buildCmd
     if (packageJson.dependencies['build-if-changed'] == null) {
       console.log(modName, " does not have build-if-changed installed. Recommend installation for faster runs of prep.")
-      buildCmd = pacMan.concat(' run build')
+      buildCmd = pacMan.concat(' --mutex network run build')
     } else {
       console.log("Using build-if-changed for ",modName)
       const pacRunner = (pacMan == 'yarn') ? 'yarn' : 'npx'
       buildCmd = pacRunner.concat(' build-if-changed')
     }
     console.log(`Installing dependencies for ${modDir}`);
-    try {
-      exec(pacMan.concat(' install --mutex network'), { cwd: modDir })
+    exec(pacMan.concat(' --mutex network install'), { cwd: modDir })
+      .then(() => {
+        console.log(`Building ${modName} from ${modDir}`);
+        exec(buildCmd, { cwd: modDir })
         .then(() => {
-          console.log(`Building ${modName} from ${modDir}`);
-          exec(buildCmd, { cwd: modDir })
+          console.log(`${modName} is built`);
+          exec('yalc publish --push', { cwd: modDir })
             .then(() => {
-              console.log(`${modName} is built`);
-              exec('yalc publish --push', { cwd: modDir })
-                .then(() => {
-                  console.log(`${modName} is published locally via yalc`);
-                  resolve(modName)
-                })
+              console.log(`${modName} is published locally via yalc`);
+              resolve(modName)
             })
         })
-    } catch (e) {
-      console.error(`Problem updating ${modName}`)
-      throw(e)
-    }
+      })
   })
 };
 
@@ -216,7 +211,7 @@ export const prep = async (experimentsDir, coreDir) => {
     try {
       if (packageJson.dependencies['build-if-changed'] == null) {
         console.log(where, " does not have build-if-changed installed. Recommend installation for faster runs of prep.")
-        execSync(pacMan.concat(' run build'), { cwd: where })
+        execSync(pacMan.concat(' --mutex network run build'), { cwd: where })
       } else {
         console.log("Using build-if-changed for", where)
         const pacRunner = (pacMan == 'yarn') ? 'yarn' : 'npx'
@@ -278,7 +273,7 @@ export const prep = async (experimentsDir, coreDir) => {
     }
     const workerConfig = expConfig.worker;
     const workerName = `${exp}_worker`.toLowerCase(); //Docker names must all be lower case
-    const workerLoc = path.join(expDir, workerConfig.location);
+    const workerLoc = path.join(expDir, workerConfig.location).replace(/ /g, '\\ '); //handle spaces in path
 
     let AMQP_ADDRESS
     // Recall, compFile is docker-compose.dev.yml, and is defined outside this function.
@@ -305,7 +300,9 @@ export const prep = async (experimentsDir, coreDir) => {
     let workerBuild
     try {
       console.log(`Building docker image for ${workerName}`)
-      workerBuild = exec(`docker build ${workerLoc} -t ${workerName}`)
+      let dockerCommand = `docker buildx build ${workerLoc} --platform linux/${process.arch} -t ${workerName} --load`
+      console.log(dockerCommand)
+      workerBuild = exec(dockerCommand)
     } catch(e) {
       console.error(`Problem building worker for ${exp}`)
       throw (e)
@@ -334,7 +331,7 @@ export const prep = async (experimentsDir, coreDir) => {
     throw(err);
   }
 
-  const tempAwait = await Promise.all([webPageIncludes, preppedAPI, cleanedWeb])
+  const tempAwait = await Promise.all([webPageIncludes, cleanedWeb, preppedAPI])
 
   // Deal with Web page includes
   let finalWebPages = tempAwait[0]
@@ -390,5 +387,30 @@ export const prep = async (experimentsDir, coreDir) => {
     throw e
   }
 
-  return Promise.all([installedApi, installedWeb]);
+  await Promise.all([installedApi, installedWeb]);
+  try {
+    fs.copyFileSync('pushkin/front-end/src/experiments.js', 'pushkin/front-end/experiments.js');
+  } catch (e) {
+    console.error("Couldn't copy experiments.js. Make sure it exists and is in the right place.")
+    process.exit();
+  }
+  
+  console.log("Building API")
+  let builtAPI
+  try {
+    builtAPI = exec(`docker buildx build --platform linux/${process.arch} -t api:latest pushkin/api`, {cwd: process.cwd()})
+  } catch(e) {
+    console.error(`Problem building API`)
+    throw e
+  }
+  console.log("Building server")
+  let builtServer
+  try {
+    builtServer = exec(`docker buildx build --platform linux/${process.arch} -t server:latest pushkin/front-end`, {cwd: process.cwd()})
+  } catch(e) {
+    console.error(`Problem building API`)
+    throw e
+  }
+
+  return Promise.all([builtAPI, builtServer]);
 };
