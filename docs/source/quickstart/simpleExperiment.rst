@@ -158,7 +158,7 @@ Move the timeline
 Navigate to your pushkin project and create a new stub experiment:
 
 .. code-block:: bash
-  $ pushkin experiment basic lex
+   pushkin experiment basic lex
 
 You should now have a folder ``experiments/lex`` with the following content:
 

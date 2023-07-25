@@ -11,19 +11,19 @@ If you don't have `Homebrew <https://brew.sh/>`_, install it. Then run the follo
 
 .. code-block:: bash
   
-  $ brew install Node
+   brew install Node
 
 Install the pushkin-cli package globally.
 
 .. code-block:: bash
 
-  $ npm install -g pushkin-cli
+   npm install -g pushkin-cli
 
 Confirm that pushkin-cli is installed by running
 
 .. code-block:: bash
 
-  $ pushkin --help
+   pushkin --help
 
 You should get a list of commands with some documentation for each. We'll be going through the critical ones below. 
 
@@ -35,7 +35,7 @@ Then, open a terminal and move to an empty directory in which to setup Pushkin.
 
 .. code-block:: bash
 
-  $ pushkin install site
+   pushkin install site
 
 You will be asked to select a site template to use. Choose 'default'.
 
@@ -63,7 +63,7 @@ provides, run
 
 .. code-block:: bash
 
-  $ pushkin install experiment
+   pushkin install experiment
 
 Choose a 'basic' experiment. When prompted, name your experiment 'Vocab'. Repeat the process to add 'basic' experiments called 'Mind' and 'WhichEnglish' as well.
 
@@ -103,7 +103,7 @@ files to the right places, run:
 
 .. code-block:: bash
 
-  $ pushkin prep
+   pushkin prep
 
 Setting up logins
 --------
@@ -143,7 +143,7 @@ Now, let's look at your website! Make sure Docker is running, and then type
 
 .. code-block:: bash
 
-  $ pushkin start
+   pushkin start
 
 Now browse to ``http://localhost`` to see the stub website.
 
@@ -151,7 +151,7 @@ When you are done looking at your website, stop it by running:
 
 .. code-block:: bash
 
-  $ pushkin stop
+   pushkin stop
 
 If you don't do that, the web server will keep running in Docker until you quit Docker or restart. 
 
@@ -162,8 +162,8 @@ Every time you update code or add an experiment, you'll need to run pushkin prep
 
 .. code-block:: bash
 
-  $ docker-compose -f pushkin/docker-compose.dev.yml start test_db
-  $ pushkin start
+   docker-compose -f pushkin/docker-compose.dev.yml start test_db
+   pushkin start
 
 Starting over
 --------

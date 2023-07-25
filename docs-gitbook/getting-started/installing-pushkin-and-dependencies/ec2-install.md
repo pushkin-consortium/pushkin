@@ -95,8 +95,8 @@ You can now choose **Open** to connect to your instance. PuTTY will display a se
 You are now connected to your instance! In the window that appears, run the following commands to update your Ubuntu EC2 instance:
 
 ```bash
-$ sudo apt update
-$ sudo apt upgrade
+ sudo apt update
+ sudo apt upgrade
 ```
 
 ![](../../.gitbook/assets/34.gif)

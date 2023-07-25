@@ -10,7 +10,7 @@
 **Note**: When configuring AWS, be sure to specify `json` as your default output format:
 
 ```bash
-$ aws configure
+ aws configure
 AWS Access Key ID [None]: AKIAIOSFODNN7EXAMPLE
 AWS Secret Access Key [None]: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
 Default region name [None]: us-east-1
@@ -23,21 +23,21 @@ Default output format [None]: json
 **Note**: In configuring the ECS CLI, you'll need the AWS profile name you are using, as well as the related Access Key ID and Secret Access Key. If you can't remember the name of your profile, you can get a list of active profiles on your computer using:
 
 ```bash
-$ aws configure list-profiles
+ aws configure list-profiles
 ```
 
 To see the Access Key ID and Secret Access Key for a given profile, run the following, where `[profile]` is replaced with the name of the profile you want to use:
 
 ```bash
-$ get configure get aws_access_key_id --profile [profile]
-$ get configure get aws_secret_access_key --profile [profile]
+ get configure get aws_access_key_id --profile [profile]
+ get configure get aws_secret_access_key --profile [profile]
 ```
 --->
 
 * [Create a DockerHub account]([https://id.docker.com](https://id.docker.com)) if you haven't already. Then tell Pushkin what your DockerHub ID is by running:
 
 ```bash
-$ pushkin setDockerHub
+ pushkin setDockerHub
 ```
 
 You can change your ID at any point by re-running this command.
@@ -72,7 +72,7 @@ SSL certificates set up outside of AWS [vary in cost](https://qr.ae/pNsljr), but
 Run:
 
 ```bash
-$ pushkin aws init
+ pushkin aws init
 ```
 
 You should be asked to name your project, to enter the aws profile you want to use, choose a security certificate, and choose a domain name. In the latter two cases, the certificate and domain you created in the steps above should be available as options (if not, check that you completed those steps and can see the resources in the AWS console).
@@ -84,7 +84,7 @@ It usually takes 5-10 minutes for the program to complete. It tends to stick at 
 Deploying to AWS is very complicated. Sometimes, it will fail. Try debugging by doing the following in the following order:
 
 1. Try rerunning `pushkin aws init`.
-2. Try deleting your deploy (`$ pushkin aws armageddon`) and then running (`$ pushkin aws init --force`). The `--force` tag insures that any local aws config information is reset.
+2. Try deleting your deploy (` pushkin aws armageddon`) and then running (` pushkin aws init --force`). The `--force` tag insures that any local aws config information is reset.
 3. Ask for help on the [Pushkin forum](https://github.com/pushkin-consortium/pushkin/discussions). Post ALL of the output from your run of aws init.
 
 ## Deleting your AWS deploy
@@ -92,7 +92,7 @@ Deploying to AWS is very complicated. Sometimes, it will fail. Try debugging by 
 AWS will charge you for services you have running. If you are just doing a test site, you may want to delete it afterwards to minimize charges. Run:
 
 ```bash
-$ pushkin aws armageddon
+ pushkin aws armageddon
 ```
 
 When it completes, Armageddon will list remaining services that it hasn't deleted. Armageddon is usually unable to delete everything the first time. This is certain services can't be deleted until other services have finished deleting. You will usually see an error message. Wait a few minutes and run `pushkin aws armageddon`. The second time should be the charm. If you are still having problems, see [deleting through the console](../advanced/deploying/awsDeletion.md#Console).

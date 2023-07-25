@@ -6,7 +6,7 @@ The Pushkin command-line package is available via NPM. We highly recommend a glo
 
 .. code-block:: bash
 	
-	$ npm install -g pushkin-cli
+	 npm install -g pushkin-cli
 
 Any subcommand that affects a specific project must be run from a folder inside the project you wish to modify.
 

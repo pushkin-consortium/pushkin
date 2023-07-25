@@ -25,7 +25,7 @@ Note that Homebrew requires a 64-bit Intel CPU, macOS High Sierra /(10.13/) or h
 If you don't have an installation of Node yet (you'd know if you did), you should install it:
 
 ```bash
-$ brew install node
+ brew install node
 ```
 
 ### Install Yarn
@@ -33,7 +33,7 @@ $ brew install node
 Then run the following to get Yarn, which will let you download Pushkin:
 
 ```bash
-$ brew install yarn
+ brew install yarn
 ```
 
 ![](../../.gitbook/assets/ezgif.com-video-to-gif-2-%20%281%29%20%281%29.gif)
@@ -43,7 +43,7 @@ $ brew install yarn
 Install Yalc globally.
 
 ```bash
-$ yarn global add yalc
+ yarn global add yalc
 ```
 
 ![](../../.gitbook/assets/ezgif.com-video-to-gif-6-%20%281%29.gif)
@@ -53,7 +53,7 @@ $ yarn global add yalc
 Install pushkin-cli package globally.
 
 ```bash
-$ yarn global add pushkin-cli
+ yarn global add pushkin-cli
 ```
 
 ![](../../.gitbook/assets/ezgif.com-video-to-gif-3-%20%281%29%20%281%29.gif)
@@ -61,7 +61,7 @@ $ yarn global add pushkin-cli
 Confirm that pushkin-cli is installed by running:
 
 ```bash
-$ pushkin --help
+ pushkin --help
 ```
 
 You should get a list of commands with some documentation for each.
@@ -71,7 +71,7 @@ You should get a list of commands with some documentation for each.
 Confirm that you have version `2.0.0` or later by running:
 
 ```bash
-$ pushkin --version
+ pushkin --version
 ```
 
 and reading the output.
