@@ -43,7 +43,7 @@ class quizComponent extends React.Component {
 
     jsPsych.data.addProperties({user_id: this.props.userID}); //See https://www.jspsych.org/core_library/jspsych-data/#jspsychdataaddproperties
     
-    const timeline = createTimeline(jsPsych);
+    const timeline = pushkin.setSaveAfterEachStimulus(createTimeline(jsPsych));
 
     jsPsych.run(timeline);
 
