@@ -65,7 +65,7 @@ const publishToDocker = async (DHID, rebuiltWorkers) => {
     }
   }
 
-  await rebuiltWorkers; //can't push until these are built
+  rebuiltWorkers = await rebuiltWorkers; //can't push until these are built
 
   let pushedWorkers
   try {
@@ -187,7 +187,7 @@ const makeRecordSet = async (myDomain, useIAM, projName, theCloud) => {
   if (JSON.parse(existingRecords.stdout).ResourceRecordSets.length > 0) {
     console.log(`Deleting existing resource record sets for ${myDomain}`)
     try {
-      await exec(`aws route53 change-resource-record-sets --hosted-zone-id ${zoneID} --change-batch '{ "Changes": [ { "Action": "DELETE", "ResourceRecordSet": ${JSON.stringify(JSON.parse(existingRecords.stdout).ResourceRecordSets[0])} } ] }' --profile ${useIAM}`)
+      await exec(`aws route53 change-resource-record-sets --hosted-zone-id ${zoneID} --change-batch '{ "Changes": [ { "Action": "DELETE", "ResourceRecordSet": ${JSON.stringify(JSON.parse(existingRecords.stdout).ResourceRecordSets)} } ] }' --profile ${useIAM}`)
     } catch (e) {
       console.error(`Unable to delete resource record sets for ${myDomain}`)
     }
@@ -206,10 +206,17 @@ const makeRecordSet = async (myDomain, useIAM, projName, theCloud) => {
       
       if (JSON.parse(existingRecords.stdout).ResourceRecordSets.map((r) => {
         if (r.SetIdentifier) {
-          console.log(`found SetIdentifier ${r.SetIdentifier} for ${r}`)
+          console.log(`found SetIdentifier ${r.SetIdentifier} for ${r.Name}, ${r.Type}`)
+          //try deleting this record set
+          try {
+            execSync(`aws route53 change-resource-record-sets --hosted-zone-id ${zoneID} --change-batch '{ "Changes": [ { "Action": "DELETE", "ResourceRecordSet": ${JSON.stringify(r)} } ] }' --profile ${useIAM}`)
+          } catch (e) {
+            console.error(`Unable to delete resource record set ${r.SetIdentifier} for ${zoneID}`)
+            console.error(e)
+          }
           return true
         } else {
-          console.log(`No SetIdentifier ${r.SetIdentifier} for ${r}`)
+          console.log(`No SetIdentifier ${r.SetIdentifier} for ${r.Name}, ${r.Type}`)
           return false
         }
       }).includes(true)) {
@@ -220,7 +227,7 @@ const makeRecordSet = async (myDomain, useIAM, projName, theCloud) => {
       }
   
       console.log(`Waiting for resource record sets to be deleted for zone ${zoneID}...`)
-      await new Promise(resolve => setTimeout(resolve, 5000))
+      await new Promise(resolve => setTimeout(resolve, 20000))
     }
   }
 
@@ -238,7 +245,7 @@ const makeRecordSet = async (myDomain, useIAM, projName, theCloud) => {
   return returnVal
 }
 
-const deployFrontEnd = async (projName, awsName, useIAM, myDomain, myCertificate) => {
+const deployFrontEnd = async (projName, awsName, useIAM, myDomain, myCertificate, builtFrontEnd) => {
   let temp
 
   console.log(`Checking to see if bucket ${awsName} already exists.`)
@@ -269,6 +276,7 @@ const deployFrontEnd = async (projName, awsName, useIAM, myDomain, myCertificate
     }    
   }
 
+  builtFrontEnd = await builtFrontEnd; //need this before we sync! 
   let syncMe
   try {
     syncMe = syncS3(awsName, useIAM)
@@ -649,6 +657,7 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs, ECS
           await fs.promises.writeFile(path.join(process.cwd(), 'ECStasks', yaml), jsYaml.safeDump(task), 'utf8');
         } catch (e) {
           console.error(`Unable to write ${yaml}`)
+          console.error(`Had hoped to write :\n`, task)
           throw e
         }
         let compose
@@ -743,11 +752,13 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs, ECS
       //for backwards compatibility, at least for the time being. 
       task.services[w].environment = {
         "AMQP_ADDRESS" : rabbitAddress,
+        "DB_HOST": dbInfoByTask['Main'].endpoint,
         "DB_USER": dbInfoByTask['Main'].username,
         "DB_DB": dbInfoByTask['Main'].name,
         "DB_PASS": dbInfoByTask['Main'].password,
         "DB_URL": dbInfoByTask['Main'].endpoint,
         //"TRANS_URL": `postgres://${dbInfoByTask['Transaction'].username}:${dbInfoByTask['Transaction'].password}@${dbInfoByTask['Transaction'].endpoint}:/${dbInfoByTask['Transaction'].port}/${dbInfoByTask['Transaction'].name}`
+        "TRANS_HOST": dbInfoByTask['Transaction'].endpoint,
         "TRANS_USER": dbInfoByTask['Transaction'].username,
         "TRANS_DB": dbInfoByTask['Transaction'].name,
         "TRANS_PASS": dbInfoByTask['Transaction'].password,
@@ -797,7 +808,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
 
   let madeSSH = makeSSH(useIAM)
   //make security group for load balancer. Start this process early, though it doesn't take super long.
-  const makeBalancerGroup = async(useIAM) => {
+  const makeBalancerGroup = async(useIAM, projName) => {
     console.log(`Creating security group for load balancer`)
     let SGCreate = `aws ec2 create-security-group --group-name BalancerGroup --description "For the load balancer" --tag-specifications 'ResourceType=security-group,Tags=[{Key=PUSHKIN,Value=${projName}}]' --profile ${useIAM}`
     let SGRule1 = `aws ec2 authorize-security-group-ingress --group-name BalancerGroup --ip-permissions IpProtocol=tcp,FromPort=80,ToPort=80,Ipv6Ranges='[{CidrIpv6=::/0}]',IpRanges='[{CidrIp=0.0.0.0/0}]' --profile ${useIAM}`
@@ -831,14 +842,14 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
     BalancerSecurityGroupID = foundBalancerGroup
   } else {
     try {
-      madeBalancerGroup = makeBalancerGroup(useIAM) //start this process early. Will use much later. 
+      madeBalancerGroup = makeBalancerGroup(useIAM, projName) //start this process early. Will use much later. 
     } catch(e) {
       throw e
     }
   }
 
   //make security group for ECS cluster. Start this process early, though it doesn't take super long.
-  const makeECSGroup = async(useIAM) => {
+  const makeECSGroup = async(useIAM, projName) => {
     console.log(`Creating security group for ECS cluster`)
     let SGCreate = `aws ec2 create-security-group --group-name ECSGroup --description "For the ECS cluster" --tag-specifications 'ResourceType=security-group,Tags=[{Key=PUSHKIN,Value=${projName}}]' --profile ${useIAM}`
     let stdOut
@@ -870,7 +881,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
     ecsSecurityGroupID = foundECSGroup
   } else {
     try {
-      madeECSGroup = makeECSGroup(useIAM) //start this process early. Will use much later. 
+      madeECSGroup = makeECSGroup(useIAM, projName) //start this process early. Will use much later. 
     } catch(e) {
       throw e
     }
@@ -984,7 +995,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
   console.log(`ECS CLI configured`)
 
   let launchedECS
-  await madeSSH //need this shortly
+  madeSSH = await madeSSH //need this shortly
   console.log(`SSH set up`)
   const zones = await foundSubnets
   console.log(`Subnets identified`)
@@ -1076,62 +1087,240 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
   } catch(e) {
     throw e
   }
-  await createdECSTasks
+  createdECSTasks = await createdECSTasks
   console.log(`Created ECS task definitions`)
 
   return [ balancerEndpoint, balancerZone]
 }
 
+const forwardAPIWrapper = async (configuredECS, useIAM, projName, myDomain, deployedFrontEnd) => {
+  const forwardAPI = async (myDomain, useIAM, balancerEndpoint, balancerZone, projName) => {
 
-const forwardAPI = async (myDomain, useIAM, balancerEndpoint, balancerZone, projName) => {
-
-  // This whole function can be skipped if not using custom domain
-  // The API endpoint will have to be set manually
-  if (myDomain != "default") {
-    let temp
-    console.log(`Retrieving hostedzone ID for ${myDomain}`)
-    let zoneID
-    try {
-      temp = await exec(`aws route53 list-hosted-zones-by-name --dns-name ${myDomain} --profile ${useIAM}`)
-    } catch (e) {
-      console.error(`Unable to retrieve hostedzone for ${myDomain}`)
-      throw e
+    // This whole function can be skipped if not using custom domain
+    // The API endpoint will have to be set manually
+    if (myDomain != "default") {
+      let temp
+      console.log(`Retrieving hostedzone ID for ${myDomain}`)
+      let zoneID
+      try {
+        temp = await exec(`aws route53 list-hosted-zones-by-name --dns-name ${myDomain} --profile ${useIAM}`)
+      } catch (e) {
+        console.error(`Unable to retrieve hostedzone for ${myDomain}`)
+        throw e
+      }
+      if (JSON.parse(temp.stdout).HostedZones.length == 0) {
+        console.error(`No hostedzone found for ${myDomain}`)
+        throw new Error(`No hostedzone found for ${myDomain}`)
+      }
+      try {
+        zoneID = JSON.parse(temp.stdout).HostedZones[0].Id.split("/hostedzone/")[1]
+      } catch (e) {
+        console.error(`Unable to parse hostedzone for ${myDomain}`)
+        throw e
+      }
+  
+      // The following will update the resource records, creating them if they don't already exist
+  
+      console.log(`Updating record set for ${myDomain} in order to forward API`)
+      let recordSet = {
+        "Comment": "",
+        "Changes": []
+      }
+      recordSet.Changes[0] = JSON.parse(JSON.stringify(changeSet));
+  
+      recordSet.Changes[0].ResourceRecordSet.Name = 'api.'.concat(myDomain)
+      recordSet.Changes[0].ResourceRecordSet.AliasTarget.DNSName = balancerEndpoint
+      recordSet.Changes[0].ResourceRecordSet.Type = "A"
+      recordSet.Changes[0].ResourceRecordSet.AliasTarget.HostedZoneId = balancerZone
+      recordSet.Changes[0].ResourceRecordSet.SetIdentifier = projName
+      try {
+        await exec(`aws route53 change-resource-record-sets --hosted-zone-id ${zoneID} --change-batch '${JSON.stringify(recordSet)}' --profile ${useIAM}`)
+        console.log(`Updated record set for ${myDomain}.`)
+       } catch (e) {
+        console.error(`Unable to create resource record set for ${myDomain}`)
+        throw e
+      }
     }
-    if (JSON.parse(temp.stdout).HostedZones.length == 0) {
-      console.error(`No hostedzone found for ${myDomain}`)
-      throw new Error(`No hostedzone found for ${myDomain}`)
-    }
-    try {
-      zoneID = JSON.parse(temp.stdout).HostedZones[0].Id.split("/hostedzone/")[1]
-    } catch (e) {
-      console.error(`Unable to parse hostedzone for ${myDomain}`)
-      throw e
-    }
-
-    // The following will update the resource records, creating them if they don't already exist
-
-    console.log(`Updating record set for ${myDomain} in order to forward API`)
-    let recordSet = {
-      "Comment": "",
-      "Changes": []
-    }
-    recordSet.Changes[0] = JSON.parse(JSON.stringify(changeSet));
-
-    recordSet.Changes[0].ResourceRecordSet.Name = 'api.'.concat(myDomain)
-    recordSet.Changes[0].ResourceRecordSet.AliasTarget.DNSName = balancerEndpoint
-    recordSet.Changes[0].ResourceRecordSet.Type = "A"
-    recordSet.Changes[0].ResourceRecordSet.AliasTarget.HostedZoneId = balancerZone
-    recordSet.Changes[0].ResourceRecordSet.SetIdentifier = projName
-    try {
-      await exec(`aws route53 change-resource-record-sets --hosted-zone-id ${zoneID} --change-batch '${JSON.stringify(recordSet)}' --profile ${useIAM}`)
-      console.log(`Updated record set for ${myDomain}.`)
-     } catch (e) {
-      console.error(`Unable to create resource record set for ${myDomain}`)
-      throw e
-    }
+  
+    return true
   }
 
-  return
+  let balancerEndpoint
+  let balancerZone
+  [ balancerEndpoint, balancerZone] = await configuredECS
+  await deployedFrontEnd //We create a record set for the API during front-end setup, don't want to delete it now!
+  let apiForwarded
+  try {
+    apiForwarded = forwardAPI(myDomain, useIAM, balancerEndpoint, balancerZone, projName)
+  } catch(e) {
+    console.error(`Unable to set up forwarding for API`)
+    throw e
+  }
+
+  return apiForwarded
+}
+
+const handleSecurityGroups = async (useIAM, projName) => {
+  const createDatabaseGroup = async (useIAM, projName) => {
+    let SGCreate = `aws ec2 create-security-group --group-name DatabaseGroup --description "For connecting to databases" --tag-specifications 'ResourceType=security-group,Tags=[{Key=PUSHKIN,Value=${projName}}]' --profile ${useIAM}`
+    let SGRule = `aws ec2 authorize-security-group-ingress --group-name DatabaseGroup --ip-permissions IpProtocol=tcp,FromPort=5432,ToPort=5432,Ipv6Ranges='[{CidrIpv6=::/0}]',IpRanges='[{CidrIp=0.0.0.0/0}]' --profile ${useIAM}`
+    let stdOut
+    try {
+      stdOut = await exec(SGCreate)
+      execSync(SGRule)
+    } catch(e) {
+      console.error(`Failed to create security group for databases`)
+      throw e
+    }
+    return JSON.parse(stdOut.stdout).GroupId //remember security group in order to use later!
+  }
+
+  let temp
+  try {
+    temp = await exec(`aws ec2 describe-security-groups --profile ${useIAM}`)
+  } catch (e) {
+    console.error(`Failed to retried list of security groups from aws`)
+    throw e
+  }
+  let foundDBGroup
+  let madeDBGroup
+  JSON.parse(temp.stdout).SecurityGroups.forEach((g) => {
+    if (g.GroupName == 'DatabaseGroup') {foundDBGroup = g.GroupId}
+    })
+
+  return new Promise((resolve, reject) => {
+    let securityGroupID
+    if (foundDBGroup) {
+      console.log(`Database security group already exists. Skipping creation.`)
+      resolve(foundDBGroup)
+    } else {
+      console.log('Creating security group for databases')
+      resolve(createDatabaseGroup(useIAM, projName))
+    }
+  })
+  console.error(`Shouldn't ever get to this line.`)
+}
+
+const recordDBs = async(dbDone) => {
+  const returnedPromises = await dbDone //initializedTransactionsDB must be first in this list
+  const transactionDB = returnedPromises[0] //this is why it has to be first
+  const mainDB = returnedPromises[1] //this is why it has to be second
+
+  console.log(`Databases created. Adding to local config definitions.`)
+  let pushkinConfig
+  let stdOut;
+  try {
+    stdOut = await fs.promises.readFile(path.join(process.cwd(), 'pushkin.yaml'), 'utf8')
+    pushkinConfig = jsYaml.safeLoad(stdOut)
+  } catch (e) {
+    console.error(`Couldn't load pushkin.yaml`)
+    throw e
+  }
+
+  // Would have made sense for local databases and production databases to be nested within 'databases'
+  // But poor planning prevents that. And we'd like to avoid breaking changes, so...
+  if (pushkinConfig.productionDBs == null) {
+    // initialize
+    pushkinConfig.productionDBs = {};
+  }
+  if (transactionDB) {
+    // false means it is preexisting, doesn't need to be updated
+    pushkinConfig.productionDBs[transactionDB.type] = transactionDB;
+  }
+  if (mainDB) {
+    // false means it is preexisting, doesn't need to be updated
+    pushkinConfig.productionDBs[mainDB.type] = mainDB;
+  }
+  try {
+    stdOut = await fs.promises.writeFile(path.join(process.cwd(), 'pushkin.yaml'), jsYaml.safeDump(pushkinConfig), 'utf8')
+    console.log(`Successfully updated pushkin.yaml with databases.`)
+  } catch(e) {
+    throw e
+  }
+
+ return pushkinConfig;
+}
+
+const rebuildWorker = async function(exp){
+  let pushkinConfig
+  let stdOut;
+  try {
+    stdOut = await fs.promises.readFile(path.join(process.cwd(), 'pushkin.yaml'), 'utf8')
+    pushkinConfig = jsYaml.safeLoad(stdOut)
+  } catch (e) {
+    console.error(`Couldn't load pushkin.yaml`)
+    throw e
+  }
+  console.log(`Rebuilding AWS-compatible worker for`, exp);
+  const expDir = path.join(path.join(process.cwd(), pushkinConfig.experimentsDir), exp)
+  if (!fs.lstatSync(expDir).isDirectory()) return('');
+  let expConfig;
+  try {
+    expConfig = readConfig(expDir);
+  } catch (err) {
+    console.error(`Failed to read experiment config file for `.concat(exp));
+    throw err;
+  }
+  const workerConfig = expConfig.worker;
+  const workerName = `${exp}_worker`.toLowerCase(); //Docker names must all be lower case
+  const workerLoc = path.join(expDir, workerConfig.location).replace(/ /g, '\\ '); //handle spaces in path
+
+  let workerBuild
+  try {
+    workerBuild = exec(`docker build ${workerLoc} -t ${workerName} --load`)
+  } catch(e) {
+    console.error(`Problem building worker for ${exp}`)
+    throw (e)
+  }
+  return workerBuild;
+}
+
+const createLogGroup = async (useIAM, projName) => {
+  //Log group for ECS
+  let stdOut
+  try {
+    stdOut = await exec(`aws logs create-log-group --log-group-name ecs/${projName} --profile ${useIAM}`)    
+  } catch (e) {
+    if (e.message.includes("already exists")) {
+      console.warn('\x1b[31m%s\x1b[0m', `Log group ecs/${projName} for ECS already exists. Skipping creation.\n
+      If this is a surprise, you should look into it.`)
+    } else {
+      console.error(`Unable to create log group for ECS`)
+      throw e  
+    }
+  }
+  try {
+    stdOut = await exec(`aws logs put-retention-policy --log-group-name ecs/${projName} --retention-in-days 7 --profile ${useIAM}`)
+  } catch (e) {
+    console.error(`Unable to set retention policy for ECS log group`)
+    throw e
+  }
+}
+
+const migrationsWrapper = async (completedDBs) => {
+  console.log(`Handling main table migrations`)
+  let dbsToExps, ranMigrations
+  let info = await completedDBs
+  try {
+    dbsToExps = await getMigrations(path.join(process.cwd(), info.experimentsDir), true)
+    ranMigrations = runMigrations(dbsToExps, info.productionDBs)
+  } catch (e) {
+    throw e
+  }    
+  return ranMigrations
+}
+
+const setupTransactionsWrapper = async (completedDBs) => {
+  let info = await completedDBs
+  let transMigrations = new Map()
+  transMigrations.set('Transaction', [{ migrations: path.join(process.cwd(), 'coreMigrations'), seeds: '' }]); 
+  let setupTransactionsTable
+  try {
+    setupTransactionsTable = runMigrations(transMigrations , info.productionDBs)
+  } catch (e) {
+    throw e    
+  }
+  return setupTransactionsTable
 }
 
 export async function awsInit(projName, awsName, useIAM, DHID) {
@@ -1215,40 +1404,7 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
   }
 
   //Databases take BY FAR the longest, so start them right after certificate (certificate comes first or things get confused)
-  const createDatabaseGroup = async (useIAM) => {
-    let SGCreate = `aws ec2 create-security-group --group-name DatabaseGroup --description "For connecting to databases" --tag-specifications 'ResourceType=security-group,Tags=[{Key=PUSHKIN,Value=${projName}}]' --profile ${useIAM}`
-    let SGRule = `aws ec2 authorize-security-group-ingress --group-name DatabaseGroup --ip-permissions IpProtocol=tcp,FromPort=5432,ToPort=5432,Ipv6Ranges='[{CidrIpv6=::/0}]',IpRanges='[{CidrIp=0.0.0.0/0}]' --profile ${useIAM}`
-    let stdOut
-    try {
-      stdOut = await exec(SGCreate)
-      execSync(SGRule)
-    } catch(e) {
-      console.error(`Failed to create security group for databases`)
-      throw e
-    }
-    return JSON.parse(stdOut.stdout).GroupId //remember security group in order to use later!
-  }
-
-  try {
-    temp = await exec(`aws ec2 describe-security-groups --profile ${useIAM}`)
-  } catch (e) {
-    console.error(`Failed to retried list of security groups from aws`)
-    throw e
-  }
-  let foundDBGroup
-  let madeDBGroup
-  JSON.parse(temp.stdout).SecurityGroups.forEach((g) => {
-    if (g.GroupName == 'DatabaseGroup') {foundDBGroup = g.GroupId}
-    })
-
-  let securityGroupID
-  if (foundDBGroup) {
-    console.log(`Database security group already exists. Skipping creation.`)
-    securityGroupID = foundDBGroup
-  } else {
-    console.log('Creating security group for databases')
-    securityGroupID = await createDatabaseGroup(useIAM)
-  }
+  let securityGroupID = await handleSecurityGroups(useIAM, projName)
 
   let initializedMainDB
   try {
@@ -1257,6 +1413,7 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
     console.error(`Failed to initialize main database`)
     throw e
   }
+
   let initializedTransactionDB
   try {
     initializedTransactionDB = initDB('Transaction', securityGroupID, projName, awsName, useIAM)
@@ -1265,70 +1422,7 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
     throw e
   }
 
-  const recordDBs = async(dbDone) => {
-    const returnedPromises = await dbDone //initializedTransactionsDB must be first in this list
-    const transactionDB = returnedPromises[0] //this is why it has to be first
-    const mainDB = returnedPromises[1] //this is why it has to be second
-
-    console.log(`Databases created. Adding to local config definitions.`)
-    let pushkinConfig
-    let stdOut;
-    try {
-      stdOut = await fs.promises.readFile(path.join(process.cwd(), 'pushkin.yaml'), 'utf8')
-      pushkinConfig = jsYaml.safeLoad(stdOut)
-    } catch (e) {
-      console.error(`Couldn't load pushkin.yaml`)
-      throw e
-    }
-
-    // Would have made sense for local databases and production databases to be nested within 'databases'
-    // But poor planning prevents that. And we'd like to avoid breaking changes, so...
-    if (pushkinConfig.productionDBs == null) {
-      // initialize
-      pushkinConfig.productionDBs = {};
-    }
-    if (transactionDB) {
-      // false means it is preexisting, doesn't need to be updated
-      pushkinConfig.productionDBs[transactionDB.type] = transactionDB;
-    }
-    if (mainDB) {
-      // false means it is preexisting, doesn't need to be updated
-      pushkinConfig.productionDBs[mainDB.type] = mainDB;
-    }
-    try {
-      stdOut = await fs.promises.writeFile(path.join(process.cwd(), 'pushkin.yaml'), jsYaml.safeDump(pushkinConfig), 'utf8')
-      console.log(`Successfully updated pushkin.yaml with databases.`)
-    } catch(e) {
-      throw e
-    }
-
-   return pushkinConfig;
-  }
-
-  const rebuildWorker = async function(exp){
-    console.log(`Rebuilding AWS-compatible worker for`, exp);
-    const expDir = path.join(path.join(process.cwd(), pushkinConfig.experimentsDir), exp)
-    if (!fs.lstatSync(expDir).isDirectory()) return('');
-    let expConfig;
-    try {
-      expConfig = readConfig(expDir);
-    } catch (err) {
-      console.error(`Failed to read experiment config file for `.concat(exp));
-      throw err;
-    }
-    const workerConfig = expConfig.worker;
-    const workerName = `${exp}_worker`.toLowerCase(); //Docker names must all be lower case
-    const workerLoc = path.join(expDir, workerConfig.location).replace(/ /g, '\\ '); //handle spaces in path
-
-    let workerBuild
-    try {
-      workerBuild = exec(`docker build ${workerLoc} -t ${workerName} --load`)
-    } catch(e) {
-      console.error(`Problem building worker for ${exp}`)
-      throw (e)
-    }
-    return workerBuild;
-  }
+  const completedDBs = recordDBs(Promise.all([initializedMainDB, initializedTransactionDB]))
 
   const expDirs = fs.readdirSync(path.join(process.cwd(), pushkinConfig.experimentsDir));
   let rebuiltWorkers
@@ -1337,31 +1431,6 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
   } catch (err) {
     console.error(err);
     throw(err);
-  }
-
-
-  const completedDBs = recordDBs(Promise.all([initializedMainDB, initializedTransactionDB]))
-
-  const createLogGroup = async (useIAM, projName) => {
-    //Log group for ECS
-    let stdOut
-    try {
-      stdOut = await exec(`aws logs create-log-group --log-group-name ecs/${projName} --profile ${useIAM}`)    
-    } catch (e) {
-      if (e.message.includes("already exists")) {
-        console.warn('\x1b[31m%s\x1b[0m', `Log group ecs/${projName} for ECS already exists. Skipping creation.\n
-        If this is a surprise, you should look into it.`)
-      } else {
-        console.error(`Unable to create log group for ECS`)
-        throw e  
-      }
-    }
-    try {
-      stdOut = await exec(`aws logs put-retention-policy --log-group-name ecs/${projName} --retention-in-days 7 --profile ${useIAM}`)
-    } catch (e) {
-      console.error(`Unable to set retention policy for ECS log group`)
-      throw e
-    }
   }
 
   const createdLogGroups = createLogGroup(useIAM, projName)
@@ -1376,24 +1445,22 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
   }
 
   //build front-end
-  let builtWeb
+  let builtFrontEnd
   try {
-    builtWeb = buildFE(projName)
+    builtFrontEnd = buildFE(projName)
   } catch(e) {
     throw e
   }
 
-  await builtWeb; //need this before we sync! 
-
   let deployedFrontEnd
   try {
-    deployedFrontEnd = deployFrontEnd(projName, awsName, useIAM, myDomain, myCertificate)
+    deployedFrontEnd = deployFrontEnd(projName, awsName, useIAM, myDomain, myCertificate, builtFrontEnd)
   } catch(e) {
     console.error(`Failed to deploy front end`)
     throw e
   }
 
-  await publishedToDocker //need this to configure ECS
+  publishedToDocker = await publishedToDocker //need this to configure ECS
   let configuredECS
   try {
     configuredECS = setupECS(projName, awsName, useIAM, DHID, completedDBs, myCertificate);
@@ -1401,78 +1468,40 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
     throw e
   }
 
-  const setupTransactionsWrapper = async () => {
-    let info = await completedDBs
-    let transMigrations = new Map()
-    transMigrations.set('Transaction', [{ migrations: path.join(process.cwd(), 'coreMigrations'), seeds: '' }]); 
-    let setupTransactionsTable
-    try {
-      setupTransactionsTable = runMigrations(transMigrations , info.productionDBs)
-    } catch (e) {
-      throw e    
-    }
-    return setupTransactionsTable
-  }
   let setupTransactionsTable
   try {
-    setupTransactionsTable = setupTransactionsWrapper()
+    setupTransactionsTable = setupTransactionsWrapper(completedDBs)
   } catch (e) {
     console.error(`Unable to run migrations for transactions DB`)
     throw e
   }
 
-  const migrationsWrapper = async () => {
-    console.log(`Handling migrations`)
-    let dbsToExps, ranMigrations
-    let info = await completedDBs
-    try {
-      dbsToExps = await getMigrations(path.join(process.cwd(), info.experimentsDir), true)
-      ranMigrations = runMigrations(dbsToExps, info.productionDBs)
-    } catch (e) {
-      throw e
-    }    
-    return ranMigrations
-  }
   let ranMigrations
   try {
-    ranMigrations = migrationsWrapper();
+    ranMigrations = migrationsWrapper(completedDBs);
   } catch (e) {
     throw e
   }
 
-  let balancerEndpoint
-  let balancerZone
-  const forwardAPIWrapper = async () => {
-    [ balancerEndpoint, balancerZone] = await configuredECS
-    
-    let apiForwarded
-    try {
-      apiForwarded = forwardAPI(myDomain, useIAM, balancerEndpoint, balancerZone, projName)
-    } catch(e) {
-      console.error(`Unable to set up forwarding for API`)
-      throw e
-    }
-
-    return apiForwarded
-  }
   let apiForwarded
   try {
-    apiForwarded = forwardAPIWrapper();
+    apiForwarded = forwardAPIWrapper(configuredECS, useIAM, projName, myDomain, deployedFrontEnd);
   } catch (e) {
     throw e
+  }
+
+  // This needs to come last, right before 'return'
+  if (myDomain == "default") {
+    let configuredECSoutput = await configuredECS
+    let cloudDomain = await deployedFrontEnd //has actually already resolved, but not sure I can use it directly
+    console.log(`Access your website at ${cloudDomain}`)
+    console.log(`Be sure to update pushkin/front-end/src/config.js so that the api URL is ${configuredECSoutput[0]}.`)
+    pushkinConfig.info.rootDomain = cloudDomain
   }
 
   pushkinConfig = await completedDBs;
 
   await Promise.all([deployedFrontEnd, setupTransactionsTable, ranMigrations, apiForwarded])
-
-  // This needs to come last, right before 'return'
-  if (myDomain == "default") {
-    let cloudDomain = await deployedFrontEnd //has actually already resolved, but not sure I can use it directly
-    console.log(`Access your website at ${cloudDomain}`)
-    console.log(`Be sure to update pushkin/front-end/src/config.js so that the api URL is ${balancerEndpoint}.`)
-    pushkinConfig.info.rootDomain = cloudDomain
-  }
 
   await fs.promises.writeFile(path.join(process.cwd(), 'pushkin.yaml'), jsYaml.safeDump(pushkinConfig), 'utf8')
 
@@ -1593,290 +1622,246 @@ export async function addIAM(iam) {
   return
 }
 
-export const awsArmageddon = async (useIAM, killType) => {
-
-  let temp, awsResources
-  try {
-    awsResources = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
-  } catch (e) {
-    console.error(`Unable to load awsResources.js`)
-  }    
-  let projName
-  if (awsResources) {
-    projName = awsResources.name; //can use this to identify resources needing deletion
-  } else {
-    if (killType == "kill") {
-      console.warn('\x1b[31m%s\x1b[0m', `Unable to find awsResources.js. You won't be able to run kill.\n Either delete AWS deploy manually or run aws armageddon to delete everything including things not related to your project..`)
-    }
-  }
-  const killTag = killType == "kill" ? projName : false
-
-
-  const deleteStack = async () => {
-    console.log(`Deleting cloudformation stacks`)
-    const getStackList = async (stackType) => {
-      let stacksToDelete = []
-      let stackList
-      try {
-        stackList = await exec(`aws cloudformation list-stacks --profile ${useIAM}`)
-      } catch (e) {
-        console.error(`Unable to list cloudformation stacks`)
-        throw e
-      }
-      if (JSON.parse(stackList.stdout).StackSummaries) {
-        JSON.parse(stackList.stdout).StackSummaries.forEach((s) => {
-          if (stackType == "deletable") {
-            if (s.StackStatus == "Active" | s.StackStatus == "CREATE_COMPLETE") {
-              if (killTag && s.Tags.length > 0) {
-                if (s.Tags[0].Value == killTag) {
-                  stacksToDelete.push(s.StackId)
-                }
-              } else {
-                stacksToDelete.push(s.StackId)
-              }
-            }                
-          }
-          if (stackType == "alive") {
-            if (s.StackStatus != "DELETE_COMPLETE") {
-              if (killTag && s.Tags.length > 0) {
-                if (s.Tags[0].Value == killTag) {
-                  stacksToDelete.push(s.StackId)
-                }
-              } else {
-                stacksToDelete.push(s.StackId)
-              }
-            }                
-          }
-        })
-      }
-      return stacksToDelete
-    }
-
-    let stacksToDelete
+const deleteStack = async (useIAM, killTag) => {
+  console.log(`Deleting cloudformation stacks`)
+  const getStackList = async (stackType) => {
+    let stacksToDelete = []
+    let stackList
     try {
-      stacksToDelete = await getStackList("deletable");
+      stackList = await exec(`aws cloudformation list-stacks --profile ${useIAM}`)
     } catch (e) {
+      console.error(`Unable to list cloudformation stacks`)
       throw e
     }
-
-    return new Promise(async (resolve, reject) => {
-      if (stacksToDelete.length > 0) {
-        stacksToDelete.map(async (s) => {
-          console.log(`Deleting stack ${s}`)
-          try {
-            return await exec(`aws cloudformation delete-stack --stack-name ${s} --profile ${useIAM}`)
-          } catch (e) {
-            console.warn('\x1b[31m%s\x1b[0m', `Unable to find cloudformation stack ${s}. May have already been deleted. Skipping.`)
-            return true
-          }
-        })
-
-        const awaitStacks = async () => {
-          let remainingStacks = [];
-          try {
-            remainingStacks = await getStackList("alive");
-          } catch (e) {
-            throw e
-          }
-          if (remainingStacks.length > 0) {
-            setTimeout(awaitStacks, 5000)
-          } else {
-            resolve(true)
-          }
+    if (JSON.parse(stackList.stdout).StackSummaries) {
+      JSON.parse(stackList.stdout).StackSummaries.forEach((s) => {
+        if (stackType == "deletable") {
+          if (s.StackStatus == "Active" | s.StackStatus == "CREATE_COMPLETE") {
+            if (killTag && s.Tags.length > 0) {
+              if (s.Tags[0].Value == killTag) {
+                stacksToDelete.push(s.StackId)
+              }
+            } else {
+              stacksToDelete.push(s.StackId)
+            }
+          }                
         }
+        if (stackType == "alive") {
+          if (s.StackStatus != "DELETE_COMPLETE") {
+            if (killTag && s.Tags.length > 0) {
+              if (s.Tags[0].Value == killTag) {
+                stacksToDelete.push(s.StackId)
+              }
+            } else {
+              stacksToDelete.push(s.StackId)
+            }
+          }                
+        }
+      })
+    }
+    return stacksToDelete
+  }
+
+  let stacksToDelete
+  try {
+    stacksToDelete = await getStackList("deletable");
+  } catch (e) {
+    throw e
+  }
+
+  return new Promise(async (resolve, reject) => {
+    if (stacksToDelete.length > 0) {
+      stacksToDelete.map(async (s) => {
+        console.log(`Deleting stack ${s}`)
         try {
-          awaitStacks();
+          return await exec(`aws cloudformation delete-stack --stack-name ${s} --profile ${useIAM}`)
+        } catch (e) {
+          console.warn('\x1b[31m%s\x1b[0m', `Unable to find cloudformation stack ${s}. May have already been deleted. Skipping.`)
+          return true
+        }
+      })
+
+      const awaitStacks = async () => {
+        let remainingStacks = [];
+        try {
+          remainingStacks = await getStackList("alive");
         } catch (e) {
           throw e
         }
-      } else {
-        resolve(true)
-      }
-    })
- }
- 
-  const deletedStack = await deleteStack()
-
-  const deleteCluster = async() => {
-    await deletedStack; //probably need this gone first.
-    let runningClusters = []
-    let clustersToKill = []
-    let temp
-    try {
-      temp = await exec(`aws ecs list-clusters --profile ${useIAM}`)
-    } catch (e) {
-      console.error(`Unable to list ECS clusters.\n` + e)
-      throw e
-    }
-    if (JSON.parse(temp.stdout).clusterArns.length > 0) {
-      JSON.parse(temp.stdout).clusterArns.map((c) => {
-        runningClusters.push(c)
-      })
-    }
-    
-    if (!killTag) {
-      clustersToKill = runningClusters
-    } else {
-      console.warn('\x1b[31m%s\x1b[0m', `Only nuking clusters associated with this project. Full list of clusters includes:`)
-      console.warn('\x1b[31m%s\x1b[0m', c);
-      if (awsResources && !awsResources.ECSName) {
-        awsResources.ECSName = projName.replace(/[^A-Za-z0-9]/g, ""); //won't be permanent. Doesn't matter.
+        if (remainingStacks.length > 0) {
+          setTimeout(awaitStacks, 5000)
+        } else {
+          resolve(true)
+        }
       }
       try {
-        temp = await exec(`aws ecs describe-clusters --clusters ${awsResources.ECSName} --profile ${useIAM}`)
+        awaitStacks();
       } catch (e) {
-        console.warn('\x1b[31m%s\x1b[0m', `Unable to find ECS cluster ${awsResources.ECSName}. May have already been deleted.`)
-        awsResources.ECSName = null
-        return true
+        throw e
       }
-      if (JSON.parse(temp.stdout).clusters.length == 0) {
-        console.warn('\x1b[31m%s\x1b[0m', `Unable to find ECS cluster ${awsResources.ECSName}. May have already been deleted.`)
-        awsResources.ECSName = null
-        return true
-      } else {
-        JSON.parse(temp.stdout).clusters.forEach((c) => {
-          if (c.clusterName == awsResources.ECSName) {
-            clustersToKill.push(c.clusterArn)
-          }
-        })
-        if (clustersToKill.length == 0) {
-          console.warn('\x1b[31m%s\x1b[0m', `Unable to find ECS cluster ${awsResources.ECSName}. May have already been deleted.`)
-          awsResources.ECSName = null
-          return true
-        }  
-      }
+    } else {
+      resolve(true)
     }
-    console.log(`Deleting these ECS clusters: ` + clustersToKill.join(', '))
+  })
+}
 
-    console.log(`Stopping ECS services.`)
-    await Promise.all(
-      clustersToKill.map(async (c) => {
+const deleteCluster = async(deletedStack, useIAM, killTag, projName, awsResources) => {
+  deletedStack = await deletedStack; //probably need this gone first.
+  let runningClusters = []
+  let clustersToKill = []
+  let temp
+  try {
+    temp = await exec(`aws ecs list-clusters --profile ${useIAM}`)
+  } catch (e) {
+    console.error(`Unable to list ECS clusters.\n` + e)
+    throw e
+  }
+  if (JSON.parse(temp.stdout).clusterArns.length > 0) {
+    JSON.parse(temp.stdout).clusterArns.map((c) => {
+      runningClusters.push(c)
+    })
+  }
+  
+  if (!killTag) {
+    clustersToKill = runningClusters
+  } else {
+    console.warn('\x1b[31m%s\x1b[0m', `Only nuking clusters associated with this project. Full list of clusters includes:`)
+    console.warn('\x1b[31m%s\x1b[0m', c);
+    if (awsResources && !awsResources.ECSName) {
+      awsResources.ECSName = projName.replace(/[^A-Za-z0-9]/g, ""); //won't be permanent. Doesn't matter.
+    }
+    try {
+      temp = await exec(`aws ecs describe-clusters --clusters ${awsResources.ECSName} --profile ${useIAM}`)
+    } catch (e) {
+      console.warn('\x1b[31m%s\x1b[0m', `Unable to find ECS cluster ${awsResources.ECSName}. May have already been deleted.`)
+      awsResources.ECSName = null
+      return true
+    }
+    if (JSON.parse(temp.stdout).clusters.length == 0) {
+      console.warn('\x1b[31m%s\x1b[0m', `Unable to find ECS cluster ${awsResources.ECSName}. May have already been deleted.`)
+      awsResources.ECSName = null
+      return true
+    } else {
+      JSON.parse(temp.stdout).clusters.forEach((c) => {
+        if (c.clusterName == awsResources.ECSName) {
+          clustersToKill.push(c.clusterArn)
+        }
+      })
+      if (clustersToKill.length == 0) {
+        console.warn('\x1b[31m%s\x1b[0m', `Unable to find ECS cluster ${awsResources.ECSName}. May have already been deleted.`)
+        awsResources.ECSName = null
+        return true
+      }  
+    }
+  }
+  console.log(`Deleting these ECS clusters: ` + clustersToKill.join(', '))
+
+  console.log(`Stopping ECS services.`)
+  await Promise.all(
+    clustersToKill.map(async (c) => {
+      try {
+        temp = await exec(`aws ecs list-tasks --cluster ${c} --profile ${useIAM}`)
+      } catch (e) {
+        console.error(`Unable to list tasks for cluster ${c}.`)
+        throw e
+      }
+      let tasksToKill = JSON.parse(temp.stdout).taskArns
+      let killedTasks
+      if (tasksToKill.length > 0) {
+        killedTasks = Promise.all(
+          tasksToKill.map((t) => {
+            console.log(`killing task: ` + t)
+            return exec(`aws ecs stop-task --cluster ${c} --task ${t} --profile ${useIAM}`)
+          }
+        ))
+      }
+      killedTasks = await killedTasks
+
+      //wait for tasks to stop
+      while (true) {
         try {
           temp = await exec(`aws ecs list-tasks --cluster ${c} --profile ${useIAM}`)
         } catch (e) {
           console.error(`Unable to list tasks for cluster ${c}.`)
           throw e
         }
-        let tasksToKill = JSON.parse(temp.stdout).taskArns
-        let killedTasks
-        if (tasksToKill.length > 0) {
-          killedTasks = Promise.all(
-            tasksToKill.map((t) => {
-              console.log(`killing task: ` + t)
-              return exec(`aws ecs stop-task --cluster ${c} --task ${t} --profile ${useIAM}`)
-            }
-          ))
+
+        tasksToKill = JSON.parse(temp.stdout).taskArns
+
+        if (tasksToKill.length === 0) {
+          console.log('All tasks have stopped.')
+          break
         }
-        await killedTasks
 
-        //wait for tasks to stop
-        while (true) {
-          try {
-            temp = await exec(`aws ecs list-tasks --cluster ${c} --profile ${useIAM}`)
-          } catch (e) {
-            console.error(`Unable to list tasks for cluster ${c}.`)
-            throw e
-          }
+        console.log(`Waiting for ${tasksToKill.length} tasks to stop...`)
+        await new Promise((resolve) => setTimeout(resolve, 5000))
+    }
 
-          tasksToKill = JSON.parse(temp.stdout).taskArns
-
-          if (tasksToKill.length === 0) {
-            console.log('All tasks have stopped.')
-            break
-          }
-
-          console.log(`Waiting for ${tasksToKill.length} tasks to stop...`)
-          await new Promise((resolve) => setTimeout(resolve, 5000))
+    async function deleteAllServices(clusterName, useIAM) {
+      let servicesToDelete = []
+      let deletedServices = []
+      let temp
+    
+      try {
+        temp = await exec(`aws ecs list-services --cluster ${clusterName} --profile ${useIAM}`)
+      } catch (e) {
+        console.error(`Unable to list services for cluster ${clusterName}.`)
+        throw e
       }
-
-      async function deleteAllServices(clusterName, useIAM) {
-        let servicesToDelete = []
-        let deletedServices = []
-        let temp
-      
+    
+      servicesToDelete = JSON.parse(temp.stdout).serviceArns
+    
+      if (servicesToDelete.length > 0) {
+        deletedServices = Promise.all(
+          servicesToDelete.map((s) => {
+            console.log(`deleting service: ` + s)
+            return exec(`aws ecs delete-service --cluster ${clusterName} --service ${s} --force --profile ${useIAM}`)
+          })
+        )
+      }
+    
+      await deletedServices
+      // Wait for services to be deleted
+      while (true) {
         try {
           temp = await exec(`aws ecs list-services --cluster ${clusterName} --profile ${useIAM}`)
         } catch (e) {
           console.error(`Unable to list services for cluster ${clusterName}.`)
           throw e
         }
-      
+
         servicesToDelete = JSON.parse(temp.stdout).serviceArns
-      
-        if (servicesToDelete.length > 0) {
-          deletedServices = Promise.all(
-            servicesToDelete.map((s) => {
-              console.log(`deleting service: ` + s)
-              return exec(`aws ecs delete-service --cluster ${clusterName} --service ${s} --force --profile ${useIAM}`)
-            })
-          )
-        }
-      
-        await deletedServices
-        // Wait for services to be deleted
-        while (true) {
-          try {
-            temp = await exec(`aws ecs list-services --cluster ${clusterName} --profile ${useIAM}`)
-          } catch (e) {
-            console.error(`Unable to list services for cluster ${clusterName}.`)
-            throw e
-          }
 
-          servicesToDelete = JSON.parse(temp.stdout).serviceArns
-
-          if (servicesToDelete.length === 0) {
-            console.log('All services have been deleted.')
-            break
-          }
-
-          console.log(`Waiting for ${servicesToDelete.length} services to be deleted...`)
-          await new Promise((resolve) => setTimeout(resolve, 5000))
+        if (servicesToDelete.length === 0) {
+          console.log('All services have been deleted.')
+          break
         }
 
-        console.log('All services have been deleted.')
-        return true
+        console.log(`Waiting for ${servicesToDelete.length} services to be deleted...`)
+        await new Promise((resolve) => setTimeout(resolve, 5000))
       }
-      
-      return deleteAllServices(c, useIAM)
-      })
-    )
-/*     const yamls = fs.readdirSync(path.join(process.cwd(), 'ECSTasks'));
-    temp = await Promise.all([
-      yamls.forEach((yaml) => {
-        if (yaml != "ecs-params.yml"){
-          let composeCommand = `ecs-cli compose -f ${yaml} -p ${yaml.split('.')[0]} --ecs-profile ${useIAM} --cluster ${awsResources.ECSName} service rm`
-          try {
-           temp = exec(composeCommand, { cwd: path.join(process.cwd(), "ECStasks")})
-          } catch(e) {
-            console.warn('\x1b[31m%s\x1b[0m', `Unable to stop service ${yaml}.`)
-            console.warn('\x1b[31m%s\x1b[0m', e)
-          }          
-        }
-      })
-    ])
- */
-    let killedClusters = clustersToKill.map(async (c) => {
-      console.log(`Deleting ECS Cluster ${c}.`)
-      try {
-        temp = exec(`aws ecs delete-cluster --profile ${useIAM} --cluster ${c}`)
-      } catch (e) {
-        console.error(`Unable to delete cluster ${c}.`)
-        console.error(e)
-      }
-      return temp
+
+      console.log('All services have been deleted.')
+      return true
+    }
+    
+    return deleteAllServices(c, useIAM)
     })
-    return killedClusters
-  }
+  )
+  let killedClusters = clustersToKill.map(async (c) => {
+    console.log(`Deleting ECS Cluster ${c}.`)
+    try {
+      temp = exec(`aws ecs delete-cluster --profile ${useIAM} --cluster ${c}`)
+    } catch (e) {
+      console.error(`Unable to delete cluster ${c}.`)
+      console.error(e)
+    }
+    return temp
+  })
+  return killedClusters
+}
 
-  let deletedCluster
-  try {
-    deletedCluster = deleteCluster()    
-  } catch(e) {
-    console.warn('\x1b[31m%s\x1b[0m', e)
-    //Don't exit. Might as well try deleting other things, too.
-  }
-
-  const dbsToDeleteFunc = async () => {
+const dbsToDeleteFunc = async (useIAM, killTag, awsResources) => {
     // Get list of DBs to delete
     let dbs = []
     try {
@@ -1915,565 +1900,519 @@ export const awsArmageddon = async (useIAM, killType) => {
     return dbs
   }
 
-  const deleteDatabases = async (dbs) => {
+const deleteDatabases = async (dbs, useIAM, killTag) => {
+  dbs = await dbs
 
-    console.log(`Removing deletion protection from databases.`) 
-    await Promise.all([
-      dbs.forEach((db) => {
-      try {  
-        temp = execSync(`aws rds describe-db-instances --db-instance-identifier ${db} --profile ${useIAM}`)
-      } catch (e) {
-        console.warn('\x1b[31m%s\x1b[0m', `Unable to find database ${db}. Possibly it was already deleted.`)
-        let tempFunc = (x) => {
-          return x.filter((d) => {return (d != db)}) // remove from list
-        } 
-        dbs = tempFunc(dbs)
-        return
-      }
-      return exec(`aws rds modify-db-instance --db-instance-identifier ${db} --no-deletion-protection --apply-immediately --profile ${useIAM}`)
-
-      })
-    ])
-
-    console.log(`Deleting databases`)
-
-    const checkDatabases = (dbId) => {
-      let temp
-      console.log(`Checking database ${dbId} for deletion protection`)
-      try {
-        temp = execSync(`aws rds describe-db-instances --db-instance-identifier ${dbId} --profile ${useIAM}`).toString()
-      } catch (e) {
-        console.error(`Unable to get information for db ${dbId}. Possibly it was already deleted. Skipping`)
-        return
-      }
-      if (temp != "") {
-        return (JSON.parse(temp).DBInstances[0].DeletionProtection == false)
-      } else {
-        return false
-      }
-    }
-
-    const wait = async () => {
-      //Sometimes, I really miss loops
-      let checked = dbs.map((db) => {checkDatabases(db)})
-      if (checked.includes(false)) {
-        console.log('Waiting for DBs to be deletable...')
-        setTimeout( wait, 20000 );
-      } else {
-        return Promise.all([dbs.map(async (db) => {
-          //check whether DB is already being deleted
-          let dbStatus
-          try {
-            dbStatus = await exec(`aws rds describe-db-instances --db-instance-identifier ${db} --profile ${useIAM}`)
-          } catch (e) {
-            console.error(`Unable to get information about ${db}`)
-            console.error(e)
-          }
-          if (JSON.parse(dbStatus.stdout).DBInstances[0].DBInstanceStatus != "deleting") {
-            let dbDeletionResponse
-            console.log(`Deleting database ${db}`)
-            try {
-              dbDeletionResponse = exec(`aws rds delete-db-instance --db-instance-identifier ${db} --skip-final-snapshot --profile ${useIAM}`)
-            } catch (e) {
-              if (e.message.includes("already being deleted")) {
-                console.warn('\x1b[31m%s\x1b[0m', `Database ${db} already being deleted.`)
-                return true
-              } else {
-                console.error(`Uncaught db deletion error: ` + e)
-                throw e
-              }
-            }
-          }
-        })])
-      }
-      console.log("really shouldn't ever get to this line!")
-    }
-
-    try {
-      await wait();
+  if (dbs.length == 0 ){
+    console.log(`No databases to delete.`)
+    return true
+  }
+  console.log(`Removing deletion protection from databases ${dbs}.`)
+  await Promise.all([
+    dbs.forEach((db) => {
+    try {  
+      temp = execSync(`aws rds describe-db-instances --db-instance-identifier ${db} --profile ${useIAM}`)
     } catch (e) {
-      throw e
-    }
-
-    //now, wait for them to be deleted
-    const wait2 = async () => {
-      //Sometimes, I really miss loops
-      return new Promise((resolve, reject) => {
-        const confirmDBDeleted = () => {
-          let temp
-          try {
-            temp = execSync(`aws rds describe-db-instances --profile ${useIAM}`).toString()
-          } catch (e) {
-            console.error(`Unable to get list of databases`)
-            throw e
-          }
-          return (JSON.parse(temp).DBInstances.length == 0)
-        }
-        let confirmedDeleted
-        try {
-          confirmedDeleted = confirmDBDeleted()
-        } catch (e) {
-          throw e
-        }
-        if (confirmedDeleted){
-          console.log(`Databases confirmed deleted`)
-          resolve(true)        
-        } else {
-          console.log('Waiting for DBs to be deleted...')
-          setTimeout( wait2, 20000 );
-        }
-        console.log("really shouldn't ever get to this line!")
-      })
-    }
-  }
-
-  let deletedDBs, dbsToDelete 
-  try {
-    dbsToDelete = await dbsToDeleteFunc()
-    deletedDBs = deleteDatabases(dbsToDelete)
-  } catch(e) {
-    console.warn('\x1b[31m%s\x1b[0m', e)
-  }
-
-  
-  const deleteLoadBalancer = async () => {
-    //FUBAR Need to killize this
-    let temp
-    try {
-      temp = await exec(`aws elbv2 describe-load-balancers --profile ${useIAM}`)
-    } catch(e) {
-      console.warn('\x1b[31m%s\x1b[0m', `Unable to find any load balancers. May have already been deleted. Skipping.`)
+      console.warn('\x1b[31m%s\x1b[0m', `Unable to find database ${db}. Possibly it was already deleted.`)
+      let tempFunc = (x) => {
+        return x.filter((d) => {return (d != db)}) // remove from list
+      } 
+      dbs = tempFunc(dbs)
       return
     }
-    let balancersToDelete = []
-    JSON.parse(temp.stdout).LoadBalancers.forEach((l) => {
-      balancersToDelete.push(l.LoadBalancerArn)
+    return exec(`aws rds modify-db-instance --db-instance-identifier ${db} --no-deletion-protection --apply-immediately --profile ${useIAM}`)
+
     })
-    return Promise.all(balancersToDelete.map(async (b) => {
-      console.log(`Deleting load balancer ${b}`)
-      async function deleteAllListeners(loadBalancerName, useIAM) {
-        let listenersToDelete = []
-        let deletedListeners = []
+  ])
+
+  console.log(`Deleting databases`)
+
+  const checkDatabases = (dbId) => {
+    let temp
+    console.log(`Checking database ${dbId} for deletion protection`)
+    try {
+      temp = execSync(`aws rds describe-db-instances --db-instance-identifier ${dbId} --profile ${useIAM}`).toString()
+    } catch (e) {
+      console.error(`Unable to get information for db ${dbId}. Possibly it was already deleted. Skipping`)
+      return
+    }
+    if (temp != "") {
+      return (JSON.parse(temp).DBInstances[0].DeletionProtection == false)
+    } else {
+      return false
+    }
+  }
+
+  const wait = async () => {
+    //Sometimes, I really miss loops
+    let checked = dbs.map((db) => {checkDatabases(db)})
+    if (checked.includes(false)) {
+      console.log('Waiting for DBs to be deletable...')
+      setTimeout( wait, 20000 );
+    } else {
+      return Promise.all([dbs.map(async (db) => {
+        //check whether DB is already being deleted
+        let dbStatus
+        try {
+          dbStatus = await exec(`aws rds describe-db-instances --db-instance-identifier ${db} --profile ${useIAM}`)
+        } catch (e) {
+          console.error(`Unable to get information about ${db}`)
+          console.error(e)
+        }
+        if (JSON.parse(dbStatus.stdout).DBInstances[0].DBInstanceStatus != "deleting") {
+          let dbDeletionResponse
+          console.log(`Deleting database ${db}`)
+          try {
+            dbDeletionResponse = exec(`aws rds delete-db-instance --db-instance-identifier ${db} --skip-final-snapshot --profile ${useIAM}`)
+          } catch (e) {
+            if (e.message.includes("already being deleted")) {
+              console.warn('\x1b[31m%s\x1b[0m', `Database ${db} already being deleted.`)
+              return true
+            } else {
+              console.error(`Uncaught db deletion error: ` + e)
+              throw e
+            }
+          }
+        }
+      })])
+    }
+    console.log("really shouldn't ever get to this line!")
+  }
+
+  try {
+    await wait();
+  } catch (e) {
+    throw e
+  }
+
+  //now, wait for them to be deleted
+  const wait2 = async () => {
+    //Sometimes, I really miss loops
+    return new Promise((resolve, reject) => {
+      const confirmDBDeleted = () => {
         let temp
-      
+        try {
+          temp = execSync(`aws rds describe-db-instances --profile ${useIAM}`).toString()
+        } catch (e) {
+          console.error(`Unable to get list of databases`)
+          throw e
+        }
+        return (JSON.parse(temp).DBInstances.length == 0)
+      }
+      let confirmedDeleted
+      try {
+        confirmedDeleted = confirmDBDeleted()
+      } catch (e) {
+        throw e
+      }
+      if (confirmedDeleted){
+        console.log(`Databases confirmed deleted`)
+        resolve(true)        
+      } else {
+        console.log('Waiting for DBs to be deleted...')
+        setTimeout( wait2, 20000 );
+      }
+      console.log("really shouldn't ever get to this line!")
+    })
+  }
+}
+
+const deleteLoadBalancer = async (useIAM, killTag) => {
+  //FUBAR Need to killize this
+  let temp
+  try {
+    temp = await exec(`aws elbv2 describe-load-balancers --profile ${useIAM}`)
+  } catch(e) {
+    console.warn('\x1b[31m%s\x1b[0m', `Unable to find any load balancers. May have already been deleted. Skipping.`)
+    return
+  }
+  let balancersToDelete = []
+  JSON.parse(temp.stdout).LoadBalancers.forEach((l) => {
+    balancersToDelete.push(l.LoadBalancerArn)
+  })
+  return Promise.all(balancersToDelete.map(async (b) => {
+    console.log(`Deleting load balancer ${b}`)
+    async function deleteAllListeners(loadBalancerName, useIAM) {
+      let listenersToDelete = []
+      let deletedListeners = []
+      let temp
+    
+      try {
+        temp = await exec(`aws elbv2 describe-listeners --load-balancer-arn ${loadBalancerName} --profile ${useIAM}`)
+      } catch (e) {
+        console.error(`Unable to list listeners for load balancer ${loadBalancerName}.`)
+        throw e
+      }
+    
+      listenersToDelete = JSON.parse(temp.stdout).Listeners.map((l) => l.ListenerArn)
+    
+      if (listenersToDelete.length > 0) {
+        deletedListeners = Promise.all(
+          listenersToDelete.map((l) => {
+            console.log(`deleting listener: ` + l)
+            return exec(`aws elbv2 delete-listener --listener-arn ${l} --profile ${useIAM}`)
+          })
+        )
+      }
+    
+      deletedListeners = await deletedListeners
+    
+      // Wait for listeners to be deleted
+      while (true) {
         try {
           temp = await exec(`aws elbv2 describe-listeners --load-balancer-arn ${loadBalancerName} --profile ${useIAM}`)
         } catch (e) {
           console.error(`Unable to list listeners for load balancer ${loadBalancerName}.`)
           throw e
         }
-      
+    
         listenersToDelete = JSON.parse(temp.stdout).Listeners.map((l) => l.ListenerArn)
-      
-        if (listenersToDelete.length > 0) {
-          deletedListeners = Promise.all(
-            listenersToDelete.map((l) => {
-              console.log(`deleting listener: ` + l)
-              return exec(`aws elbv2 delete-listener --listener-arn ${l} --profile ${useIAM}`)
-            })
-          )
-        }
-      
-        await deletedListeners
-      
-        // Wait for listeners to be deleted
-        while (true) {
-          try {
-            temp = await exec(`aws elbv2 describe-listeners --load-balancer-arn ${loadBalancerName} --profile ${useIAM}`)
-          } catch (e) {
-            console.error(`Unable to list listeners for load balancer ${loadBalancerName}.`)
-            throw e
-          }
-      
-          listenersToDelete = JSON.parse(temp.stdout).Listeners.map((l) => l.ListenerArn)
-      
-          if (listenersToDelete.length === 0) {
-            console.log('All listeners have been deleted.')
-            break
-          }
-      
-          console.log(`Waiting for ${listenersToDelete.length} listeners to be deleted...`)
-          await new Promise((resolve) => setTimeout(resolve, 5000))
-        }
-
-        return true
-      }
-      
-      await deleteAllListeners(b, useIAM)      
-
-      try {
-        deletedLoadBalancer = exec(`aws elbv2 delete-load-balancer --load-balancer-arn ${b} --profile ${useIAM}`)
-      } catch (e) {
-        console.error(`Unable to delete load balancer ${b}`)
-        console.error(e)
-      }    
-    }))
-  }
-
-  let deletedLoadBalancer 
-  try {
-    deletedLoadBalancer = deleteLoadBalancer();
-  } catch(e) {
-    //Nothing
-  }
-
-  const deleteCloudFront = async () => {
-
-    // First, get list of distributions we need to delete
-    let tempDists
-    try {
-      tempDists = await exec(`aws cloudfront list-distributions --profile ${useIAM}`)
-    } catch (e) {
-      console.error(`Unable to get list of cloudfront distributions`)
-      throw e
-    }
-    if (!tempDists.stdout) {
-      console.log(`No cloudfront distributions found. Skipping.`)
-      return true;
-    } else {
-      //found something
-      let distributions = [];
-      JSON.parse(tempDists.stdout).DistributionList.Items.forEach((d) => {
-        if (killTag) {
-          //check whether this is tagged to our project
-          let tempTagCheck
-          try {
-            tempDists = execSync(`aws cloudfront list-tags-for-resource --resource ${d.ARN} --profile ${useIAM}`).toString()
-          } catch (e) {
-            console.error(`Unable to get tags for cloudfront distribution ${d.ARN}`)
-            throw e
-          }
-          JSON.parse(tempDists).Tags.Items.forEach((t) => {
-            if (t.Key == "PUSHKIN" & t.Value == projName) {
-              distributions.push(d.Id)
-            }
-          })
-        } else {
-          //kill them all
-          distributions.push(d.Id)
-        }
-      })
-
-      const checkCloudFront = async (distId) => {
-        let distributionExists = false;
-        let distributionReady = false;
-        let temp
-        try {
-          temp = await exec(`aws cloudfront list-distributions --profile ${useIAM}`)
-        } catch (e) {
-          console.error(`Unable to get list of cloudfront distributions`)
-          throw e
-        }
-        if (temp.stdout != "") {
-          JSON.parse(temp.stdout).DistributionList.Items.forEach((d) => {
-            let tempCheck = false;
-            try {
-              tempCheck = (d.Id == distId)
-            } catch (e) {
-              // Probably not a fully created cloudfront distribution.
-              // Probably can ignore this. 
-              console.warn('\x1b[31m%s\x1b[0m', `Problem reading cloudFront distribution information.`)
-              throw e
-            }
-            if (tempCheck) {
-              distributionReady = ((d.Enabled == false) & (d.Status != "InProgress"))
-              distributionExists = true
-            }
-          })    
-        }
-        if (!distributionExists) {
-          console.error(`Unable to find cloudfront distribution ${distId}. That is very strange.`)
-        }
-        return distributionReady
-      }
-
-      // Now, disable and delete each distribution
-      return Promise.all(distributions.map(async (distId) => {
-        let cloudConfig
-        let ETag
-        try {
-          temp = await exec(`aws cloudfront get-distribution-config --id ${distId} --profile ${useIAM}`)
-          cloudConfig = JSON.parse(temp.stdout).DistributionConfig
-          ETag = JSON.parse(temp.stdout).ETag
-        } catch (e) {
-          console.log(`Cannot find cloudfront distribution ${distId}. May have already been deleted. Skipping.`)      
-          return true
+    
+        if (listenersToDelete.length === 0) {
+          console.log('All listeners have been deleted.')
+          break
         }
     
-        // disableCloudfront.Enabled = false
-        // disableCloudfront.CallerReference = cloudConfig.CallerReference
-        // disableCloudfront.Origins.Items[0].Id = cloudConfig.Origins.Items[0].Id
-        // disableCloudfront.Origins.Items[0].DomainName = cloudConfig.Origins.Items[0].DomainName
-        // disableCloudfront.Origins.Items[0].DomainName = cloudConfig.Origins.Items[0].DomainName
-        // disableCloudfront.DefaultCacheBehavior.TargetOriginId = cloudConfig.DefaultCacheBehavior.TargetOriginId
-        cloudConfig.Enabled = false //This is the only thing to update
-        console.log(`Disabling cloudfront distribution ` + distId)  
+        console.log(`Waiting for ${listenersToDelete.length} listeners to be deleted...`)
+        await new Promise((resolve) => setTimeout(resolve, 5000))
+      }
 
-        let disableCloudFront
-        try {
-          disableCloudFront = await exec(`aws cloudfront update-distribution \
-            --id ${distId} \
-            --if-match ${ETag} \
-            --distribution-config '${JSON.stringify(cloudConfig)}' --profile ${useIAM}`)        
-        } catch (e) {
-          console.error(`Possibly unable to disable cloudfront distribution ${distId}.\n Sometimes this throws errors but works anyway, so we'll continue and see what happens...\n`)
-          disableCloudFront = true
-        }
-
-        return new Promise((resolve, reject) => {
-          const wait = async () => {
-            //Sometimes, I really miss loops
-            let temp
-            let x = await checkCloudFront(distId)
-            if (x) {
-              console.log(`Cloudfront is disabled. Deleting.`)
-              //Apparently the ETag changes after disabling? So we need to get it again.
-              try {
-                temp = await exec(`aws cloudfront get-distribution-config --id ${distId} --profile ${useIAM}`)
-                cloudConfig = JSON.parse(temp.stdout).DistributionConfig
-                ETag = JSON.parse(temp.stdout).ETag
-              } catch (e) {
-                console.log(`Suddenly can't find cloudfront distribution ${distId}. Which is very strange, since we haven't deleted it yet. Skipping for now...`)      
-                resolve(true)
-              }
-              //Armed with the new ETag, we can delete the distribution
-              try {
-                await exec(`aws cloudfront delete-distribution --id ${distId} --if-match ${ETag} --profile ${useIAM}`)
-              } catch (e) {
-                console.error(`Unable to delete cloudfront distribution`)
-                try {
-                  resolve(exec(`aws cloudfront get-distribution --id ${distId} --profile ${useIAM}`))
-                } catch (e) {
-                  console.error(e)
-                  if (JSON.parse(temp.stdout).Distribution.Status != "InProgress") {
-                    console.error(`Unable to delete cloudfront distribution. It may be worth running pushkin aws armageddon again.`)
-                    resolve(false)
-                  }
-                }
-                console.error(e)
-              }
-              try {
-                let awsResources = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
-                awsResources.cloudFrontId = null
-                fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
-              } catch (e) {
-                console.error(`Unable to update awsResources.js`)
-                console.error(e)
-              }    
-              resolve(true)
-            } else {
-              console.log(`Waiting for cloudfront distribution ${distId} to be disabled...`)
-              setTimeout( wait, 30000 );
-            }
-          }
-
-          console.log(`Waiting for cloudfront distribution ${distId} to be disabled...`)
-          wait();
-        })
-      }))
-    }
-  }
-
-  let deletedCloudFront 
-  try {
-    deletedCloudFront = deleteCloudFront();
-  } catch(e) {
-    //Nothing
-  }
-
-  const deleteResourceRecords = async (useIAM) => {
-    let temp
-    let pushkinConfig
-    try {
-      temp = await fs.promises.readFile(path.join(process.cwd(), 'pushkin.yaml'), 'utf8')
-      pushkinConfig = jsYaml.safeLoad(temp)
-    } catch (e) {
-      console.error(`Couldn't load pushkin.yaml`)
-      throw e;
-    }
-    let myDomain = pushkinConfig.info.rootDomain
-  
-    console.log(`Deleting resource records for ${myDomain}`)
-  
-    let zoneID
-    try {
-      temp = await exec(`aws route53 list-hosted-zones-by-name --dns-name ${myDomain} --profile ${useIAM}`)
-    } catch (e) {
-      console.error(`Unable to retrieve hostedzone for ${myDomain}`)
-      throw e
-    }
-    if (JSON.parse(temp.stdout).HostedZones.length == 0) {
-      console.warn(`No hostedzone found for ${myDomain}`)
-      //skip deleting resource records
       return true
     }
+    
+    await deleteAllListeners(b, useIAM)      
+
     try {
-      zoneID = JSON.parse(temp.stdout).HostedZones[0].Id.split("/hostedzone/")[1]
+      deletedLoadBalancer = exec(`aws elbv2 delete-load-balancer --load-balancer-arn ${b} --profile ${useIAM}`)
     } catch (e) {
-      console.error(`Unable to parse hostedzone for ${myDomain}`)
-      throw e
-    }
-  
-    let resourceRecords = {
-      "HostedZoneId": zoneID,
-      "ChangeBatch": {
-          "Comment": "",
-          "Changes": []
-      }
-    }
-  
-    let tempRRList
-    try {
-      tempRRList = await exec(`aws route53 list-resource-record-sets --hosted-zone-id ${zoneID} --profile ${useIAM}`)
-    } catch (e) {
-      console.error(`Unable to retrieve resource records for ${myDomain}`)
-      throw e
-    }
-    JSON.parse(tempRRList.stdout).ResourceRecordSets.forEach((rr) => {
-      if (rr.SetIdentifier == projName | (!killTag & rr.SetIdentifier)) {
-        let recordSet = {
-          "Action": "DELETE",
-          "ResourceRecordSet": rr
+      console.error(`Unable to delete load balancer ${b}`)
+      console.error(e)
+    }    
+  }))
+
+  return deletedLoadBalancer //just to return something
+}
+
+const deleteCloudFront = async (useIAM, projName, killTag) => {
+
+  // First, get list of distributions we need to delete
+  let tempDists
+  try {
+    tempDists = await exec(`aws cloudfront list-distributions --profile ${useIAM}`)
+  } catch (e) {
+    console.error(`Unable to get list of cloudfront distributions`)
+    throw e
+  }
+  if (!tempDists.stdout) {
+    console.log(`No cloudfront distributions found. Skipping.`)
+    return true;
+  } else {
+    //found something
+    let distributions = [];
+    JSON.parse(tempDists.stdout).DistributionList.Items.forEach((d) => {
+      if (killTag) {
+        //check whether this is tagged to our project
+        let tempTagCheck
+        try {
+          tempDists = execSync(`aws cloudfront list-tags-for-resource --resource ${d.ARN} --profile ${useIAM}`).toString()
+        } catch (e) {
+          console.error(`Unable to get tags for cloudfront distribution ${d.ARN}`)
+          throw e
         }
-        resourceRecords.ChangeBatch.Changes.push(recordSet)
+        JSON.parse(tempDists).Tags.Items.forEach((t) => {
+          if (t.Key == "PUSHKIN" & t.Value == projName) {
+            distributions.push(d.Id)
+          }
+        })
+      } else {
+        //kill them all
+        distributions.push(d.Id)
       }
     })
-    if (resourceRecords.ChangeBatch.Changes.length > 0) {
-      console.log(`aws route53 change-resource-record-sets --cli-input-json '${JSON.stringify(resourceRecords)}' --profile ${useIAM}`)
-      return exec(`aws route53 change-resource-record-sets --cli-input-json '${JSON.stringify(resourceRecords)}' --profile ${useIAM}`)
-    } else {
-      return true
+
+    const checkCloudFront = async (distId) => {
+      let distributionExists = false;
+      let distributionReady = false;
+      let temp
+      try {
+        temp = await exec(`aws cloudfront list-distributions --profile ${useIAM}`)
+      } catch (e) {
+        console.error(`Unable to get list of cloudfront distributions`)
+        throw e
+      }
+      if (temp.stdout != "") {
+        JSON.parse(temp.stdout).DistributionList.Items.forEach((d) => {
+          let tempCheck = false;
+          try {
+            tempCheck = (d.Id == distId)
+          } catch (e) {
+            // Probably not a fully created cloudfront distribution.
+            // Probably can ignore this. 
+            console.warn('\x1b[31m%s\x1b[0m', `Problem reading cloudFront distribution information.`)
+            throw e
+          }
+          if (tempCheck) {
+            distributionReady = ((d.Enabled == false) & (d.Status != "InProgress"))
+            distributionExists = true
+          }
+        })    
+      }
+      if (!distributionExists) {
+        console.error(`Unable to find cloudfront distribution ${distId}. That is very strange.`)
+      }
+      return distributionReady
     }
-  }
 
-  let deletedResourceRecords
-  try {
-    deletedResourceRecords = deleteResourceRecords(useIAM, projName)
-  } catch(e) {
-    console.warn('\x1b[31m%s\x1b[0m', `Unable to delete resource records`)
-    console.warn('\x1b[31m%s\x1b[0m', e) //don't fail on this
-  }
+    // Now, disable and delete each distribution
+    return Promise.all(distributions.map(async (distId) => {
+      let cloudConfig
+      let ETag
+      try {
+        temp = await exec(`aws cloudfront get-distribution-config --id ${distId} --profile ${useIAM}`)
+        cloudConfig = JSON.parse(temp.stdout).DistributionConfig
+        ETag = JSON.parse(temp.stdout).ETag
+      } catch (e) {
+        console.log(`Cannot find cloudfront distribution ${distId}. May have already been deleted. Skipping.`)      
+        return true
+      }
+  
+      // disableCloudfront.Enabled = false
+      // disableCloudfront.CallerReference = cloudConfig.CallerReference
+      // disableCloudfront.Origins.Items[0].Id = cloudConfig.Origins.Items[0].Id
+      // disableCloudfront.Origins.Items[0].DomainName = cloudConfig.Origins.Items[0].DomainName
+      // disableCloudfront.Origins.Items[0].DomainName = cloudConfig.Origins.Items[0].DomainName
+      // disableCloudfront.DefaultCacheBehavior.TargetOriginId = cloudConfig.DefaultCacheBehavior.TargetOriginId
+      cloudConfig.Enabled = false //This is the only thing to update
+      console.log(`Disabling cloudfront distribution ` + distId)  
 
-  await Promise.all([ deletedCloudFront, deletedDBs, deletedLoadBalancer ]);
+      let disableCloudFront
+      try {
+        disableCloudFront = await exec(`aws cloudfront update-distribution \
+          --id ${distId} \
+          --if-match ${ETag} \
+          --distribution-config '${JSON.stringify(cloudConfig)}' --profile ${useIAM}`)        
+      } catch (e) {
+        console.error(`Possibly unable to disable cloudfront distribution ${distId}.\n Sometimes this throws errors but works anyway, so we'll continue and see what happens...\n`)
+        disableCloudFront = true
+      }
 
-  const deleteOACs = async (useIAM) => {
-    //FUBAR Need to killize this
-    let temp
-    try {
-      temp = await exec(`aws cloudfront list-origin-access-controls --profile ${useIAM}`)
-    } catch (e) {
-      console.error(`Unable to get list of origin access controls`)
-      throw e
-    }
-    if (temp.stdout != "" && JSON.parse(temp.stdout).OriginAccessControlList.Items) {
-      JSON.parse(temp.stdout).OriginAccessControlList.Items.forEach((d) => {
-        let etag
-        let awsCommand = `aws cloudfront get-origin-access-control --id ${d.Id} --profile ${useIAM}`
-        try {
-          etag = execSync(awsCommand).toString()
-        } catch (e) {
-          console.error(`Unable to get etag for origin access control ${d.Id}`)
-          console.error(`This command failed: ${awsCommand}`)
-          throw e
+      return new Promise((resolve, reject) => {
+        const wait = async () => {
+          //Sometimes, I really miss loops
+          let temp
+          let x = await checkCloudFront(distId)
+          if (x) {
+            console.log(`Cloudfront is disabled. Deleting.`)
+            //Apparently the ETag changes after disabling? So we need to get it again.
+            try {
+              temp = await exec(`aws cloudfront get-distribution-config --id ${distId} --profile ${useIAM}`)
+              cloudConfig = JSON.parse(temp.stdout).DistributionConfig
+              ETag = JSON.parse(temp.stdout).ETag
+            } catch (e) {
+              console.log(`Suddenly can't find cloudfront distribution ${distId}. Which is very strange, since we haven't deleted it yet. Skipping for now...`)      
+              resolve(true)
+            }
+            //Armed with the new ETag, we can delete the distribution
+            try {
+              await exec(`aws cloudfront delete-distribution --id ${distId} --if-match ${ETag} --profile ${useIAM}`)
+            } catch (e) {
+              console.error(`Unable to delete cloudfront distribution`)
+              try {
+                resolve(exec(`aws cloudfront get-distribution --id ${distId} --profile ${useIAM}`))
+              } catch (e) {
+                console.error(e)
+                if (JSON.parse(temp.stdout).Distribution.Status != "InProgress") {
+                  console.error(`Unable to delete cloudfront distribution. It may be worth running pushkin aws armageddon again.`)
+                  resolve(false)
+                }
+              }
+              console.error(e)
+            }
+            try {
+              let awsResources = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
+              awsResources.cloudFrontId = null
+              fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
+            } catch (e) {
+              console.error(`Unable to update awsResources.js`)
+              console.error(e)
+            }    
+            resolve(true)
+          } else {
+            console.log(`Waiting for cloudfront distribution ${distId} to be disabled...`)
+            setTimeout( wait, 30000 );
+          }
         }
-        let deleteOAC
-        let deleteOACcommand = `aws cloudfront delete-origin-access-control --id ${d.Id} --if-match ${JSON.parse(etag).ETag} --profile ${useIAM}`
-        try {
-          deleteOAC = execSync(deleteOACcommand).toString()
-        } catch (e) {
-          console.error(`Unable to delete origin access control ${d.Id}`)
-          console.error(`This command failed: ${deleteOACcommand}`)
-          console.error(e)
-          throw e
-        }
-        console.log(`Updating awsResources with cloudfront info`)
-        try {
-          let awsResources = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
-          awsResources.OAC = null
-          fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
-        } catch (e) {
-          console.error(`Unable to update awsResources.js`)
-          console.error(e)
-        }        
+
+        console.log(`Waiting for cloudfront distribution ${distId} to be disabled...`)
+        wait();
       })
-    }
+    }))
+  }
+}
+
+const deleteResourceRecords = async (useIAM, killTag, projName) => {
+  let temp
+  let pushkinConfig
+  try {
+    temp = await fs.promises.readFile(path.join(process.cwd(), 'pushkin.yaml'), 'utf8')
+    pushkinConfig = jsYaml.safeLoad(temp)
+  } catch (e) {
+    console.error(`Couldn't load pushkin.yaml`)
+    throw e;
+  }
+  let myDomain = pushkinConfig.info.rootDomain
+
+  console.log(`Deleting resource records for ${myDomain}`)
+
+  let zoneID
+  try {
+    temp = await exec(`aws route53 list-hosted-zones-by-name --dns-name ${myDomain} --profile ${useIAM}`)
+  } catch (e) {
+    console.error(`Unable to retrieve hostedzone for ${myDomain}`)
+    throw e
+  }
+  if (JSON.parse(temp.stdout).HostedZones.length == 0) {
+    console.warn(`No hostedzone found for ${myDomain}`)
+    //skip deleting resource records
     return true
   }
-
-  let deletedOACs = deleteOACs(useIAM)
-
-  const deleteTargetGroup = async () => {
-    //FUBAR Need to killize this
-    let getTargetGroups
-    try {
-      getTargetGroups = await exec(`aws elbv2 describe-target-groups --profile ${useIAM}`)
-    } catch (e) {
-      console.error(`Unable to list target groups`)
-      throw e
-    }
-    let targetGroups = JSON.parse(getTargetGroups.stdout).TargetGroups.map((tg) => {return tg.TargetGroupArn})
-    if (targetGroups.length > 0) {
-      return Promise.all(targetGroups.map(async (tg) => {      
-        try {
-          await exec(`aws elbv2 describe-target-groups --target-group-arns ${tg} --profile ${useIAM}`)
-        } catch (e) {
-          console.warn('\x1b[31m%s\x1b[0m', `Unable to find target group ${tg}. May have already been deleted. Skipping.`)
-          return true
-        }
-        try {
-          deletedTargetGroup = exec(`aws elbv2 delete-target-group --target-group-arn ${tg} --profile ${useIAM}`)
-        } catch (e) {
-          console.error(`Unable to delete associated target group`)
-          console.error(e)
-        }
-      }))  
-    } else {
-      console.log(`No target group. Skipping.`)
-      return true
-    }
-  }
-  await deletedLoadBalancer //also deletes listeners
-  let deletedTargetGroup 
   try {
-    deletedTargetGroup = deleteTargetGroup()    
-  } catch(e) {
-    //nothing
+    zoneID = JSON.parse(temp.stdout).HostedZones[0].Id.split("/hostedzone/")[1]
+  } catch (e) {
+    console.error(`Unable to parse hostedzone for ${myDomain}`)
+    throw e
   }
 
-  await Promise.all([ deletedOACs, deletedCluster, deletedTargetGroup ])
+  let resourceRecords = {
+    "HostedZoneId": zoneID,
+    "ChangeBatch": {
+        "Comment": "",
+        "Changes": []
+    }
+  }
 
-  const deleteBucket = async () => {
-    //FUBAR Need to killize this
-    if (awsResources && awsResources.awsName) {
-      console.log(`Deleting s3 bucket`)
+  let tempRRList
+  try {
+    tempRRList = await exec(`aws route53 list-resource-record-sets --hosted-zone-id ${zoneID} --profile ${useIAM}`)
+  } catch (e) {
+    console.error(`Unable to retrieve resource records for ${myDomain}`)
+    throw e
+  }
+  JSON.parse(tempRRList.stdout).ResourceRecordSets.forEach((rr) => {
+    if (rr.SetIdentifier == projName | (!killTag & rr.SetIdentifier)) {
+      let recordSet = {
+        "Action": "DELETE",
+        "ResourceRecordSet": rr
+      }
+      resourceRecords.ChangeBatch.Changes.push(recordSet)
+    }
+  })
+  if (resourceRecords.ChangeBatch.Changes.length > 0) {
+    return exec(`aws route53 change-resource-record-sets --cli-input-json '${JSON.stringify(resourceRecords)}' --profile ${useIAM}`)
+  } else {
+    return true
+  }
+}
+
+const deleteOACs = async (useIAM, deletedCloudFront, killTag) => {
+  //FUBAR Need to killize this
+  deletedCloudFront = await deletedCloudFront
+  let temp
+  try {
+    temp = await exec(`aws cloudfront list-origin-access-controls --profile ${useIAM}`)
+  } catch (e) {
+    console.error(`Unable to get list of origin access controls`)
+    throw e
+  }
+  if (temp.stdout != "" && JSON.parse(temp.stdout).OriginAccessControlList.Items) {
+    JSON.parse(temp.stdout).OriginAccessControlList.Items.forEach((d) => {
+      let etag
+      let awsCommand = `aws cloudfront get-origin-access-control --id ${d.Id} --profile ${useIAM}`
       try {
-        await exec(`aws s3 rb s3://${awsResources.awsName} --force --profile ${useIAM}`)
-        awsResources.awsName = null;
-        return
+        etag = execSync(awsCommand).toString()
       } catch (e) {
-        console.error(`Unable to delete s3 bucket ${awsResources.awsName}`)
-      }       
-    } else {
-      console.log(`No s3 bucket. Skipping.`)
-      return
-    }
+        console.error(`Unable to get etag for origin access control ${d.Id}`)
+        console.error(`This command failed: ${awsCommand}`)
+        throw e
+      }
+      let deleteOAC
+      let deleteOACcommand = `aws cloudfront delete-origin-access-control --id ${d.Id} --if-match ${JSON.parse(etag).ETag} --profile ${useIAM}`
+      try {
+        deleteOAC = execSync(deleteOACcommand).toString()
+      } catch (e) {
+        console.error(`Unable to delete origin access control ${d.Id}`)
+        console.error(`This command failed: ${deleteOACcommand}`)
+        console.error(e)
+        throw e
+      }
+      console.log(`Updating awsResources with cloudfront info`)
+      try {
+        let awsResources = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
+        awsResources.OAC = null
+        fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
+      } catch (e) {
+        console.error(`Unable to update awsResources.js`)
+        console.error(e)
+      }        
+    })
   }
+  return true
+}
 
-  let deletedBucket 
+const deleteTargetGroup = async (useIAM, deletedLoadBalancer) => {
+  //FUBAR Need to killize this
+  await deletedLoadBalancer
+  let getTargetGroups
   try {
-    deletedBucket = deleteBucket();
-  } catch(e) {
-    //nothing
+    getTargetGroups = await exec(`aws elbv2 describe-target-groups --profile ${useIAM}`)
+  } catch (e) {
+    console.error(`Unable to list target groups`)
+    throw e
   }
+  let targetGroups = JSON.parse(getTargetGroups.stdout).TargetGroups.map((tg) => {return tg.TargetGroupArn})
+  if (targetGroups.length > 0) {
+    return Promise.all(targetGroups.map(async (tg) => {      
+      try {
+        await exec(`aws elbv2 describe-target-groups --target-group-arns ${tg} --profile ${useIAM}`)
+      } catch (e) {
+        console.warn('\x1b[31m%s\x1b[0m', `Unable to find target group ${tg}. May have already been deleted. Skipping.`)
+        return true
+      }
+      try {
+        deletedTargetGroup = exec(`aws elbv2 delete-target-group --target-group-arn ${tg} --profile ${useIAM}`)
+      } catch (e) {
+        console.error(`Unable to delete associated target group`)
+        console.error(e)
+      }
+    }))  
+  } else {
+    console.log(`No target group. Skipping.`)
+    return true
+  }
+}
 
-  await Promise.all([ deletedBucket ])
+const deleteBucket = async (useIAM, killTag, awsResources) => {
+  //FUBAR Need to killize this
+  if (awsResources && awsResources.awsName) {
+    console.log(`Deleting s3 bucket`)
+    try {
+      await exec(`aws s3 rb s3://${awsResources.awsName} --force --profile ${useIAM}`)
+      awsResources.awsName = null;
+      return
+    } catch (e) {
+      console.error(`Unable to delete s3 bucket ${awsResources.awsName}`)
+    }       
+  } else {
+    console.log(`No s3 bucket. Skipping.`)
+    return
+  }
+}
 
+const deleteSecurityGroups = async (useIAM, killTag, deletedDBs) => {
   console.log(`Before deleting security groups, wait for DBs to be completed deleted`)
-  await deletedDBs //just being extra sure. This was awaited before.
-
-  console.log(`Deleting security groups`)
-
-  const deleteMyGroup = async (g) => {
+  await deletedDBs
+  console.log(`DBs deleted. Can start deleting security groups.`)
+  const deleteMyGroup = async (g, useIAM, killTag) => {
     let temp
     try {
       await exec(`aws ec2 describe-security-groups --group-names ${g} --profile ${useIAM}`)
@@ -2491,33 +2430,116 @@ export const awsArmageddon = async (useIAM, killType) => {
     return temp
   }
 
-  const deleteSecurityGroups = async () => {
-    let groupsToDelete = []
-    let tempGroupList
-    try {
-      tempGroupList = await exec(`aws ec2 describe-security-groups --profile ${useIAM}`)
-    } catch (e) {
-      console.error(`Unable to list security groups`)
-      throw e
-    }
-    JSON.parse(tempGroupList.stdout).SecurityGroups.forEach((g) => {
-      if (g.GroupName!="default") { //can't delete the default!
-        if (!killTag) {
-          //kill them all
+  let groupsToDelete = []
+  let tempGroupList
+  try {
+    tempGroupList = await exec(`aws ec2 describe-security-groups --profile ${useIAM}`)
+  } catch (e) {
+    console.error(`Unable to list security groups`)
+    throw e
+  }
+  JSON.parse(tempGroupList.stdout).SecurityGroups.forEach((g) => {
+    if (g.GroupName!="default") { //can't delete the default!
+      if (!killTag) {
+        //kill them all
+        groupsToDelete.push(g.GroupName)
+      } else {
+        if (g.Tags[0].Value==killTag) {
           groupsToDelete.push(g.GroupName)
-        } else {
-          if (g.Tags[0].Value==killTag) {
-            groupsToDelete.push(g.GroupName)
-          }
         }
       }
-    })
-    return Promise.all(groupsToDelete.map((g) => deleteMyGroup(g)))
+    }
+  })
+  return Promise.all(groupsToDelete.map((g) => deleteMyGroup(g)))
+}
+
+export const awsArmageddon = async (useIAM, killType) => {
+
+  let temp, awsResources
+  try {
+    awsResources = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
+  } catch (e) {
+    console.error(`Unable to load awsResources.js`)
+  }    
+  let projName
+  if (awsResources) {
+    projName = awsResources.name; //can use this to identify resources needing deletion
+  } else {
+    if (killType == "kill") {
+      console.warn('\x1b[31m%s\x1b[0m', `Unable to find awsResources.js. You won't be able to run kill.\n Either delete AWS deploy manually or run aws armageddon to delete everything including things not related to your project..`)
+    }
+  }
+  const killTag = killType == "kill" ? projName : false
+ 
+  const deletedStack = deleteStack(useIAM, killTag)
+
+  let deletedCluster
+  try {
+    deletedCluster = deleteCluster(deletedStack, useIAM, killTag, projName, awsResources)    
+  } catch(e) {
+    console.warn('\x1b[31m%s\x1b[0m', e)
+    //Don't exit. Might as well try deleting other things, too.
+  }
+
+  let deletedDBs, dbsToDelete 
+  try {
+    dbsToDelete = dbsToDeleteFunc(useIAM, killTag, awsResources)
+  } catch(e) {
+    console.warn('\x1b[31m%s\x1b[0m', e)
+  }
+  try {
+    deletedDBs = deleteDatabases(dbsToDelete, useIAM, killTag)
+  } catch(e) {
+    console.warn('\x1b[31m%s\x1b[0m', e)
+  }
+
+  let deletedLoadBalancer 
+  try {
+    deletedLoadBalancer = deleteLoadBalancer(useIAM, killTag);
+  } catch(e) {
+    //Nothing
+  }
+
+  let deletedCloudFront 
+  try {
+    deletedCloudFront = deleteCloudFront(useIAM, projName, killTag);
+  } catch(e) {
+    //Nothing
+  }
+
+  let deletedResourceRecords
+  try {
+    deletedResourceRecords = deleteResourceRecords(useIAM, killTag, projName)
+  } catch(e) {
+    console.warn('\x1b[31m%s\x1b[0m', `Unable to delete resource records`)
+    console.warn('\x1b[31m%s\x1b[0m', e) //don't fail on this
+  }
+
+  let deletedOACs
+  try {
+    deletedOACs = deleteOACs(useIAM, deletedCloudFront, killTag)
+  } catch(e) {
+    console.warn('\x1b[31m%s\x1b[0m', `Unable to delete origin access controls`)
+    throw e
+  }
+
+  let deletedTargetGroup 
+  try {
+    deletedTargetGroup = deleteTargetGroup(useIAM, deletedLoadBalancer)    
+  } catch(e) {
+    //nothing
+  }
+
+  let deletedBucket 
+  try {
+    deletedBucket = deleteBucket(useIAM, killTag, awsResources);
+  } catch(e) {
+    //nothing
   }
 
   let deletedGroups 
   try {
-    deletedGroups = deleteSecurityGroups()
+    deletedGroups = deleteSecurityGroups(useIAM, killTag, deletedDBs)
   } catch (e) {
     // Do nothing
   }
@@ -2547,7 +2569,8 @@ export const awsArmageddon = async (useIAM, killType) => {
     console.error(e)
   }    
 
-  await Promise.all([ deletedGroups, deletedResourceRecords ]) //this stuff can wait for the end
+  // Wait for everything to be deleted
+  await Promise.all([ deletedGroups, deletedResourceRecords, deletedBucket, deletedCloudFront, deletedDBs, deletedLoadBalancer, deletedOACs, deletedCluster, deletedTargetGroup ]);
 
   console.log(`The following resources were either not deleted or are still in the process of being deleted:`)
   await awsList(useIAM)
