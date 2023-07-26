@@ -46,12 +46,11 @@ const publishLocalPackage = async (modDir, modName) => {
 export function setEnv(debug) {
   console.log("running setEnv()")
   try {
-    console.log(`Setting front-end 'environment variable'`)
-    console.log("...")
     fs.writeFileSync(path.join(process.cwd(), 'pushkin/front-end/src', '.env.js'), `export const debug = ${debug}`)
   } catch (e) {
     console.error(`Unable to create .env.js`)
   }
+  console.log(`Successfully set front-end 'environment variable'`)
 }
 
 export function updatePushkinJs() {

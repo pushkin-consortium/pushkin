@@ -702,12 +702,13 @@ async function main() {
     .action(async (options) => {
       console.log("starting start...")
       moveToProjectRoot();
+      console.log(`Setting front-end 'environment variable'`)
       try {
-        console.log(`Setting front-end 'environment variable'`)
         setEnv(true) //this is synchronous
       } catch (e) {
         console.error(`Unable to update .env.js`)
       }
+      console.log(`Copying experiments.js to front-end.`)
       try {
         fs.copyFileSync('pushkin/front-end/src/experiments.js', 'pushkin/front-end/experiments.js');
       } catch (e) {
@@ -721,6 +722,7 @@ async function main() {
           console.error("Problem rebuilding docker images");
           throw e;
         }
+        console.log(`Running docker-compose up...`)
         compose.upAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: true, commandOptions: ["--remove-orphans"]})
           .then(
             out => { 
