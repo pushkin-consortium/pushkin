@@ -123,7 +123,7 @@ export function createTimeline(jsPsych) {
                 <p>For unrelated word pairings, you were correct on ${correct_unrelated} of ${total_unrelated}!
                 Your average correct response time for these was ${Math.round(mean_rt_unrelated)} milliseconds.</p>
             `
-            return results + debrief + + '<p>Press spacebar to finish.</p>'
+            return results + debrief + '<p>Press spacebar to finish.</p>'
         },
         choices: [' ']
     };
