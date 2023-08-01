@@ -4,9 +4,10 @@
 
 - [Current templates](#current-templates)
 - [General settings and editing content](#general-settings-and-editing-content)
+- [Adding additional jsPsych plugins](#adding-additional-jspsych-plugins)
 - [Adding custom jsPsych plugins](#adding-custom-jspsych-plugins)
 
-To install an experiment template, type in the following command, then select the desired template when prompted. Typically, you will want to select the most recent version.
+To install an experiment template, type in the following command, then select the desired template when prompted. Typically, you will want to select the most recent version. You also have the option to install templates that are not part of the official Pushkin distribution by using the "path" or "url" options.
 
 ```bash
  pushkin install experiment
@@ -20,14 +21,14 @@ Over time, new site and experiment templates are likely to be added. If you want
 
 ## Current templates
 
-- [Basic template](../../getting-started/tutorial-simple-experiment.md) - follow link to see a tutorial adding an existing jsPsych experiment to a Basic pushkin template.
+- [Basic template](../../getting-started/tutorial-simple-experiment.md) - follow link to see a tutorial adding an existing jsPsych experiment to a basic Pushkin template.
 - [Lexical decision template](lexical-decision-template.md)
 - [Grammaticality judgment template](grammaticality-judgment-template.md)
 - [Self-paced reading template](self-paced-reading-template.md)
 
 ## General settings and editing content
 
-Most Pushkin native experiment templates will include the following files for editing the settings and content of your experiment. The basic experiment template is the exception, and is a fairly bare bones template for customization.
+Most Pushkin experiment templates will include the following files for editing the settings and content of your experiment. The basic experiment template is the exception, and is a fairly bare bones template for customization.
 
 ### config.js
 
@@ -39,7 +40,7 @@ This file contains some settings you can customize for the experiment. Currently
 
 ### stim.js
 
-Stimuli are added using the stim.js file, which contains an array to put your stimuli information into. More details on editing the stimuli data for each specific experiment are in their respective documentation pages.
+Stimuli are added using the stim.js file, which contains an array to hold your stimulus information. More details on editing the stimuli for each specific experiment template are in their respective documentation pages.
 
 ### consent.js
 
@@ -51,7 +52,7 @@ Add text to this file for debrief information at the end of the experiment.
 
 ## Adding additional jsPsych plugins
 
-The current experiment templates use only the html-keyboard-response plugin from [jsPsych's list of included plugins](https://www.jspsych.org/7.3/plugins/list-of-plugins/) (although the [self-paced reading template](self-paced-reading-template.md) also uses a [custom plugin](#adding-custom-jspsych-plugins)). Of course, for many experiments, you may want to use additional jsPsych plugins. After installing the experiment template, additional plugins can be added to your experiment by navigating to the `web page` directory using `cd` and running `yarn add` for each particular plugin. For example, if your experiment also uses the survey-text and html-button-response plugins, you would run:
+The current experiment templates use only a few of [jsPsych's official included plugins](https://www.jspsych.org/7.3/plugins/list-of-plugins/). Of course, for many experiments, you may want to use additional jsPsych plugins. After installing the experiment template, additional plugins can be added to your experiment by navigating to the `web page` directory using `cd` and running `yarn add` for each particular plugin. For example, if your experiment also uses the survey-text and html-button-response plugins, you would run:
 
 ```bash
  cd 'experiments/[experiment_name]/web page'
