@@ -52,7 +52,14 @@ Add text to this file for debrief information at the end of the experiment.
 
 ## Adding additional jsPsych plugins
 
-The current experiment templates use only a few of [jsPsych's official included plugins](https://www.jspsych.org/7.3/plugins/list-of-plugins/). Of course, for many experiments, you may want to use additional jsPsych plugins. After installing the experiment template, additional plugins can be added to your experiment by navigating to the `web page` directory using `cd` and running `yarn add` for each particular plugin. For example, if your experiment also uses the survey-text and html-button-response plugins, you would run:
+The current experiment templates use only a few of [jsPsych's official included plugins](https://www.jspsych.org/7.3/plugins/list-of-plugins/). Of course, for many experiments, you may want to use additional jsPsych plugins. After installing an experiment template, import the additional plugins at the top of your `experiment.js` file in the same way as the plugins already included in the template. For example, if your experiment also uses the survey-text and html-button-response plugins, you would add:
+
+```javascript
+import jsPsychSurveyText from "@jspsych/plugin-survey-text";
+import jsPsychHtmlButtonResponse from "@jspsych/plugin-html-button-response";
+```
+
+You'll also need to add the additional plugins as dependencies for your experiment. To do this, navigate to the `web page` directory of the experiment using `cd` and run `yarn add` for each particular plugin:
 
 ```bash
  cd 'experiments/[experiment_name]/web page'
