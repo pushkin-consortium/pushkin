@@ -198,20 +198,3 @@ From the jsPsych code [above](#initial-code), copy everything between `const tim
 ### Import plugins
 
 In the jsPsych code [above](#initial-code), plugins are loaded within script tags. In a Pushkin experiment, plugins are loaded with `import` statements. The basic template already includes the html-keyboard-response plugin as a dependency, so no additional modifications are needed. However, if you wanted to add additional jsPsych plugins to this experiment, you would need to add them as dependencies and import them in `experiment.js` following the procedure described [here](../advanced/modifying-experiment-templates/README.md#adding-additional-jspsych-plugins).
-
-### Static assets
-
-The tutorial above does not require any images or videos. To use static assets, put them in the experiment assets folder \(web page/src/assets\). Running `pushkin prep` will place them in an accessible public folder. This folder can be referred to using the environment variable `process.env.PUBLIC_URL`.
-
-For example:
-
-```javascript
-var test_stimuli = [
-  { stimulus: process.env.PUBLIC_URL + "/blue.png" },
-  { stimulus: process.env.PUBLIC_URL + "/orange.png" },
-];
-```
-
-No special imports are required.
-
-Note that this works for local development. Depending on how you deploy to the web, this environment variable may not be available.
