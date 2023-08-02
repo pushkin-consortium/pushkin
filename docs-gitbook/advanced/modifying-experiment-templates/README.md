@@ -75,3 +75,20 @@ The procedure above only works for jsPsych plugins from the official distributio
 
 1. Add the plugin file to the `web page/src` folder of the experiment
 2. Add the plugin towards the top of your experiment.js file like `import jsPsychMovingWindow from './jspsych-moving-window';`
+
+## Adding static assets
+
+The current experiment templates do not use any image or video stimuli. To use static assets, put them in the experiment assets folder (web page/src/assets). Running `pushkin prep` will place them in an accessible public folder. This folder can be referred to using the environment variable `process.env.PUBLIC_URL`.
+
+For example:
+
+```javascript
+var test_stimuli = [
+  { stimulus: process.env.PUBLIC_URL + "/blue.png" },
+  { stimulus: process.env.PUBLIC_URL + "/orange.png" },
+];
+```
+
+No special imports are required.
+
+Note that this works for local development. Depending on how you deploy to the web, this environment variable may not be available.
