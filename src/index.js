@@ -397,7 +397,7 @@ const handleInstall = async (what) => {
             })
           }else if (siteType == "url") {
             inquirer.prompt(
-              [{ type: 'input', name: 'url', message: 'What is the url for your site template? This should begin with "https://" and end with "releases", but either api.github.com or github.com URLs are accepted.'}]
+              [{ type: 'input', name: 'url', message: 'What is the url for your site template (this should begin with "https://" and end with "releases", but either api.github.com or github.com URLs are accepted)?'}]
             ).then((answers) => {
               let templateURL = answers.url
               // Check whether URL is for GitHub API and, if not, convert it so it works with getPushkinSite()
@@ -453,7 +453,7 @@ const handleInstall = async (what) => {
               })
             } else if (expType == "url") {
               inquirer.prompt(
-                [{ type: 'input', name: 'url', message: 'What is the url for your experiment template? This should begin with "https://" and end with "releases", but either api.github.com or github.com URLs are accepted.'}]
+                [{ type: 'input', name: 'url', message: 'What is the url for your experiment template (this should begin with "https://" and end with "releases", but either api.github.com or github.com URLs are accepted)?'}]
               ).then((answers) => {
                 let templateURL = answers.url
                 // Check whether URL is for GitHub API and, if not, convert it so it works with getPushkinSite()
