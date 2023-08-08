@@ -6,7 +6,7 @@ const experimentConfig = {
     fontSize: "18px",
     fontFamily: "'Open Sans', 'Arial', sans-serif",
     correctiveFeedback: "true",
-    responseType: "blah"
+    responseType: "2afc"
 }
 
 export default experimentConfig;
