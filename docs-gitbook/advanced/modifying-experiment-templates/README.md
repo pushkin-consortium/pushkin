@@ -67,7 +67,11 @@ You'll also need to add the additional plugins as dependencies for your experime
  yarn add @jspsych/plugin-html-button-response
 ```
 
-Be sure to navigate back to the root directory of your site before running `pushkin prep` etc.
+Be sure to navigate back to the root directory of your site before running `pushkin prep` etc.:
+
+```bash
+ cd ../../..
+```
 
 ## Adding custom jsPsych plugins
 
