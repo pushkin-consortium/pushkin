@@ -142,8 +142,7 @@ export function createTimeline(jsPsych) {
                         name: 'grammatical_likert',
                         labels: likert_scale
                     }
-                ],
-                scale_width: '600'
+                ]
             },
             scale_trial_feedback
         ],
@@ -171,7 +170,6 @@ export function createTimeline(jsPsych) {
                     return `<p>How grammatically correct is this sentence?</p><p><strong>${sentence}</strong></p>`;
                 },
                 labels: slider_scale,
-                slider_width: 600,
                 min: 0,
                 max: 100,
             },
