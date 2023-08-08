@@ -7,126 +7,282 @@ import debrief from './debrief';
 export function createTimeline(jsPsych) {
     // Construct the timeline inside this function just as you would in jsPsych v7.x
     const timeline = [];
+        
+        // Welcome/consent page
+        var welcome = {
+            type: jsPsychHtmlKeyboardResponse,
+            stimulus: consent + '<p>Press spacebar to continue.</p>',
+            choices: [' ']
+        };
+        
+        timeline.push(welcome);
+        
+        // Add grammatical/ungrammatical condition information to stimArray for likert and slider options
+        // In practice, this could be pre-determined in a Latin Square design
+        // Also add position information for correct sentence to stimArray for 2AFC option
+        var itemCondition = jsPsych.randomization.sampleWithReplacement(['grammatical','ungrammatical'], stimArray.length)
+        var grammaticalPosition = jsPsych.randomization.sampleWithReplacement(['top','bottom'], stimArray.length)
+        for (let i = 0; i < stimArray.length; i++) {
+            stimArray[i].condition = itemCondition[i]
+            stimArray[i].grammatical_pos = grammaticalPosition[i]
+        }
+        
+        // Initialize Likert scale labels
+        var likert_scale = [
+            '1 - Definitely ungrammatical',
+            '2 - Probably ungrammatical',
+            '3 - Neutral',
+            '4 - Probably grammatical',
+            '5 - Definitely grammatical'
+        ];
+        
+        var slider_scale = ['Ungrammatical','Grammatical'];
+        
+        // Set up instructions for each type of scale
+        var scaleInstructions;
+        switch(experimentConfig.responseType) {
+            case 'likert':
+                scaleInstructions = `a scale from 1 to 5 where:<br>
+                <br>${likert_scale.join('<br>').replaceAll('-','=')}`
+                break
+            case 'slider':
+                scaleInstructions = `a slider where:<br>
+                    <br><strong>further left means more ungrammatical</strong>,<br>
+                    and <strong>further right means more grammatical</strong>.`
+                break
+            default: console.log('No scale type specified')
+        }
+        
+        var instructions_scales = {
+            timeline: [
+                {
+                    type: jsPsychHtmlKeyboardResponse,
+                    stimulus: `<p>In this study, you will read sentences and
+                        rate how grammatical or ungrammatical they sound to you using ${scaleInstructions}</p>
+                        <p>Press spacebar to begin.</p>`,
+                    choices: [' ']
+                }
+            ]
+        };
 
-    // A welcome page that displays the consent text from consent.js
-    var welcome = {
-        type: jsPsychHtmlKeyboardResponse,
-        stimulus: consent + '<p>Press spacebar to continue.</p>',
-        choices: [' ']
-    };
-      
-    timeline.push(welcome);
-      
-    // The first page of instructions
-    var instructions_1 = {
-        type: jsPsychHtmlKeyboardResponse,
-        stimulus: `
-          <p>You will see two sets of letters displayed in a box, like this:</p>
-          <div class="fixation"><p class="top">HELLO</p><p class="bottom">WORLD</p></div>
-          <p>Press Y if both sets are valid English words. Press N if one or both is not a word.</p>
-          <p>Press Y to continue.</p>
-        `,
-        choices: ['y']
-    };
-      
-    timeline.push(instructions_1);
-
-    // The second page of instructions
-    var instructions_2 = {
-        type: jsPsychHtmlKeyboardResponse,
-        stimulus: `
-          <p>In this case, you would press N.</p>
-          <div class="fixation"><p class="top">FOOB</p><p class="bottom">ARTIST</p></div>
-          <p>Press N to begin the experiment.</p>
-        `,
-        choices: ['n']
-    };
-      
-    timeline.push(instructions_2);
-      
-    var lexical_decision_procedure = {
-        timeline: [
-            // Display the box for 1000 ms before the words appear
-            {
-                type: jsPsychHtmlKeyboardResponse,
-                stimulus: '<div class="fixation"></div>', // See ./assets/experiment.css
-                choices: 'NO_KEYS',
-                trial_duration: 1000
-            },
-            // Display the words and wait for a keyboard response
-            {
-                type: jsPsychHtmlKeyboardResponse,
-                stimulus: function () {
-                    let first_word = jsPsych.timelineVariable('word_1');
-                    let second_word = jsPsych.timelineVariable('word_2');
-                    first_word = '<div class="fixation"><p class="top">' + first_word + '</p>';
-                    second_word = '<div class="fixation"><p class="bottom">' + second_word + '</p>';
-                    return first_word + second_word;
+        // Set up instructions for 2AFC
+        var instructions_2afc = {
+            timeline: [
+                {
+                    type: jsPsychHtmlKeyboardResponse,
+                    stimulus: `<p>You will see two sets of sentences displayed like this:</p>
+                        <p><strong>He went to the bank yesterday.<br/>
+                        He went the bank yesterday.</strong></p>
+                        <p>Press T if the top sentence is grammatically correct.</p>
+                        <p>Press B if the bottom sentence is grammatically correct.</p>
+                        <p>Press T to continue.`,
+                    choices: ['t']
                 },
-                choices: ['y', 'n'],
-                data: {
-                    both_words: jsPsych.timelineVariable('both_words'),
-                    related: jsPsych.timelineVariable('related')
-                },
-                // Check whether the response was correct
-                on_finish: function (data) {
-                    if (data.both_words) {
-                        data.correct = jsPsych.pluginAPI.compareKeys(data.response, 'y');
+                {
+                    type: jsPsychHtmlKeyboardResponse,
+                    stimulus: `<p>In this case you would press B.</p>
+                        <p><strong>The book is very long, doesn't it?<br/>
+                        The book is very long, isn't it?</strong></p>
+                        <p>Press B to continue to the start of the experiment.</p>`,
+                    choices: ['b']
+                }
+            ]
+        };
+        
+        // Pre-trial fixation cross
+        var pre_trial_fixation = {
+            type: jsPsychHtmlKeyboardResponse,
+            stimulus: '<div class="fixationcross">+</div>',
+            choices: 'NO_KEYS',
+            trial_duration: 1000
+        }
+        
+        // Set up likert/slider feedback
+        var scale_trial_feedback = {
+            type: jsPsychHtmlKeyboardResponse,
+            stimulus: function () {
+                if (experimentConfig.correctiveFeedback == 'true') {
+                    if(jsPsych.timelineVariable('condition') == 'grammatical') {
+                        return '<p class="correct">That sentence was grammatically correct.</p>'
                     } else {
-                        data.correct = jsPsych.pluginAPI.compareKeys(data.response, 'n');
+                        return '<p class="incorrect">That sentence was gramatically incorrect.</p>'
                     }
+                } else {
+                    return '<div class="fixationcross">+</div>'
                 }
             },
-            // Provide feedback if experimentConfig.correctiveFeedback is set to true in config.js
-            {
-                type: jsPsychHtmlKeyboardResponse,
-                stimulus: function () {
-                    // Change the color of the box if feedback is enabled
-                    if (experimentConfig.correctiveFeedback == 'true') {
-                        let last_correct = jsPsych.data.getLastTrialData().values()[0].correct;
-                        if (last_correct) {
-                            return '<div class="fixation correct"></div>';
+            choices: "NO_KEYS",
+            trial_duration: 2000
+        }
+        
+        // Likert trials
+        var grammaticality_procedure_likert = {
+            timeline: [
+                pre_trial_fixation,
+                {
+                    type: jsPsychSurveyLikert,
+                    data: {
+                        condition : jsPsych.timelineVariable('condition'),
+                        responseType: 'likert'
+                    },
+                    preamble: function () {
+                        let sentence
+                        if (jsPsych.timelineVariable('condition') == 'grammatical') {
+                            sentence = jsPsych.timelineVariable('sentence_grammatical')
                         } else {
-                            return '<div class="fixation incorrect"></div>';
+                            sentence = jsPsych.timelineVariable('sentence_ungrammatical')
                         }
-                    } else {
-                        return '<div class="fixation"></div>';
+                        return `<p>How grammatically correct is this sentence?</p><p><strong>${sentence}</strong></p>`
+                    },
+                    questions: [
+                        {
+                            prompt: '',
+                            name: 'grammatical_likert',
+                            labels: likert_scale
+                        }
+                    ],
+                    scale_width: '600'
+                },
+                scale_trial_feedback
+            ],
+            timeline_variables: stimArray,
+            randomize_order: true
+        };
+        
+        // Slider trials
+        var grammaticality_procedure_slider = {
+            timeline: [
+                pre_trial_fixation,
+                {
+                    type: jsPsychHtmlSliderResponse,
+                    data: {
+                        condition : jsPsych.timelineVariable('condition'),
+                        responseType: 'slider'
+                    },
+                    stimulus: function () {
+                        let sentence
+                        if (jsPsych.timelineVariable('condition') == 'grammatical') {
+                            sentence = jsPsych.timelineVariable('sentence_grammatical')
+                        } else {
+                            sentence = jsPsych.timelineVariable('sentence_ungrammatical')
+                        }
+                        return `<p>How grammatically correct is this sentence?</p><p><strong>${sentence}</strong></p>`
+                    },
+                    labels: slider_scale,
+                    slider_width: 600,
+                    min: 0,
+                    max: 100,
+                },
+                scale_trial_feedback
+            ],
+            timeline_variables: stimArray,
+            randomize_order: true
+        };
+        
+        var grammaticality_procedure_2afc = {
+            timeline: [
+                pre_trial_fixation,
+                {
+                    type: jsPsychHtmlKeyboardResponse,
+                    data: {
+                        responseType: '2afc',
+                        grammatical_pos: jsPsych.timelineVariable('grammatical_pos')
+                    },
+                    stimulus: function () {
+                        let sentence_grammatical = jsPsych.timelineVariable('sentence_grammatical');
+                        let sentence_ungrammatical = jsPsych.timelineVariable('sentence_ungrammatical');
+                        if (jsPsych.timelineVariable('grammatical_pos') == 'top') {
+                            return `<p>Which sentence is grammatically correct?</p>
+                                <p><strong>${sentence_grammatical}<br>${sentence_ungrammatical}</strong></p>`;
+                        } else {
+                            return `<p>Which sentence is grammatically correct?</p>
+                                <p><strong>${sentence_ungrammatical}<br>${sentence_grammatical}</strong></p>`;
+                        }
+                    },
+                    choices: ['t', 'b'],
+                    on_finish: function (data) {
+                        if (data.grammatical_pos == 'top') {
+                            data.correct = jsPsych.pluginAPI.compareKeys(data.response, 't');
+                        } else {
+                            data.correct = jsPsych.pluginAPI.compareKeys(data.response, 'b');
+                        }
                     }
                 },
-                choices: 'NO_KEYS',
-                trial_duration: 2000
-            }
-        ],
-        timeline_variables: stimArray,
-        randomize_order: true
-    };
-    
-    timeline.push(lexical_decision_procedure);
-    
-    // A final feedback and debrief page
-    var data_summary = {
-        type: jsPsychHtmlKeyboardResponse,
-        stimulus: function () {
-            // Calculate task performance
-            let correct_related = jsPsych.data.get().filter({ related: true, correct: true }).count();
-            let total_related = jsPsych.data.get().filter({ related: true }).count();
-            let mean_rt_related = jsPsych.data.get().filter({ related: true, correct: true }).select('rt').mean();
-            
-            let correct_unrelated = jsPsych.data.get().filter({ related: false, both_words: true, correct: true }).count();
-            let total_unrelated = jsPsych.data.get().filter({ related: false, both_words: true }).count();
-            let mean_rt_unrelated = jsPsych.data.get().filter({ related: false, both_words: true, correct: true }).select('rt').mean();
-            
-            // Show results and debrief from debrief.js
-            let results = `
-                <p>You were correct on ${correct_related} of ${total_related} related word pairings!
-                Your average correct response time for these was ${Math.round(mean_rt_related)} milliseconds.</p>
-                <p>For unrelated word pairings, you were correct on ${correct_unrelated} of ${total_unrelated}!
-                Your average correct response time for these was ${Math.round(mean_rt_unrelated)} milliseconds.</p>
-            `
-            return results + debrief + '<p>Press spacebar to finish.</p>'
-        },
-        choices: [' ']
-    };
+                {
+                    type: jsPsychHtmlKeyboardResponse,
+                    stimulus: function () {
+                        let last_correct = jsPsych.data.getLastTrialData().values()[0].correct;
+                        if (experimentConfig.correctiveFeedback == 'true') {
+                            if (last_correct) {
+                                return '<div class="correct"><strong>Correct</strong></div>';
+                            } else {
+                                return '<div class="incorrect"><strong>Incorrect</strong></div>';
+                            }
+                        } else {
+                            return '<div class="fixationcross">+</div>';
+                        }
+                    },
+                    choices: 'NO_KEYS',
+                    trial_duration: 2000
+                }
+            ],
+            timeline_variables: stimArray,
+            randomize_order: true
+        };
+        
+        // Debrief for likert and slider scales
+        var debrief_nodata = {
+            type: jsPsychHtmlKeyboardResponse,
+            stimulus: function () {
+                return debrief
+            },
+            choices: [' ']
+        };
+
+        // Debrief for 2AFC
+        var debrief_2afc = {
+            type: jsPsychHtmlKeyboardResponse,
+            stimulus: function () {
+                // Calculate performance on task
+                var mean_rt = jsPsych.data.get().filter({responseType: '2afc', correct: true }).select('rt').mean();
+                var correctTotal = jsPsych.data.get().filter({responseType: '2afc', correct: true }).count();
+                let total = jsPsych.data.get().filter({responseType: '2afc' }).count();
+
+                // Show results and debrief
+                return `<p>You were correct on ${correctTotal} of ${total} sentences!
+                    Your average response time was ${Math.round(mean_rt)} milliseconds.</p>` +
+                    debrief
+            },
+            choices: [' ']
+        };
+        
+        // Push procedure to timeline based on config responseType setting
+        switch (experimentConfig.responseType) {
+            case '2afc':
+                timeline.push(
+                    instructions_2afc,
+                    grammaticality_procedure_2afc,
+                    debrief_2afc
+                );
+                break
+            case 'likert':
+                timeline.push(
+                    instructions_scales,
+                    grammaticality_procedure_likert,
+                    debrief_nodata
+                );
+                break
+            case 'slider':
+                timeline.push(
+                    instructions_scales,
+                    grammaticality_procedure_slider,
+                    debrief_nodata
+                );
+                break
+            default:
+                console.log('Invalid value for responseType in config.js')
+                // Add no trials
+        };
     
     timeline.push(data_summary);
 
