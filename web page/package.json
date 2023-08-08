@@ -14,6 +14,8 @@
   "license": "MIT",
   "dependencies": {
     "@jspsych/plugin-html-keyboard-response": "^1.1.2",
+    "@jspsych/plugin-html-slider-response": "^1.1.2",
+    "@jspsych/plugin-survey-likert": "^1.1.2",
     "buffer": "^6.0.3",
     "build-if-changed": "^1.5.5",
     "js-yaml": "^4.1.0",
