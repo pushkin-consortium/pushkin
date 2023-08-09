@@ -407,7 +407,7 @@ export const prep = async (experimentsDir, coreDir) => {
   try {
     builtServer = exec(`docker build -t server:latest pushkin/front-end`, {cwd: process.cwd()})
   } catch(e) {
-    console.error(`Problem building API`)
+    console.error(`Problem building server`)
     throw e
   }
 
