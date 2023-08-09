@@ -1,6 +1,6 @@
 @import url('https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/css/jspsych.css');
 
-/* Fixation box stylings */
+/* Fixation box styling */
 .fixation {
     border: 2px solid black;
     height: 100px;

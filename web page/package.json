@@ -7,17 +7,19 @@
     "build/*"
   ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest",
     "build": "babel src -d build; cp -r src/assets build/"
   },
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@jspsych/plugin-html-keyboard-response": "^1.1.2",
+    "buffer": "^6.0.3",
     "build-if-changed": "^1.5.5",
-    "js-yaml": "^3.14.0",
+    "js-yaml": "^4.1.0",
+    "jspsych": "^7.3.3",
     "pushkin-client": "^1.5.0",
-    "pushkin-jspsych": "^1.0.1",
-    "react": "^16.13.1",
+    "react": "^18.2.0",
     "react-router-dom": "^5.2.0"
   },
   "devDependencies": {
@@ -25,6 +27,8 @@
     "@babel/core": "^7.10.5",
     "@babel/preset-env": "^7.10.4",
     "@babel/preset-react": "^7.10.4",
-    "babel-plugin-static-fs": "^3.0.0"
+    "babel-plugin-static-fs": "^3.0.0",
+    "jest": "^29.6.1",
+    "jest-environment-jsdom": "^29.6.1"
   }
 }
