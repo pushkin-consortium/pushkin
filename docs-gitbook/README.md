@@ -28,6 +28,10 @@ To get the latest news and updates on Pushkin, sign up for our newsletter [here]
     * [Initialize AWS Deploy.](getting-started/deploying-to-aws/initializing-aws-deploy.md)
 
   * [Tutorial: Simple Experiment](getting-started/tutorial-simple-experiment.md)
+
+* **FAQ**
+  * [FAQ](faq/FAQ.md)
+
 * **Advanced**
   * [Pushkin CLI](advanced/pushkin-cli.md)
     * [config](advanced/pushkin-cli.md#config)

@@ -21,6 +21,10 @@
 
 * [Tutorial: Simple Experiment](getting-started/tutorial-simple-experiment.md)
 
+## FAQ
+
+* [FAQ](faq/FAQ.md)
+
 ## Advanced
 
 * [Pushkin CLI](advanced/pushkin-cli.md)
