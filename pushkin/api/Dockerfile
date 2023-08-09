@@ -1,4 +1,4 @@
-FROM --platform=linux/amd64 node:20.2
+FROM node:20.2
 
 COPY ./src /usr/src/app/src
 COPY .yalc /usr/src/app/.yalc/
