@@ -1,4 +1,5 @@
 import jsPsychHtmlKeyboardResponse from '@jspsych/plugin-html-keyboard-response';
+import jsPsychSelfPacedReading from '@jspsych-contrib/plugin-self-paced-reading';
 import experimentConfig from './config';
 import consent from './consent';
 import stimArray from './stim';
@@ -7,128 +8,139 @@ import debrief from './debrief';
 export function createTimeline(jsPsych) {
     // Construct the timeline inside this function just as you would in jsPsych v7.x
     const timeline = [];
-
-    // A welcome page that displays the consent text from consent.js
+    
+    // Add correct answer information to stimArray for comprehension questions
+    var correctKey = jsPsych.randomization.sampleWithReplacement(['f','j'], stimArray.length);
+    for (let i = 0; i < stimArray.length; i++) {
+        // Add the correct key to the end of the array holding the question info
+        stimArray[i].comprehension.push(correctKey[i]);
+    };
+    
+    // Welcome/consent page
     var welcome = {
         type: jsPsychHtmlKeyboardResponse,
         stimulus: consent + '<p>Press spacebar to continue.</p>',
         choices: [' ']
     };
-      
     timeline.push(welcome);
-      
-    // The first page of instructions
-    var instructions_1 = {
-        type: jsPsychHtmlKeyboardResponse,
-        stimulus: `
-          <p>You will see two sets of letters displayed in a box, like this:</p>
-          <div class="fixation"><p class="top">HELLO</p><p class="bottom">WORLD</p></div>
-          <p>Press Y if both sets are valid English words. Press N if one or both is not a word.</p>
-          <p>Press Y to continue.</p>
-        `,
-        choices: ['y']
-    };
-      
-    timeline.push(instructions_1);
 
-    // The second page of instructions
-    var instructions_2 = {
+    // Instruction page
+    var instructions = {
         type: jsPsychHtmlKeyboardResponse,
-        stimulus: `
-          <p>In this case, you would press N.</p>
-          <div class="fixation"><p class="top">FOOB</p><p class="bottom">ARTIST</p></div>
-          <p>Press N to begin the experiment.</p>
-        `,
-        choices: ['n']
+        stimulus: function () {
+            let standard_instructions = `<p>In this experiment, you'll read sentences one word at a time. Use the spacebar to advance to the next word.</p>`;
+            let comprehension_instructions = `<p>After reading the sentence, you'll be asked a question about what you read. Use the keyboard to respond to the question.</p>`;
+            if (experimentConfig.comprehension) {
+                return standard_instructions + comprehension_instructions + '<p>Press the spacebar to continue to the experiment.</p>';
+            } else {
+                return standard_instructions + '<p>Press spacebar to continue to the experiment.</p>';
+            }
+        },
+        choices: [' ']
     };
-      
-    timeline.push(instructions_2);
-      
-    var lexical_decision_procedure = {
+    timeline.push(instructions);
+
+    // Set up feedback
+    // This will later be integrated into the comprehension questions
+    var feedback = {
         timeline: [
-            // Display the box for 1000 ms before the words appear
-            {
-                type: jsPsychHtmlKeyboardResponse,
-                stimulus: '<div class="fixation"></div>', // See ./assets/experiment.css
-                choices: 'NO_KEYS',
-                trial_duration: 1000
-            },
-            // Display the words and wait for a keyboard response
             {
                 type: jsPsychHtmlKeyboardResponse,
                 stimulus: function () {
-                    let first_word = jsPsych.timelineVariable('word_1');
-                    let second_word = jsPsych.timelineVariable('word_2');
-                    first_word = '<div class="fixation"><p class="top">' + first_word + '</p>';
-                    second_word = '<div class="fixation"><p class="bottom">' + second_word + '</p>';
-                    return first_word + second_word;
-                },
-                choices: ['y', 'n'],
-                data: {
-                    both_words: jsPsych.timelineVariable('both_words'),
-                    related: jsPsych.timelineVariable('related')
-                },
-                // Check whether the response was correct
-                on_finish: function (data) {
-                    if (data.both_words) {
-                        data.correct = jsPsych.pluginAPI.compareKeys(data.response, 'y');
+                    let last_correct = jsPsych.data.getLastTrialData().values()[0].correct;
+                    if (last_correct) {
+                        return '<p class="correct"><strong>Correct</strong></p>';
                     } else {
-                        data.correct = jsPsych.pluginAPI.compareKeys(data.response, 'n');
-                    }
-                }
-            },
-            // Provide feedback if experimentConfig.correctiveFeedback is set to true in config.js
-            {
-                type: jsPsychHtmlKeyboardResponse,
-                stimulus: function () {
-                    // Change the color of the box if feedback is enabled
-                    if (experimentConfig.correctiveFeedback == 'true') {
-                        let last_correct = jsPsych.data.getLastTrialData().values()[0].correct;
-                        if (last_correct) {
-                            return '<div class="fixation correct"></div>';
-                        } else {
-                            return '<div class="fixation incorrect"></div>';
-                        }
-                    } else {
-                        return '<div class="fixation"></div>';
+                        return '<p class="incorrect"><strong>Incorrect</strong></p>';
                     }
                 },
                 choices: 'NO_KEYS',
                 trial_duration: 2000
-            }
+            },
+        ],
+        // This timeline is only executed if correctiveFeedback is set to true in config.js
+        conditional_function: function () {
+            return experimentConfig.correctiveFeedback;
+        }
+    };
+    
+    // Set up comprehension questions
+    // This will later be integrated into the experiment trials
+    var comprehension_questions = {
+        timeline: [
+            {
+                type: jsPsychHtmlKeyboardResponse,
+                data: {comprehension: jsPsych.timelineVariable('comprehension')},
+                stimulus: function () {
+                    let question = jsPsych.timelineVariable('comprehension')[0];
+                    let choice_correct = jsPsych.timelineVariable('comprehension')[1];
+                    let choice_incorrect = jsPsych.timelineVariable('comprehension')[2];
+                    let correct_key = jsPsych.timelineVariable('comprehension')[3];
+                    if (correct_key == 'f') {
+                        return `<p>${question}</p><p><strong>F.</strong> ${choice_correct}&emsp;<strong>J.</strong> ${choice_incorrect}</p>`;
+                    } else {
+                        return `<p>${question}</p><p><strong>F.</strong> ${choice_incorrect}&emsp;<strong>J.</strong> ${choice_correct}</p>`;
+                    }
+                },
+                choices: ['f','j'],
+                // Check whether the response was correct
+                // compareKeys() will return true if the response key matches the correct key from the timeline variable
+                on_finish: function (data) {
+                    data.correct = jsPsych.pluginAPI.compareKeys(jsPsych.timelineVariable('comprehension')[3], data.response);
+                }
+            },
+            // Integrate the conditional timeline for feedback
+            feedback
+        ],
+        // This timeline (including the sub-timeline for feedback) is only executed if comprehension is set to true in config.js
+        conditional_function: function () {
+            return experimentConfig.comprehension;
+        }
+    };
+
+    // Experiment trials
+    var experiment = {
+        timeline: [
+            {
+                type: jsPsychHtmlKeyboardResponse,
+                stimulus: 'Press spacebar when you are ready.',
+                choices: [' ']
+            },
+            {
+                type: jsPsychSelfPacedReading,
+                sentence: jsPsych.timelineVariable('sentence'),
+            },
+            // Integrate the conditional timeline for comprehension questions
+            comprehension_questions
         ],
         timeline_variables: stimArray,
         randomize_order: true
     };
-    
-    timeline.push(lexical_decision_procedure);
-    
+    timeline.push(experiment);
+
     // A final feedback and debrief page
-    var data_summary = {
+    var end = {
         type: jsPsychHtmlKeyboardResponse,
         stimulus: function () {
-            // Calculate task performance
-            let correct_related = jsPsych.data.get().filter({ related: true, correct: true }).count();
-            let total_related = jsPsych.data.get().filter({ related: true }).count();
-            let mean_rt_related = jsPsych.data.get().filter({ related: true, correct: true }).select('rt').mean();
-            
-            let correct_unrelated = jsPsych.data.get().filter({ related: false, both_words: true, correct: true }).count();
-            let total_unrelated = jsPsych.data.get().filter({ related: false, both_words: true }).count();
-            let mean_rt_unrelated = jsPsych.data.get().filter({ related: false, both_words: true, correct: true }).select('rt').mean();
+            // Calculate performance on comprehension questions
+            let correct_questions = jsPsych.data.get().filter({ correct: true }).count();
+            let total_questions = jsPsych.data.get().filterCustom(function (data) { return Array.isArray(data.comprehension) }).count();
+            let mean_correct_rt = jsPsych.data.get().filter({ correct: true }).select('rt').mean();
             
             // Show results and debrief from debrief.js
             let results = `
-                <p>You were correct on ${correct_related} of ${total_related} related word pairings!
-                Your average correct response time for these was ${Math.round(mean_rt_related)} milliseconds.</p>
-                <p>For unrelated word pairings, you were correct on ${correct_unrelated} of ${total_unrelated}!
-                Your average correct response time for these was ${Math.round(mean_rt_unrelated)} milliseconds.</p>
+                <p>You were correct on ${correct_questions} of ${total_questions} questions!
+                Your average response time for these was ${Math.round(mean_correct_rt)} milliseconds.</p>
             `
-            return results + debrief + '<p>Press spacebar to finish.</p>'
+            if (experimentConfig.comprehension) {
+                return results + debrief + '<p>Press spacebar to finish.</p>'
+            } else {
+                return debrief + '<p>Press spacebar to finish.</p>'
+            }
         },
         choices: [' ']
     };
-    
-    timeline.push(data_summary);
+    timeline.push(end);
 
     return timeline;
 }
