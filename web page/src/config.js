@@ -1,10 +1,11 @@
 // Custom stylin'
 
-var experimentConfig = {
+const experimentConfig = {
     fontColor: "black",
-    fontSize: "18px",
+    fontSize: "20px",
     fontFamily: "'Open Sans', 'Arial', sans-serif",
-    correctiveFeedback: "true"
+    comprehension: true,
+    correctiveFeedback: true // Only relevant if comprehension is set to true
 }
 
 export default experimentConfig;

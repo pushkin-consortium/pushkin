@@ -6,7 +6,7 @@ const consent = `
     Your participation in this research is completely voluntary.
     You can end your participation at any time without penalty.
     Your participation is completely anonymous.
-    By proceeding, you agree to participate in this experiment</p>
+    By proceeding, you agree to participate in this experiment.</p>
 `
 
 export default consent;
