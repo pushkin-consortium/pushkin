@@ -13,6 +13,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@jspsych-contrib/plugin-self-paced-reading": "^1.0.0",
     "@jspsych/plugin-html-keyboard-response": "^1.1.2",
     "buffer": "^6.0.3",
     "build-if-changed": "^1.5.5",
