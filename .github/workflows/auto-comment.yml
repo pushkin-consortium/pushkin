@@ -8,7 +8,7 @@ jobs:
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           issuesOpened: |
-            👋 
+            👋 @{{author}}
             Thanks for opening this issue!
 
             - Remember to include any code snippets, CLI outcomes, and/or screenshots/GIFs that come with your issue.
