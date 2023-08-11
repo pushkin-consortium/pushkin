@@ -21,7 +21,7 @@ Over time, new site and experiment templates are likely to be added. If you want
 
 ## Current templates
 
-- [Basic template](../../getting-started/tutorial-simple-experiment.md) - follow link to see a tutorial adding an existing jsPsych experiment to a basic Pushkin template.
+- [Basic template](../../getting-started/tutorial-simple-experiment.md) - follow link to see a tutorial for adding an existing jsPsych experiment to a basic Pushkin template.
 - [Lexical decision template](lexical-decision-template.md)
 - [Grammaticality judgment template](grammaticality-judgment-template.md)
 - [Self-paced reading template](self-paced-reading-template.md)
@@ -73,9 +73,11 @@ Be sure to navigate back to the root directory of your site before running `push
  cd ../../..
 ```
 
+This same procedure will work with community-developed plugins available through npm via the [jspsych-contrib repository](https://github.com/jspsych/jspsych-contrib). Just replace "@jspsych" with "@jspsych-contrib". The [self-paced reading template](self-paced-reading-template.md) uses a [plugin](https://github.com/jspsych/jspsych-contrib/blob/main/packages/plugin-self-paced-reading/docs/jspsych-self-paced-reading.md) from jspsych-contrib.
+
 ## Adding custom jsPsych plugins
 
-The procedure above only works for jsPsych plugins from the official distribution. If your experiment makes use of a custom plugin (either one you've developed yourself or one [contributed](https://github.com/jspsych/jspsych-contrib) by the jsPsych community), follow the steps below:
+The procedure above only works for jsPsych plugins available through npm. If your experiment makes use of a custom plugin, follow the steps below:
 
 1. Add the plugin file to the `web page/src` folder of the experiment
 2. Add the plugin towards the top of your experiment.js file like `import jsPsychMovingWindow from './jspsych-moving-window';`
