@@ -108,8 +108,9 @@ export function createTimeline(jsPsych) {
             },
             {
                 type: jsPsychSelfPacedReading,
-                sentence: jsPsych.timelineVariable('sentence')
                 // Learn more about the parameters available for this plugin here: https://github.com/jspsych/jspsych-contrib/blob/main/packages/plugin-self-paced-reading/docs/jspsych-self-paced-reading.md
+                sentence: jsPsych.timelineVariable('sentence'),
+                canvas_size: [1280, 320] // Canvas size has to be hardcoded, so you may need to play with these values depending on your sentence length and font size.
             },
             // Integrate the conditional timeline for comprehension questions
             comprehension_questions
