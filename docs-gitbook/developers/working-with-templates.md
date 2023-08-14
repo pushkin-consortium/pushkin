@@ -4,25 +4,25 @@
 
 The Pushkin CLI `install` command is integrated with the GitHub release functionality. On the GitHub website, there is a `releases` panel on the right-hand side of the repo homepage. 
 
-![](../../.gitbook/assets/GitHubReleases1.jpg)
+![](../.gitbook/assets/GitHubReleases1.jpg)
 
 Click on the panel to open the releases page. Then select `draft new release`.
 
-![](../../.gitbook/assets/GitHubReleases2.jpg)
+![](../.gitbook/assets/GitHubReleases2.jpg)
 
 The Pushkin CLI assumes semantic versioning. You will need to create a tag for your release of the form `vX.Y.Z`. GitHub has a reasonable explanation on this page (see right-hand side).
 
-![](../../.gitbook/assets/GitHubReleases3.jpg)
+![](../.gitbook/assets/GitHubReleases3.jpg)
 
 You can choose whatever title you want. We suggest you include an informative description of this particular release. If it's the first release for your project, you might just put in the description "initial release". This is up to you.
 
 What is critical is that you zip up the files in your repo into a file called `Archive.zip`. Do NOT zip up the whole folder, but rather the files inside. This is what the Pushkin CLI expects. Moreover, on a Mac, at least, this will ensure that hidden files and folders are not included. 
 
-![](../../.gitbook/assets/GitHubReleases4.jpg)
+![](../.gitbook/assets/GitHubReleases4.jpg)
 
 On the `draft new release` page, you should see the option to `attach binaries by dropping them here or selecting them`. Use that option to upload `Archive.zip`. 
 
-![](../../.gitbook/assets/GitHubReleases5.jpg)
+![](../.gitbook/assets/GitHubReleases5.jpg)
 
 Then click `publish release` and you are done. 
 
