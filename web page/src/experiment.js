@@ -8,6 +8,16 @@ export function createTimeline(jsPsych) {
     // Construct the timeline inside this function just as you would in jsPsych v7.x
     const timeline = [];
 
+    // Resize the jsPsychTarget div
+    // This will help later with centering the fixation cross relative to other content
+    var resizejsPsychTarget = function (divHeight) {
+        let jsPsychTarget = document.querySelector('#jsPsychTarget');
+        jsPsychTarget.style.height = divHeight + 'px';
+    };
+    // Set the height of the jsPsychTarget div to half the height of the browser window
+    // You can play with the multiplier according to the needs of your experiment
+    resizejsPsychTarget(window.innerHeight * 0.5);
+
     // A welcome page that displays the consent text from consent.js
     var welcome = {
         type: jsPsychHtmlKeyboardResponse,
@@ -60,7 +70,7 @@ export function createTimeline(jsPsych) {
                     let first_word = jsPsych.timelineVariable('word_1');
                     let second_word = jsPsych.timelineVariable('word_2');
                     first_word = '<div class="fixation"><p class="top">' + first_word + '</p>';
-                    second_word = '<div class="fixation"><p class="bottom">' + second_word + '</p>';
+                    second_word = '<p class="bottom">' + second_word + '</p></div>';
                     return first_word + second_word;
                 },
                 choices: ['y', 'n'],
@@ -82,7 +92,7 @@ export function createTimeline(jsPsych) {
                 type: jsPsychHtmlKeyboardResponse,
                 stimulus: function () {
                     // Change the color of the box if feedback is enabled
-                    if (experimentConfig.correctiveFeedback == 'true') {
+                    if (experimentConfig.correctiveFeedback) {
                         let last_correct = jsPsych.data.getLastTrialData().values()[0].correct;
                         if (last_correct) {
                             return '<div class="fixation correct"></div>';

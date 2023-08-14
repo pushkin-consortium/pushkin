@@ -2,9 +2,9 @@
 
 var experimentConfig = {
     fontColor: "black",
-    fontSize: "18px",
+    fontSize: "20px",
     fontFamily: "'Open Sans', 'Arial', sans-serif",
-    correctiveFeedback: "true"
+    correctiveFeedback: true
 }
 
 export default experimentConfig;
