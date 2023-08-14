@@ -8,6 +8,17 @@ import debrief from './debrief';
 export function createTimeline(jsPsych) {
     // Construct the timeline inside this function just as you would in jsPsych v7.x
     const timeline = [];
+
+    // Resize the jsPsychTarget div
+    // This will help later with centering content
+    // and making sure the SPR canvas doesn't change the page layout
+    var resizejsPsychTarget = function (divHeight) {
+        let jsPsychTarget = document.querySelector('#jsPsychTarget');
+        jsPsychTarget.style.height = divHeight + 'px';
+    };
+    // This will set the height of the jsPsychTarget div to half the height of the browser window
+    // You can play with the multiplier according to the needs of your experiment
+    resizejsPsychTarget(window.innerHeight * 0.5);
     
     // Add correct answer information to stimArray for comprehension questions
     var correctKey = jsPsych.randomization.sampleWithReplacement(['f','j'], stimArray.length);
@@ -110,7 +121,12 @@ export function createTimeline(jsPsych) {
                 type: jsPsychSelfPacedReading,
                 // Learn more about the parameters available for this plugin here: https://github.com/jspsych/jspsych-contrib/blob/main/packages/plugin-self-paced-reading/docs/jspsych-self-paced-reading.md
                 sentence: jsPsych.timelineVariable('sentence'),
-                canvas_size: [1280, 320] // Canvas size has to be hardcoded, so you may need to play with these values depending on your sentence length and font size.
+                // Set the size of the SPR canvas to match the size of the jsPsych content area
+                canvas_size: function () {
+                    let width = document.querySelector('.jspsych-content-wrapper').offsetWidth;
+                    let height = document.querySelector('.jspsych-content-wrapper').offsetHeight;
+                    return [width, height];
+                }
             },
             // Integrate the conditional timeline for comprehension questions
             comprehension_questions
