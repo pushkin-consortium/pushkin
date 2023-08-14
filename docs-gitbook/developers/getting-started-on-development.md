@@ -57,7 +57,7 @@ COPY ./yalc.lock /usr/src/app/`
 
 These lines need to come BEFORE the WORKDIR is changed. So for example:
 
-`FROM --platform=linux/amd64 node:20.2
+`FROM node:20.2
 COPY Dockerfile index.js package.json start.sh yarn.lock /usr/src/app/
 COPY .yalc /usr/src/app/.yalc/
 COPY ./yalc.lock /usr/src/app/
