@@ -9,7 +9,17 @@ import debrief from './debrief';
 export function createTimeline(jsPsych) {
     // Construct the timeline inside this function just as you would in jsPsych v7.x
     const timeline = [];
-        
+    
+    // Resize the jsPsychTarget div
+    // This will help later with centering the fixation cross relative to other content
+    var resizejsPsychTarget = function (divHeight) {
+        let jsPsychTarget = document.querySelector('#jsPsychTarget');
+        jsPsychTarget.style.height = divHeight + 'px';
+    };
+    // Set the height of the jsPsychTarget div to half the height of the browser window
+    // You can play with the multiplier according to the needs of your experiment
+    resizejsPsychTarget(window.innerHeight * 0.5);
+
     // Welcome/consent page
     var welcome = {
         type: jsPsychHtmlKeyboardResponse,
@@ -103,7 +113,7 @@ export function createTimeline(jsPsych) {
     var scale_trial_feedback = {
         type: jsPsychHtmlKeyboardResponse,
         stimulus: function () {
-            if (experimentConfig.correctiveFeedback == 'true') {
+            if (experimentConfig.correctiveFeedback) {
                 if(jsPsych.timelineVariable('condition') == 'grammatical') {
                     return '<p class="correct">That sentence was grammatically correct.</p>';
                 } else {
@@ -213,7 +223,7 @@ export function createTimeline(jsPsych) {
                 type: jsPsychHtmlKeyboardResponse,
                 stimulus: function () {
                     let last_correct = jsPsych.data.getLastTrialData().values()[0].correct;
-                    if (experimentConfig.correctiveFeedback == 'true') {
+                    if (experimentConfig.correctiveFeedback) {
                         if (last_correct) {
                             return '<div class="correct"><strong>Correct</strong></div>';
                         } else {
@@ -234,7 +244,7 @@ export function createTimeline(jsPsych) {
     // Debrief for likert and slider scales
     var debrief_nodata = {
         type: jsPsychHtmlKeyboardResponse,
-        stimulus: debrief,
+        stimulus: debrief + '<p>Press spacebar to finish.</p>',
         choices: [' ']
     };
 
@@ -250,7 +260,7 @@ export function createTimeline(jsPsych) {
             // Show results and debrief
             return `<p>You were correct on ${correctTotal} of ${total} sentences!
                 Your average response time was ${Math.round(mean_rt)} milliseconds.</p>` +
-                debrief;
+                debrief + '<p>Press spacebar to finish.</p>';
         },
         choices: [' ']
     };
