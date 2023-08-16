@@ -94,11 +94,9 @@ export async function getMigrations(mainExpDir, production) {
 }
 
 export async function runMigrations(dbsToExps, coreDBs) {
-  console.log('starting migrations....');
-  let ranMigrations
+  let ranMigrations = []
   try {
-    ranMigrations = dbsToExps.forEach((migAndSeedDirs, db) => {
-      console.log(coreDBs)
+    dbsToExps.forEach((migAndSeedDirs, db) => {
       if (!coreDBs[db]) {
         console.error(`The database ${db} is not configured in pushkin.yaml`);
         return;
@@ -128,7 +126,7 @@ export async function runMigrations(dbsToExps, coreDBs) {
         console.error(`Problem connecting to database.\n`, knexInfo)
         throw e
       }
-      return new Promise(async (resolve, reject) => {
+      ranMigrations.push(new Promise(async (resolve, reject) => {
         console.log(`Running migrations for ${db}`)
         try {
           await pg.migrate.latest({ directory: migDirs })
@@ -163,7 +161,7 @@ export async function runMigrations(dbsToExps, coreDBs) {
 
         pg.destroy();
         resolve(true);
-      })
+      }))
     })
   } catch (e) {
     throw e
@@ -262,9 +260,52 @@ export async function setupTestTransactionsDB() {
   return true
 }
 
+export async function migrateTransactionsDB(coreDBs) {
+  return new Promise(async (resolve, reject) => {
+    const waitforTrans = async () => {
+      console.log('Waiting for test transaction db...');
+      let x = await exec(
+        `docker ps --format "{{.Names}} {{.Status}}" | awk '/pushkin[-_]test_transaction_db[-_]1/ {print $0}'`
+      );
+      if (x.stdout.search('healthy') > 0) {
+        console.log('Test transaction db is healthy');
+        let transMigrations = new Map()
+        console.log(`Starting migrations for test transactions DB.`)
+        transMigrations.set('localtransactiondb', [{ migrations: path.join(process.cwd(), 'coreMigrations'), seeds: '' }]); 
+        let ranMigrations
+        try {
+          ranMigrations = runMigrations(transMigrations, coreDBs)
+        } catch(e) {
+          console.error(`Problem running migrations for transactions table`)
+          throw e
+        } 
+        resolve(ranMigrations)
+      } else {
+      setTimeout(waitforTrans, 2500);
+    }
+  };
+
+  waitforTrans()
+  })
+}
+
 export async function setupdb(coreDBs, mainExpDir) {
   // load up all migrations for same dbs to be run at same time (knex requires this)
-      
+
+  let dbPromise
+  console.log("Spooling up databases.")
+  try {
+    dbPromise = compose.upMany(
+      ['test_db', 'test_transaction_db'],
+      {
+      cwd: path.join(process.cwd(), 'pushkin'),
+      config: 'docker-compose.dev.yml',
+    });  
+  } catch {
+    console.error('something went wrong starting database containers.')
+    throw e
+  }
+
   let dbsToExps
   try {
       dbsToExps = await getMigrations(mainExpDir, false)
@@ -273,63 +314,32 @@ export async function setupdb(coreDBs, mainExpDir) {
     throw e
   }
 
+  await dbPromise //no point in going on until this much is run
+
   let migrateExperiments = async (dbsToExps) => {
-    let dbPromise
-    try {
-      dbPromise = compose.upOne('test_db', {cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml'})
-    } catch (e) {
-      console.error('something went wrong starting database container:')
-      throw e
-    }
-
-    const wait = async () => {
-      //Sometimes, I really miss loops
-      let x = await exec (`docker ps --format "{{.Names}} {{.Status}}" | awk '/pushkin[-_]test_db[-_]1/ {print $0}'`)
-            .then((x) => {
-              console.log('Waiting for test db...')
-              return x.stdout.search('healthy')
-            },
-            err => {console.error(err)})
-      if (x > 0) {
-  
-        let migrateExpDBs
-        try {
-          migrateExpDBs = runMigrations(dbsToExps, coreDBs)
-        } catch (e) {
-          console.error(`Problem running migrations for experiment databases`)
-          throw e
-        }
-  
-        await Promise.all([migrateExpDBs, setupTransactionsTable]) //wait for all migrations to finish
-  
-        let stopDB = async (dockerPath, dockerConfig) => {
-          return compose.stop({cwd: dockerPath, config: dockerConfig})
-        }
-  
-        let stoppedDB
-        try {
-          stoppedDB = await stopDB(path.join(process.cwd(), 'pushkin'), 'docker-compose.dev.yml')
-        } catch (e) {
-          console.error(`Problem stopping database`)
-          throw e
-        }
-  
-        return stoppedDB
-  
-      } else {
-        setTimeout( wait, 4000 );
+    return new Promise(async (resolve, reject) => {
+      const waitforMain = async () => {
+        console.log('Waiting for test db...');
+        let x = await exec (
+          `docker ps --format "{{.Names}} {{.Status}}" | awk '/pushkin[-_]test_db[-_]1/ {print $0}'`
+        );
+        if (x.stdout.search('healthy') > 0) {
+          console.log('Test test db is healthy');
+          let migrateExpDBs
+          try {
+            migrateExpDBs = runMigrations(dbsToExps, coreDBs)
+          } catch (e) {
+            console.error(`Problem running migrations for experiment databases`)
+            throw e
+          }
+          resolve(migrateExpDBs)
+        } else {
+        setTimeout(waitforMain, 2500);
       }
-    }
+    };
   
-    console.log('Waiting for main database to start...')
-    let dbStarted
-    try {
-      dbStarted = await wait(); 
-    } catch (e) {
-      throw e
-    }
-
-    return dbStarted
+    waitforMain()
+    })
   }
 
   let setupTransactionsTable
@@ -350,52 +360,21 @@ export async function setupdb(coreDBs, mainExpDir) {
     throw e
   }
 
-  return Promise.all([migrateExperimentsDBs, setupTransactionsTable]) //wait for all migrations to finish
-}
+  await Promise.all([migrateExperimentsDBs, setupTransactionsTable]) //wait for all migrations to finish
 
-export async function migrateTransactionsDB(coreDBs){
-  const dbPromise = exec('docker-compose -f pushkin/docker-compose.dev.yml up test_transaction_db')
-    .then((resp) => resp, err => console.log('something went wrong starting database container:', err))
-
-  //To wait for db to be up, this ridiculously roundabout loop...
-  const wait = async () => {
-    //Sometimes, I really miss loops
-    let x = await exec (`docker ps --format "{{.Names}} {{.Status}}" | awk '/pushkin[-_]test_transaction_db[-_]1/ {print $0}'`)
-          .then((x) => {
-            console.log('Waiting for test transaction db...')
-            return x.stdout.search('healthy')
-          },
-          err => {console.error(err)})
-    if (x > 0) {
-
-      let transMigrations = new Map()
-      console.log(`Starting migrations for test transactions DB.`)
-      transMigrations.set('localtransactiondb', [{ migrations: path.join(process.cwd(), 'coreMigrations'), seeds: '' }]); 
-      try {
-        await runMigrations(transMigrations, coreDBs)
-      } catch(e) {
-        console.error(`Problem running migrations for transactions table`)
-        throw e
-      }
-      return new Promise((resolve, reject) => {      
-        compose.stop({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml'})
-          .then(
-            out => { 
-              console.log(out.out, 'Transaction database updated. Shutting down...');
-              resolve(true)},
-            err => { 
-              console.log('something went wrong:', err)
-            }
-          );
-        })
-    } else {
-      setTimeout( wait, 2500 );
-    }
+  console.log('Finished running all migrations. Shutting down database containers.')
+  let stopDB = async (dockerPath, dockerConfig) => {
+    return compose.stop({cwd: dockerPath, config: dockerConfig})
   }
 
-  console.log('Waiting for transaction database to start...')
-  const dbStarted = await wait(); 
+  let stoppedDB
+  try {
+    stoppedDB = await stopDB(path.join(process.cwd(), 'pushkin'), 'docker-compose.dev.yml')
+  } catch (e) {
+    console.error(`Problem stopping database`)
+    throw e
+  }
 
-  return dbStarted; //this variable doesn't get used.
-
+  return stoppedDB
 }
+
