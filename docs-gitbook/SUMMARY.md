@@ -58,4 +58,5 @@
 * [Getting Started on Development](developers/getting-started-on-development.md)
 * [Overview of Technologies](developers/overview-of-tech.md)
 * [Testing Pushkin with Jest](advanced/testing-pushkin-with-jest.md)
+* [Working with Templates](developers/working-with-templates.md)
 

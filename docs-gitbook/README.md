@@ -91,4 +91,5 @@ To get the latest news and updates on Pushkin, sign up for our newsletter [here]
     * [Testing Pushkin Modules Locally](developers/getting-started-on-development.md#testing-pushkin-modules-locally)
     * [Pushkin jsPsych](https://github.com/pushkin-consortium/pushkin/tree/423120801ce745e971a197dd80d762db002b1749/docs-gitbook/developers/getting-started-on-development/README.md#pushkin-jspsych)
   * [Testing Pushkin with Jest](advanced/testing-pushkin-with-jest.md)
+  * [Working with Templates](developers/working-with-templates.md)
 
