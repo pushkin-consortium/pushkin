@@ -65,11 +65,11 @@ export default class Pushkin {
   setSaveAfterEachStimulus(stimuli) {
     return stimuli.map((s) => ({
       ...s,
-      // if s already has an on_finish, wrap it in a function that calls both
+      // If s already has an on_finish, wrap it in a function that calls both
       // the original on_finish and the saveStimulusResponse function
       on_finish: (data) => {
         if (s.on_finish) s.on_finish(data); // If s already has an on_finish, call it
-        this.saveStimulusResponse.bind(this);
+        this.saveStimulusResponse.bind(this); // bind(this) is necessary because of `this` in saveStimulusResponse
       }
     }));
   }
