@@ -128,7 +128,7 @@ export async function runMigrations(dbsToExps, coreDBs) {
         console.error(`Problem connecting to database.\n`, knexInfo)
         throw e
       }
-      return new Promise((resolve, reject) => {
+      return new Promise(async (resolve, reject) => {
         console.log(`Running migrations for ${db}`)
         try {
           await pg.migrate.latest({ directory: migDirs })
