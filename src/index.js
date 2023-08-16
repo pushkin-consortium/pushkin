@@ -67,8 +67,8 @@ export default class Pushkin {
       ...s,
       // if s already has an on_finish, wrap it in a function that calls both
       // the original on_finish and the saveStimulusResponse function
-      on_finish: () => {
-        if (s.on_finish) s.on_finish(); // If s already has an on_finish, call it
+      on_finish: (data) => {
+        if (s.on_finish) s.on_finish(data); // If s already has an on_finish, call it
         this.saveStimulusResponse.bind(this);
       }
     }));
