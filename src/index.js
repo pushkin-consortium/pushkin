@@ -137,6 +137,7 @@ const updateMigrations = async () => {
     console.error(`Unable to run database migrations`)
     throw e
   }
+  return ranMigrations
 }
 
 const updateECS = async () => { //FUBAR needs way of getting useIAM
