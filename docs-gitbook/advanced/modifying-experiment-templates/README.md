@@ -28,7 +28,7 @@ Over time, new site and experiment templates are likely to be added. If you want
 
 ## General settings and editing content
 
-Most Pushkin experiment templates will include the following files for editing the settings and content of your experiment. The basic experiment template is the exception, and is a fairly bare bones template for customization.
+Most Pushkin experiment templates will include the following files for editing the settings and content of your experiment. The basic experiment template is the exception, since it is a fairly bare bones template for customization.
 
 ### config.js
 

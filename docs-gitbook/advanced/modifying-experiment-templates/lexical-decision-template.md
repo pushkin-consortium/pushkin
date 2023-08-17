@@ -10,7 +10,7 @@ To install this experiment template, use the command `pushkin install experiment
 
 ## config.js
 
-When **correctiveFeedback** is set to true, the bounding box will change color based on the participant's response - green meaning correct, and red meaning incorrect. If set to false, the box remains black.
+When **correctiveFeedback** is set to `true`, the bounding box will change color based on the participant's response - green meaning correct, red meaning incorrect. If set to `false`, the box remains black.
 
 ## stim.js
 
@@ -44,7 +44,6 @@ In order to customize your simple lexical decision experiment, you will need to 
 ```example
 src
 ├── assets
-├── basic.test.js
 ├── config.js
 ├── consent.js
 ├── debrief.js
@@ -57,16 +56,16 @@ src
 
 #### Modifying `config.js`
 
-This file controls the aesthetics of your experiment, including font color, font size, and font family. If you wanted to set the font color to `red`, set the font size to `20px`, and set the font family to a monospace font such as Courier New, you would modify `config.js` as follows:
+This file controls the aesthetics of your experiment, including font color, font size, and font family. If you wanted to set the font color to `red`, set the font size to `22px`, and set the font family to a monospace font such as Courier New, you would modify `config.js` as follows:
 
 ```javascript
 // Custom stylin'
 
 var experimentConfig = {
   fontColor: "red",
-  fontSize: "20px",
+  fontSize: "22px",
   fontFamily: "'Courier New', Courier, monospace",
-  correctiveFeedback: "true",
+  correctiveFeedback: true,
 };
 
 export default experimentConfig;
@@ -101,7 +100,7 @@ Say you have created the following table of stimuli for your experiment.
 | CLEB   | CLED   | false      | false   |
 | AFTY   | AFLY   | false      | false   |
 
-In order to be able to use these stimuli in the lexical decision experiment, you must use a table-to-JSON converter such as [this one](https://tableconvert.com/) to format it correctly for jsPsych.
+In order to use these stimuli in the lexical decision experiment, you must use a table-to-JSON converter such as [this one](https://tableconvert.com/) to format it correctly for jsPsych.
 
 Once it has been converted, paste the JSON into the `stim.js` file, which should now look like this:
 
