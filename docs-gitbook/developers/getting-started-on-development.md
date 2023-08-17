@@ -78,16 +78,3 @@ You should be good to go. When you make changes to pushkin-worker, you'll need t
 4. Run `yalc update pushkin-worker`
 
 Again, if you are testing a development version of `pushkin-client` or `pushkin-api`, follow the above instructions with the obvious substitutions.
-
-## Pushkin jsPsych
-
-A slightly modified version of the core [jsPsych](https://github.com/jspsych/jsPsych) script is available on NPM under `pushkin-jspsych`.
-
-Global variables are removed and what would normally have been assigned to window.jsPsych is exported as the default export. It has all the same properties. It should be assigned to the window object by the page using it, like so:
-
-```text
-import jsPsych from 'pushkin-jspsych';
-window.jsPsych = jsPsych;
-```
-
-This prevents conflicts when multiple pages are using different versions of jsPsych. It also allows plugins to be used without any modification needed to suit this version.
