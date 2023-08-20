@@ -829,7 +829,7 @@ async function main() {
       }
       console.log(`Now running docker system prune. This will take a while...`)
       try {
-        await exec('docker system prune)')
+        await exec('docker system prune -af)')
       } catch (err) {
         console.err(err);
       }
