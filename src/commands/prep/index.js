@@ -299,7 +299,7 @@ export const prep = async (experimentsDir, coreDir) => {
     let workerBuild
     try {
       console.log(`Building docker image for ${workerName}`)
-      let dockerCommand = `docker buildx build ${workerLoc} --platform linux/${process.arch} -t ${workerName} --load`
+      let dockerCommand = `docker build ${workerLoc} -t ${workerName} --load`
       console.log(dockerCommand)
       workerBuild = exec(dockerCommand)
     } catch(e) {
@@ -397,7 +397,7 @@ export const prep = async (experimentsDir, coreDir) => {
   console.log("Building API")
   let builtAPI
   try {
-    builtAPI = exec(`docker buildx build --platform linux/${process.arch} -t api:latest pushkin/api`, {cwd: process.cwd()})
+    builtAPI = exec(`docker build -t api:latest pushkin/api`, {cwd: process.cwd()})
   } catch(e) {
     console.error(`Problem building API`)
     throw e
@@ -405,9 +405,9 @@ export const prep = async (experimentsDir, coreDir) => {
   console.log("Building server")
   let builtServer
   try {
-    builtServer = exec(`docker buildx build --platform linux/${process.arch} -t server:latest pushkin/front-end`, {cwd: process.cwd()})
+    builtServer = exec(`docker build -t server:latest pushkin/front-end`, {cwd: process.cwd()})
   } catch(e) {
-    console.error(`Problem building API`)
+    console.error(`Problem building server`)
     throw e
   }
 

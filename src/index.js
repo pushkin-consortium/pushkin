@@ -124,14 +124,20 @@ const updateMigrations = async () => {
     throw e
   }
   console.log(`Handling migrations`)
-  let ranMigrations
+  let ranMigrations, dbsToExps
   try {
-    let dbsToExps = await getMigrations(path.join(process.cwd(), experimentsDir), true)
-    return runMigrations(dbsToExps, productionDBs)
+    dbsToExps = await getMigrations(path.join(process.cwd(), experimentsDir), true)
   } catch (e) {
     console.error(`Unable to run database migrations`)
     throw e
-  }    
+  } 
+  try {
+    ranMigrations = runMigrations(dbsToExps, productionDBs)
+  } catch (e) {
+    console.error(`Unable to run database migrations`)
+    throw e
+  }
+  return ranMigrations
 }
 
 const updateECS = async () => { //FUBAR needs way of getting useIAM

@@ -17,7 +17,7 @@ const publishToDocker = async (DHID, rebuiltWorkers) => {
   console.log('Publishing images to DockerHub')
   console.log("Building API")
   try {
-    execSync(`docker build -t ${DHID}/api:latest pushkin/api`, {cwd: process.cwd()})
+    execSync(`docker buildx build --platform linux/amd64 -t ${DHID}/api:latest pushkin/api --load`, {cwd: process.cwd()})
   } catch(e) {
     console.error(`Problem building API`)
     throw e
@@ -1277,7 +1277,7 @@ const rebuildWorker = async function(exp){
 
   let workerBuild
   try {
-    workerBuild = exec(`docker build ${workerLoc} -t ${workerName} --load`)
+    workerBuild = exec(`docker buildx build --platform linux/amd64 ${workerLoc} -t ${workerName} --load`)
   } catch(e) {
     console.error(`Problem building worker for ${exp}`)
     throw (e)
