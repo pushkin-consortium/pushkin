@@ -615,7 +615,9 @@ const killLocal = async () => {
     process.exit();
   }
   try {
-    await exec(`docker volume rm pushkin_test_db_volume pushkin_message_queue_volume; docker images -a | grep "pushkin*" | awk '{print $3}' | xargs docker rmi -f`)    
+    await exec(`docker volume rm pushkin_test_db_volume pushkin_message_queue_volume; docker images -a | grep "_worker" | awk '{print $3}' | xargs docker rmi -f`)    
+    await exec(`docker rmi -f api`)
+    await exec(`docker rmi -f server`)
   } catch (err) {
     console.error('Problem with removing volumes and images docker: ', err)
     process.exit();
