@@ -83,9 +83,7 @@ CMD ["bash","start.sh"]
 Now you should be able to run `pushkin prep` and `pushkin start`. When you make changes to pushkin-worker, you'll need to:
 
 1. Go to the root directory of your dev version of pushkin-worker.
-2. Run `yarn build; yalc publish`.
-3. Go to the `worker` directory within the experiment folder.
-4. Run `yalc update pushkin-worker`
+2. Run `yarn build; yalc push`. `yalc push` will update your locally published version of pushkin-worker and push the changes wherever the package is being used.
 
 #### yalc for pushkin-api
 
@@ -117,8 +115,4 @@ If you're testing out a new version of pushkin-client, you should have a directo
 Now you should be able to run `pushkin prep` and `pushkin start`. When you make changes to pushkin-client, you'll need to:
 
 1. Go to the root directory of your dev version of pushkin-client.
-2. Run `yarn build; yalc publish`.
-3. Go to the pushkin/front-end directory in your site folder.
-4. Run `yalc update pushkin-client`.
-5. Go to each experiment's 'web page' directory.
-6. Run `yalc update pushkin-client` for each experiment.
+2. Run `yarn build; yalc push`. `yalc push` will update your locally published version of pushkin-client and push the changes wherever the package is being used. This saves you the hassle of running `yalc update` in the multiple directories in which you ran `yalc add`.
