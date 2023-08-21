@@ -1,4 +1,4 @@
-import uuid from 'uuid/v4';
+import { v4 as uuid } from 'uuid';
 const REPLY_QUEUE = 'amq.rabbitmq.reply-to';
 
 // returns a promise that resolves to the result of the RPC
