@@ -44,7 +44,14 @@ describe('ControllerBuilder', () => {
 
 	const api = new pushkin.API(3000, 'amqp://localhost:5672');
 
-	test('test useController', async done => {
+	test('test asynchronous code', done => {
+		setTimeout(() => {
+		  expect(1 + 1).toBe(2);
+		  done();
+		}, 1000);
+	  });
+
+	test('test useController', done => {
 		const router = new express.Router();
 		myController.directUses.forEach(point =>
 			router[point.httpMethod](point.route, point.handler)
@@ -54,7 +61,7 @@ describe('ControllerBuilder', () => {
 	});
 
 	// start the server
-	test('test start', async done => {
+	test('test start', done => {
 		api.initialized = true;
 		api.start();
 		done();
@@ -62,7 +69,7 @@ describe('ControllerBuilder', () => {
 	
 	// test if the endpoint added is valid
 	// check the status and response text
-	test('test the endpoint', async done => {
+	test('test the endpoint', done => {
     	const request = supertest('http://localhost:3000/myexp');
     	request.get('/router1')
     	.expect(200)
