@@ -62,6 +62,11 @@ export default class Pushkin {
   }
 
   setSaveAfterEachStimulus(stimuli) {
+    //it might be easier and less intrusive to the user's timeline to use the on_data_update event in 
+    // initJsPsych() instead of modifying the timeline like this. 
+    // Since initJsPsych is called in the template you could just modify it directly instead of having
+    // to intercept the timeline and modify it.
+
     const saveWrapper = (timeline) => timeline.map((s) => {
       return s.hasOwnProperty('timeline') ? 
         {

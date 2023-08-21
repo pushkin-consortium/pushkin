@@ -105,6 +105,33 @@ test('set save after each stimulus, non-nested timelines', () => {
     .then((data) => expect(data).toEqual(postData))
 });
 
+test('set save after each stimulus, nested timelines', () => {
+  const test_stimuli = [
+    { stimulus: 'img/blue.png' },
+    { stimulus: 'img/orange.png' },
+    { timeline: [
+      { stimulus: 'img/blue.png' },
+      { stimulus: 'img/orange.png' },
+      { timeline: [
+        { stimulus: 'img/blue.png' },
+        { stimulus: 'img/orange.png' },
+      ]}
+    ]},
+  ];
+
+  const postData = {
+    user_id: 123456,
+    data_string: [1, 'a', '2c'],
+    stimulus: { A: [2, 'b', '3d'] },
+  };
+  pushkinClient.setSaveAfterEachStimulus(test_stimuli)[2].timeline[2].on_finish({
+    user_id: postData.user_id,
+    data: postData.data_string,
+    stimulus: postData.stimulus,
+  })
+    .then((data) => expect(data).toEqual(postData))
+});
+
 test('insert meta response', () => {
   const postData = {
     user_id: 123456,
