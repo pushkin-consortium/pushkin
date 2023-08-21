@@ -57,8 +57,7 @@ export default class Pushkin {
     };
     return this.con.post('/getStimuli', postData)
       .then((res) => {
-        const stimuli = res.data.resData;
-        return stimuli.map((s) => JSON.parse(s.stimulus));
+        return JSON.parse(res).data.resData; //send back just the stimuli
       });
   }
 
@@ -69,7 +68,7 @@ export default class Pushkin {
       // the original on_finish and the saveStimulusResponse function
       on_finish: (data) => {
         if (s.on_finish) s.on_finish(data); // If s already has an on_finish, call it
-        this.saveStimulusResponse.bind(this)(data); // bind(this) is necessary because of `this` in saveStimulusResponse
+        return this.saveStimulusResponse.bind(this)(data); // bind(this) is necessary because of `this` in saveStimulusResponse
       }
     }));
   }
