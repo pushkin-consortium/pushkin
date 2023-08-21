@@ -94,7 +94,6 @@ export default class Pushkin {
     // Because we are saving data, it should be coming with a userID already
     // Might make sense at some point to confirm this is what we expect
     let stimulus;
-    alert(data)
     try {
       stimulus = data.stimulus;
     } catch (e) {
