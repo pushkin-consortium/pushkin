@@ -62,10 +62,12 @@ export default class Pushkin {
   }
 
   setSaveAfterEachStimulus(stimuli) {
-    //it might be easier and less intrusive to the user's timeline to use the on_data_update event in 
-    // initJsPsych() instead of modifying the timeline like this. 
-    // Since initJsPsych is called in the template you could just modify it directly instead of having
-    // to intercept the timeline and modify it.
+    //Deprecated. Don't use. Instead us
+    //  const jsPsych = initJsPsych({
+    //     ...
+    //     on_data_update: pushkin.saveStimulusResponse(data),
+    //  });
+
 
     const saveWrapper = (timeline) => timeline.map((s) => {
       return s.hasOwnProperty('timeline') ? 
@@ -92,6 +94,7 @@ export default class Pushkin {
     // Because we are saving data, it should be coming with a userID already
     // Might make sense at some point to confirm this is what we expect
     let stimulus;
+    alert(data)
     try {
       stimulus = data.stimulus;
     } catch (e) {
