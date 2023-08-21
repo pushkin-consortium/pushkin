@@ -62,16 +62,26 @@ export default class Pushkin {
   }
 
   setSaveAfterEachStimulus(stimuli) {
-    return stimuli.map((s) => ({
-      ...s,
-      // If s already has an on_finish, wrap it in a function that calls both
-      // the original on_finish and the saveStimulusResponse function
-      on_finish: (data) => {
-        if (s.on_finish) s.on_finish(data); // If s already has an on_finish, call it
-        return this.saveStimulusResponse.bind(this)(data); // bind(this) is necessary because of `this` in saveStimulusResponse
-      }
-    }));
-  }
+    const saveWrapper = (timeline) => timeline.map((s) => {
+      return s.hasOwnProperty('timeline') ? 
+        {
+          ...s,
+          on_finish: (data) => {
+            if (s.on_finish) s.on_finish(data); // If s already has an on_finish, call it
+            return this.saveStimulusResponse.bind(this)(data); // bind(this) is necessary because of `this` in saveStimulusResponse
+          },
+          timeline: saveWrapper(s.timeline)  
+        } :
+        {
+          ...s,
+          on_finish: (data) => {
+            if (s.on_finish) s.on_finish(data); // If s already has an on_finish, call it
+            return this.saveStimulusResponse.bind(this)(data); // bind(this) is necessary because of `this` in saveStimulusResponse
+          }
+        }
+      })
+    return saveWrapper(stimuli);
+  };
 
   saveStimulusResponse(data) {
     // Because we are saving data, it should be coming with a userID already
