@@ -1,6 +1,7 @@
-const pushkin = require('../src/index.js');
-const express = require('express');
-const supertest = require('supertest');
+//api.test.js
+import express from 'express';
+import supertest from 'supertest';
+import pushkin from '../src/index';
 
 describe('ControllerBuilder', () => {
 	
