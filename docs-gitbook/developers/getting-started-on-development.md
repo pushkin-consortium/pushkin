@@ -57,7 +57,18 @@ If you're testing out a new version of pushkin-worker, you should have a directo
 3. Run `yalc publish` to create a locally published version of pushkin-worker.
 4. Go to the `worker` directory within the experiment folder. Typically this will be [project root]/experiments/[experiment name]/worker.
 5. Run `yalc add pushkin-worker` to add your locally published version of pushkin-worker as a dependency.
-6. Open the Dockerfile in that directory and edit it to copy yalc files:
+6. Open the package.json file in that same directory and add a property `"files"` with a value `["build/*", ".yalc"]` like such:
+
+```JSON
+    "files": [
+        "build/*",
+        ".yalc"
+    ],
+```
+
+(Note this has not been tested yet, so the array of files might need to be modified, e.g. `[".yalc"]`)
+
+7. Open the Dockerfile in that same directory and edit it to copy yalc files:
 
 ```dockerfile
 COPY .yalc /usr/src/app/.yalc/
@@ -107,7 +118,7 @@ If you're testing out a new version of pushkin-client, you should have a directo
     "files": [
         "build/*",
         ".yalc"
-    ]
+    ],
 ```
 
 10. You'll need to repeat steps 6 through 9 for each experiment in your site's experiments directory.
