@@ -3,6 +3,15 @@
     "version": "1.6.3",
     "description": "A front-end Javascript module for interfacing with a Pushkin API",
     "main": "build/index.js",
+    "jest": {
+        "transform": {
+          "^.+\\.[t|j]sx?$": "babel-jest"
+        },
+        "transformIgnorePatterns": [
+            "/node_modules/(?!(axios)/)", "\\.pnp\\.[^\\\/]+$"
+        ]
+
+      },
     "files": [
         "build/*"
     ],
