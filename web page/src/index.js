@@ -40,11 +40,12 @@ class quizComponent extends React.Component {
     const jsPsych = initJsPsych({
       display_element: document.getElementById('jsPsychTarget'),
       on_finish: this.endExperiment.bind(this),
+      on_data_update: (data) => pushkin.saveStimulusResponse(data),
     });
 
     jsPsych.data.addProperties({user_id: this.props.userID}); //See https://www.jspsych.org/core_library/jspsych-data/#jspsychdataaddproperties
     
-    const timeline = pushkin.setSaveAfterEachStimulus(createTimeline(jsPsych));
+    const timeline = createTimeline(jsPsych);
 
     jsPsych.run(timeline);
 

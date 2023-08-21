@@ -1,0 +1,38 @@
+{
+    "name": "pushkin-api",
+    "version": "1.5.4",
+    "description": "The core Pushkin API module designed for interfacing between Pushkin clients and workers through RabbitMQ",
+    "main": "build/index.js",
+    "jest": {
+        "transform": {
+            "^.+\\.[t|j]sx?$": "babel-jest"
+        },
+        "transformIgnorePatterns": [
+            "/node_modules/(?!(axios)/)",
+            "/node_modules/(?!(core-js)/)",
+            "\\.pnp\\.[^\\/]+$"
+        ]
+    },
+    "files": [
+        "build/*"
+    ],
+    "scripts": {
+        "test": "jest",
+        "build": "babel src -d build"
+    },
+    "keywords": [
+        "pushkin",
+        "api"
+    ],
+    "author": "L3",
+    "license": "MIT",
+    "dependencies": {
+        "amqplib": "^0.10.3",
+        "cookie-session": "^2.0.0-beta.3",
+        "cors": "^2.8.5",
+        "express": "^4.18.2",
+        "regenerator-runtime": "^0.14.0",
+        "uuid": "^9.0.0"
+    },
+    "yalcSig": "881c72c6e66deaa58d1d274bafe14dc0"
+}
