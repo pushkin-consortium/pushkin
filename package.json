@@ -10,7 +10,8 @@
         "transformIgnorePatterns": [
             "/node_modules/(?!(axios)/)",
             "\\.pnp\\.[^\\/]+$"
-        ]
+        ],
+        "testEnvironment": "jsdom"
     },
     "files": [
         "build/*"
@@ -42,6 +43,7 @@
         "eslint-plugin-react": "^7.20.3",
         "eslint-plugin-react-hooks": "^4.0.8",
         "fs": "^0.0.1-security",
-        "jest": "^26.1.0"
+        "jest": "^29.6.3",
+        "jest-environment-jsdom": "^29.6.3"
     }
 }
