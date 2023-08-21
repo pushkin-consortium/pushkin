@@ -40,7 +40,6 @@
     "dependencies": {
         "amqplib": "^0.6.0",
         "cookie-session": "^2.0.0-beta.3",
-        "core-js": "^3.32.1",
         "cors": "^2.8.5",
         "express": "^4.17.1",
         "regenerator-runtime": "^0.13.5",
