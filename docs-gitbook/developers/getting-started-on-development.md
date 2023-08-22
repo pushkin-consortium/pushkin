@@ -40,25 +40,45 @@ After you `yarn add` all of the dependencies, you can write the test codes.
 
 ### yalc for pushkin-worker, pushkin-api, and pushkin-client
 
-If you are working on any of the utility packages (pushkin-worker, pushkin-api, pushkin-client), trying out your new code is not straightforward. These packages are included in the experiments and sites via npm. Normally, that means you can only include published versions. We can get around this using [`yalc`](https://github.com/wclr/yalc).
+If you are working on any of the utility packages ([pushkin-worker](https://github.com/pushkin-consortium/pushkin-worker), [pushkin-api](https://github.com/pushkin-consortium/pushkin-api), or [pushkin-client](https://github.com/pushkin-consortium/pushkin-client)), trying out your new code is not straightforward. These packages are included in the experiments and sites via npm. Normally, that means you can only include published versions. We can get around this using [`yalc`](https://github.com/wclr/yalc). You've probably already installed yalc if you've followed the Pushkin [installation instructions](../getting-started/installing-pushkin-and-dependencies/README.md). If not, install yalc:
+
+```bash
+yarn global add yalc
+```
 
 (Note that for those familiar with using [`npm link`](https://docs.npmjs.com/cli/v9/commands/npm-link?v=true#description), that won't work here because we use a Docker environment to test sites. Supposedly there is a way to hack Docker compatibility into your usage of npm link, but it seems too complex relative to the solution here.)
 
-Briefly, suppose you are testing out a new version of pushkin-worker. You'll have a directory with a pushkin site you are working on and an experiment in it for which you want to try out the new version of pushkin-worker.
+#### yalc for pushkin-worker
 
-1. You've probably already installed yalc if you've followed the Pushkin [installation instructions](../getting-started/installing-pushkin-and-dependencies/README.md). If not, install yalc: `yarn global add yalc`.
-2. Go to the `worker` directory within the experiment folder. Typically this will be [project root]/experiments/[experiment name]/worker.
-3. Run `yalc publish`
-4. Go to the root directory of your dev version of pushkin-worker.
-5. Run `yalc add pushkin-worker`.
-6. Open the Dockerfile in that directory and edit it to copy yalc files:
+If you're testing out a new version of pushkin-worker, you should have a directory with the dev version of pushkin-worker, a directory with a pushkin site you are working on, and an experiment in your site's experiments directory for which you want to try out the dev version of pushkin-worker.
 
-`COPY .yalc /usr/src/app/.yalc/
-COPY ./yalc.lock /usr/src/app/`
+1. Go to the root directory of your dev version of pushkin-worker.
+2. Assuming you've cloned pushkin-worker from GitHub, it won't have any dependencies installed, so you'll need to run `yarn install; yarn build`.
+3. Run `yalc publish` to create a locally published version of pushkin-worker.
+4. Go to the `worker` directory within the experiment folder. Typically this will be [project root]/experiments/[experiment name]/worker.
+5. Run `yalc add pushkin-worker` to add your locally published version of pushkin-worker as a dependency.
+6. Open the package.json file in that same directory and add a property `"files"` with a value `["build/*", ".yalc"]` like such:
 
-These lines need to come BEFORE the WORKDIR is changed. So for example:
+```JSON
+    "files": [
+        "build/*",
+        ".yalc"
+    ],
+```
 
-`FROM node:20.2
+(Note this has not been tested yet, so the array of files might need to be modified, e.g. `[".yalc"]`)
+
+7. Open the Dockerfile in that same directory and edit it to copy yalc files:
+
+```dockerfile
+COPY .yalc /usr/src/app/.yalc/
+COPY ./yalc.lock /usr/src/app/
+```
+
+These lines need to come **before** the WORKDIR is changed. So for example:
+
+```dockerfile
+FROM node:20.2
 COPY Dockerfile index.js package.json start.sh yarn.lock /usr/src/app/
 COPY .yalc /usr/src/app/.yalc/
 COPY ./yalc.lock /usr/src/app/
@@ -66,28 +86,68 @@ WORKDIR /usr/src/app
 RUN yarn install --production
 RUN apt-get update && apt-get install -qy netcat
 EXPOSE 8000
-CMD ["bash","start.sh"]`
+CMD ["bash","start.sh"]
+```
 
 (This final step is pretty well explained in the yalc README)
 
-You should be good to go. When you make changes to pushkin-worker, you'll need to:
+Now you should be able to run `pushkin prep` and `pushkin start`. When you make changes to pushkin-worker, you'll need to:
 
 1. Go to the root directory of your dev version of pushkin-worker.
-2. Run `yarn build; yalc publish`
-3. Go to the `worker` directory within the experiment folder.
-4. Run `yalc update pushkin-worker`
+2. Run `yarn build; yalc push`. `yalc push` will update your locally published version of pushkin-worker and push the changes wherever the package is being used.
 
-Again, if you are testing a development version of `pushkin-client` or `pushkin-api`, follow the above instructions with the obvious substitutions.
+#### yalc for pushkin-api
 
-## Pushkin jsPsych
+If you're testing out a new version of pushkin-api, you should have a directory with the dev version of pushkin-api, a directory with a pushkin site you are working on, and at least one experiment in your site's experiments directory.
 
-A slightly modified version of the core [jsPsych](https://github.com/jspsych/jsPsych) script is available on NPM under `pushkin-jspsych`.
+1. Go to the root directory of your dev version of pushkin-api.
+2. Assuming you've cloned pushkin-api from GitHub, it won't have any dependencies installed, so you'll need to run `yarn install; yarn build`.
+3. Run `yalc publish` to create a locally published version of pushkin-api.
+4. Go to the pushkin/api directory of your site.
+5. Run `yalc add pushkin-api` to add your locally published version of pushkin-api as a dependency.
+6. Go to the 'experiments/[experiment name]/api controllers' directory.
+7. Again run `yalc add pushkin-api`.
+8. Open the package.json file in that same directory.
+9. You should see it has a property `"files"` with a value `["build/*"]`. Add `".yalc"` to the list of files like such:
 
-Global variables are removed and what would normally have been assigned to window.jsPsych is exported as the default export. It has all the same properties. It should be assigned to the window object by the page using it, like so:
-
-```text
-import jsPsych from 'pushkin-jspsych';
-window.jsPsych = jsPsych;
+```JSON
+    "files": [
+        "build/*",
+        ".yalc"
+    ],
 ```
 
-This prevents conflicts when multiple pages are using different versions of jsPsych. It also allows plugins to be used without any modification needed to suit this version.
+10. You'll need to repeat steps 6 through 9 for each experiment in your site's experiments directory.
+
+Now you should be able to run `pushkin prep` and `pushkin start`. When you make changes to pushkin-api, you'll need to:
+
+1. Go to the root directory of your dev version of pushkin-api.
+2. Run `yarn build; yalc push`. `yalc push` will update your locally published version of pushkin-api and push the changes wherever the package is being used. This saves you the hassle of running `yalc update` in the multiple directories in which you ran `yalc add`.
+
+#### yalc for pushkin-client
+
+If you're testing out a new version of pushkin-client, you should have a directory with the dev version of pushkin-client, a directory with a pushkin site you are working on, and at least one experiment in your site's experiments directory.
+
+1. Go to the root directory of your dev version of pushkin-client.
+2. Assuming you've cloned pushkin-client from GitHub, it won't have any dependencies installed, so you'll need to run `yarn install; yarn build`.
+3. Run `yalc publish` to create a locally published version of pushkin-client.
+4. Go to the pushkin/front-end directory of your site.
+5. Run `yalc add pushkin-client` to add your locally published version of pushkin-client as a dependency.
+6. Go to the 'experiments/[experiment name]/web page' directory.
+7. Again run `yalc add pushkin-client`.
+8. Open the package.json file in that same directory.
+9. You should see it has a property `"files"` with a value `["build/*"]`. Add `".yalc"` to the list of files like such:
+
+```JSON
+    "files": [
+        "build/*",
+        ".yalc"
+    ],
+```
+
+10. You'll need to repeat steps 6 through 9 for each experiment in your site's experiments directory.
+
+Now you should be able to run `pushkin prep` and `pushkin start`. When you make changes to pushkin-client, you'll need to:
+
+1. Go to the root directory of your dev version of pushkin-client.
+2. Run `yarn build; yalc push`. `yalc push` will update your locally published version of pushkin-client and push the changes wherever the package is being used. This saves you the hassle of running `yalc update` in the multiple directories in which you ran `yalc add`.
