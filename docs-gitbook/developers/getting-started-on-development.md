@@ -98,7 +98,31 @@ Now you should be able to run `pushkin prep` and `pushkin start`. When you make 
 
 #### yalc for pushkin-api
 
-Coming soon! But you can probably figure it out by reading the sections above and below and looking at package.json files to see where pushkin-api is listed as a dependency.
+If you're testing out a new version of pushkin-api, you should have a directory with the dev version of pushkin-api, a directory with a pushkin site you are working on, and at least one experiment in your site's experiments directory.
+
+1. Go to the root directory of your dev version of pushkin-api.
+2. Assuming you've cloned pushkin-api from GitHub, it won't have any dependencies installed, so you'll need to run `yarn install; yarn build`.
+3. Run `yalc publish` to create a locally published version of pushkin-api.
+4. Go to the pushkin/api directory of your site.
+5. Run `yalc add pushkin-api` to add your locally published version of pushkin-api as a dependency.
+6. Go to the 'experiments/[experiment name]/api controllers' directory.
+7. Again run `yalc add pushkin-api`.
+8. Open the package.json file in that same directory.
+9. You should see it has a property `"files"` with a value `["build/*"]`. Add `".yalc"` to the list of files like such:
+
+```JSON
+    "files": [
+        "build/*",
+        ".yalc"
+    ],
+```
+
+10. You'll need to repeat steps 6 through 9 for each experiment in your site's experiments directory.
+
+Now you should be able to run `pushkin prep` and `pushkin start`. When you make changes to pushkin-api, you'll need to:
+
+1. Go to the root directory of your dev version of pushkin-api.
+2. Run `yarn build; yalc push`. `yalc push` will update your locally published version of pushkin-api and push the changes wherever the package is being used. This saves you the hassle of running `yalc update` in the multiple directories in which you ran `yalc add`.
 
 #### yalc for pushkin-client
 
