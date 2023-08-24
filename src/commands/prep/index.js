@@ -27,19 +27,16 @@ const publishLocalPackage = async (modDir, modName) => {
       buildCmd = pacRunner.concat(' build-if-changed')
     }
     console.log(`Installing dependencies for ${modDir}`);
-    exec(pacMan.concat(' install'), { cwd: modDir })
-      .then(() => {
-        console.log(`Building ${modName} from ${modDir}`);
-        exec(buildCmd, { cwd: modDir })
-        .then(() => {
-          console.log(`${modName} is built`);
-          exec('yalc publish --push', { cwd: modDir })
-            .then(() => {
-              console.log(`${modName} is published locally via yalc`);
-              resolve(modName)
-            })
-        })
-      })
+    try {
+      execSync(`${pacMan} install`, { cwd: modDir });
+      console.log(`Building ${modName} from ${modDir}`);
+      execSync(buildCmd, { cwd: modDir });
+      console.log(`${modName} is built`);
+      resolve(modName);
+    } catch (error) {
+      console.error(`Error building ${modName}: ${error.message}`);
+      reject(error);
+    }
   })
 };
 
