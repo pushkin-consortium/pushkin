@@ -851,11 +851,12 @@ async function main() {
     .description(`Functions that are useful for backwards compatibility or debugging.\n
       updateDB: Updates test database. This is automatically run as part of 'pushkin prep'.\n
       setup-transaction-db: Creates a local transactions db. Useful for users of old site templates who wish to use CLI v2+.\n
-      aws-auto-scale: Setups up default autoscaling for an AWS deploy. Normally run as part of 'aws init'.`)
+      aws-auto-scale: Setups up default autoscaling for an AWS deploy. Normally run as part of 'aws init'.\n
+      zip: Useful for publishing new templates. Zips up current directory, recursively ignoring .git and node_modules.`)
     .action(async (cmd) => {
-      moveToProjectRoot();
       switch (cmd){
         case 'updateDB':
+          moveToProjectRoot();
           try {
             await handleUpdateDB();
           } catch(e) {
@@ -864,6 +865,7 @@ async function main() {
           }
           break;
         case 'setup-transaction-db':
+          moveToProjectRoot();
           try {
             await setupTestTransactionsDB();
           } catch(e) {
@@ -871,8 +873,17 @@ async function main() {
             process.exit();
           }
           break;
-        case 'aws-auto-scale':
-          try {
+          case 'zip':
+            try {
+              execSync(`zip -r Archive.zip . -x "*node_modules*" -x "*.git*" -x "*.DS_Store"`);
+            } catch(e) {
+              console.error(e);
+              process.exit();
+            }
+            break;
+          case 'aws-auto-scale':
+            moveToProjectRoot();
+            try {
             await handleCreateAutoScale();
           } catch(e) {
             console.error(e);
