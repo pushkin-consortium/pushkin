@@ -20,12 +20,12 @@ export function listSiteTemplates() {
 export const promiseFolderInit = async (initDir, dir) => {
   console.log(`Installing dependencies for ${dir}`);
   try {
-    await exec(pacMan.concat(' --mutex network install'), { cwd: path.join(initDir, dir) })
+    await exec(pacMan.concat(' install'), { cwd: path.join(initDir, dir) })
     console.log(`Building ${dir}`);
     updatePushkinJs(); //synchronous
     setEnv(false); //synchronous
     console.log(`Building front end`)
-    await exec(pacMan.concat(' --mutex network run build'), { cwd: path.join(initDir, dir) })
+    await exec(pacMan.concat(' run build'), { cwd: path.join(initDir, dir) })
     console.log(`${dir} is built`);
   } catch(e) {
     console.error(`Problem installing dependencies for ${dir}`)
