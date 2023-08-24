@@ -24,21 +24,19 @@ export async function listExpTemplates() {
 const promiseExpFolderInit = async (initDir, dir, rootDir, modName, buildPath) => {
   //Similar to 'promiseFolderInit' in sites/index.js.
   //Modified to take advantage of install-local (not relevant for sites)
-  const promiseExpFolderInit = async (initDir, dir, rootDir, modName, buildPath) => {
-    console.log(`Installing dependencies for ${dir}`);
-    try {
-      await exec(`${pacMan} install`, { cwd: path.join(initDir, dir) });
-      console.log(`Building ${modName} from ${dir}`);
-      await exec(`${pacMan} run build`, { cwd: path.join(initDir, dir) });
-      console.log(`${modName} is built`);
-      await exec(`install-local ./${dir}`, { cwd: path.join(rootDir, buildPath) });
-      console.log(`${modName} installed locally using install-local`);
-      return modName;
-    } catch (error) {
-      console.error(`Error initializing ${modName}: ${error.message}`);
-      throw error;
-    }
-  };
+  console.log(`Installing dependencies for ${dir}`);
+  try {
+    await exec(`${pacMan} install`, { cwd: path.join(initDir, dir) });
+    console.log(`Building ${modName} from ${dir}`);
+    await exec(`${pacMan} run build`, { cwd: path.join(initDir, dir) });
+    console.log(`${modName} is built`);
+    await exec(`install-local ./${dir}`, { cwd: path.join(rootDir, buildPath) });
+    console.log(`${modName} installed locally using install-local`);
+    return modName;
+  } catch (error) {
+    console.error(`Error initializing ${modName}: ${error.message}`);
+    throw error;
+  }
 }
 
 export async function getExpTemplate(experimentsDir, url, longName, newExpName, rootDir) {
