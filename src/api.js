@@ -2,6 +2,7 @@ import express from 'express';
 import amqp from 'amqplib';
 import { v4 as uuid } from 'uuid';
 import bodyParser from 'body-parser';
+import cors from 'cors';
 import cookieSession from 'cookie-session';
 
 export default class PushkinAPI {
@@ -23,7 +24,9 @@ export default class PushkinAPI {
 			next();
 		});
 		this.app.use(bodyParser.json());
+		this.app.use(cors());
 		this.expressListening = false;
+		this.server = null;
 		this.app.get('/', function (req, res) {
 			res.send('👨‍🔬💬👩‍🔬')
 		})
@@ -64,7 +67,7 @@ export default class PushkinAPI {
 		if (!this.initialized)
 			throw new Error('The API hasn\'t been successfully initialized');
 		this.expressListening = true;
-		this.app.listen(this.expressPort, () => {
+		this.server = this.app.listen(this.expressPort, async () => {
 			console.log(`Pushkin API listening on port ${this.expressPort}`);
 		});
 	}
