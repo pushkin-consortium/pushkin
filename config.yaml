@@ -1,3 +1,4 @@
+# v5.0.2
 experimentName: &fullName 'jspsych7exp'
 shortName: &shortName 'jspsych7exp' # This should be unique as its used for urls, etc.
 apiControllers: # The default export from each of these locations will be attached to a pushkin API
