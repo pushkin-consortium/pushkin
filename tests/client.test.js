@@ -27,7 +27,6 @@ test('load multiple script urls', () => {
 
   pushkinClient.loadScripts(testURLs)
     .then((data) => expect(data).toEqual(testURLs))
-    .catch((error) => console.log(error));
 });
 
 test('prepare for experiment', () => {
@@ -37,7 +36,6 @@ test('prepare for experiment', () => {
 
   pushkinClient.prepExperimentRun(postData)
     .then((data) => expect(data).toEqual(postData))
-    .catch((error) => console.log(error));
 });
 
 test('tabulate and post results', () => {
@@ -50,22 +48,28 @@ test('tabulate and post results', () => {
 
   pushkinClient.tabulateAndPostResults(postData)
     .then((data) => expect(data).toEqual(postData))
-    .catch((error) => console.log(error));
 });
 
 test('get all stimuli', () => {
   const postData = {
     user_id: 123456,
-    nItems: ['item1', 'item2', 3],
+    nItems: 0,
   };
 
-  axios.post.mockImplementation(() => Promise.resolve(postData));
+  const returndata = {
+    data: {
+      resData: [
+        {stimulus: {img: 'img/blue.png'}},
+        {stimulus: {img: 'img/orange.png'}},
+        {stimulus: {img: 'img/green.png'}}
+        ]    
+    }
+  }
 
-  // TypeError: Cannot read property 'resData' of undefined
-  // This is because getAllStimuli does something with the returned data
+  axios.post.mockImplementation(() => Promise.resolve(JSON.stringify(returndata)));
+
   pushkinClient.getAllStimuli(postData)
-    .then((data) => expect(data).toEqual(postData))
-    .catch((error) => console.log(error));
+    .then((data) => expect(data).toEqual(returndata.data.resData))
 });
 
 test('save stimulus response', () => {
@@ -79,10 +83,9 @@ test('save stimulus response', () => {
 
   pushkinClient.saveStimulusResponse(postData)
     .then((data) => expect(data).toEqual(postData))
-    .catch((error) => console.log(error));
 });
 
-test('set save after each stimulus', () => {
+test('set save after each stimulus, non-nested timelines', () => {
   const test_stimuli = [
     { stimulus: 'img/blue.png' },
     { stimulus: 'img/orange.png' },
@@ -94,9 +97,39 @@ test('set save after each stimulus', () => {
     stimulus: { A: [2, 'b', '3d'] },
   };
 
-  pushkinClient.setSaveAfterEachStimulus(test_stimuli)[0].on_finish(test_stimuli)
+  pushkinClient.setSaveAfterEachStimulus(test_stimuli)[0].on_finish({
+    user_id: postData.user_id,
+    data: postData.data_string,
+    stimulus: postData.stimulus,
+  })
     .then((data) => expect(data).toEqual(postData))
-    .catch((error) => console.log(error));
+});
+
+test('set save after each stimulus, nested timelines', () => {
+  const test_stimuli = [
+    { stimulus: 'img/blue.png' },
+    { stimulus: 'img/orange.png' },
+    { timeline: [
+      { stimulus: 'img/blue.png' },
+      { stimulus: 'img/orange.png' },
+      { timeline: [
+        { stimulus: 'img/blue.png' },
+        { stimulus: 'img/orange.png' },
+      ]}
+    ]},
+  ];
+
+  const postData = {
+    user_id: 123456,
+    data_string: [1, 'a', '2c'],
+    stimulus: { A: [2, 'b', '3d'] },
+  };
+  pushkinClient.setSaveAfterEachStimulus(test_stimuli)[2].timeline[2].on_finish({
+    user_id: postData.user_id,
+    data: postData.data_string,
+    stimulus: postData.stimulus,
+  })
+    .then((data) => expect(data).toEqual(postData))
 });
 
 test('insert meta response', () => {
@@ -110,7 +143,6 @@ test('insert meta response', () => {
 
   pushkinClient.insertMetaResponse(postData)
     .then((data) => expect(data).toEqual(postData))
-    .catch((error) => console.log(error));
 });
 
 test('end experiment', () => {
@@ -122,7 +154,6 @@ test('end experiment', () => {
 
   pushkinClient.endExperiment(postData)
     .then((data) => expect(data).toEqual(postData))
-    .catch((error) => console.log(error));
 });
 
 test.skip('custom API call', () => {

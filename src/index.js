@@ -57,17 +57,38 @@ export default class Pushkin {
     };
     return this.con.post('/getStimuli', postData)
       .then((res) => {
-        const stimuli = res.data.resData;
-        return stimuli.map((s) => JSON.parse(s.stimulus));
+        return JSON.parse(res).data.resData; //send back just the stimuli
       });
   }
 
   setSaveAfterEachStimulus(stimuli) {
-    return stimuli.map((s) => ({
-      ...s,
-      on_finish: this.saveStimulusResponse.bind(this),
-    }));
-  }
+    //Deprecated. Don't use. Instead us
+    //  const jsPsych = initJsPsych({
+    //     ...
+    //     on_data_update: pushkin.saveStimulusResponse(data),
+    //  });
+
+
+    const saveWrapper = (timeline) => timeline.map((s) => {
+      return s.hasOwnProperty('timeline') ? 
+        {
+          ...s,
+          on_finish: (data) => {
+            if (s.on_finish) s.on_finish(data); // If s already has an on_finish, call it
+            return this.saveStimulusResponse.bind(this)(data); // bind(this) is necessary because of `this` in saveStimulusResponse
+          },
+          timeline: saveWrapper(s.timeline)  
+        } :
+        {
+          ...s,
+          on_finish: (data) => {
+            if (s.on_finish) s.on_finish(data); // If s already has an on_finish, call it
+            return this.saveStimulusResponse.bind(this)(data); // bind(this) is necessary because of `this` in saveStimulusResponse
+          }
+        }
+      })
+    return saveWrapper(stimuli);
+  };
 
   saveStimulusResponse(data) {
     // Because we are saving data, it should be coming with a userID already
