@@ -7,7 +7,6 @@
 * [loadScripts](pushkin-client.md#loadscripts)
 * [prepExperimentRun](pushkin-client.md#prepexperimentrun)
 * [getAllStimuli](pushkin-client.md#getallstimuli)
-* [setSaveAfterEachStimulus](pushkin-client.md#setsaveaftereachstimulus)
 * [saveStimulusResponse](pushkin-client.md#savestimulusresponse)
 * [insertMetaResponse](pushkin-client.md#insertmetaresponse)
 * [endExperiment](pushkin-client.md#endexperiment)
@@ -72,16 +71,6 @@ Sends a POST request to \[expapi\]/startExperiment to allow the backend to prepa
 
 Obtains the stimuli for this experiment in one request. Depends on defaults being enabled in the experiment’s API and worker.
 
-### setSaveAfterEachStimulus
-
-**Arguments:**
-
-* **jsPsych stimuli** : object array
-
-  Adds the on\_finish property to each stimulus and sets it to call saveStimulusResponse.
-
-**Returns:** Modified object array of jsPsych stimuli.
-
 ### saveStimulusResponse
 
 **Arguments:**
@@ -92,7 +81,14 @@ Obtains the stimuli for this experiment in one request. Depends on defaults bein
 
 **Returns:** Promise. Resolves upon successful database save.
 
-Likely not wanted to be invoked directly by most users. Easiest to use if added to jsPsych’s on\_finish function for each timeline variable.
+Can be used to replace deprecated function _setSaveAfterEachStimulus_ by adding it to the initJsPsych constructor's on_data_update function. Like so: 
+```
+const jsPsych = initJsPsych({
+  ...,
+  on_data_update: (data) => pushkin.saveStimulusResponse(data),
+});
+```
+Easiest to use if added to jsPsych’s on\_finish function for each timeline variable.
 
 ### insertMetaResponse
 
