@@ -43,19 +43,25 @@ const publishLocalPackage = async (modDir, modName) => {
   })
 };
 
-export function setEnv(debug) {
-  console.log("running setEnv()")
+export function setEnv(debug, verbose) {
+  if (verbose) {
+    console.log('--verbose flag set inside setEnv()');
+    console.log('running setEnv()');
+  }
   try {
     fs.writeFileSync(path.join(process.cwd(), 'pushkin/front-end/src', '.env.js'), `export const debug = ${debug}`)
   } catch (e) {
     console.error(`Unable to create .env.js`)
   }
-  console.log(`Successfully set front-end 'environment variable'`)
+  if (verbose) console.log(`Successfully set front-end 'environment variable'`);
 }
 
-export function updatePushkinJs() {
+export function updatePushkinJs(verbose) {
+  if (verbose) {
+    console.log('--verbose flag set inside updatePushkinJs()');
+    console.log(`Writing out front-end config`);
+  }
   try {
-    console.log(`Writing out front-end config`)
     const tempConfig = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'pushkin.yaml')))
     let useConfig = {}
     useConfig.info = tempConfig.info

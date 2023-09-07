@@ -17,16 +17,19 @@ export function listSiteTemplates() {
   return templates;
 }
 
-export const promiseFolderInit = async (initDir, dir) => {
-  console.log(`Installing dependencies for ${dir}`);
+export const promiseFolderInit = async (initDir, dir, verbose) => {
+  if (verbose) {
+    console.log('--verbose flag set inside promiseFolderInit()');
+    console.log(`Installing dependencies for ${dir}`);
+  }
   try {
     await exec(pacMan.concat(' --mutex network install'), { cwd: path.join(initDir, dir) })
-    console.log(`Building ${dir}`);
-    updatePushkinJs(); //synchronous
-    setEnv(false); //synchronous
-    console.log(`Building front end`)
+    if (verbose) console.log(`Building ${dir}`);
+    updatePushkinJs(verbose); //synchronous
+    setEnv(false, verbose); //synchronous
+    if (verbose) console.log(`Building front end`);
     await exec(pacMan.concat(' --mutex network run build'), { cwd: path.join(initDir, dir) })
-    console.log(`${dir} is built`);
+    if (verbose) console.log(`${dir} is built`);
   } catch(e) {
     console.error(`Problem installing dependencies for ${dir}`)
     throw(e)
@@ -99,8 +102,8 @@ export async function getPushkinSite(initDir, url, verbose) {
           const shellresp = shell.rm('-rf','__MACOSX'); //fs doesn't have a stable directly removal function yet
         }      
         fs.promises.unlink('temp.zip');
-        const apiPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'api').catch((err) => { console.error(err); });
-        const frontendPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'front-end').catch((err) => { console.error(err); });
+        const apiPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'api', verbose).catch((err) => { console.error(err); });
+        const frontendPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'front-end', verbose).catch((err) => { console.error(err); });
         resolve(Promise.all([apiPromise, frontendPromise]));
       })
   })
@@ -165,8 +168,8 @@ export async function copyPushkinSite(initDir, pathToSite, verbose) {
     if (fs.existsSync('__MACOSX')) {
       const shellresp = shell.rm('-rf','__MACOSX'); //fs doesn't have a stable directly removal function yet
     }      
-    const apiPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'api').catch((err) => { console.error(err); });
-    const frontendPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'front-end').catch((err) => { console.error(err); });
+    const apiPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'api', verbose).catch((err) => { console.error(err); });
+    const frontendPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'front-end', verbose).catch((err) => { console.error(err); });
     resolve(Promise.all([apiPromise, frontendPromise, pushkinYaml, configJS, mkExps]));
   })
 }
