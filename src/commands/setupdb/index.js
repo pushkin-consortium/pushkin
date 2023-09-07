@@ -169,8 +169,9 @@ export async function runMigrations(dbsToExps, coreDBs) {
   return Promise.all(ranMigrations);    
 }
 
-export async function setupTestTransactionsDB() {
+export async function setupTestTransactionsDB(verbose) {
   //FUBAR could make a lot more use of asyncronous functions here
+  if (verbose) console.log('--verbose flag set inside setupTestTransactionsDB()');
   let composeFile, pushkinConfig, temp
   try {
     temp = await fs.promises.readFile(path.join(process.cwd(), 'pushkin/docker-compose.dev.yml'))
@@ -187,7 +188,7 @@ export async function setupTestTransactionsDB() {
     throw e
   }
   if (!composeFile.test_transaction_db) {
-    console.log(`No transaction db for local testing found in docker-compose.dev.yml. Creating.`)
+    if (verbose) console.log(`No transaction db for local testing found in docker-compose.dev.yml. Creating.`);
     composeFile.services.test_transaction_db = {
       "image": 'postgres:11',
       "environment": {
@@ -205,7 +206,7 @@ export async function setupTestTransactionsDB() {
     }
     composeFile.volumes.test_transaction_db_volume = null
     try {
-      console.log(`Updating pushkin/docker-compose.dev.yml to include transation db`)
+      if (verbose) console.log(`Updating pushkin/docker-compose.dev.yml to include transation db`);
       await fs.promises.writeFile(path.join(process.cwd(), 'pushkin/docker-compose.dev.yml'), jsYaml.safeDump(composeFile))
     } catch (e) {
       console.error(`Failed to write pushkin/docker-compose.dev.yml`)
@@ -220,15 +221,17 @@ export async function setupTestTransactionsDB() {
       "name": "test_transaction_db"
     }
     try {
-      console.log(`Updating pushkin.yaml`)
+      if (verbose) console.log(`Updating pushkin.yaml`);
       await fs.promises.writeFile(path.join(process.cwd(), 'pushkin.yaml'), jsYaml.safeDump(pushkinConfig))
     } catch (e) {
       console.error(`Failed to write pushkin.yaml`)
       throw e
     }
   }
-  console.log('Finished updating configs for test transactions db')
-  console.log(`See if a migrations file for transactions exists`)
+  if (verbose) {
+    console.log('Finished updating configs for test transactions db');
+    console.log(`See if a migrations file for transactions exists`);
+  }
   const migDir = path.join(process.cwd(), "coreMigrations")
   try {
     await fs.promises.mkdir(migDir, {recursive: true})
@@ -238,9 +241,9 @@ export async function setupTestTransactionsDB() {
 
   try {
     await fs.promises.readFile(path.join(migDir, "migrateTransactions.js"))
-    console.log(`Migrations for transactions db already exist. Skipping creation.`)
+    if (verbose) console.log(`Migrations for transactions db already exist. Skipping creation.`);
   } catch (e) {
-    console.log(`Migrations file for transactions table doesn't exist yet. Creating.`)
+    if (verbose) console.log(`Migrations file for transactions table doesn't exist yet. Creating.`);
     await fs.promises.writeFile(path.join(migDir, "migrateTransactions.js"), 
       "exports.up = function(knex) { \
         return knex.schema.createTable('transactions', function (table) { \

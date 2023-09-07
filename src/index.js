@@ -386,8 +386,9 @@ const getVersions = async (url) => {
   return verList
 }
 
-const handleInstall = async (what) => {
+const handleInstall = async (what, verbose) => {
   try {
+    if (verbose) console.log('--verbose flag set inside handleInstall()');
     if (what == 'site') {
       const siteList = await listSiteTemplates();
       inquirer.prompt([
@@ -398,8 +399,9 @@ const handleInstall = async (what) => {
             inquirer.prompt(
               [{ type: 'input', name: 'path', message: 'What is the absolute path to your site template?'}]
             ).then(async (answers) => {
-              await copyPushkinSite(process.cwd(), answers.path)
-              await setupTestTransactionsDB() //Not distributed with sites since it's the same for all of them.
+              await copyPushkinSite(process.cwd(), answers.path, verbose)
+              if (verbose) console.log("setting up transactions db");
+              await setupTestTransactionsDB(verbose) //Not distributed with sites since it's the same for all of them.
             })
           }else if (siteType == "url") {
             inquirer.prompt(
@@ -419,8 +421,9 @@ const handleInstall = async (what) => {
                 inquirer.prompt(
                   [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version?'}]
                 ).then(async (answers) => {
-                  await getPushkinSite(process.cwd(), verList[answers.version])
-                  await setupTestTransactionsDB() //Not distributed with sites since it's the same for all of them.
+                  await getPushkinSite(process.cwd(), verList[answers.version], verbose)
+                  if (verbose) console.log("setting up transactions db");
+                  await setupTestTransactionsDB(verbose) //Not distributed with sites since it's the same for all of them.
                 })
               })
             })
@@ -430,9 +433,9 @@ const handleInstall = async (what) => {
               inquirer.prompt(
                 [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version? (Recommend:'.concat(Object.keys(verList)[0]).concat(')')}]
               ).then(async (answers) => {
-                await getPushkinSite(process.cwd(), verList[answers.version])
-                console.log("now setting up transactions db")
-                await setupTestTransactionsDB() //Not distributed with sites since it's the same for all of them.
+                await getPushkinSite(process.cwd(), verList[answers.version], verbose)
+                if (verbose) console.log("setting up transactions db");
+                await setupTestTransactionsDB(verbose) //Not distributed with sites since it's the same for all of them.
               })
             })
           }
@@ -632,11 +635,12 @@ async function main() {
 
   program
     .command('install <what>')
+    .option('--verbose', 'output debugging info')
     .description(`Install template website ('site') or experiment ('experiment').`)
     .action((what) => {
       if (what == 'site' | what == 'experiment'){
         try {
-          handleInstall(what)  
+          handleInstall(what, options.verbose)
         } catch(e) {
           console.error(e)
           process.exit()
