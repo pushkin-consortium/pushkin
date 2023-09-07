@@ -635,9 +635,9 @@ async function main() {
 
   program
     .command('install <what>')
-    .option('--verbose', 'output debugging info')
+    .option('-v, --verbose', 'output extra debugging info')
     .description(`Install template website ('site') or experiment ('experiment').`)
-    .action((what) => {
+    .action((what, options) => {
       if (what == 'site' | what == 'experiment'){
         try {
           handleInstall(what, options.verbose)
