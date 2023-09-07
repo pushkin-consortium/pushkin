@@ -458,7 +458,7 @@ const handleInstall = async (what, verbose) => {
               inquirer.prompt(
                 [{ type: 'input', name: 'path', message: 'What is the absolute path to your experiment template?'}]
               ).then(async (answers) => {
-                await copyExpTemplate(path.join(process.cwd(), config.experimentsDir), answers.path, longName, shortName, process.cwd())
+                await copyExpTemplate(path.join(process.cwd(), config.experimentsDir), answers.path, longName, shortName, process.cwd(), verbose)
               })
             } else if (expType == "url") {
               inquirer.prompt(
@@ -480,7 +480,7 @@ const handleInstall = async (what, verbose) => {
                   ).then(async (answers) => {
                     let ver = answers.version
                     const url = verList[ver]
-                    await getExpTemplate(path.join(process.cwd(), config.experimentsDir), url, longName, shortName, process.cwd())
+                    await getExpTemplate(path.join(process.cwd(), config.experimentsDir), url, longName, shortName, process.cwd(), verbose)
                   })
                 })
               })
@@ -492,7 +492,7 @@ const handleInstall = async (what, verbose) => {
                 ).then(async (answers) => {
                   let ver = answers.version
                   const url = verList[ver]
-                  await getExpTemplate(path.join(process.cwd(), config.experimentsDir), url, longName, shortName, process.cwd())
+                  await getExpTemplate(path.join(process.cwd(), config.experimentsDir), url, longName, shortName, process.cwd(), verbose)
                 })
               })
             }

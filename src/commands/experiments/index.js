@@ -51,7 +51,8 @@ const promiseExpFolderInit = async (initDir, dir, rootDir, modName, buildPath) =
   })
 }
 
-export async function getExpTemplate(experimentsDir, url, longName, newExpName, rootDir) {
+export async function getExpTemplate(experimentsDir, url, longName, newExpName, rootDir, verbose) {
+  if (verbose) console.log('--verbose flag set inside getExpTemplate()');
   if (!isValidExpName(newExpName)) {
     console.error(`'${newExpName}' is not a valid name. Names must start with a letter and can only contain alphanumeric characters.`);
     return;
@@ -102,7 +103,8 @@ export async function getExpTemplate(experimentsDir, url, longName, newExpName, 
     })
 }
 
-export async function copyExpTemplate(experimentsDir, expPath, longName, newExpName, rootDir) {
+export async function copyExpTemplate(experimentsDir, expPath, longName, newExpName, rootDir, verbose) {
+  if (verbose) console.log('--verbose flag set inside copyExpTemplate()');
   if (!expPath) {
     console.error('No path provided.');
     return;
@@ -142,7 +144,7 @@ export async function copyExpTemplate(experimentsDir, expPath, longName, newExpN
     console.error(`'${newExpName}' is not a valid name. Names must start with a letter and can only contain alphanumeric characters.`);
     return;
   }
-  console.log(`Making ${newExpName} in ${experimentsDir}`);
+  if (verbose) console.log(`Making ${newExpName} in ${experimentsDir}`);
   const newDir = path.join(experimentsDir, newExpName);
   if (fs.existsSync(newDir) && fs.lstatSync(newDir).isDirectory()) {
     console.error(`A directory in the experiments folder already exists with this name (${newExpName})`);
@@ -150,8 +152,10 @@ export async function copyExpTemplate(experimentsDir, expPath, longName, newExpN
   }
 
   fs.mkdirSync(newDir);
-  console.log(`copying from ${expPath}`);
-  console.log('be patient...');
+  if (verbose) {
+    console.log(`copying from ${expPath}`);
+    console.log('be patient...');
+  }
   try {
     fs.cpSync(expPath, newDir, {recursive: true})
   } catch (error) {
