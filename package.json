@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@jspsych/plugin-html-slider-response": "^1.1.2",
+    "@jspsych/plugin-survey-likert": "^1.1.2"
+  }
+}
