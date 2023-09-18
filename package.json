@@ -4,7 +4,8 @@
   "description": "A CLI for automating basic Pushkin tasks",
   "main": "build/index.js",
   "files": [
-    "build/*"
+    "build/*",
+    "images/*"
   ],
   "bin": {
     "pushkin": "build/index.js"
