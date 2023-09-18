@@ -1,4 +1,8 @@
 import jsPsychHtmlKeyboardResponse from '@jspsych/plugin-html-keyboard-response';
+import experimentConfig from './config';
+import consent from './consent';
+import stimArray from './stim';
+import debrief from './debrief';
 
 export function createTimeline(jsPsych) {
     // Construct the timeline inside this function just as you would in jsPsych v7.x
