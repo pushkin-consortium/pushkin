@@ -8,7 +8,8 @@ const exec = util.promisify(require('child_process').exec);
 import pacMan from '../../pMan.js'; //which package manager is available?
 
 // give package unique name, package it, npm install on installDir, return module name
-const publishLocalPackage = async (modDir, modName) => {
+const publishLocalPackage = async (modDir, modName, verbose) => {
+  if (verbose) console.log('--verbose flag set inside publishLocalPackage()');
   return new Promise((resolve, reject) => {
     const packageJsonPath = path.join(modDir, 'package.json');
     let packageJson;
@@ -19,23 +20,23 @@ const publishLocalPackage = async (modDir, modName) => {
     }
     let buildCmd
     if (packageJson.dependencies['build-if-changed'] == null) {
-      console.log(modName, " does not have build-if-changed installed. Recommend installation for faster runs of prep.")
-      buildCmd = pacMan.concat(' --mutex network run build')
+      if (verbose) console.log(modName, " does not have build-if-changed installed. Recommend installation for faster runs of prep.");
+      buildCmd = pacMan.concat(' --mutex network run build');
     } else {
-      console.log("Using build-if-changed for ",modName)
-      const pacRunner = (pacMan == 'yarn') ? 'yarn' : 'npx'
-      buildCmd = pacRunner.concat(' build-if-changed')
+      if (verbose) console.log("Using build-if-changed for ",modName);
+      const pacRunner = (pacMan == 'yarn') ? 'yarn' : 'npx';
+      buildCmd = pacRunner.concat(' build-if-changed');
     }
-    console.log(`Installing dependencies for ${modDir}`);
+    if (verbose) console.log(`Installing dependencies for ${modDir}`);
     exec(pacMan.concat(' --mutex network install'), { cwd: modDir })
       .then(() => {
-        console.log(`Building ${modName} from ${modDir}`);
+        if (verbose) console.log(`Building ${modName} from ${modDir}`);
         exec(buildCmd, { cwd: modDir })
         .then(() => {
-          console.log(`${modName} is built`);
+          if (verbose) console.log(`${modName} is built`);
           exec('yalc publish --push', { cwd: modDir })
             .then(() => {
-              console.log(`${modName} is published locally via yalc`);
+              if (verbose) console.log(`${modName} is published locally via yalc`);
               resolve(modName)
             })
         })
@@ -77,13 +78,14 @@ export function updatePushkinJs(verbose) {
 }
 
 // prepare a single experiment's api controllers
-const prepApi = async (expDir, controller) => {
+const prepApi = async (expDir, controller, verbose) => {
   return new Promise((resolve, reject) => {
+    if (verbose) console.log('--verbose flag set inside prepApi()');
     const fullContrLoc = path.join(expDir, controller.location);
-    console.log(`Started loading API controller for ${controller.mountPath}`);
+    if (verbose) console.log(`Started loading API controller for ${controller.mountPath}`);
     let moduleName;
     try {
-      publishLocalPackage(fullContrLoc, controller.mountPath.concat('_api'))
+      publishLocalPackage(fullContrLoc, controller.mountPath.concat('_api'), verbose)
     } catch (e) {
       console.error(`Problem publishing api for`.concat(controller.mountPath));
       throw e;
@@ -93,9 +95,10 @@ const prepApi = async (expDir, controller) => {
 }
 
 // prepare a single experiment's web page
-const prepWeb = async (expDir, expConfig, coreDir) => {
+const prepWeb = async (expDir, expConfig, coreDir, verbose) => {
+  if (verbose) console.log('--verbose flag set inside prepWeb()');
   const webPageLoc = path.join(expDir, expConfig.webPage.location);
-  console.log(`Started loading web page for ${expConfig.shortName}`);
+  if (verbose) console.log(`Started loading web page for ${expConfig.shortName}`);
   let moduleName
   try {
     moduleName = await publishLocalPackage(webPageLoc, expConfig.shortName.concat('_web'))
@@ -103,7 +106,7 @@ const prepWeb = async (expDir, expConfig, coreDir) => {
     console.error(`Failed on publishing web page: ${err}`);
     throw err;
   }
-  console.log(`Loaded web page for ${expConfig.experimentName} (${moduleName})`);
+  if (verbose) console.log(`Loaded web page for ${expConfig.experimentName} (${moduleName})`);
   const modListAppendix = "{ fullName: `".concat(expConfig.experimentName).concat("`,") 
     .concat(`shortName: '${expConfig.shortName}', 
     module: ${moduleName}, logo: '${expConfig.logo}', 
@@ -118,7 +121,7 @@ const prepWeb = async (expDir, expConfig, coreDir) => {
       throw(e);
     })
 
-  console.log(`Added ${expConfig.experimentName} to experiments.js`)
+  if (verbose) console.log(`Added ${expConfig.experimentName} to experiments.js`);
   return { moduleName, listAppendix: modListAppendix };
 };
 
@@ -137,18 +140,23 @@ export const readConfig = (expDir) => {
 
 
 // the main prep function for prepping all experiments
-export const prep = async (experimentsDir, coreDir) => {
+export const prep = async (experimentsDir, coreDir, verbose) => {
+  if (verbose) {
+    console.log('--verbose flag set inside prep()');
+    console.log("package manager: ", pacMan);
+  }
 
-  console.log("package manager: ",pacMan);
-
-  const cleanWeb = async (coreDir) => {
-    console.log(`resetting experiments.js`); 
+  const cleanWeb = async (coreDir, verbose) => {
+    if (verbose) {
+      console.log('--verbose flag set inside cleanWeb()');
+      console.log(`resetting experiments.js`);
+    }
     try {
       if (fs.existsSync(path.join(coreDir, 'front-end/experiments.js'))) {
         //These extra experiments.js files are created when doing a local test deploy
         //If it doesn't exist, that's just fine
         fs.unlinkSync(path.join(coreDir, 'front-end/experiments.js'));
-        console.log("Cleaned up front-end/experiments.js")        
+        if (verbose) console.log("Cleaned up front-end/experiments.js");
       }
     } catch (e) {
       console.error(e)
@@ -156,23 +164,26 @@ export const prep = async (experimentsDir, coreDir) => {
     const webPageAttachListFile = path.join(coreDir, 'front-end/src/experiments.js');
     let cleanedWeb
     try {
-      cleanedWeb = fs.promises.writeFile(path.join(coreDir, 'front-end/src/experiments.js'), `[]`, 'utf8')      
+      cleanedWeb = fs.promises.writeFile(path.join(coreDir, 'front-end/src/experiments.js'), `[]`, 'utf8');
     } catch (e) {
-      console.error('Problem overwriting experiments.js')
-      throw e
+      console.error('Problem overwriting experiments.js');
+      throw e;
     }
     return cleanedWeb;
   }
 
   let cleanedWeb
   try {
-    cleanedWeb = cleanWeb(coreDir);
+    cleanedWeb = cleanWeb(coreDir, verbose);
   } catch (e) {
     throw e
   }
 
-  const prepAPIWrapper = (exp) => {
-    console.log(`Started prepping API for`, exp);
+  const prepAPIWrapper = (exp, verbose) => {
+    if (verbose) {
+      console.log('--verbose flag set inside prepAPIWrapper()');
+      console.log(`Started prepping API for`, exp);
+    }
     return new Promise((resolve, reject) => {
       const expDir = path.join(experimentsDir, exp)
       if (!fs.lstatSync(expDir).isDirectory()) resolve('');
@@ -185,7 +196,7 @@ export const prep = async (experimentsDir, coreDir) => {
       }
       let preppedApi;
       try {
-        preppedApi = prepApi(expDir, expConfig.apiControllers);
+        preppedApi = prepApi(expDir, expConfig.apiControllers, verbose);
       } catch (err) {
         console.error('Something wrong with prepping API', err)
         reject(new Error(`Unable to prep api for `.concat(exp)))
@@ -197,14 +208,14 @@ export const prep = async (experimentsDir, coreDir) => {
   const expDirs = fs.readdirSync(experimentsDir);
   let preppedAPI;
   try {
-    preppedAPI = Promise.all(expDirs.map(prepAPIWrapper))
+    preppedAPI = Promise.all(expDirs.map((exp) => prepAPIWrapper(exp, verbose)));
   } catch (err) {
     console.error(err);
     process.exit();
   }
   
-  const installAndBuild = async (where) =>
-  {
+  const installAndBuild = async (where, verbose) => {
+    if (verbose) console.log('--verbose flag set inside installAndBuild()');
     let returnVal
     let packageJson;
     try {
@@ -215,27 +226,30 @@ export const prep = async (experimentsDir, coreDir) => {
     }
     try {
       if (packageJson.dependencies['build-if-changed'] == null) {
-        console.log(where, " does not have build-if-changed installed. Recommend installation for faster runs of prep.")
-        execSync(pacMan.concat(' --mutex network run build'), { cwd: where })
+        if (verbose) console.log(where, " does not have build-if-changed installed. Recommend installation for faster runs of prep.");
+        execSync(pacMan.concat(' --mutex network run build'), { cwd: where });
       } else {
-        console.log("Using build-if-changed for", where)
-        const pacRunner = (pacMan == 'yarn') ? 'yarn' : 'npx'
-        returnVal = exec(pacRunner.concat(' build-if-changed'), {cwd: where}).toString()
-        console.log(returnVal);
+        if (verbose) console.log("Using build-if-changed for", where);
+        const pacRunner = (pacMan == 'yarn') ? 'yarn' : 'npx';
+        returnVal = exec(pacRunner.concat(' build-if-changed'), {cwd: where}).toString();
+        if (verbose) console.log(returnVal);
         if (returnVal.search("No changes")>0) {
-          console.log("No changes. Building not necessary.")
+          if (verbose) console.log("No changes. Building not necessary.");
         } else {
-          console.log("rebuilt ", where)
+          if (verbose) console.log("rebuilt ", where);
          }
-      }           
+      }
     } catch (err) {
-      throw err
+      throw err;
     }
-    return returnVal
+    return returnVal;
   }
 
-  const prepWebWrapper = (exp) => {
-    console.log(`Started prepping web page for`, exp);
+  const prepWebWrapper = (exp, verbose) => {
+    if (verbose) {
+      console.log('--verbose flag set inside prepWebWrapper()');
+      console.log(`Started prepping web page for`, exp);
+    }
     return new Promise((resolve, reject) => {
       const expDir = path.join(experimentsDir, exp)
       if (!fs.lstatSync(expDir).isDirectory()) resolve('');
@@ -248,7 +262,7 @@ export const prep = async (experimentsDir, coreDir) => {
       }
       let webPageIncludes;
       try {
-        webPageIncludes = prepWeb(expDir, expConfig, coreDir)
+        webPageIncludes = prepWeb(expDir, expConfig, coreDir, verbose)
       } catch (err) {
         reject(new Error(`Unable to prep web page for `.concat(exp)))
       }
@@ -258,15 +272,18 @@ export const prep = async (experimentsDir, coreDir) => {
 
   let webPageIncludes;
   try {
-    webPageIncludes = Promise.all(expDirs.map(prepWebWrapper))
+    webPageIncludes = Promise.all(expDirs.map((exp) => prepWebWrapper(exp, verbose)));
   } catch (err) {
     console.error(err);
     process.exit();
   }
 
 
-  const prepWorkerWrapper = async (exp) => {
-    console.log(`Building worker for`, exp);
+  const prepWorkerWrapper = async (exp, verbose) => {
+    if (verbose) {
+      console.log('--verbose flag set inside prepWorkerWrapper()');
+      console.log(`Building worker for`, exp);
+    }
     const expDir = path.join(experimentsDir, exp)
     if (!fs.lstatSync(expDir).isDirectory()) resolve('');
     let expConfig;
@@ -280,57 +297,57 @@ export const prep = async (experimentsDir, coreDir) => {
     const workerName = `${exp}_worker`.toLowerCase(); //Docker names must all be lower case
     const workerLoc = path.join(expDir, workerConfig.location).replace(/ /g, '\\ '); //handle spaces in path
 
-    let AMQP_ADDRESS
+    let AMQP_ADDRESS;
     // Recall, compFile is docker-compose.dev.yml, and is defined outside this function.
     try {
-      AMQP_ADDRESS = compFile.services[workerName].environment["AMQP_ADDRESS"].split("=")[1] 
+      AMQP_ADDRESS = compFile.services[workerName].environment["AMQP_ADDRESS"].split("=")[1];
     } catch (e) {
-      console.error(`Problem finding AMQP address for ${workerName}`)
-      console.error(`Value of service ${workerName} in docker-compose.dev.yml:\n ${JSON.stringify(compFile.services[workerName])}`)
-      throw e
+      console.error(`Problem finding AMQP address for ${workerName}`);
+      console.error(`Value of service ${workerName} in docker-compose.dev.yml:\n ${JSON.stringify(compFile.services[workerName])}`);
+      throw e;
     }   
 
-    compFile.services[workerName].environment = {} 
-    compFile.services[workerName].environment.AMQP_ADDRESS = AMQP_ADDRESS || 'amqp://message-queue:5672'
-    compFile.services[workerName].environment.DB_USER = pushkinYAML.databases.localtestdb.user
-    compFile.services[workerName].environment.DB_PASS = pushkinYAML.databases.localtestdb.pass
-    compFile.services[workerName].environment.DB_HOST = pushkinYAML.databases.localtestdb.host
-    compFile.services[workerName].environment.DB_DB = pushkinYAML.databases.localtestdb.name
-    compFile.services[workerName].environment.TRANS_USER = pushkinYAML.databases.localtransactiondb.user
-    compFile.services[workerName].environment.TRANS_PASS = pushkinYAML.databases.localtransactiondb.pass
-    compFile.services[workerName].environment.TRANS_HOST = pushkinYAML.databases.localtransactiondb.host
-    compFile.services[workerName].environment.TRANS_DB = pushkinYAML.databases.localtransactiondb.name
-    compFile.services[workerName].environment.TRANS_PORT = pushkinYAML.databases.localtransactiondb.port
+    compFile.services[workerName].environment = {};
+    compFile.services[workerName].environment.AMQP_ADDRESS = AMQP_ADDRESS || 'amqp://message-queue:5672';
+    compFile.services[workerName].environment.DB_USER = pushkinYAML.databases.localtestdb.user;
+    compFile.services[workerName].environment.DB_PASS = pushkinYAML.databases.localtestdb.pass;
+    compFile.services[workerName].environment.DB_HOST = pushkinYAML.databases.localtestdb.host;
+    compFile.services[workerName].environment.DB_DB = pushkinYAML.databases.localtestdb.name;
+    compFile.services[workerName].environment.TRANS_USER = pushkinYAML.databases.localtransactiondb.user;
+    compFile.services[workerName].environment.TRANS_PASS = pushkinYAML.databases.localtransactiondb.pass;
+    compFile.services[workerName].environment.TRANS_HOST = pushkinYAML.databases.localtransactiondb.host;
+    compFile.services[workerName].environment.TRANS_DB = pushkinYAML.databases.localtransactiondb.name;
+    compFile.services[workerName].environment.TRANS_PORT = pushkinYAML.databases.localtransactiondb.port;
 
     let workerBuild
     try {
-      console.log(`Building docker image for ${workerName}`)
-      let dockerCommand = `docker build ${workerLoc} -t ${workerName} --load`
-      console.log(dockerCommand)
-      workerBuild = exec(dockerCommand)
+      if (verbose) console.log(`Building docker image for ${workerName}`);
+      let dockerCommand = `docker build ${workerLoc} -t ${workerName} --load`;
+      if (verbose) console.log(dockerCommand);
+      workerBuild = exec(dockerCommand);
     } catch(e) {
-      console.error(`Problem building worker for ${exp}`)
-      throw (e)
+      console.error(`Problem building worker for ${exp}`);
+      throw (e);
     }
     return workerBuild;
   }
 
   const composeFileLoc = path.join(path.join(process.cwd(), 'pushkin'), 'docker-compose.dev.yml');
-  const pushkinYAMLFileLoc = path.join(process.cwd(), 'pushkin.yaml')
+  const pushkinYAMLFileLoc = path.join(process.cwd(), 'pushkin.yaml');
   let compFile;
   let pushkinYAML;
   try { 
     compFile = jsYaml.safeLoad(fs.readFileSync(composeFileLoc), 'utf8'); 
     pushkinYAML = jsYaml.safeLoad(fs.readFileSync(pushkinYAMLFileLoc), 'utf8'); 
-    console.log('loaded docker-compose.dev.yml and pushkin.yaml.')
+    if (verbose) console.log('loaded docker-compose.dev.yml and pushkin.yaml.');
   } catch (e) { 
     console.error('Failed to load either pushkin.yaml or docker-compose.dev.yml or both.');
-    throw e
+    throw e;
   }
 
   let preppedWorkers;
   try {
-    preppedWorkers = Promise.all(expDirs.map(prepWorkerWrapper))
+    preppedWorkers = Promise.all(expDirs.map((exp) => prepWorkerWrapper(exp, verbose)))
   } catch (err) {
     console.error(err);
     throw(err);
@@ -344,7 +361,7 @@ export const prep = async (experimentsDir, coreDir) => {
   let bottom
   let toWrite
   try {
-    console.log("Writing out experiments.js")
+    if (verbose) console.log("Writing out experiments.js");
     top = finalWebPages.map((include) => {return `import ${include.moduleName} from '${include.moduleName}';\n`})
     top = top.join('')
     bottom = finalWebPages.map((include) => {return `${include.listAppendix}\n`}).join(',')
@@ -360,25 +377,31 @@ export const prep = async (experimentsDir, coreDir) => {
   //Nothing depends on the workers, though, so we can defer that await until later
   let installedApi
   try {
-    console.log("Installing combined API")
-    installedApi = exec(pacMan.concat(' install'), { cwd: path.join(coreDir, 'api') }).then(console.log("Installed combined API"))
+    if (verbose) console.log("Installing combined API");
+    installedApi = exec(pacMan.concat(' install'), { cwd: path.join(coreDir, 'api') })
+      .then(() => {
+        if (verbose) console.log("Installed combined API");
+      })
   } catch (err) {
     console.error('Problem installing and buiding combined API')
     throw err
   }
   let installedWeb;
   try {
-    console.log("Installing combined front-end")
-    installedWeb = exec(pacMan.concat(' install'), { cwd: path.join(coreDir, 'front-end') }).then(console.log("Installed combined front-end"))
+    if (verbose) console.log("Installing combined front-end");
+    installedWeb = exec(pacMan.concat(' install'), { cwd: path.join(coreDir, 'front-end') })
+      .then(() => {
+        if (verbose) console.log("Installed combined front-end");
+      })
   } catch (err) {
     console.error('Problem installing and buiding combined front-end')
     throw err
   }
 
   await preppedWorkers
-  console.log('Finished building all experiment workers')
+  if (verbose) console.log('Finished building all experiment workers');
   try {
-    console.log(`updating docker-compose.dev.yml`)
+    if (verbose) console.log(`updating docker-compose.dev.yml`);
     fs.writeFileSync(composeFileLoc, jsYaml.safeDump(compFile), 'utf8');
   } catch (e) { 
     console.error('Failed to create new compose file', e); 
@@ -387,7 +410,7 @@ export const prep = async (experimentsDir, coreDir) => {
 
 
   try {
-    updatePushkinJs() //This is synchronous
+    updatePushkinJs(verbose) //This is synchronous
   } catch(e) {
     throw e
   }
@@ -396,25 +419,25 @@ export const prep = async (experimentsDir, coreDir) => {
   try {
     fs.copyFileSync('pushkin/front-end/src/experiments.js', 'pushkin/front-end/experiments.js');
   } catch (e) {
-    console.error("Couldn't copy experiments.js. Make sure it exists and is in the right place.")
+    console.error("Couldn't copy experiments.js. Make sure it exists and is in the right place.");
     process.exit();
   }
   
-  console.log("Building API")
-  let builtAPI
+  if (verbose) console.log("Building API");
+  let builtAPI;
   try {
-    builtAPI = exec(`docker build -t api:latest pushkin/api`, {cwd: process.cwd()})
+    builtAPI = exec(`docker build -t api:latest pushkin/api`, {cwd: process.cwd()});
   } catch(e) {
-    console.error(`Problem building API`)
-    throw e
+    console.error(`Problem building API`);
+    throw e;
   }
-  console.log("Building server")
-  let builtServer
+  if (verbose) console.log("Building server");
+  let builtServer;
   try {
-    builtServer = exec(`docker build -t server:latest pushkin/front-end`, {cwd: process.cwd()})
+    builtServer = exec(`docker build -t server:latest pushkin/front-end`, {cwd: process.cwd()});
   } catch(e) {
-    console.error(`Problem building server`)
-    throw e
+    console.error(`Problem building server`);
+    throw e;
   }
 
   return Promise.all([builtAPI, builtServer]);

@@ -239,18 +239,19 @@ const handleViewConfig = async (what) => {
   //Thanks to https://stackoverflow.com/questions/49627044/javascript-how-to-await-multiple-promises
 }
 
-const handleUpdateDB = async () => {
+const handleUpdateDB = async (verbose) => {
+  if (verbose) console.log('--verbose flag set inside handleUpdateDB()');
   moveToProjectRoot();
   let settingUpDB, config;
   try {
      config = await loadConfig(path.join(process.cwd(), 'pushkin.yaml'));
   } catch (err) {
     console.log('Could not load pushkin.yaml');
-    throw err
+    throw err;
   }
 
   try {
-    settingUpDB = await setupdb(config.databases, path.join(process.cwd(), config.experimentsDir));
+    settingUpDB = await setupdb(config.databases, path.join(process.cwd(), config.experimentsDir, verbose));
   } catch (err) {
     console.error(err);
     process.exit();
@@ -259,22 +260,29 @@ const handleUpdateDB = async () => {
 }
 
 // For removing any .DS_Store files if present.
-const removeDS = () => {
-  console.log('Removing any .DS_Store files, if present.')
+const removeDS = (verbose) => {
+  if (verbose) {
+    console.log('--verbose flag set inside removeDS()');
+    console.log('Removing any .DS_Store files, if present.');
+  }
   shell.rm('-rf', '*/.DS_Store');
   shell.rm('-rf', './.DS_Store');
 }
 
-const handlePrep = async () => {
+const handlePrep = async (verbose) => {
+  if (verbose) console.log('--verbose flag set inside handlePrep()');
   moveToProjectRoot();
   const config = await loadConfig(path.join(process.cwd(), 'pushkin.yaml'));
   let out;
-  console.log(path.join(process.cwd(), config.experimentsDir))
-  console.log(path.join(process.cwd(), config.coreDir))
+  if (verbose) {
+    console.log(path.join(process.cwd(), config.experimentsDir));
+    console.log(path.join(process.cwd(), config.coreDir));
+  }
   try {
     out = await prep(
       path.join(process.cwd(), config.experimentsDir),
-      path.join(process.cwd(), config.coreDir)
+      path.join(process.cwd(), config.coreDir),
+      verbose
     );
   } catch (err) {
     console.error(err);
@@ -739,20 +747,21 @@ async function main() {
   program
     .command('prep')
     .description('Prepares local copy for local testing. This step includes running migrations, so be sure you have read the documentation on how that works.')
-    .option('-nm, --nomigrations', 'Do not run migrations. Be sure database structure has not changed!', false)
+    .option('-nm, --nomigrations', 'Do not run migrations. Be sure database structure has not changed!')
+    .option('-v, --verbose', 'output extra debugging info')
     .action(async (options) => {
-      let awaits
-      removeDS()
+      let awaits;
+      removeDS(options.verbose);
       try {
         if (options.nomigrations) {
           //only running prep
-          awaits = [handlePrep()]
+          awaits = [handlePrep(options.verbose)];
         } else {
           //running prep and updated DB
-          awaits = [handlePrep(), handleUpdateDB()];
+          awaits = [handlePrep(options.verbose), handleUpdateDB(options.verbose)];
         }
       } catch (e) {
-        console.error(e)
+        console.error(e);
         process.exit();
       }
       return await Promise.all(awaits);
@@ -761,7 +770,8 @@ async function main() {
   program
     .command('start')
     .description('Starts local deploy for debugging purposes. To start only the front end (no databases), see the manual.')
-    .option('-nc, --nocache', 'Rebuild all images from scratch, without using the cache.', false)
+    .option('-nc, --nocache', 'Rebuild all images from scratch, without using the cache.')
+    .option('-v, --verbose', 'output extra debugging info')
     .action(async (options) => {
       console.log("starting start...")
       moveToProjectRoot();
