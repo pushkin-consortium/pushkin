@@ -251,7 +251,7 @@ const handleUpdateDB = async (verbose) => {
   }
 
   try {
-    settingUpDB = await setupdb(config.databases, path.join(process.cwd(), config.experimentsDir, verbose));
+    settingUpDB = await setupdb(config.databases, path.join(process.cwd(), config.experimentsDir), verbose);
   } catch (err) {
     console.error(err);
     process.exit();
