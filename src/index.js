@@ -666,12 +666,13 @@ async function main() {
       armageddon: delete AWS resources created by Pushkin.\n
       list: list AWS resources created by Pushkin (and possibly others).`)
     .option('-f, --force', 'Applies only to init. Resets installation options. Does not delete AWS resources (for that, use aws armageddon).', false)
+    .option('-v, --verbose', 'output extra debugging info')
     .action(async (cmd, options) => {
       moveToProjectRoot();
       switch (cmd){
         case 'init':
           try {
-            setEnv(false) //asynchronous
+            setEnv(false, options.verbose) //asynchronous
             await handleAWSInit(options.force);
           } catch(e) {
             console.error(e)
@@ -773,15 +774,15 @@ async function main() {
     .option('-nc, --nocache', 'Rebuild all images from scratch, without using the cache.')
     .option('-v, --verbose', 'output extra debugging info')
     .action(async (options) => {
-      console.log("starting start...")
+      if (options.verbose) console.log("starting start...");
       moveToProjectRoot();
-      console.log(`Setting front-end 'environment variable'`)
+      if (options.verbose) console.log(`Setting front-end 'environment variable'`);
       try {
-        setEnv(true) //this is synchronous
+        setEnv(true, options.verbose) //this is synchronous
       } catch (e) {
         console.error(`Unable to update .env.js`)
       }
-      console.log(`Copying experiments.js to front-end.`)
+      if (options.verbose) console.log(`Copying experiments.js to front-end.`);
       try {
         fs.copyFileSync('pushkin/front-end/src/experiments.js', 'pushkin/front-end/experiments.js');
       } catch (e) {
@@ -790,13 +791,13 @@ async function main() {
       }
       if (options.nocache){
         try {
-          await compose.buildAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: true, commandOptions: ["--no-cache"]})    
+          await compose.buildAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: options.verbose, commandOptions: ["--no-cache"]})    
         } catch (e) {
           console.error("Problem rebuilding docker images");
           throw e;
         }
-        console.log(`Running docker-compose up...`)
-        compose.upAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: true, commandOptions: ["--remove-orphans"]})
+        if (options.verbose) console.log(`Running docker-compose up...`);
+        compose.upAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: options.verbose, commandOptions: ["--remove-orphans"]})
           .then(
             out => { 
               console.log(out.out, 'Starting. You may not be able to load localhost for a minute or two.')
@@ -804,13 +805,13 @@ async function main() {
             err => { console.log('something went wrong:', err)}
           );
       } else {
-        compose.upAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: true, commandOptions: ["--build","--remove-orphans"]})
+        compose.upAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: options.verbose, commandOptions: ["--build","--remove-orphans"]})
           .then(
             out => { console.log(out.out, 'Starting. You may not be able to load localhost for a minute or two.')},
             err => { console.log('something went wrong:', err)}
-          );        
+          );
       }
-      return;      
+      return;
     })
 
   program
@@ -823,7 +824,7 @@ async function main() {
           out => { console.log(out.out, 'done')},
           err => { console.log('something went wrong:', err)}
         );
-      return;      
+      return;
     })
 
   program
