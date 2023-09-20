@@ -289,10 +289,10 @@ export async function migrateTransactionsDB(coreDBs, verbose) {
         } 
         resolve(ranMigrations);
       } else {
-      setTimeout(waitforTrans(verbose), 2500);
-    }
-  };
-  waitforTrans(verbose)
+        setTimeout(waitforTrans(verbose), 2500);
+      }
+    };
+    waitforTrans(verbose);
   })
 }
 
@@ -344,7 +344,7 @@ export async function setupdb(coreDBs, mainExpDir, verbose) {
           }
           resolve(migrateExpDBs)
         } else {
-        setTimeout(waitforMain(verbose), 2500);
+          setTimeout(waitforMain(verbose), 2500);
         }
       };
       waitforMain(verbose);
