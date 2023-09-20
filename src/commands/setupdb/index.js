@@ -72,7 +72,7 @@ export async function getMigrations(mainExpDir, production, verbose) {
     if (!fs.lstatSync(expDir).isDirectory()) return;
     // load exp config, skip if there isn't any
     const expConfigPath = path.join(expDir, 'config.yaml');
-    fixConfig(expConfigPath) //this needs to finish running before we start loading migrations
+    fixConfig(expConfigPath, verbose) //this needs to finish running before we start loading migrations
     try { 
       expConfig = jsYaml.safeLoad(fs.readFileSync(expConfigPath), 'utf8'); 
     } catch (e) { 

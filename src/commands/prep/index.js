@@ -278,7 +278,6 @@ export const prep = async (experimentsDir, coreDir, verbose) => {
     process.exit();
   }
 
-
   const prepWorkerWrapper = async (exp, verbose) => {
     if (verbose) {
       console.log('--verbose flag set inside prepWorkerWrapper()');
