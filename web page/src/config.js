@@ -3,9 +3,9 @@
 
 const experimentConfig = {
     fontColor: "black",
-    fontSize: "18px",
+    fontSize: "20px",
     fontFamily: "'Open Sans', 'Arial', sans-serif",
-    correctiveFeedback: "true",
+    correctiveFeedback: true,
     responseType: "2afc"
 }
 

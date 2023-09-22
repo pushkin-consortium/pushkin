@@ -1,21 +1,18 @@
 import React from 'react';
 import pushkinClient from 'pushkin-client';
-import jsPsych from 'pushkin-jspsych';
-import { withRouter } from 'react-router-dom';
+import { initJsPsych } from 'jspsych';
 import { connect } from 'react-redux';
-import timeline_basic from './experiment';
+import { createTimeline } from './experiment';
 import jsYaml from 'js-yaml';
 const fs = require('fs');
 
 //stylin'
-import './assets/experiment.css'
+import './assets/experiment.css';
 const experimentConfig = require('./config').default;
 
-const expConfig = jsYaml.safeLoad(fs.readFileSync('../config.yaml'), 'utf8');
+const expConfig = jsYaml.load(fs.readFileSync('../config.yaml'), 'utf8');
 
 const pushkin = new pushkinClient();
-window.jsPsych = jsPsych;
-
 
 const mapStateToProps = state => {
   return {
@@ -37,28 +34,27 @@ class quizComponent extends React.Component {
   async startExperiment() {
     this.setState({ experimentStarted: true });
 
-    jsPsych.data.addProperties({ user_id: this.props.userID }); //See https://www.jspsych.org/core_library/jspsych-data/#jspsychdataaddproperties
     await pushkin.connect(this.props.api);
     await pushkin.prepExperimentRun(this.props.userID);
-    await pushkin.loadScripts([
-      'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/plugins/jspsych-html-keyboard-response.js',
-      'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/plugins/jspsych-survey-likert.js',
-      'https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/plugins/jspsych-html-slider-response.js',
-    ]);
-    const timeline = pushkin.setSaveAfterEachStimulus(timeline_basic);
-    await jsPsych.init({
+
+    const jsPsych = initJsPsych({
       display_element: document.getElementById('jsPsychTarget'),
-      timeline: timeline,
       on_finish: this.endExperiment.bind(this),
+      on_data_update: (data) => pushkin.saveStimulusResponse(data),
     });
 
-    document.getElementById('jsPsychTarget').focus();
+    jsPsych.data.addProperties({user_id: this.props.userID}); //See https://www.jspsych.org/core_library/jspsych-data/#jspsychdataaddproperties
+    
+    const timeline = createTimeline(jsPsych);
 
+    jsPsych.run(timeline);
+
+    document.getElementById('jsPsychTarget').focus();
+    
     // Settings from config file
     document.getElementById('jsPsychTarget').style.color = experimentConfig.fontColor;
     document.getElementById('jsPsychTarget').style.fontSize = experimentConfig.fontSize;
     document.getElementById('jsPsychTarget').style.fontFamily = experimentConfig.fontFamily;
-    document.getElementById('jsPsychTarget').style.paddingTop = '15px';
 
     this.setState({ loading: false });
   }
@@ -70,7 +66,6 @@ class quizComponent extends React.Component {
   }
 
   render() {
-    const { match } = this.props;
 
     return (
       <div>
@@ -81,4 +76,4 @@ class quizComponent extends React.Component {
   }
 }
 
-export default withRouter(connect(mapStateToProps)(quizComponent));
+export default connect(mapStateToProps)(quizComponent);
