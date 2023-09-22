@@ -248,19 +248,18 @@ export async function setupTestTransactionsDB(verbose) {
   } catch (e) {
     if (verbose) console.log(`Migrations file for transactions table doesn't exist yet. Creating.`);
     await fs.promises.writeFile(path.join(migDir, "migrateTransactions.js"), 
-      "exports.up = function(knex) { \
-        return knex.schema.createTable('transactions', function (table) { \
-            table.increments(); \
-            table.string('query', 800).notNullable(); \
-            table.string('bindings'); \
-            table.timestamps(); \
-          }); \
-      };\
-      \
-      exports.down = function(knex) {\
-        return knex.schema.dropTable('transactions');\
-      };\
-      "
+      `exports.up = function(knex) {
+        return knex.schema.createTable('transactions', function (table) {
+            table.increments();
+            table.string('query', 800).notNullable();
+            table.string('bindings');
+            table.timestamps();
+          });
+      };
+      
+      exports.down = function(knex) {
+        return knex.schema.dropTable('transactions');
+      };`
     )
   }
   return true
