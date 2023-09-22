@@ -14,11 +14,10 @@
   "license": "MIT",
   "dependencies": {
     "@jspsych/plugin-html-keyboard-response": "^1.1.2",
-    "buffer": "^6.0.3",
     "build-if-changed": "^1.5.5",
     "js-yaml": "^4.1.0",
     "jspsych": "^7.3.3",
-    "pushkin-client": "^1.5.0",
+    "pushkin-client": "^1.7.1",
     "react": "^18.2.0",
     "react-router-dom": "^5.2.0"
   },

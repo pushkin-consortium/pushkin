@@ -7,7 +7,7 @@ import jsYaml from 'js-yaml';
 const fs = require('fs');
 
 //stylin'
-import './assets/experiment.css';
+import './assets/experiment.css'
 import experimentConfig from './config';
 
 const expConfig = jsYaml.load(fs.readFileSync('../config.yaml'), 'utf8');
@@ -40,11 +40,12 @@ class quizComponent extends React.Component {
     const jsPsych = initJsPsych({
       display_element: document.getElementById('jsPsychTarget'),
       on_finish: this.endExperiment.bind(this),
+      on_data_update: (data) => pushkin.saveStimulusResponse(data),
     });
 
     jsPsych.data.addProperties({user_id: this.props.userID}); //See https://www.jspsych.org/core_library/jspsych-data/#jspsychdataaddproperties
     
-    const timeline = pushkin.setSaveAfterEachStimulus(createTimeline(jsPsych));
+    const timeline = createTimeline(jsPsych);
 
     jsPsych.run(timeline);
 
@@ -54,8 +55,7 @@ class quizComponent extends React.Component {
     document.getElementById('jsPsychTarget').style.color = experimentConfig.fontColor;
     document.getElementById('jsPsychTarget').style.fontSize = experimentConfig.fontSize;
     document.getElementById('jsPsychTarget').style.fontFamily = experimentConfig.fontFamily;
-    document.getElementById('jsPsychTarget').style.paddingTop = '15px';
-
+    
     this.setState({ loading: false });
   }
 

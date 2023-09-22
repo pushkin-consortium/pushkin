@@ -1,4 +1,4 @@
-@import url('https://cdn.jsdelivr.net/gh/jspsych/jsPsych@6.0.4/css/jspsych.css');
+@import url('https://unpkg.com/jspsych@7.3.3/css/jspsych.css');
 
 /* Fixation box styling */
 .fixation {
