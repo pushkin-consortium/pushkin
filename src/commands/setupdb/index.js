@@ -250,11 +250,11 @@ export async function setupTestTransactionsDB(verbose) {
     await fs.promises.writeFile(path.join(migDir, "migrateTransactions.js"), 
       `exports.up = function(knex) {
         return knex.schema.createTable('transactions', function (table) {
-            table.increments();
-            table.string('query', 800).notNullable();
-            table.string('bindings');
-            table.timestamps();
-          });
+          table.increments();
+          table.string('query', 800).notNullable();
+          table.string('bindings');
+          table.timestamps();
+        });
       };
       
       exports.down = function(knex) {
