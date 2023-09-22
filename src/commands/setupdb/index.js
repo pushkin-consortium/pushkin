@@ -289,7 +289,7 @@ export async function migrateTransactionsDB(coreDBs, verbose) {
         } 
         resolve(ranMigrations);
       } else {
-        setTimeout(waitforTrans(verbose), 2500);
+        setTimeout(waitforTrans, 2500, verbose); // verbose needs to be passed in as argument to the function reference
       }
     };
     waitforTrans(verbose);
@@ -344,7 +344,7 @@ export async function setupdb(coreDBs, mainExpDir, verbose) {
           }
           resolve(migrateExpDBs)
         } else {
-          setTimeout(waitforMain(verbose), 2500);
+          setTimeout(waitforMain, 2500, verbose); // verbose needs to be passed in as argument to the function reference
         }
       };
       waitforMain(verbose);
