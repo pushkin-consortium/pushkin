@@ -7,8 +7,7 @@ import jsYaml from 'js-yaml';
 const fs = require('fs');
 
 //stylin'
-import './assets/experiment.css';
-import experimentConfig from './config';
+import './assets/experiment.css'
 
 const expConfig = jsYaml.load(fs.readFileSync('../config.yaml'), 'utf8');
 
@@ -45,18 +44,11 @@ class quizComponent extends React.Component {
 
     jsPsych.data.addProperties({user_id: this.props.userID}); //See https://www.jspsych.org/core_library/jspsych-data/#jspsychdataaddproperties
     
-    const timeline = pushkin.setSaveAfterEachStimulus(createTimeline(jsPsych));
+    const timeline = createTimeline(jsPsych);
 
     jsPsych.run(timeline);
 
     document.getElementById('jsPsychTarget').focus();
-    
-    // Settings from config file
-    document.getElementById('jsPsychTarget').style.color = experimentConfig.fontColor;
-    document.getElementById('jsPsychTarget').style.fontSize = experimentConfig.fontSize;
-    document.getElementById('jsPsychTarget').style.fontFamily = experimentConfig.fontFamily;
-    document.getElementById('jsPsychTarget').style.paddingTop = '15px';
-
     this.setState({ loading: false });
   }
 
