@@ -7,7 +7,8 @@ import jsYaml from 'js-yaml';
 const fs = require('fs');
 
 //stylin'
-import './assets/experiment.css'
+import './assets/experiment.css';
+import experimentConfig from './config';
 
 const expConfig = jsYaml.load(fs.readFileSync('../config.yaml'), 'utf8');
 
@@ -49,6 +50,12 @@ class quizComponent extends React.Component {
     jsPsych.run(timeline);
 
     document.getElementById('jsPsychTarget').focus();
+    
+    // Settings from config file
+    document.getElementById('jsPsychTarget').style.color = experimentConfig.fontColor;
+    document.getElementById('jsPsychTarget').style.fontSize = experimentConfig.fontSize;
+    document.getElementById('jsPsychTarget').style.fontFamily = experimentConfig.fontFamily;
+
     this.setState({ loading: false });
   }
 
