@@ -127,7 +127,7 @@ export function createTimeline(jsPsych) {
                     let height = document.querySelector('.jspsych-content-wrapper').offsetHeight;
                     return [width, height];
                 },
-                data: {stimulus: 'placeholder'} // For testing purposes
+                data: {stimulus: jsPsych.timelineVariable('sentence')},
             },
             // Integrate the conditional timeline for comprehension questions
             comprehension_questions
