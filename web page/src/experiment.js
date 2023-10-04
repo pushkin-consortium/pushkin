@@ -127,6 +127,7 @@ export function createTimeline(jsPsych) {
                     let height = document.querySelector('.jspsych-content-wrapper').offsetHeight;
                     return [width, height];
                 },
+                // For now, all plugins need to generate a data propoerty called "stimulus"
                 data: {stimulus: jsPsych.timelineVariable('sentence')},
             },
             // Integrate the conditional timeline for comprehension questions
