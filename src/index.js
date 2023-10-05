@@ -239,18 +239,19 @@ const handleViewConfig = async (what) => {
   //Thanks to https://stackoverflow.com/questions/49627044/javascript-how-to-await-multiple-promises
 }
 
-const handleUpdateDB = async () => {
+const handleUpdateDB = async (verbose) => {
+  if (verbose) console.log('--verbose flag set inside handleUpdateDB()');
   moveToProjectRoot();
   let settingUpDB, config;
   try {
      config = await loadConfig(path.join(process.cwd(), 'pushkin.yaml'));
   } catch (err) {
     console.log('Could not load pushkin.yaml');
-    throw err
+    throw err;
   }
 
   try {
-    settingUpDB = await setupdb(config.databases, path.join(process.cwd(), config.experimentsDir));
+    settingUpDB = await setupdb(config.databases, path.join(process.cwd(), config.experimentsDir), verbose);
   } catch (err) {
     console.error(err);
     process.exit();
@@ -259,22 +260,29 @@ const handleUpdateDB = async () => {
 }
 
 // For removing any .DS_Store files if present.
-const removeDS = () => {
-  console.log('Removing any .DS_Store files, if present.')
+const removeDS = (verbose) => {
+  if (verbose) {
+    console.log('--verbose flag set inside removeDS()');
+    console.log('Removing any .DS_Store files, if present.');
+  }
   shell.rm('-rf', '*/.DS_Store');
   shell.rm('-rf', './.DS_Store');
 }
 
-const handlePrep = async () => {
+const handlePrep = async (verbose) => {
+  if (verbose) console.log('--verbose flag set inside handlePrep()');
   moveToProjectRoot();
   const config = await loadConfig(path.join(process.cwd(), 'pushkin.yaml'));
   let out;
-  console.log(path.join(process.cwd(), config.experimentsDir))
-  console.log(path.join(process.cwd(), config.coreDir))
+  if (verbose) {
+    console.log(path.join(process.cwd(), config.experimentsDir));
+    console.log(path.join(process.cwd(), config.coreDir));
+  }
   try {
     out = await prep(
       path.join(process.cwd(), config.experimentsDir),
-      path.join(process.cwd(), config.coreDir)
+      path.join(process.cwd(), config.coreDir),
+      verbose
     );
   } catch (err) {
     console.error(err);
@@ -386,8 +394,9 @@ const getVersions = async (url) => {
   return verList
 }
 
-const handleInstall = async (what) => {
+const handleInstall = async (what, verbose) => {
   try {
+    if (verbose) console.log('--verbose flag set inside handleInstall()');
     if (what == 'site') {
       const siteList = await listSiteTemplates();
       inquirer.prompt([
@@ -398,8 +407,9 @@ const handleInstall = async (what) => {
             inquirer.prompt(
               [{ type: 'input', name: 'path', message: 'What is the absolute path to your site template?'}]
             ).then(async (answers) => {
-              await copyPushkinSite(process.cwd(), answers.path)
-              await setupTestTransactionsDB() //Not distributed with sites since it's the same for all of them.
+              await copyPushkinSite(process.cwd(), answers.path, verbose)
+              if (verbose) console.log("setting up transactions db");
+              await setupTestTransactionsDB(verbose) //Not distributed with sites since it's the same for all of them.
             })
           }else if (siteType == "url") {
             inquirer.prompt(
@@ -419,8 +429,9 @@ const handleInstall = async (what) => {
                 inquirer.prompt(
                   [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version?'}]
                 ).then(async (answers) => {
-                  await getPushkinSite(process.cwd(), verList[answers.version])
-                  await setupTestTransactionsDB() //Not distributed with sites since it's the same for all of them.
+                  await getPushkinSite(process.cwd(), verList[answers.version], verbose)
+                  if (verbose) console.log("setting up transactions db");
+                  await setupTestTransactionsDB(verbose) //Not distributed with sites since it's the same for all of them.
                 })
               })
             })
@@ -430,9 +441,9 @@ const handleInstall = async (what) => {
               inquirer.prompt(
                 [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version? (Recommend:'.concat(Object.keys(verList)[0]).concat(')')}]
               ).then(async (answers) => {
-                await getPushkinSite(process.cwd(), verList[answers.version])
-                console.log("now setting up transactions db")
-                await setupTestTransactionsDB() //Not distributed with sites since it's the same for all of them.
+                await getPushkinSite(process.cwd(), verList[answers.version], verbose)
+                if (verbose) console.log("setting up transactions db");
+                await setupTestTransactionsDB(verbose) //Not distributed with sites since it's the same for all of them.
               })
             })
           }
@@ -455,7 +466,7 @@ const handleInstall = async (what) => {
               inquirer.prompt(
                 [{ type: 'input', name: 'path', message: 'What is the absolute path to your experiment template?'}]
               ).then(async (answers) => {
-                await copyExpTemplate(path.join(process.cwd(), config.experimentsDir), answers.path, longName, shortName, process.cwd())
+                await copyExpTemplate(path.join(process.cwd(), config.experimentsDir), answers.path, longName, shortName, process.cwd(), verbose)
               })
             } else if (expType == "url") {
               inquirer.prompt(
@@ -477,7 +488,7 @@ const handleInstall = async (what) => {
                   ).then(async (answers) => {
                     let ver = answers.version
                     const url = verList[ver]
-                    await getExpTemplate(path.join(process.cwd(), config.experimentsDir), url, longName, shortName, process.cwd())
+                    await getExpTemplate(path.join(process.cwd(), config.experimentsDir), url, longName, shortName, process.cwd(), verbose)
                   })
                 })
               })
@@ -489,7 +500,7 @@ const handleInstall = async (what) => {
                 ).then(async (answers) => {
                   let ver = answers.version
                   const url = verList[ver]
-                  await getExpTemplate(path.join(process.cwd(), config.experimentsDir), url, longName, shortName, process.cwd())
+                  await getExpTemplate(path.join(process.cwd(), config.experimentsDir), url, longName, shortName, process.cwd(), verbose)
                 })
               })
             }
@@ -634,11 +645,12 @@ async function main() {
 
   program
     .command('install <what>')
+    .option('-v, --verbose', 'output extra debugging info')
     .description(`Install template website ('site') or experiment ('experiment').`)
-    .action((what) => {
+    .action((what, options) => {
       if (what == 'site' | what == 'experiment'){
         try {
-          handleInstall(what)  
+          handleInstall(what, options.verbose)
         } catch(e) {
           console.error(e)
           process.exit()
@@ -656,12 +668,13 @@ async function main() {
       armageddon: delete AWS resources created by Pushkin.\n
       list: list AWS resources created by Pushkin (and possibly others).`)
     .option('-f, --force', 'Applies only to init. Resets installation options. Does not delete AWS resources (for that, use aws armageddon).', false)
+    .option('-v, --verbose', 'output extra debugging info')
     .action(async (cmd, options) => {
       moveToProjectRoot();
       switch (cmd){
         case 'init':
           try {
-            setEnv(false) //asynchronous
+            setEnv(false, options.verbose) //asynchronous
             await handleAWSInit(options.force);
           } catch(e) {
             console.error(e)
@@ -737,20 +750,21 @@ async function main() {
   program
     .command('prep')
     .description('Prepares local copy for local testing. This step includes running migrations, so be sure you have read the documentation on how that works.')
-    .option('-nm, --nomigrations', 'Do not run migrations. Be sure database structure has not changed!', false)
+    .option('-nm, --nomigrations', 'Do not run migrations. Be sure database structure has not changed!')
+    .option('-v, --verbose', 'output extra debugging info')
     .action(async (options) => {
-      let awaits
-      removeDS()
+      let awaits;
+      removeDS(options.verbose);
       try {
         if (options.nomigrations) {
           //only running prep
-          awaits = [handlePrep()]
+          awaits = [handlePrep(options.verbose)];
         } else {
           //running prep and updated DB
-          awaits = [handlePrep(), handleUpdateDB()];
+          awaits = [handlePrep(options.verbose), handleUpdateDB(options.verbose)];
         }
       } catch (e) {
-        console.error(e)
+        console.error(e);
         process.exit();
       }
       return await Promise.all(awaits);
@@ -759,17 +773,18 @@ async function main() {
   program
     .command('start')
     .description('Starts local deploy for debugging purposes. To start only the front end (no databases), see the manual.')
-    .option('-nc, --nocache', 'Rebuild all images from scratch, without using the cache.', false)
+    .option('-nc, --nocache', 'Rebuild all images from scratch, without using the cache.')
+    .option('-v, --verbose', 'output extra debugging info')
     .action(async (options) => {
-      console.log("starting start...")
+      if (options.verbose) console.log("starting start...");
       moveToProjectRoot();
-      console.log(`Setting front-end 'environment variable'`)
+      if (options.verbose) console.log(`Setting front-end 'environment variable'`);
       try {
-        setEnv(true) //this is synchronous
+        setEnv(true, options.verbose) //this is synchronous
       } catch (e) {
         console.error(`Unable to update .env.js`)
       }
-      console.log(`Copying experiments.js to front-end.`)
+      if (options.verbose) console.log(`Copying experiments.js to front-end.`);
       try {
         fs.copyFileSync('pushkin/front-end/src/experiments.js', 'pushkin/front-end/experiments.js');
       } catch (e) {
@@ -778,13 +793,13 @@ async function main() {
       }
       if (options.nocache){
         try {
-          await compose.buildAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: true, commandOptions: ["--no-cache"]})    
+          await compose.buildAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: options.verbose, commandOptions: ["--no-cache"]})    
         } catch (e) {
           console.error("Problem rebuilding docker images");
           throw e;
         }
-        console.log(`Running docker-compose up...`)
-        compose.upAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: true, commandOptions: ["--remove-orphans"]})
+        if (options.verbose) console.log(`Running docker-compose up...`);
+        compose.upAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: options.verbose, commandOptions: ["--remove-orphans"]})
           .then(
             out => { 
               console.log(out.out, 'Starting. You may not be able to load localhost for a minute or two.')
@@ -792,13 +807,13 @@ async function main() {
             err => { console.log('something went wrong:', err)}
           );
       } else {
-        compose.upAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: true, commandOptions: ["--build","--remove-orphans"]})
+        compose.upAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: options.verbose, commandOptions: ["--build","--remove-orphans"]})
           .then(
             out => { console.log(out.out, 'Starting. You may not be able to load localhost for a minute or two.')},
             err => { console.log('something went wrong:', err)}
-          );        
+          );
       }
-      return;      
+      return;
     })
 
   program
@@ -811,7 +826,7 @@ async function main() {
           out => { console.log(out.out, 'done')},
           err => { console.log('something went wrong:', err)}
         );
-      return;      
+      return;
     })
 
   program

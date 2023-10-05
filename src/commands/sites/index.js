@@ -17,16 +17,19 @@ export function listSiteTemplates() {
   return templates;
 }
 
-export const promiseFolderInit = async (initDir, dir) => {
-  console.log(`Installing dependencies for ${dir}`);
+export const promiseFolderInit = async (initDir, dir, verbose) => {
+  if (verbose) {
+    console.log('--verbose flag set inside promiseFolderInit()');
+    console.log(`Installing dependencies for ${dir}`);
+  }
   try {
     await exec(pacMan.concat(' --mutex network install'), { cwd: path.join(initDir, dir) })
-    console.log(`Building ${dir}`);
-    updatePushkinJs(); //synchronous
-    setEnv(false); //synchronous
-    console.log(`Building front end`)
+    if (verbose) console.log(`Building ${dir}`);
+    updatePushkinJs(verbose); //synchronous
+    setEnv(false, verbose); //synchronous
+    if (verbose) console.log(`Building front end`);
     await exec(pacMan.concat(' --mutex network run build'), { cwd: path.join(initDir, dir) })
-    console.log(`${dir} is built`);
+    if (verbose) console.log(`${dir} is built`);
   } catch(e) {
     console.error(`Problem installing dependencies for ${dir}`)
     throw(e)
@@ -34,7 +37,9 @@ export const promiseFolderInit = async (initDir, dir) => {
   return "Built"
 }
 
-export async function getPushkinSite(initDir, url) {
+export async function getPushkinSite(initDir, url, verbose) {
+  if (verbose) console.log('--verbose flag set inside getPushkinSite()');
+
   process.chdir(initDir); // Node command to change directory
 
   const newDirs = ['pushkin', 'experiments'];
@@ -55,8 +60,10 @@ export async function getPushkinSite(initDir, url) {
     console.error('URL is not well-defined.');
     return;
   }
-  console.log(`retrieving from ${url}`);
-  console.log('be patient...');
+  if (verbose) {
+    console.log(`retrieving from ${url}`);
+    console.log('be patient...');
+  }
   let zipball_url;
   let response
   try {
@@ -75,7 +82,7 @@ export async function getPushkinSite(initDir, url) {
       })
       .pipe(fs.createWriteStream('temp.zip'))
       .on('finish', async () => {
-        console.log('finished downloading');
+        if (verbose) console.log('finished downloading');
         var zip = new admZip('temp.zip');
         await zip.extractAllTo('.', true);
         await Promise.all([
@@ -95,14 +102,16 @@ export async function getPushkinSite(initDir, url) {
           const shellresp = shell.rm('-rf','__MACOSX'); //fs doesn't have a stable directly removal function yet
         }      
         fs.promises.unlink('temp.zip');
-        const apiPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'api').catch((err) => { console.error(err); });
-        const frontendPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'front-end').catch((err) => { console.error(err); });
+        const apiPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'api', verbose).catch((err) => { console.error(err); });
+        const frontendPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'front-end', verbose).catch((err) => { console.error(err); });
         resolve(Promise.all([apiPromise, frontendPromise]));
       })
   })
 }
 
-export async function copyPushkinSite(initDir, pathToSite) {
+export async function copyPushkinSite(initDir, pathToSite, verbose) {
+  if (verbose) console.log('--verbose flag set inside copyPushkinSite()');
+  
   //For using a local Pushkin site template
   process.chdir(initDir); // Node command to change directory
 
@@ -142,8 +151,10 @@ export async function copyPushkinSite(initDir, pathToSite) {
     }
   })
   // looks good
-  console.log(`retrieving from ${pathToSite}`);
-  console.log('be patient...');
+  if (verbose) {
+    console.log(`retrieving from ${pathToSite}`);
+    console.log('be patient...');
+  }
   try {
     fs.cpSync(pathToSite, '.', {recursive: true})
   } catch (error) {
@@ -157,8 +168,8 @@ export async function copyPushkinSite(initDir, pathToSite) {
     if (fs.existsSync('__MACOSX')) {
       const shellresp = shell.rm('-rf','__MACOSX'); //fs doesn't have a stable directly removal function yet
     }      
-    const apiPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'api').catch((err) => { console.error(err); });
-    const frontendPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'front-end').catch((err) => { console.error(err); });
+    const apiPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'api', verbose).catch((err) => { console.error(err); });
+    const frontendPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'front-end', verbose).catch((err) => { console.error(err); });
     resolve(Promise.all([apiPromise, frontendPromise, pushkinYaml, configJS, mkExps]));
   })
 }

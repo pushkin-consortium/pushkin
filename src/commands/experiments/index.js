@@ -21,24 +21,25 @@ export async function listExpTemplates() {
 }
 
 
-const promiseExpFolderInit = async (initDir, dir, rootDir, modName, buildPath) => {
+const promiseExpFolderInit = async (initDir, dir, rootDir, modName, buildPath, verbose) => {
   //Similar to 'promiseFolderInit' in sites/index.js.
   //Modified to take advantage of yalc (not relevant for sites)
+  if (verbose) console.log('--verbose flag set inside promiseExpFolderInit()');
   return new Promise ((resolve, reject) => {
-    console.log(`Installing dependencies for ${dir}`);
+    if (verbose) console.log(`Installing dependencies for ${dir}`);
     try {
       exec(pacMan.concat(' --mutex network install'), { cwd: path.join(initDir, dir) })
         .then(() => {
-          console.log(`Building ${modName} from ${dir}`);
+          if (verbose) console.log(`Building ${modName} from ${dir}`);
           exec(pacMan.concat(' --mutex network run build'), { cwd: path.join(initDir, dir) })
             .then(() => {
-              console.log(`${modName} is built`);
+              if (verbose) console.log(`${modName} is built`);
               exec('yalc publish', { cwd: path.join(initDir, dir) })
                 .then(() => {
-                  console.log(`${modName} is published locally via yalc`);
+                  if (verbose) console.log(`${modName} is published locally via yalc`);
                   exec('yalc add '.concat(modName), { cwd: path.join(rootDir, buildPath) })
                     .then(() => {
-                      console.log(`${modName} added to build cycle via yalc`);                  
+                      if (verbose) console.log(`${modName} added to build cycle via yalc`);                  
                       resolve(modName)
                     })
                 })
@@ -51,12 +52,13 @@ const promiseExpFolderInit = async (initDir, dir, rootDir, modName, buildPath) =
   })
 }
 
-export async function getExpTemplate(experimentsDir, url, longName, newExpName, rootDir) {
+export async function getExpTemplate(experimentsDir, url, longName, newExpName, rootDir, verbose) {
+  if (verbose) console.log('--verbose flag set inside getExpTemplate()');
   if (!isValidExpName(newExpName)) {
     console.error(`'${newExpName}' is not a valid name. Names must start with a letter and can only contain alphanumeric characters.`);
     return;
   }
-  console.log(`Making ${newExpName} in ${experimentsDir}`);
+  if (verbose) console.log(`Making ${newExpName} in ${experimentsDir}`);
   const newDir = path.join(experimentsDir, newExpName);
   if (fs.existsSync(newDir) && fs.lstatSync(newDir).isDirectory()) {
     console.error(`A directory in the experiments folder already exists with this name (${newExpName})`);
@@ -69,8 +71,8 @@ export async function getExpTemplate(experimentsDir, url, longName, newExpName, 
     return;
   }
   fs.mkdirSync(newDir);
-  console.log(`retrieving from ${url}`);
-  console.log('be patient...');
+  if (verbose) console.log(`retrieving from ${url}`);
+  if (verbose) console.log('be patient...');
   let response
   try {
     response = await got(url);
@@ -93,16 +95,17 @@ export async function getExpTemplate(experimentsDir, url, longName, newExpName, 
     })
     .pipe(fs.createWriteStream('temp.zip'))
     .on('finish', async () => {
-      console.log('finished downloading');
+      if (verbose) console.log('finished downloading');
       var zip = new admZip('temp.zip');
       await zip.extractAllTo(newDir, true);
       await fs.promises.unlink('temp.zip');
       shell.rm('-rf','__MACOSX');
-      await initExperiment(newDir, newExpName, longName, rootDir);
+      await initExperiment(newDir, newExpName, longName, rootDir, verbose);
     })
 }
 
-export async function copyExpTemplate(experimentsDir, expPath, longName, newExpName, rootDir) {
+export async function copyExpTemplate(experimentsDir, expPath, longName, newExpName, rootDir, verbose) {
+  if (verbose) console.log('--verbose flag set inside copyExpTemplate()');
   if (!expPath) {
     console.error('No path provided.');
     return;
@@ -142,7 +145,7 @@ export async function copyExpTemplate(experimentsDir, expPath, longName, newExpN
     console.error(`'${newExpName}' is not a valid name. Names must start with a letter and can only contain alphanumeric characters.`);
     return;
   }
-  console.log(`Making ${newExpName} in ${experimentsDir}`);
+  if (verbose) console.log(`Making ${newExpName} in ${experimentsDir}`);
   const newDir = path.join(experimentsDir, newExpName);
   if (fs.existsSync(newDir) && fs.lstatSync(newDir).isDirectory()) {
     console.error(`A directory in the experiments folder already exists with this name (${newExpName})`);
@@ -150,8 +153,10 @@ export async function copyExpTemplate(experimentsDir, expPath, longName, newExpN
   }
 
   fs.mkdirSync(newDir);
-  console.log(`copying from ${expPath}`);
-  console.log('be patient...');
+  if (verbose) {
+    console.log(`copying from ${expPath}`);
+    console.log('be patient...');
+  }
   try {
     fs.cpSync(expPath, newDir, {recursive: true})
   } catch (error) {
@@ -159,10 +164,11 @@ export async function copyExpTemplate(experimentsDir, expPath, longName, newExpN
     throw error; 
   }  
   shell.rm('-rf','__MACOSX');
-  return(initExperiment(newDir, newExpName, longName, rootDir));
+  return(initExperiment(newDir, newExpName, longName, rootDir, verbose));
 }
 
-const initExperiment = async (expDir, expName, longName, rootDir) => {
+const initExperiment = async (expDir, expName, longName, rootDir, verbose) => {
+  if (verbose) console.log('--verbose flag set inside initExperiment()');
   const options = {
     files: expDir.concat('/**/*.*'),
     from: /pushkintemplate/g,
@@ -216,19 +222,19 @@ const initExperiment = async (expDir, expName, longName, rootDir) => {
     console.error("Unable to update config.yaml");
     throw e
   }
-  const apiPromise = promiseExpFolderInit(expDir, expConfig.apiControllers.location, rootDir, expName.concat('_api'), 'pushkin/api').catch((err) => { console.error(err); });
-  const webPromise = promiseExpFolderInit(expDir, expConfig.webPage.location, rootDir, expName.concat('_web'), 'pushkin/front-end').catch((err) => { console.error(err); });
+  const apiPromise = promiseExpFolderInit(expDir, expConfig.apiControllers.location, rootDir, expName.concat('_api'), 'pushkin/api', verbose).catch((err) => { console.error(err); });
+  const webPromise = promiseExpFolderInit(expDir, expConfig.webPage.location, rootDir, expName.concat('_web'), 'pushkin/front-end', verbose).catch((err) => { console.error(err); });
   //note that Worker uses a different function, because it doesn't need yalc; it's published straight to Docker
-  const workerPromise = promiseFolderInit(expDir, 'worker').catch((err) => { console.error(err); });
+  const workerPromise = promiseFolderInit(expDir, 'worker', verbose).catch((err) => { console.error(err); });
 
   // write out new compose file with worker service
   const composeFileLoc = path.join(path.join(rootDir, 'pushkin'), 'docker-compose.dev.yml');
   let compFile;
   try { 
     compFile = jsYaml.safeLoad(fs.readFileSync(composeFileLoc), 'utf8'); 
-    console.log('loaded compFile')
+    if (verbose) console.log('loaded compFile');
   } catch (e) { 
-    console.error('Failed to load main docker compose file: ',e);
+    console.error('Failed to load main docker compose file: ', e);
     process.exit() 
   }
   await workerPromise //Need this to write docker-compose file
@@ -272,4 +278,3 @@ const initExperiment = async (expDir, expName, longName, rootDir) => {
 
   return await Promise.all([ webPromise, renamedMigrations])
 };
-
