@@ -6,14 +6,14 @@ description: Start here to build a basic Pushkin site and experiment.
 
 ## Skip to section
 
-* [Creating a basic new Pushkin site](./#creating-basic-new-pushkin-site)
-* [Updating configs](./#updating-configs)
-* [Making an experiment](./#making-an-experiment)
-* [Setting up logins](./#setting-up-logins)
-* [Local testing](./#local-testing)
-* [Updating](./#updating)
-* [Viewing your database with a Postgres manager](./#viewing-your-database-with-a-postgres-manager)
-* [Starting over](./#starting-over)
+- [Creating a basic new Pushkin site](./#creating-basic-new-pushkin-site)
+- [Updating configs](./#updating-configs)
+- [Making an experiment](./#making-an-experiment)
+- [Setting up logins](./#setting-up-logins)
+- [Local testing](./#local-testing)
+- [Updating](./#updating)
+- [Viewing your database with a Postgres manager](./#viewing-your-database-with-a-postgres-manager)
+- [Starting over](./#starting-over)
 
 **If you haven't installed pushkin-cli and its dependencies, start** [**here**](../installing-pushkin-and-dependencies/) **first.**
 
@@ -38,7 +38,7 @@ Install your first pushkin site the in the directory you just created:
  pushkin install site
 ```
 
-You will be asked to select a site template to use. Choose **default**, then choose the recommended version.
+You will be asked to select a site template to use. Choose **basic**, then choose the recommended version.
 
 ![](../../.gitbook/assets/quickstart_2.gif)
 
@@ -68,35 +68,33 @@ Open `pushkin.yaml` in your project root directory. It should look something lik
 
 ```yaml
 # main directories relative to project root ('..')
-experimentsDir: 'experiments'
-coreDir: 'pushkin'
-DockerHubID: ''
+experimentsDir: "experiments"
+coreDir: "pushkin"
+DockerHubID: ""
 
 # databases configs experiments can use
 databases:
   localtestdb:
-    user: 'postgres'
-    pass: 'example'
-    url: 'test_db'
-    name: 'test_db'
-    host: 'localhost'
+    user: "postgres"
+    pass: "example"
+    url: "test_db"
+    name: "test_db"
+    host: "localhost"
 
 # basic site configuration
 info:
-  rootDomain: 'localhost'
-  whoAmI: 'Citizen Science Website'
-  hashtags: 'science, learn'
-  email: 'me@mydomain.com'
-  shortName: 'CSW'
+  rootDomain: "localhost"
+  whoAmI: "Citizen Science Website"
+  hashtags: "science, learn"
+  email: "me@mydomain.com"
+  shortName: "CSW"
 addons:
   useForum: false
   useAuth: true
-  authDomain: '<YOUR_AUTH0_DOMAIN>'
-  authClientID: '<YOUR_AUTH0_CLIENT_ID>'    
-salt: 'abc123'
-fc: {
-  popup: false
-}
+  authDomain: "<YOUR_AUTH0_DOMAIN>"
+  authClientID: "<YOUR_AUTH0_CLIENT_ID>"
+salt: "abc123"
+fc: { popup: false }
 ```
 
 You can ignore most of these (or all, if you want to keep the defaults). But probably you should change:
@@ -106,10 +104,10 @@ You can ignore most of these (or all, if you want to keep the defaults). But pro
 - hashtags: These are hashtags used for social media
 - email: An email where notifications, etc., will be sent to.
 
-The one you should *definitely* change is `salt`. This is used to encrypt private information. Type in any alphanumeric text here -- for instance: 
+The one you should _definitely_ change is `salt`. This is used to encrypt private information. Type in any alphanumeric text here -- for instance:
 
 ```yaml
-   salt: 'personwomanmancameratv'
+salt: "personwomanmancameratv"
 ```
 
 ### Making an experiment
@@ -220,7 +218,7 @@ Now, let’s look at your website! Make sure Docker is running by running the co
 
 \(See example output for this command [here](sample_output.md#example-output-for-pushkin-start).\)
 
-Now browse to `http://localhost` to see the stub website. 
+Now browse to `http://localhost` to see the stub website.
 
 ![](../../.gitbook/assets/quickstart_6.gif)
 
@@ -234,6 +232,7 @@ When you are done looking at your website, stop it by running:
 ```bash
  pushkin stop
 ```
+
 ![](../../.gitbook/assets/quickstart_7.gif)
 
 If you don’t do that, the web server will keep running in Docker until you quit Docker or restart. When the command has finished running, it should output `done`.
@@ -246,7 +245,9 @@ Every time you update code or add an experiment, you’ll need to run pushkin pr
  pushkin prep
  pushkin start
 ```
+
 ### Viewing your database with a Postgres manager
+
 By default, the Pushkin creates a database called `test_db` where your data is stored. (This is explained in further detail [here](../../advanced/experiment-structure/experiment-config-files.md#database).) In order to view your database and easily see your data, you should install a Postgres Manager such as [SQLPro for Postgres](https://macpostgresclient.com/), which costs $7.99/month after the free trial ends. Free and open-source managers are also available \(e.g., [pgAdmin](https://www.pgadmin.org/download/)). Or, if you become very comfortable connecting to postgres through the command line \(not documented in this tutorial\), then you may not need a Postgres manager.
 
 This tutorial will assume that you've downloaded and installed [pgAdmin](https://www.pgadmin.org/download/). Windows, macOS, and Ubuntu users can all download pgAdmin from their [official download page](https://www.pgadmin.org/download/). Ubuntu users can also install it from the command line using [these instructions](https://www.pgadmin.org/download/pgadmin-4-apt/).
@@ -255,27 +256,27 @@ When you start pgAdmin, it will take a moment to load and then will appear as a 
 
 ![](../../.gitbook/assets/pgadmin_1.png)
 
-Under the *Quick Links*, click **Add New Server**. (Make sure you have run `pushkin start;` and that your site is running in `localhost` or at your IPv4 Public IP address.) Then follow these steps:
+Under the _Quick Links_, click **Add New Server**. (Make sure you have run `pushkin start;` and that your site is running in `localhost` or at your IPv4 Public IP address.) Then follow these steps:
 
-1. You can set the name of the server to anything, for example `Pushkin Testing`. 
-2. Then move to the *Connection* tab and set **Host name/address** to `localhost` (or your IPv4 Public IP address). 
-3. Set the password to the default password, `example`, which you can find in `pushkin.yaml`. 
-4. Click **Save** and your *Pushkin Testing* server should appear in the left sidebar.
+1. You can set the name of the server to anything, for example `Pushkin Testing`.
+2. Then move to the _Connection_ tab and set **Host name/address** to `localhost` (or your IPv4 Public IP address).
+3. Set the password to the default password, `example`, which you can find in `pushkin.yaml`.
+4. Click **Save** and your _Pushkin Testing_ server should appear in the left sidebar.
 
 ![](../../.gitbook/assets/pgadmin_2.gif)
 
 To view your data tables, navigate to the left sidebar:
 
-1. Click to expand your *Pushkin Testing* server.
-2. Select **test_db** under *Databases*. 
-3. Select **Schemas**, which will also open its subitem **public**. 
+1. Click to expand your _Pushkin Testing_ server.
+2. Select **test_db** under _Databases_.
+3. Select **Schemas**, which will also open its subitem **public**.
 4. Under **public**, choose **Tables**.
 
-By default, you should have 5 tables: `knex_migrations`, `knex_migrations_lock`, `pushkin_userMeta`, `pushkin_userResults`, and `pushkin_users`. You should also have one table for each experiment; if you've followed this tutorial, you should also have `mind_stimulusResponses`, `vocab_stimulusResponses`, and `which_english_stimulusResponses`. 
+By default, you should have 5 tables: `knex_migrations`, `knex_migrations_lock`, `pushkin_userMeta`, `pushkin_userResults`, and `pushkin_users`. You should also have one table for each experiment; if you've followed this tutorial, you should also have `mind_stimulusResponses`, `vocab_stimulusResponses`, and `which_english_stimulusResponses`.
 
 ![](../../.gitbook/assets/pgadmin_3.gif)
 
-To view a given table, right-click on it, hover over *View/Edit Data*, and click on **All Rows**, which will then appear in a new pgAdmin tab.
+To view a given table, right-click on it, hover over _View/Edit Data_, and click on **All Rows**, which will then appear in a new pgAdmin tab.
 
 ![](../../.gitbook/assets/pgadmin_4.gif)
 
@@ -286,4 +287,3 @@ For more information on how to use pgAdmin, you can read their documentation [he
 The great thing about Docker is that it saves your work. \(Read up on Docker to see what I mean.\) The bad thing is that it saves your work. Simply editing your code locally may not change what Docker thinks the code is. If you are updating something but it’s not showing up in your website or if you are getting error messages from Docker … ideally, you should read up on Docker. However, as a fail-safe, run `pushkin kill` to delete all your Pushkin-specific code in Docker. Then just run `pushkin prep` again. This will take a while but should address any Docker-specific problems. If you really need a fresh Docker install, run `pushkin armageddon`, which will completely clean Docker.
 
 **To get the latest news and updates on Pushkin, sign up for our newsletter** [**here.**](https://groups.google.com/g/pushkinjs)
-

@@ -66,7 +66,7 @@ const experimentConfig = {
 export default experimentConfig;
 ```
 
-You'll notice that `'Palatino Linotype'` is not the only `fontFamily`'s only specification. This is because it's important to list backup fonts in case your preferred font can't be loaded. You can read more about this practice [here](https://discuss.codecademy.com/t/how-many-fallback-fonts-should-i-have/363586) and see other CSS font combination ideas [here](https://www.w3schools.com/cssref/css_websafe_fonts.asp).
+You'll notice that `'Palatino Linotype'` is not `fontFamily`'s only specification. This is because it's important to list backup fonts in case your preferred font can't be loaded. You can read more about this practice [here](https://discuss.codecademy.com/t/how-many-fallback-fonts-should-i-have/363586) and see other CSS font combination ideas [here](https://www.w3schools.com/cssref/css_websafe_fonts.asp).
 
 Note that any font-related changes you make to `config.js` will not affect the font in the actual self-paced reading trials. To modify that font (and other plugin parameters), you will need to edit the trial in `experiment.js`. See the [plugin documentation](https://github.com/jspsych/jspsych-contrib/blob/main/packages/plugin-self-paced-reading/docs/jspsych-self-paced-reading.md) for details.
 
