@@ -20,23 +20,26 @@ const publishLocalPackage = async (modDir, modName) => {
     let buildCmd
     if (packageJson.dependencies['build-if-changed'] == null) {
       console.log(modName, " does not have build-if-changed installed. Recommend installation for faster runs of prep.")
-      buildCmd = pacMan.concat(' run build')
+      buildCmd = pacMan.concat(' --mutex network run build')
     } else {
       console.log("Using build-if-changed for ",modName)
       const pacRunner = (pacMan == 'yarn') ? 'yarn' : 'npx'
       buildCmd = pacRunner.concat(' build-if-changed')
     }
     console.log(`Installing dependencies for ${modDir}`);
-    try {
-      execSync(`${pacMan} install`, { cwd: modDir });
-      console.log(`Building ${modName} from ${modDir}`);
-      execSync(buildCmd, { cwd: modDir });
-      console.log(`${modName} is built`);
-      resolve(modName);
-    } catch (error) {
-      console.error(`Error building ${modName}: ${error.message}`);
-      reject(error);
-    }
+    exec(pacMan.concat(' --mutex network install'), { cwd: modDir })
+      .then(() => {
+        console.log(`Building ${modName} from ${modDir}`);
+        exec(buildCmd, { cwd: modDir })
+        .then(() => {
+          console.log(`${modName} is built`);
+          exec('yalc publish --push', { cwd: modDir })
+            .then(() => {
+              console.log(`${modName} is published locally via yalc`);
+              resolve(modName)
+            })
+        })
+      })
   })
 };
 
@@ -207,7 +210,7 @@ export const prep = async (experimentsDir, coreDir) => {
     try {
       if (packageJson.dependencies['build-if-changed'] == null) {
         console.log(where, " does not have build-if-changed installed. Recommend installation for faster runs of prep.")
-        execSync(pacMan.concat(' run build'), { cwd: where })
+        execSync(pacMan.concat(' --mutex network run build'), { cwd: where })
       } else {
         console.log("Using build-if-changed for", where)
         const pacRunner = (pacMan == 'yarn') ? 'yarn' : 'npx'

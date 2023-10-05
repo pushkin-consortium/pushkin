@@ -43,11 +43,10 @@
     "knex": "^2.4.2",
     "pg": "^8.11.0",
     "regenerator-runtime": "^0.13.5",
-    "replace-in-file": "^7.0.1",
+    "replace-in-file": "^6.1.0",
     "shelljs": "^0.8.4",
     "superagent": "^5.3.1",
     "tar": "^6.0.2",
     "uuid": "^8.3.0"
-  },
-  "packageManager": "yarn@3.6.3"
+  }
 }

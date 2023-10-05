@@ -23,20 +23,32 @@ export async function listExpTemplates() {
 
 const promiseExpFolderInit = async (initDir, dir, rootDir, modName, buildPath) => {
   //Similar to 'promiseFolderInit' in sites/index.js.
-  //Modified to take advantage of install-local (not relevant for sites)
-  console.log(`Installing dependencies for ${dir}`);
-  try {
-    await exec(`${pacMan} install`, { cwd: path.join(initDir, dir) });
-    console.log(`Building ${modName} from ${dir}`);
-    await exec(`${pacMan} run build`, { cwd: path.join(initDir, dir) });
-    console.log(`${modName} is built`);
-    await exec(`install-local ./${dir}`, { cwd: path.join(rootDir, buildPath) });
-    console.log(`${modName} installed locally using install-local`);
-    return modName;
-  } catch (error) {
-    console.error(`Error initializing ${modName}: ${error.message}`);
-    throw error;
-  }
+  //Modified to take advantage of yalc (not relevant for sites)
+  return new Promise ((resolve, reject) => {
+    console.log(`Installing dependencies for ${dir}`);
+    try {
+      exec(pacMan.concat(' --mutex network install'), { cwd: path.join(initDir, dir) })
+        .then(() => {
+          console.log(`Building ${modName} from ${dir}`);
+          exec(pacMan.concat(' --mutex network run build'), { cwd: path.join(initDir, dir) })
+            .then(() => {
+              console.log(`${modName} is built`);
+              exec('yalc publish', { cwd: path.join(initDir, dir) })
+                .then(() => {
+                  console.log(`${modName} is published locally via yalc`);
+                  exec('yalc add '.concat(modName), { cwd: path.join(rootDir, buildPath) })
+                    .then(() => {
+                      console.log(`${modName} added to build cycle via yalc`);                  
+                      resolve(modName)
+                    })
+                })
+            })
+      })
+    } catch (e) {
+      console.error('Problem installing dependencies for ${dir}')
+      throw(e)
+    }
+  })
 }
 
 export async function getExpTemplate(experimentsDir, url, longName, newExpName, rootDir) {
@@ -206,7 +218,7 @@ const initExperiment = async (expDir, expName, longName, rootDir) => {
   }
   const apiPromise = promiseExpFolderInit(expDir, expConfig.apiControllers.location, rootDir, expName.concat('_api'), 'pushkin/api').catch((err) => { console.error(err); });
   const webPromise = promiseExpFolderInit(expDir, expConfig.webPage.location, rootDir, expName.concat('_web'), 'pushkin/front-end').catch((err) => { console.error(err); });
-  //note that Worker uses a different function, because it doesn't need install-local; it's published straight to Docker
+  //note that Worker uses a different function, because it doesn't need yalc; it's published straight to Docker
   const workerPromise = promiseFolderInit(expDir, 'worker').catch((err) => { console.error(err); });
 
   // write out new compose file with worker service

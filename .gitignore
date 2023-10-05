@@ -1,9 +1,6 @@
 **/*.DS_Store
 **/*.sublime*
 
-# yarn files
-.yarn
-
 # Build files
 build/
 
