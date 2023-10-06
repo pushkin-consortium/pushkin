@@ -1280,10 +1280,10 @@
     "@jridgewell/resolve-uri" "3.1.0"
     "@jridgewell/sourcemap-codec" "1.4.14"
 
-"@jspsych-contrib/plugin-self-paced-reading@^1.0.0":
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/@jspsych-contrib/plugin-self-paced-reading/-/plugin-self-paced-reading-1.0.0.tgz#627b8c280e9c3ae19152ba3730e3b410684f8937"
-  integrity sha512-Ngn2s9KOPvQXO7x+ykdRuuh+2/3p/2yz3AWfqQ8ZvTw2RzHZojhH+Bf3tXDP4FpzBouPrHB9BKfz9S4xwOO2wQ==
+"@jspsych-contrib/plugin-self-paced-reading@^2.0.0":
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/@jspsych-contrib/plugin-self-paced-reading/-/plugin-self-paced-reading-2.0.0.tgz#a976d10016aec4d6b4928e0427ab31add874f4f8"
+  integrity sha512-Uo9J8WxAZF/ASzsP58uR0UH2x9ls8QVSdkZ5oO3tvCrIk+viFrnbxFMIuo2RAdBm9FqwbTEx2j8FKl5rtWsr4A==
 
 "@jspsych/plugin-html-keyboard-response@^1.1.2":
   version "1.1.2"
