@@ -18,7 +18,7 @@ To install this experiment template, use the command `pushkin install experiment
 
 **sentence**: The sentence or text to be read. See above for details on how to note what chunks of words should be displayed together for a self-paced reading display rate.
 
-**comprehension**: A list containing the specifications for the comprehension questions. The first element is the question itself, the second is the correct answer, and the third is the incorrect answer. The correct and incorrect answers are randomly assigned the the 'F' and 'J' keys in experiment.js.
+**comprehension**: An array containing the specifications for the comprehension questions. The first element is the question itself, the second is the correct answer, and the third is the incorrect answer. The correct and incorrect answers are randomly assigned to the 'F' and 'J' keys in experiment.js.
 
 ## Example: Customizing a self-paced reading experiment
 
@@ -66,7 +66,7 @@ const experimentConfig = {
 export default experimentConfig;
 ```
 
-You'll notice that `'Palatino Linotype'` is not the only `fontFamily`'s only specification. This is because it's important to list backup fonts in case your preferred font can't be loaded. You can read more about this practice [here](https://discuss.codecademy.com/t/how-many-fallback-fonts-should-i-have/363586) and see other CSS font combination ideas [here](https://www.w3schools.com/cssref/css_websafe_fonts.asp).
+You'll notice that `'Palatino Linotype'` is not `fontFamily`'s only specification. This is because it's important to list backup fonts in case your preferred font can't be loaded. You can read more about this practice [here](https://discuss.codecademy.com/t/how-many-fallback-fonts-should-i-have/363586) and see other CSS font combination ideas [here](https://www.w3schools.com/cssref/css_websafe_fonts.asp).
 
 Note that any font-related changes you make to `config.js` will not affect the font in the actual self-paced reading trials. To modify that font (and other plugin parameters), you will need to edit the trial in `experiment.js`. See the [plugin documentation](https://github.com/jspsych/jspsych-contrib/blob/main/packages/plugin-self-paced-reading/docs/jspsych-self-paced-reading.md) for details.
 
@@ -74,4 +74,4 @@ You can run `pushkin prep` and `pushkin start` to see your changes.
 
 #### Modifying `stim.js`
 
-This file controls the self-paced reading sentences and comprehension questions (if relevant) presented to participants. Create a new table of sentences and comprehension questions for your experiment, with your comprehension questions in a three-element list (i.e. ['question' , 'correct answer', 'incorrect answer']). Then use a table-to-JSON converter such as [this one](https://tableconvert.com/) to format it correctly for jsPsych and paste the array into the `stim.js` file. Run `pushkin prep` and `pushkin start` again, and your experiment should be ready to go!
+This file controls the self-paced reading sentences and comprehension questions (if relevant) presented to participants. Create a new table of sentences and comprehension questions for your experiment, with your comprehension questions in a three-element array (i.e. ['question' , 'correct answer', 'incorrect answer']). Then use a table-to-JSON converter such as [this one](https://tableconvert.com/) to format it correctly for jsPsych and paste the array into the `stim.js` file. Run `pushkin prep` and `pushkin start` again, and your experiment should be ready to go!

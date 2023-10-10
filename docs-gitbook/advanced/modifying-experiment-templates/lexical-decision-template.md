@@ -71,7 +71,7 @@ var experimentConfig = {
 export default experimentConfig;
 ```
 
-You'll notice that `'Courier New'` is not the only `fontFamily`'s only specification. This is because it's important to list backup fonts in case your preferred font can't be loaded. You can read more about this practice [here](https://discuss.codecademy.com/t/how-many-fallback-fonts-should-i-have/363586) and see other CSS font combination ideas [here](https://www.w3schools.com/cssref/css_websafe_fonts.asp). You'll also notice that `correctiveFeedback` is set to `true`. You can change this to `false` so that participants don't receive any feedback.
+You'll notice that `'Courier New'` is not `fontFamily`'s only specification. This is because it's important to list backup fonts in case your preferred font can't be loaded. You can read more about this practice [here](https://discuss.codecademy.com/t/how-many-fallback-fonts-should-i-have/363586) and see other CSS font combination ideas [here](https://www.w3schools.com/cssref/css_websafe_fonts.asp). You'll also notice that `correctiveFeedback` is set to `true`. You can change this to `false` so that participants don't receive any feedback.
 
 After making any desired changes, run `pushkin prep` and `pushkin start` to see the updates.
 
