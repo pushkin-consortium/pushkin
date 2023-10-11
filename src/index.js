@@ -626,7 +626,9 @@ const killLocal = async () => {
     process.exit();
   }
   try {
-    await exec(`docker volume rm pushkin_test_db_volume pushkin_message_queue_volume; docker images -a | grep "pushkin*" | awk '{print $3}' | xargs docker rmi -f`)    
+    await exec(`docker volume rm pushkin_test_db_volume pushkin_message_queue_volume; docker images -a | grep "_worker" | awk '{print $3}' | xargs docker rmi -f`)    
+    await exec(`docker rmi -f api`)
+    await exec(`docker rmi -f server`)
   } catch (err) {
     console.error('Problem with removing volumes and images docker: ', err)
     process.exit();
@@ -844,7 +846,7 @@ async function main() {
       }
       console.log(`Now running docker system prune. This will take a while...`)
       try {
-        await exec('docker system prune)')
+        await exec('docker system prune -af)')
       } catch (err) {
         console.err(err);
       }
@@ -864,11 +866,12 @@ async function main() {
     .description(`Functions that are useful for backwards compatibility or debugging.\n
       updateDB: Updates test database. This is automatically run as part of 'pushkin prep'.\n
       setup-transaction-db: Creates a local transactions db. Useful for users of old site templates who wish to use CLI v2+.\n
-      aws-auto-scale: Setups up default autoscaling for an AWS deploy. Normally run as part of 'aws init'.`)
+      aws-auto-scale: Setups up default autoscaling for an AWS deploy. Normally run as part of 'aws init'.\n
+      zip: Useful for publishing new templates. Zips up current directory, recursively ignoring .git and node_modules.`)
     .action(async (cmd) => {
-      moveToProjectRoot();
       switch (cmd){
         case 'updateDB':
+          moveToProjectRoot();
           try {
             await handleUpdateDB();
           } catch(e) {
@@ -877,6 +880,7 @@ async function main() {
           }
           break;
         case 'setup-transaction-db':
+          moveToProjectRoot();
           try {
             await setupTestTransactionsDB();
           } catch(e) {
@@ -884,8 +888,17 @@ async function main() {
             process.exit();
           }
           break;
-        case 'aws-auto-scale':
-          try {
+          case 'zip':
+            try {
+              execSync(`zip -r Archive.zip . -x "*node_modules*" -x "*.git*" -x "*.DS_Store"`);
+            } catch(e) {
+              console.error(e);
+              process.exit();
+            }
+            break;
+          case 'aws-auto-scale':
+            moveToProjectRoot();
+            try {
             await handleCreateAutoScale();
           } catch(e) {
             console.error(e);
