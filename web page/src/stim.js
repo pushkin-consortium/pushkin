@@ -1,10 +1,10 @@
 // Example stimuli
 
 const stimArray = [
-    { sentence: 'An initial sentence. This is a second sentence. I saw the teacher with eyeglasses on.' },
-    { sentence: 'An initial sentence. We saw the wooden board in two.' },
-    { sentence: 'An initial sentence. They said last Monday there would be an exam.' },
-    { sentence: 'An initial sentence. The mysterious bark turned out to be from a tree native to New Zealand.' }
+    { sentence: 'The horse raced past the barn fell.', comprehension: [ 'What fell?', 'The horse', 'The barn'] },
+    { sentence: 'Sam saw the teacher with glasses on.', comprehension: [ 'Who did Sam see?', 'The teacher', 'The student'] },
+    { sentence: 'They saw the wooden boxes in two.', comprehension: [ 'What are the boxes made of?', 'Wood', 'Metal'] },
+    { sentence: 'The mysterious bark came from a tree native to New Zealand.', comprehension: [ 'Where did the bark come from?', 'A tree', 'A dog'] }
 ]
 
 export default stimArray;
