@@ -1,0 +1,39 @@
+name: Welcome!
+
+on: 
+  issues:
+    types: [opened]
+  pull_request:
+    types: [opened]
+
+jobs:
+  write-message:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/first-interaction@main
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          issue-message: |
+            👋 
+            Thanks for opening this issue! We will investigate the matter and get back to you as soon as possible. In the meantime, double check that your issue:
+            
+               - Includes any relevant code snippets and CLI output. If possible, copy/paste the error text rather than screenshotting (although screenshots will also be helpful for some front-end issues). Make sure to include the code that produced the issue within blocks set off by triple backticks (```).
+               - Includes the version number of each of the following: pushkin-cli, experiment/site templates, Docker Engine, and Node.js. In some cases, it may also be helpful to include the version numbers of other components, e.g. pushkin-api, pushkin-client, pushkin-worker, yarn, jsPsych plugins, etc.
+               - Links to any existing issues/discussions/PRs which might be relevant.
+               - Pertains to the interaction between jsPsych and Pushkin (if relevant), rather than jsPsych itself. Otherwise, raise it in jsPsych’s discussions page or issues. A good workflow for developing Pushkin experiments is to first create a working example as a plain jsPsych experiment. If your experiment doesn’t do what you expect in plain jsPsych, your issue isn’t with Pushkin.
+            
+            While waiting for a response, head on over to our discussions page! And for more information, check out:
+            
+               - [Pushkin Docs](https://languagelearninglab.gitbook.io/pushkin/)
+               - [JavaScript Tutorial](https://www.codecademy.com/learn/introduction-to-javascript)
+               - [JsPsych Tutorial](https://www.jspsych.org/7.3/tutorials/hello-world/#jspsych-hello-world-experiment)
+
+          pr-message: |
+            👋 
+            Thanks for making this pull request! We will review it as soon as possible. In the meantime, double check that your PR:
+            
+                - Includes a thorough explanation of what you want to change/add.
+                - Links to any relevant issues/discussions.
+            
+            In the interest of good development habits, if you wish to commit changes, make sure to create a new branch/fork and then submit a pull request with your changes.
