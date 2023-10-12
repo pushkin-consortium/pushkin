@@ -1,0 +1,30 @@
+name: Auto Comment
+on: [issues, pull_request]
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: wow-actions/auto-comment@v1.1.2
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          issuesOpened: |
+            👋 @{{author}}
+            Thanks for opening this issue!
+
+            - Remember to include any code snippets, CLI outcomes, and/or screenshots/GIFs that come with your issue.
+            - Remember to link relevant issues to yours whenever possible.
+            - Remember to stay patient! While waiting for a response, head on over to our discussions page if there hasn’t been a response.
+            
+            For more information on coding-related questions: 
+            - [JavaScript Tutorial](https://www.codecademy.com/learn/introduction-to-javascript)
+            - [JsPsych Tutorial](https://www.jspsych.org/7.3/tutorials/hello-world/#jspsych-hello-world-experiment)
+            - [Pushkin Docs](https://languagelearninglab.gitbook.io/pushkin/)
+
+
+          pullRequestOpened: |
+            👋 
+            Thanks for making this pull request! We will review it as soon as possible. While you wait:
+            
+            - Please be sure you included a thorough explanation of what your pull request is changing/adding to Pushkin.
+            - Remember to link relevant issues to yours whenever possible.
+            - In the interest of good development habits, if you wish to commit changes, create a new branch and then submit a pull request with your changes.
