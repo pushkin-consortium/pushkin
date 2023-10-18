@@ -37,7 +37,7 @@ Then, open a terminal and move to an empty directory in which to setup Pushkin.
 
    pushkin install site
 
-You will be asked to select a site template to use. Choose 'basic'.
+You will be asked to select a site template to use. Choose 'default'.
 
 This sets up a skeleton website in the current folder and sets up a development database. Once that finishes, you should have a directory tree that looks
 something like this:
