@@ -84,7 +84,7 @@ The procedure above only works for jsPsych plugins available through npm. If you
 
 ## Adding static assets
 
-The current experiment templates do not use any image or video stimuli. To use static assets, put them in the experiment assets folder (web page/src/assets). Running `pushkin prep` will place them in an accessible public folder. This folder can be referred to using the environment variable `process.env.PUBLIC_URL`.
+The current experiment templates do not use any image or video stimuli. To use static assets, put them in the `pushkin/front-end/public` directory of your your site. This folder can be referred to using the environment variable `process.env.PUBLIC_URL`.
 
 For example:
 
