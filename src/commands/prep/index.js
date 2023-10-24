@@ -27,6 +27,30 @@ const publishLocalPackage = async (modDir, modName, verbose) => {
       const pacRunner = (pacMan == 'yarn') ? 'yarn' : 'npx';
       buildCmd = pacRunner.concat(' build-if-changed');
     }
+    // Check whether the package is a web page component
+    if (modName.endsWith('_web')) {
+      // Look for the experiment.js file
+      const expJsPath = path.join(modDir, 'src/experiment.js');
+      if (fs.existsSync(expJsPath)) {
+        // Get all the jsPsych plugins/extensions/timelines imported into experiment.js
+        if (verbose) console.log(`Checking jsPsych packages in ${modName}`);
+        const expJs = fs.readFileSync(expJsPath);
+        // Find everything that starts with "@jspsych" up to a single or double quote
+        // This should capture all jsPsych packages imported into the experiment
+        const plugins = expJs.match(/@jspsych.*?(?=['"])/g);
+        plugins.forEach((plugin) => {
+          // If any jsPsych plugins are not yet added to package.json, add them
+          if (!packageJson.dependencies[plugin]) {
+            if (verbose) console.log(`${plugin} not yet added to ${modName}; adding it now`);
+            let addCmd = pacMan.concat(' --mutex network add ').concat(plugin);
+            exec(addCmd, { cwd: modDir });
+          }
+        })
+      } else {
+        if (verbose) console.log(`No experiment.js found in ${modName}`);
+      }
+      if (verbose) console.log(`Finished checking jsPsych packages in ${modName}`);
+    }
     if (verbose) console.log(`Installing dependencies for ${modDir}`);
     exec(pacMan.concat(' --mutex network install'), { cwd: modDir })
       .then(() => {
@@ -138,7 +162,6 @@ export const readConfig = (expDir) => {
   }
 }
 
-
 // the main prep function for prepping all experiments
 export const prep = async (experimentsDir, coreDir, verbose) => {
   if (verbose) {
@@ -179,6 +202,10 @@ export const prep = async (experimentsDir, coreDir, verbose) => {
     throw e
   }
 
+  // Get an array of all experiment directories
+  // Iterate over this later to prep each experiment's api, web page, and worker 
+  const expDirs = fs.readdirSync(experimentsDir);
+
   const prepAPIWrapper = (exp, verbose) => {
     if (verbose) {
       console.log('--verbose flag set inside prepAPIWrapper()');
@@ -205,7 +232,6 @@ export const prep = async (experimentsDir, coreDir, verbose) => {
     })
   }
 
-  const expDirs = fs.readdirSync(experimentsDir);
   let preppedAPI;
   try {
     preppedAPI = Promise.all(expDirs.map((exp) => prepAPIWrapper(exp, verbose)));
