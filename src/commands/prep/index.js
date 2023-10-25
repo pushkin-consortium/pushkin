@@ -125,7 +125,7 @@ const prepWeb = async (expDir, expConfig, coreDir, verbose) => {
   if (verbose) console.log(`Started loading web page for ${expConfig.shortName}`);
   let moduleName
   try {
-    moduleName = await publishLocalPackage(webPageLoc, expConfig.shortName.concat('_web'))
+    moduleName = await publishLocalPackage(webPageLoc, expConfig.shortName.concat('_web'), verbose)
   } catch (err) {
     console.error(`Failed on publishing web page: ${err}`);
     throw err;
