@@ -34,7 +34,7 @@ const publishLocalPackage = async (modDir, modName, verbose) => {
       if (fs.existsSync(expJsPath)) {
         // Get all the jsPsych plugins/extensions/timelines imported into experiment.js
         if (verbose) console.log(`Checking jsPsych packages in ${modName}`);
-        const expJs = fs.readFileSync(expJsPath);
+        const expJs = fs.readFileSync(expJsPath, { encoding: 'utf8' }); // Specify encoding so string methods work
         // Find everything that starts with "@jspsych" up to a single or double quote
         // This should capture all jsPsych packages imported into the experiment
         const plugins = expJs.match(/@jspsych.*?(?=['"])/g);
