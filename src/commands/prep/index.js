@@ -42,8 +42,13 @@ const publishLocalPackage = async (modDir, modName, verbose) => {
           // If any jsPsych plugins are not yet added to package.json, add them
           if (!packageJson.dependencies[plugin]) {
             if (verbose) console.log(`${plugin} not yet added to ${modName}; adding it now`);
-            let addCmd = pacMan.concat(' --mutex network add ').concat(plugin);
-            exec(addCmd, { cwd: modDir });
+            try {
+              let addCmd = pacMan.concat(' --mutex network add ').concat(plugin);
+              exec(addCmd, { cwd: modDir });
+            } catch (e) {
+              console.error(`Problem adding ${plugin} to ${modName}`);
+              throw e;
+            }
           }
         })
       } else {
