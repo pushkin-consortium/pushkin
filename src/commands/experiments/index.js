@@ -167,6 +167,36 @@ export async function copyExpTemplate(experimentsDir, expPath, longName, newExpN
   return(initExperiment(newDir, newExpName, longName, rootDir, verbose));
 }
 
+export async function getJsPsychTimeline(experimentPath, verbose) {
+  if (verbose) console.log('--verbose flag set inside getJsPsychTimeline()');
+  // Check whether path is supplied
+  if (!experimentPath) {
+    if (verbose) console.log('No path provided to jsPsych experiment');
+    return;
+  }
+  // Check whether path exists
+  if (!fs.existsSync(experimentPath)) {
+    if (verbose) console.log('Path to jsPsych experiment does not exist');
+    return;
+  }
+  // Read in entire experiment file as text
+  const jsPsychExp = fs.readFileSync(experimentPath, 'utf8');
+  // Extract timeline name by looking for the argument supplied to jsPsych.run()
+  const timelineName = jsPsychExp.match(/(?<=jsPsych\.run\().*(?=\))/g)[0]; // [0] because match() returns an array
+  // Look for where the timeline is declared
+  beginRegex = new RegExp(`(const|let|var) ${timelineName}`, 'gm');
+  const timelineBegin = jsPsychExp.search(beginRegex);
+  // Look for where jsPsych.run() is called
+  const timelineEnd = jsPsychExp.search(/^\s*jsPsych\.run/gm);
+  // Return the extracted timeline procedure
+  if (timelineBegin < 0 || timelineEnd < 0) { // If either search fails, return undefined
+    if (verbose) console.log('Could not extract timeline from jsPsych experiment');
+    return;
+  } else {
+    return jsPsychExp.slice(timelineBegin, timelineEnd);
+  }
+}
+
 const initExperiment = async (expDir, expName, longName, rootDir, verbose) => {
   if (verbose) console.log('--verbose flag set inside initExperiment()');
   const options = {
