@@ -184,12 +184,12 @@ export function getJsPsychTimeline(experimentPath, verbose) {
   // Read in entire experiment file as text
   let jsPsychExp = fs.readFileSync(experimentPath, 'utf8');
   // Extract timeline name by looking for the argument supplied to jsPsych.run()
-  let timelineName = jsPsychExp.match(/(?<=jsPsych\.run\().*(?=\))/g)[0]; // [0] because match() returns an array
+  let timelineName = jsPsychExp.match(/(?<=jsPsych\.run\().+?(?=\))/g)[0]; // [0] because match() returns an array
   // Look for where the timeline is declared
   beginRegex = new RegExp(`(const|let|var) ${timelineName}`, 'gm');
   let timelineBegin = jsPsychExp.search(beginRegex);
   // Look for where jsPsych.run() is called
-  let timelineEnd = jsPsychExp.search(/^\s*jsPsych\.run/gm);
+  let timelineEnd = jsPsychExp.search(/^\s*?jsPsych\.run/gm);
   // Return the extracted timeline procedure
   if (timelineBegin < 0 || timelineEnd < 0) { // If either search fails, return undefined
     console.log('Could not extract timeline from jsPsych experiment');
@@ -199,7 +199,7 @@ export function getJsPsychTimeline(experimentPath, verbose) {
   }
 }
 
-// Takes a path to a jsPsych experiment and returns an array of the necessary plugins
+// Takes a path to a jsPsych experiment and returns an object with the necessary plugins/packages to import
 export function getJsPsychPlugins(experimentPath, verbose) {
   if (verbose) console.log('--verbose flag set inside getJsPsychPlugins()');
   // Check whether path is supplied
@@ -215,7 +215,7 @@ export function getJsPsychPlugins(experimentPath, verbose) {
   // Read in entire experiment file as text
   let jsPsychExp = fs.readFileSync(experimentPath, 'utf8');
   // Extract the names of the plugins used
-  let plugins = jsPsychExp.match(/@jspsych.*?(?=['"])/g);
+  let plugins = jsPsychExp.match(/@jspsych.+?(?=['"])/g);
   // This should work for CDN links and import statements, but not for user-hosted plugins
   // That's probably a good thing, since
   // (a) it might be hard to tell what version of the plugin they're using
@@ -223,9 +223,41 @@ export function getJsPsychPlugins(experimentPath, verbose) {
   if (!plugins) {
     console.log('Could not extract plugins from jsPsych experiment.\nMake sure you import the plugins you need in experiment.js');
     return;
-  } else {
-    return plugins;
   }
+  let imports = {};
+  plugins.forEach((plugin) => {
+    // Plugin name formats to capture:
+    // - @jspsych/plugin-some-name[@version] OR @jspsych-contrib/plugin-some-name[@version] --> jsPsychSomeName
+    // - @jspsych/extension-some-name[@version] OR @jspsych-contrib/extension-some-name[@version] --> jsPsychExtensionSomeName
+    // - @jspsych-timelines/some-name[@version] --> jsPsychTimelineSomeName
+    let pluginName
+    let camelCase
+    // If the name includes "plugin-" or "extension-"
+    if (plugin.search(/(plugin-|extension-)/) > -1) {
+      // get an array of the words after "plugin-" or "extension-" (not including the version tag, if present)
+      pluginName = plugin.match(/(?<=-)[a-z]+(?=(-|@|$))/g)
+      // capitalize the first letter of each word and join them together
+      camelCase = pluginName.map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join('');
+      if (plugin.search(/plugin-/) > -1) {
+        // If it's a plugin, add "jsPsych" to the beginning
+        imports[plugin] = 'jsPsych' + camelCase;
+      } else {
+        // Otherwise, it's an extension, so add "jsPsychExtension" to the beginning
+        imports[plugin] = 'jsPsychExtension' + camelCase;
+      }
+    } else if (plugin.includes('@jspsych-timelines/')) {
+      // Get an array of the words after the '/' (and potentially before the version tag)
+      pluginName = plugin.split(/\/|@(?=[0-9])/)[1].split('-');
+      // Capitalize the first letter of each word and join them together
+      camelCase = pluginName.map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join('');
+      // Add "jsPsychTimeline" to the beginning
+      imports[plugin] = 'jsPsychTimeline' + camelCase;
+    } else {
+      // If it's not a plugin or extension, warn the user and skip it
+      console.log(`Problem adding "${plugin}" to imports.\nMake sure you import the plugins you need in experiment.js`);
+    }
+  });
+  return imports;
 }
 
 const initExperiment = async (expDir, expName, longName, rootDir, verbose) => {
