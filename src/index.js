@@ -527,10 +527,10 @@ const handleInstall = async (what, verbose) => {
                     Object.keys(expHtmlPlugins).forEach((plugin) => {
                       imports = imports.concat(`import ${expHtmlPlugins[plugin]} from '${plugin}';\n`);
                     });
-                    new newExpJs = `${imports}\nexport function createTimeline(jsPsych) {\n${expHtmlTimeline}\n\nreturn timeline;\n}`;
+                    new newExpJs = `${imports}\nexport function createTimeline(jsPsych) {\n${expHtmlTimeline}\n\nreturn timeline;\n}\n`;
                     fs.writeFileSync(path.join(process.cwd(), config.experimentsDir, shortName, 'web page/src/experiment.js'), newExpJs);
                   } else {
-                    console.log('Problem with importing experiment.html.\nPreserving experiment.js as a "Hello, world!".');
+                    console.log(`Problem importing experiment.html;\npreserving experiment.js as 'Hello, world!'`);
                   }
                 }
               })
