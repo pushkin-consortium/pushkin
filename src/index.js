@@ -8,7 +8,7 @@ import 'core-js/stable';
 import 'regenerator-runtime/runtime';
 import { execSync, exec } from 'child_process'; // eslint-disable-line
 // subcommands
-import { listExpTemplates, getExpTemplate, copyExpTemplate } from './commands/experiments/index.js';
+import { listExpTemplates, getExpTemplate, copyExpTemplate, getJsPsychTimeline, getJsPsychPlugins } from './commands/experiments/index.js';
 import { listSiteTemplates, getPushkinSite, copyPushkinSite } from './commands/sites/index.js';
 import { awsInit, nameProject, addIAM, awsArmageddon, awsList, createAutoScale } from './commands/aws/index.js'
 //import prep from './commands/prep/index.js'; //has to be separate from other imports from prep/index.js; this is the default export
@@ -454,57 +454,89 @@ const handleInstall = async (what, verbose) => {
       inquirer.prompt(
         [{ type: 'input', name: 'name', message: 'What do you want to call your experiment?'}]
       ).then(async (answers) => {
-          const longName = answers.name
-          const shortName = longName.replace(/[^\w\s]/g, "").replace(/ /g,"_");
-          let config = await loadConfig('pushkin.yaml');
-          const expList = await listExpTemplates();
-          inquirer.prompt(
-            [{ type: 'list', name: 'experiments', choices: Object.keys(expList).concat("path","url"), default: 0, message: 'Which experiment template do you want to use?'}]
-          ).then(answers => {
-            let expType = answers.experiments
-            if (expType == "path") {
-              inquirer.prompt(
-                [{ type: 'input', name: 'path', message: 'What is the absolute path to your experiment template?'}]
-              ).then(async (answers) => {
-                await copyExpTemplate(path.join(process.cwd(), config.experimentsDir), answers.path, longName, shortName, process.cwd(), verbose)
-              })
-            } else if (expType == "url") {
-              inquirer.prompt(
-                [{ type: 'input', name: 'url', message: 'What is the url for your experiment template (this should begin with "https://" and end with "releases", but either api.github.com or github.com URLs are accepted)?'}]
-              ).then((answers) => {
-                let templateURL = answers.url
-                // Check whether URL is for GitHub API and, if not, convert it so it works with getPushkinSite()
-                if (templateURL.startsWith('https://github.com')) {
-                  templateURL = templateURL.replace('github.com', 'api.github.com/repos')
-                }
-                // Check URL to make sure it doesn't end with slash, since that will mess up GitHub API URLs
-                if (templateURL.endsWith('/')) {
-                  templateURL = templateURL.slice(0,-1) // Remove the last character (i.e. '/')
-                }
-                getVersions(templateURL)
-                .then((verList) => {
-                  inquirer.prompt(
-                    [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version?'}]
-                  ).then(async (answers) => {
-                    let ver = answers.version
-                    const url = verList[ver]
-                    await getExpTemplate(path.join(process.cwd(), config.experimentsDir), url, longName, shortName, process.cwd(), verbose)
-                  })
-                })
-              })
-            }else{
-              getVersions(expList[expType])
+        const longName = answers.name
+        const shortName = longName.replace(/[^\w\s]/g, "").replace(/ /g,"_");
+        let config = await loadConfig('pushkin.yaml');
+        const expList = await listExpTemplates();
+        inquirer.prompt(
+          [{ type: 'list', name: 'experiments', choices: Object.keys(expList).concat("path","url"), default: 0, message: 'Which experiment template do you want to use?'}]
+        ).then(answers => {
+          let expType = answers.experiments
+          if (expType == "path") {
+            inquirer.prompt(
+              [{ type: 'input', name: 'path', message: 'What is the absolute path to your experiment template?'}]
+            ).then(async (answers) => {
+              await copyExpTemplate(path.join(process.cwd(), config.experimentsDir), answers.path, longName, shortName, process.cwd(), verbose)
+            })
+          } else if (expType == "url") {
+            inquirer.prompt(
+              [{ type: 'input', name: 'url', message: 'What is the url for your experiment template (this should begin with "https://" and end with "releases", but either api.github.com or github.com URLs are accepted)?'}]
+            ).then((answers) => {
+              let templateURL = answers.url
+              // Check whether URL is for GitHub API and, if not, convert it so it works with getPushkinSite()
+              if (templateURL.startsWith('https://github.com')) {
+                templateURL = templateURL.replace('github.com', 'api.github.com/repos')
+              }
+              // Check URL to make sure it doesn't end with slash, since that will mess up GitHub API URLs
+              if (templateURL.endsWith('/')) {
+                templateURL = templateURL.slice(0,-1) // Remove the last character (i.e. '/')
+              }
+              getVersions(templateURL)
               .then((verList) => {
                 inquirer.prompt(
-                  [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version? (Recommend:'.concat(Object.keys(verList)[0]).concat(')')}]
+                  [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version?'}]
                 ).then(async (answers) => {
                   let ver = answers.version
                   const url = verList[ver]
                   await getExpTemplate(path.join(process.cwd(), config.experimentsDir), url, longName, shortName, process.cwd(), verbose)
                 })
               })
-            }
-          })
+            })
+          }else{
+            getVersions(expList[expType])
+            .then((verList) => {
+              inquirer.prompt(
+                [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version? (Recommend:'.concat(Object.keys(verList)[0]).concat(')')}]
+              ).then(async (answers) => {
+                let ver = answers.version;
+                const url = verList[ver];
+                let expHtmlBool; // Used only if the user chooses 'basic' and wants to import an experiment.html
+                let expHtmlPlugins; // Used only if the user chooses 'basic' and wants to import an experiment.html
+                let expHtmlTimeline; // Used only if the user chooses 'basic' and wants to import an experiment.html
+                if (expType === 'basic') {
+                  inquirer.prompt(
+                    [{ type: 'confirm', name: 'expHtmlBool', message: 'Would you like to import a jsPsych experiment.html?'}]
+                  ).then((answers) => {
+                    expHtmlBool = answers.expHtmlBool;
+                    if (expHtmlBool) {
+                      inquirer.prompt(
+                        [{ type: 'input', name: 'expHtmlPath', message: 'What is absolute path to your experiment.html?'}]
+                      ).then((answers) => {
+                        expHtmlPlugins = getJsPsychPlugins(answers.expHtmlPath);
+                        expHtmlTimeline = getJsPsychTimeline(answers.expHtmlPath);
+                      })
+                    }
+                  })
+                }
+                await getExpTemplate(path.join(process.cwd(), config.experimentsDir), url, longName, shortName, process.cwd(), verbose)
+                if (expHtmlBool) {
+                  if (expHtmlPlugins && expHtmlTimeline) {
+                    // Create the necessary import statements from the object of jsPsych plugins
+                    let newExpJs;
+                    let imports;
+                    Object.keys(expHtmlPlugins).forEach((plugin) => {
+                      imports = imports.concat(`import ${expHtmlPlugins[plugin]} from '${plugin}';\n`);
+                    });
+                    new newExpJs = `${imports}\nexport function createTimeline(jsPsych) {\n${expHtmlTimeline}\n\nreturn timeline;\n}`;
+                    fs.writeFileSync(path.join(process.cwd(), config.experimentsDir, shortName, 'web page/src/experiment.js'), newExpJs);
+                  } else {
+                    console.log('Problem with importing experiment.html.\nPreserving experiment.js as a "Hello, world!".');
+                  }
+                }
+              })
+            })
+          }
+        })
       })
     }
   } catch(e) {

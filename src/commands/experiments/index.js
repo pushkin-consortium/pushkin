@@ -199,7 +199,8 @@ export function getJsPsychTimeline(experimentPath, verbose) {
   }
 }
 
-// Takes a path to a jsPsych experiment and returns an object with the necessary plugins/packages to import
+// Takes a path to a jsPsych experiment and returns an object
+// in which the necessary packages are keys with import names as values
 export function getJsPsychPlugins(experimentPath, verbose) {
   if (verbose) console.log('--verbose flag set inside getJsPsychPlugins()');
   // Check whether path is supplied
@@ -230,12 +231,12 @@ export function getJsPsychPlugins(experimentPath, verbose) {
     // - @jspsych/plugin-some-name[@version] OR @jspsych-contrib/plugin-some-name[@version] --> jsPsychSomeName
     // - @jspsych/extension-some-name[@version] OR @jspsych-contrib/extension-some-name[@version] --> jsPsychExtensionSomeName
     // - @jspsych-timelines/some-name[@version] --> jsPsychTimelineSomeName
-    let pluginName
-    let camelCase
+    let pluginName;
+    let camelCase;
     // If the name includes "plugin-" or "extension-"
     if (plugin.search(/(plugin-|extension-)/) > -1) {
       // get an array of the words after "plugin-" or "extension-" (not including the version tag, if present)
-      pluginName = plugin.match(/(?<=-)[a-z]+(?=(-|@|$))/g)
+      pluginName = plugin.match(/(?<=-)[a-z]+(?=(-|@|$))/g);
       // capitalize the first letter of each word and join them together
       camelCase = pluginName.map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join('');
       if (plugin.search(/plugin-/) > -1) {
@@ -257,7 +258,11 @@ export function getJsPsychPlugins(experimentPath, verbose) {
       console.log(`Problem adding "${plugin}" to imports.\nMake sure you import the plugins you need in experiment.js`);
     }
   });
-  return imports;
+  if (Object.keys(imports).length > 0) {
+    return imports;
+  } else {
+    return; // If no plugins were found, return undefined
+  }
 }
 
 const initExperiment = async (expDir, expName, longName, rootDir, verbose) => {
