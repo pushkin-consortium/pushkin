@@ -247,7 +247,7 @@ export function getJsPsychImports(plugins, verbose) {
       pluginName = plugin.match(/(?<=-)[a-z]+(?=(-|@|$))/g);
       // capitalize the first letter of each word and join them together
       camelCase = pluginName.map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join('');
-      if (plugin.search(/plugin-/) > -1) {
+      if (plugin.includes('plugin-')) {
         // If it's a plugin, add "jsPsych" to the beginning
         imports[plugin] = 'jsPsych' + camelCase;
       } else {
@@ -256,7 +256,7 @@ export function getJsPsychImports(plugins, verbose) {
       }
     } else if (plugin.includes('@jspsych-timelines/')) {
       // Get an array of the words after the '/' (and potentially before the version tag)
-      pluginName = plugin.split(/\/|@(?=[0-9])/)[1].split('-');
+      pluginName = plugin.split('@')[1].split('/')[1].split('-');
       // Capitalize the first letter of each word and join them together
       camelCase = pluginName.map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join('');
       // Add "jsPsychTimeline" to the beginning
