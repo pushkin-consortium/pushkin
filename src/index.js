@@ -504,12 +504,12 @@ const handleInstall = async (what, verbose) => {
                 let expHtmlImports; // Used only if the user chooses 'basic' and wants to import an experiment.html
                 let expHtmlTimeline; // Used only if the user chooses 'basic' and wants to import an experiment.html
                 if (expType === 'basic') {
-                  inquirer.prompt(
+                  await inquirer.prompt(
                     [{ type: 'confirm', name: 'expHtmlBool', default: false, message: 'Would you like to import a jsPsych experiment.html?'}]
-                  ).then((answers) => {
+                  ).then(async (answers) => {
                     expHtmlBool = answers.expHtmlBool;
                     if (expHtmlBool) {
-                      inquirer.prompt(
+                      await inquirer.prompt(
                         [{ type: 'input', name: 'expHtmlPath', message: 'What is absolute path to your experiment.html?'}]
                       ).then((answers) => {
                         if (!answers.expHtmlPath) {
@@ -528,12 +528,12 @@ const handleInstall = async (what, verbose) => {
                   })
                 }
                 // Need to run getExpTemplate() first before editing experiment.js
-                await getExpTemplate(path.join(process.cwd(), config.experimentsDir), url, longName, shortName, process.cwd(), verbose)
+                await getExpTemplate(path.join(process.cwd(), config.experimentsDir), url, longName, shortName, process.cwd(), verbose);
                 if (expHtmlBool) {
                   if (expHtmlImports && expHtmlTimeline) {
                     // Create the necessary import statements from the object of jsPsych plugins
                     let newExpJs;
-                    let imports;
+                    let imports = '';
                     Object.keys(expHtmlImports).forEach((plugin) => {
                       imports = imports.concat(`import ${expHtmlImports[plugin]} from '${plugin}';\n`);
                     });
