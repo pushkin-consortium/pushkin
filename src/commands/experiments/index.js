@@ -176,7 +176,7 @@ export function getJsPsychTimeline(experimentPath, verbose) {
   // Extract timeline name by looking for the argument supplied to jsPsych.run()
   let timelineName = jsPsychExp.match(/(?<=jsPsych\.run\().+?(?=\))/g)[0]; // [0] because match() returns an array
   // Look for where the timeline is declared
-  beginRegex = new RegExp(`(const|let|var) ${timelineName}`, 'gm');
+  let beginRegex = new RegExp(`(const|let|var) ${timelineName}`, 'gm');
   let timelineBegin = jsPsychExp.search(beginRegex);
   // Look for where jsPsych.run() is called
   let timelineEnd = jsPsychExp.search(/^\s*?jsPsych\.run/gm);

@@ -512,10 +512,10 @@ const handleInstall = async (what, verbose) => {
                       inquirer.prompt(
                         [{ type: 'input', name: 'expHtmlPath', message: 'What is absolute path to your experiment.html?'}]
                       ).then((answers) => {
-                        if (!experimentPath) {
-                          console.log('No path provided to jsPsych experiment. Installing the basic template as is.');
-                        } else if (!fs.existsSync(experimentPath)) {
-                          console.log('Path to jsPsych experiment does not exist. Installing the basic template as is.');
+                        if (!answers.expHtmlPath) {
+                          console.log('No path provided to jsPsych experiment; installing the basic template as is.');
+                        } else if (!fs.existsSync(answers.expHtmlPath)) {
+                          console.log('Path to jsPsych experiment does not exist; installing the basic template as is.');
                         } else {
                           let expHtmlPlugins = getJsPsychPlugins(answers.expHtmlPath);
                           // If you wanted to add a feature to ask the user if there are additional plugins they want,
@@ -540,7 +540,7 @@ const handleInstall = async (what, verbose) => {
                     newExpJs = `${imports}\nexport function createTimeline(jsPsych) {\n${expHtmlTimeline}\n\nreturn timeline;\n}\n`;
                     fs.writeFileSync(path.join(process.cwd(), config.experimentsDir, shortName, 'web page/src/experiment.js'), newExpJs);
                   } else {
-                    console.log(`Problem importing experiment.html;\npreserving experiment.js as 'Hello, world!'`);
+                    console.log(`Problem importing experiment.html; installing the basic template as is.`);
                   }
                 }
               })
