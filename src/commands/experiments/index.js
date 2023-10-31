@@ -171,16 +171,6 @@ export async function copyExpTemplate(experimentsDir, expPath, longName, newExpN
 // from the declaration of the timeline up to the call to jsPsych.run()
 export function getJsPsychTimeline(experimentPath, verbose) {
   if (verbose) console.log('--verbose flag set inside getJsPsychTimeline()');
-  // Check whether path is supplied
-  if (!experimentPath) {
-    if (verbose) console.log('No path provided to jsPsych experiment');
-    return;
-  }
-  // Check whether path exists
-  if (!fs.existsSync(experimentPath)) {
-    console.log('Path to jsPsych experiment does not exist');
-    return;
-  }
   // Read in entire experiment file as text
   let jsPsychExp = fs.readFileSync(experimentPath, 'utf8');
   // Extract timeline name by looking for the argument supplied to jsPsych.run()
@@ -202,16 +192,6 @@ export function getJsPsychTimeline(experimentPath, verbose) {
 // Takes a path to a jsPsych experiment and an array of the necessary plugins
 export function getJsPsychPlugins(experimentPath, verbose) {
   if (verbose) console.log('--verbose flag set inside getJsPsychPlugins()');
-  // Check whether path is supplied
-  if (!experimentPath) {
-    // if (verbose) console.log('No path provided to jsPsych experiment'); // No need to show this twice
-    return;
-  }
-  // Check whether path exists
-  if (!fs.existsSync(experimentPath)) {
-    // if (verbose) console.log('Path to jsPsych experiment does not exist'); // No need to show this twice
-    return;
-  }
   // Read in entire experiment file as text
   let jsPsychExp = fs.readFileSync(experimentPath, 'utf8');
   // Extract the names of the plugins used

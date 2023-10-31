@@ -505,18 +505,24 @@ const handleInstall = async (what, verbose) => {
                 let expHtmlTimeline; // Used only if the user chooses 'basic' and wants to import an experiment.html
                 if (expType === 'basic') {
                   inquirer.prompt(
-                    [{ type: 'confirm', name: 'expHtmlBool', message: 'Would you like to import a jsPsych experiment.html?'}]
+                    [{ type: 'confirm', name: 'expHtmlBool', default: false, message: 'Would you like to import a jsPsych experiment.html?'}]
                   ).then((answers) => {
                     expHtmlBool = answers.expHtmlBool;
                     if (expHtmlBool) {
                       inquirer.prompt(
                         [{ type: 'input', name: 'expHtmlPath', message: 'What is absolute path to your experiment.html?'}]
                       ).then((answers) => {
-                        let expHtmlPlugins = getJsPsychPlugins(answers.expHtmlPath);
-                        // If you wanted to add a feature to ask the user if there are additional plugins they want,
-                        // here would probably be the place to implement it.
-                        expHtmlImports = getJsPsychImports(expHtmlPlugins);
-                        expHtmlTimeline = getJsPsychTimeline(answers.expHtmlPath);
+                        if (!experimentPath) {
+                          console.log('No path provided to jsPsych experiment. Installing the basic template as is.');
+                        } else if (!fs.existsSync(experimentPath)) {
+                          console.log('Path to jsPsych experiment does not exist. Installing the basic template as is.');
+                        } else {
+                          let expHtmlPlugins = getJsPsychPlugins(answers.expHtmlPath);
+                          // If you wanted to add a feature to ask the user if there are additional plugins they want,
+                          // here would probably be the place to implement it.
+                          expHtmlImports = getJsPsychImports(expHtmlPlugins);
+                          expHtmlTimeline = getJsPsychTimeline(answers.expHtmlPath);
+                        }
                       })
                     }
                   })
