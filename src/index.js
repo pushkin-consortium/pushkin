@@ -8,7 +8,7 @@ import 'core-js/stable';
 import 'regenerator-runtime/runtime';
 import { execSync, exec } from 'child_process'; // eslint-disable-line
 // subcommands
-import { listExpTemplates, getExpTemplate, copyExpTemplate, getJsPsychTimeline, getJsPsychPlugins } from './commands/experiments/index.js';
+import { listExpTemplates, getExpTemplate, copyExpTemplate, getJsPsychTimeline, getJsPsychPlugins, getJsPsychImports } from './commands/experiments/index.js';
 import { listSiteTemplates, getPushkinSite, copyPushkinSite } from './commands/sites/index.js';
 import { awsInit, nameProject, addIAM, awsArmageddon, awsList, createAutoScale } from './commands/aws/index.js'
 //import prep from './commands/prep/index.js'; //has to be separate from other imports from prep/index.js; this is the default export
@@ -501,7 +501,7 @@ const handleInstall = async (what, verbose) => {
                 let ver = answers.version;
                 const url = verList[ver];
                 let expHtmlBool; // Used only if the user chooses 'basic' and wants to import an experiment.html
-                let expHtmlPlugins; // Used only if the user chooses 'basic' and wants to import an experiment.html
+                let expHtmlImports; // Used only if the user chooses 'basic' and wants to import an experiment.html
                 let expHtmlTimeline; // Used only if the user chooses 'basic' and wants to import an experiment.html
                 if (expType === 'basic') {
                   inquirer.prompt(
@@ -512,20 +512,24 @@ const handleInstall = async (what, verbose) => {
                       inquirer.prompt(
                         [{ type: 'input', name: 'expHtmlPath', message: 'What is absolute path to your experiment.html?'}]
                       ).then((answers) => {
-                        expHtmlPlugins = getJsPsychPlugins(answers.expHtmlPath);
+                        let expHtmlPlugins = getJsPsychPlugins(answers.expHtmlPath);
+                        // If you wanted to add a feature to ask the user if there are additional plugins they want,
+                        // here would probably be the place to implement it.
+                        expHtmlImports = getJsPsychImports(expHtmlPlugins);
                         expHtmlTimeline = getJsPsychTimeline(answers.expHtmlPath);
                       })
                     }
                   })
                 }
+                // Need to run getExpTemplate() first before editing experiment.js
                 await getExpTemplate(path.join(process.cwd(), config.experimentsDir), url, longName, shortName, process.cwd(), verbose)
                 if (expHtmlBool) {
-                  if (expHtmlPlugins && expHtmlTimeline) {
+                  if (expHtmlImports && expHtmlTimeline) {
                     // Create the necessary import statements from the object of jsPsych plugins
                     let newExpJs;
                     let imports;
-                    Object.keys(expHtmlPlugins).forEach((plugin) => {
-                      imports = imports.concat(`import ${expHtmlPlugins[plugin]} from '${plugin}';\n`);
+                    Object.keys(expHtmlImports).forEach((plugin) => {
+                      imports = imports.concat(`import ${expHtmlImports[plugin]} from '${plugin}';\n`);
                     });
                     new newExpJs = `${imports}\nexport function createTimeline(jsPsych) {\n${expHtmlTimeline}\n\nreturn timeline;\n}\n`;
                     fs.writeFileSync(path.join(process.cwd(), config.experimentsDir, shortName, 'web page/src/experiment.js'), newExpJs);

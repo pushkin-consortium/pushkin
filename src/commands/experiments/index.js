@@ -199,8 +199,7 @@ export function getJsPsychTimeline(experimentPath, verbose) {
   }
 }
 
-// Takes a path to a jsPsych experiment and returns an object
-// in which the necessary packages are keys with import names as values
+// Takes a path to a jsPsych experiment and an array of the necessary plugins
 export function getJsPsychPlugins(experimentPath, verbose) {
   if (verbose) console.log('--verbose flag set inside getJsPsychPlugins()');
   // Check whether path is supplied
@@ -222,9 +221,18 @@ export function getJsPsychPlugins(experimentPath, verbose) {
   // (a) it might be hard to tell what version of the plugin they're using
   // (b) if they've modified the plugin, it won't match what we import from npm
   if (!plugins) {
-    console.log('Could not extract plugins from jsPsych experiment.\nMake sure you import the plugins you need in experiment.js');
+    console.log('Could not extract any plugins from jsPsych experiment.\nMake sure you import the plugins you need in experiment.js');
     return;
+  } else {
+    if (verbose) console.log('Found jsPsych packages:\n\t', plugins.join('\n\t'));
+    return plugins;
   }
+}
+
+// Takes an array of plugin names and returns an object
+// mapping the plugin names with which we need to import them
+export function getJsPsychImports(plugins, verbose) {
+  if (verbose) console.log('--verbose flag set inside getJsPsychImports()');
   let imports = {};
   plugins.forEach((plugin) => {
     // Plugin name formats to capture:
