@@ -49,6 +49,23 @@ const publishLocalPackage = async (modDir, modName, verbose) => {
               console.error(`Problem adding ${plugin} to ${modName}`);
               throw e;
             }
+          } else { // package is already added to package.json
+            // Check if the plugin version/tag is specified
+            if (plugin.search(/(?<=@).+@/) > -1) { // Look for a second @ sign
+              let pluginName = plugin.split('@')[1]; // First array element will be empty string
+              let pluginVersion = plugin.split('@')[2];
+              // Check if the package being imported is the same version as the one in package.json
+              if (packageJson.dependencies[plugin] !== pluginVersion) {
+                if (verbose) console.log(`Upgrading ${pluginName} to ${pluginVersion} in ${modName}`);
+                try {
+                  let upgradeCmd = pacMan.concat(' --mutex network upgrade ').concat(plugin);
+                  exec(upgradeCmd, { cwd: modDir });
+                } catch (e) {
+                  console.error(`Problem upgrading ${pluginName} to ${pluginVersion} in ${modName}`);
+                  throw e;
+                }
+              }
+            }
           }
         })
       } else {
