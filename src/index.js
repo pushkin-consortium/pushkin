@@ -527,7 +527,7 @@ const handleInstall = async (what, verbose) => {
                             Object.keys(expHtmlImports).forEach((plugin) => {
                               imports = imports.concat(`import ${expHtmlImports[plugin]} from '${plugin}';\n`);
                             });
-                            newExpJs = `${imports}\nexport function createTimeline(jsPsych) {\n\t${expHtmlTimeline}\n\t\n\treturn timeline;\n}\n`;
+                            newExpJs = `${imports}\nexport function createTimeline(jsPsych) {\n${expHtmlTimeline}\n\nreturn timeline;\n}\n`;
                             fs.writeFileSync(path.join(process.cwd(), config.experimentsDir, shortName, 'web page/src/experiment.js'), newExpJs);
                           } else {
                             console.log(`Problem importing experiment.html; installing the basic template as is.`);
