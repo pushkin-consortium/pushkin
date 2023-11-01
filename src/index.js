@@ -501,6 +501,7 @@ const handleInstall = async (what, verbose) => {
                 let ver = answers.version;
                 const url = verList[ver];
                 await getExpTemplate(path.join(process.cwd(), config.experimentsDir), url, longName, shortName, process.cwd(), verbose);
+                // Procedure for importing a plain jsPsych experiment.html
                 if (expType === 'basic') {
                   inquirer.prompt(
                     [{ type: 'confirm', name: 'expHtmlBool', default: false, message: 'Would you like to import a jsPsych experiment.html?'}]
@@ -526,7 +527,7 @@ const handleInstall = async (what, verbose) => {
                             Object.keys(expHtmlImports).forEach((plugin) => {
                               imports = imports.concat(`import ${expHtmlImports[plugin]} from '${plugin}';\n`);
                             });
-                            newExpJs = `${imports}\nexport function createTimeline(jsPsych) {\n${expHtmlTimeline}\n\nreturn timeline;\n}\n`;
+                            newExpJs = `${imports}\nexport function createTimeline(jsPsych) {\n\t${expHtmlTimeline}\n\t\n\treturn timeline;\n}\n`;
                             fs.writeFileSync(path.join(process.cwd(), config.experimentsDir, shortName, 'web page/src/experiment.js'), newExpJs);
                           } else {
                             console.log(`Problem importing experiment.html; installing the basic template as is.`);
