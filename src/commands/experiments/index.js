@@ -46,7 +46,7 @@ const promiseExpFolderInit = async (initDir, dir, rootDir, modName, buildPath, v
             })
       })
     } catch (e) {
-      console.error('Problem installing dependencies for ${dir}')
+      console.error(`Problem installing dependencies for ${dir}`)
       throw(e)
     }
   })

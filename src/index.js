@@ -500,16 +500,13 @@ const handleInstall = async (what, verbose) => {
               ).then(async (answers) => {
                 let ver = answers.version;
                 const url = verList[ver];
-                let expHtmlBool; // Used only if the user chooses 'basic' and wants to import an experiment.html
-                let expHtmlImports; // Used only if the user chooses 'basic' and wants to import an experiment.html
-                let expHtmlTimeline; // Used only if the user chooses 'basic' and wants to import an experiment.html
+                await getExpTemplate(path.join(process.cwd(), config.experimentsDir), url, longName, shortName, process.cwd(), verbose);
                 if (expType === 'basic') {
-                  await inquirer.prompt(
+                  inquirer.prompt(
                     [{ type: 'confirm', name: 'expHtmlBool', default: false, message: 'Would you like to import a jsPsych experiment.html?'}]
-                  ).then(async (answers) => {
-                    expHtmlBool = answers.expHtmlBool;
-                    if (expHtmlBool) {
-                      await inquirer.prompt(
+                  ).then((answers) => {
+                    if (answers.expHtmlBool) {
+                      inquirer.prompt(
                         [{ type: 'input', name: 'expHtmlPath', message: 'What is absolute path to your experiment.html?'}]
                       ).then((answers) => {
                         if (!answers.expHtmlPath) {
@@ -520,28 +517,24 @@ const handleInstall = async (what, verbose) => {
                           let expHtmlPlugins = getJsPsychPlugins(answers.expHtmlPath);
                           // If you wanted to add a feature to ask the user if there are additional plugins they want,
                           // here would probably be the place to implement it.
-                          expHtmlImports = getJsPsychImports(expHtmlPlugins);
-                          expHtmlTimeline = getJsPsychTimeline(answers.expHtmlPath);
+                          let expHtmlImports = getJsPsychImports(expHtmlPlugins);
+                          let expHtmlTimeline = getJsPsychTimeline(answers.expHtmlPath);
+                          if (expHtmlImports && expHtmlTimeline) {
+                            // Create the necessary import statements from the object of jsPsych plugins
+                            let newExpJs;
+                            let imports = '';
+                            Object.keys(expHtmlImports).forEach((plugin) => {
+                              imports = imports.concat(`import ${expHtmlImports[plugin]} from '${plugin}';\n`);
+                            });
+                            newExpJs = `${imports}\nexport function createTimeline(jsPsych) {\n${expHtmlTimeline}\n\nreturn timeline;\n}\n`;
+                            fs.writeFileSync(path.join(process.cwd(), config.experimentsDir, shortName, 'web page/src/experiment.js'), newExpJs);
+                          } else {
+                            console.log(`Problem importing experiment.html; installing the basic template as is.`);
+                          }
                         }
                       })
                     }
                   })
-                }
-                // Need to run getExpTemplate() first before editing experiment.js
-                await getExpTemplate(path.join(process.cwd(), config.experimentsDir), url, longName, shortName, process.cwd(), verbose);
-                if (expHtmlBool) {
-                  if (expHtmlImports && expHtmlTimeline) {
-                    // Create the necessary import statements from the object of jsPsych plugins
-                    let newExpJs;
-                    let imports = '';
-                    Object.keys(expHtmlImports).forEach((plugin) => {
-                      imports = imports.concat(`import ${expHtmlImports[plugin]} from '${plugin}';\n`);
-                    });
-                    newExpJs = `${imports}\nexport function createTimeline(jsPsych) {\n${expHtmlTimeline}\n\nreturn timeline;\n}\n`;
-                    fs.writeFileSync(path.join(process.cwd(), config.experimentsDir, shortName, 'web page/src/experiment.js'), newExpJs);
-                  } else {
-                    console.log(`Problem importing experiment.html; installing the basic template as is.`);
-                  }
                 }
               })
             })
