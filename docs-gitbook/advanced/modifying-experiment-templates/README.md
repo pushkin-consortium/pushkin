@@ -59,18 +59,12 @@ import jsPsychSurveyText from "@jspsych/plugin-survey-text";
 import jsPsychHtmlButtonResponse from "@jspsych/plugin-html-button-response";
 ```
 
-You'll also need to add the additional plugins as dependencies for your experiment. To do this, navigate to the `web page` directory of the experiment using `cd` and run `yarn add` for each particular plugin:
+The next time you run `pushkin prep`, any additional jsPsych plugins you want to import will be automatically added as dependencies to your experiment's web page component (provided they are available via npm -- this does not apply to custom plugins). If, for some reason, you wish to add these dependencies yourself prior to running `prep`, navigate to the `web page` directory of the experiment using `cd` and run `yarn add` for each particular plugin:
 
 ```bash
  cd 'experiments/[experiment_name]/web page'
  yarn add @jspsych/plugin-survey-text
  yarn add @jspsych/plugin-html-button-response
-```
-
-Be sure to navigate back to the root directory of your site before running `pushkin prep` etc.:
-
-```bash
- cd ../../..
 ```
 
 This same procedure will work with community-developed plugins available through npm via the [jspsych-contrib repository](https://github.com/jspsych/jspsych-contrib). Just replace "@jspsych" with "@jspsych-contrib". The [self-paced reading template](self-paced-reading-template.md) uses a [plugin](https://github.com/jspsych/jspsych-contrib/blob/main/packages/plugin-self-paced-reading/docs/jspsych-self-paced-reading.md) from jspsych-contrib.

@@ -4,42 +4,66 @@
 
 Pushkin’s modularity means that, in principle, you could probably use any javascript-based experiment engine to write your experiments. However, we highly recommend using [jsPsych](https://www.jspsych.org/). Pushkin has only been extensively tested with jsPsych, and all the documentation currently assumes you are using jsPsych.
 
-The tutorial below starts with a simple lexical decision task written in vanilla jsPsych 7. The tutorial below explains how to modify this code to run in Pushkin. **This is a recommended tutorial for learning the ropes, but a more complete experiment template for lexical decision is available to install through Pushkin ([**read more**](../advanced/modifying-experiment-templates/lexical-decision-template.md))**
+The tutorial below starts with a simple lexical decision task written in plain jsPsych 7. The tutorial below explains how to modify this code to run in Pushkin. **This is a recommended tutorial for learning the ropes, but a more complete experiment template for lexical decision is available to install through Pushkin ([**read more**](../advanced/modifying-experiment-templates/lexical-decision-template.md))**
 
 If you are not familiar with jsPsych, please consult the [documentation](https://www.jspsych.org/) first. We recommend you also walk through some of the tutorials.
+
+**Note:** As of vX.X.X of the Pushkin CLI, the procedures described here for [moving the timeline](#move-the-timeline) and [importing plugins](#import-plugins) can be automated if you choose to import a jsPsych experiment when you run `pushkin install experiment` and select the basic template (v5+). You can still do these manually if you choose, or you may need to do parts of these procedures in the course of modifying one of the other templates.
 
 ### Initial code
 
 We will start with a simple lexical decision experiment. The code has been adapted from the experiment [here](https://github.com/jodeleeuw/bigcog-lexical-decision/) in order to be compatible with jsPsych 7. You can save the code below as an .html file to run it as a standalone jsPsych experiment:
 
-```markup
+```html
 <!DOCTYPE html>
 <html>
   <head>
     <title>My experiment</title>
     <script src="https://unpkg.com/jspsych@7.3.3"></script>
     <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@1.1.2"></script>
-    <link href="https://unpkg.com/jspsych@7.3.3/css/jspsych.css" rel="stylesheet" type="text/css"/>
+    <link
+      href="https://unpkg.com/jspsych@7.3.3/css/jspsych.css"
+      rel="stylesheet"
+      type="text/css"
+    />
     <style>
-      .fixation { border: 2px solid black; height: 100px; width: 200px; font-size: 24px; position: relative; margin: auto; }
-      .fixation p { width: 100%; position: absolute; margin: 0.25em;}
-      .fixation p.top { top: 0px; }
-      .fixation p.bottom { bottom: 0px; }
-      .correct { border-color: green;}
-      .incorrect { border-color: red; }
+      .fixation {
+        border: 2px solid black;
+        height: 100px;
+        width: 200px;
+        font-size: 24px;
+        position: relative;
+        margin: auto;
+      }
+      .fixation p {
+        width: 100%;
+        position: absolute;
+        margin: 0.25em;
+      }
+      .fixation p.top {
+        top: 0px;
+      }
+      .fixation p.bottom {
+        bottom: 0px;
+      }
+      .correct {
+        border-color: green;
+      }
+      .incorrect {
+        border-color: red;
+      }
     </style>
   </head>
   <body></body>
   <script>
-
     const jsPsych = initJsPsych();
 
     const timeline = [];
 
     var welcome = {
       type: jsPsychHtmlKeyboardResponse,
-      stimulus: consent + '<p>Press spacebar to continue.</p>',
-      choices: [' ']
+      stimulus: consent + "<p>Press spacebar to continue.</p>",
+      choices: [" "],
     };
 
     timeline.push(welcome);
@@ -52,7 +76,7 @@ We will start with a simple lexical decision experiment. The code has been adapt
         <p>Press Y if both sets are valid English words. Press N if one or both is not a word.</p>
         <p>Press Y to continue.</p>
       `,
-      choices: ['y']
+      choices: ["y"],
     };
 
     timeline.push(instructions_1);
@@ -64,7 +88,7 @@ We will start with a simple lexical decision experiment. The code has been adapt
         <div class="fixation"><p class="top">FOOB</p><p class="bottom">ARTIST</p></div>
         <p>Press N to begin the experiment.</p>
       `,
-      choices: ['n']
+      choices: ["n"],
     };
 
     timeline.push(instructions_2);
@@ -74,47 +98,51 @@ We will start with a simple lexical decision experiment. The code has been adapt
         {
           type: jsPsychHtmlKeyboardResponse,
           stimulus: '<div class="fixation"></div>',
-          choices: 'NO_KEYS',
-          trial_duration: 1000
+          choices: "NO_KEYS",
+          trial_duration: 1000,
         },
         {
           type: jsPsychHtmlKeyboardResponse,
           stimulus: function () {
-            let first_word = jsPsych.timelineVariable('word_1');
-            let second_word = jsPsych.timelineVariable('word_2');
-            first_word = '<div class="fixation"><p class="top">' + first_word + '</p>';
-            second_word = '<div class="fixation"><p class="bottom">' + second_word + '</p>';
+            let first_word = jsPsych.timelineVariable("word_1");
+            let second_word = jsPsych.timelineVariable("word_2");
+            first_word =
+              '<div class="fixation"><p class="top">' + first_word + "</p>";
+            second_word =
+              '<div class="fixation"><p class="bottom">' + second_word + "</p>";
             return first_word + second_word;
           },
-          choices: ['y', 'n'],
+          choices: ["y", "n"],
           data: {
-            both_words: jsPsych.timelineVariable('both_words'),
-            related: jsPsych.timelineVariable('related')
+            both_words: jsPsych.timelineVariable("both_words"),
+            related: jsPsych.timelineVariable("related"),
           },
           on_finish: function (data) {
             if (data.both_words) {
-              data.correct = jsPsych.pluginAPI.compareKeys(data.response, 'y');
+              data.correct = jsPsych.pluginAPI.compareKeys(data.response, "y");
             } else {
-              data.correct = jsPsych.pluginAPI.compareKeys(data.response, 'n');
+              data.correct = jsPsych.pluginAPI.compareKeys(data.response, "n");
             }
-          }
+          },
         },
         {
           type: jsPsychHtmlKeyboardResponse,
           stimulus: function () {
-            let last_correct = jsPsych.data.getLastTrialData().values()[0].correct;
+            let last_correct = jsPsych.data
+              .getLastTrialData()
+              .values()[0].correct;
             if (last_correct) {
               return '<div class="fixation correct"></div>';
             } else {
               return '<div class="fixation incorrect"></div>';
             }
           },
-          choices: 'NO_KEYS',
-          trial_duration: 2000
-        }
+          choices: "NO_KEYS",
+          trial_duration: 2000,
+        },
       ],
       timeline_variables: stimArray,
-      randomize_order: true
+      randomize_order: true,
     };
 
     timeline.push(lexical_decision_procedure);
@@ -122,24 +150,47 @@ We will start with a simple lexical decision experiment. The code has been adapt
     var data_summary = {
       type: jsPsychHtmlKeyboardResponse,
       stimulus: function () {
-          // Calculate performance on task
-          let correct_related = jsPsych.data.get().filter({ related: true, correct: true }).count();
-          let total_related = jsPsych.data.get().filter({ related: true }).count();
-          let mean_rt_related = jsPsych.data.get().filter({ related: true, correct: true }).select('rt').mean();
+        // Calculate performance on task
+        let correct_related = jsPsych.data
+          .get()
+          .filter({ related: true, correct: true })
+          .count();
+        let total_related = jsPsych.data
+          .get()
+          .filter({ related: true })
+          .count();
+        let mean_rt_related = jsPsych.data
+          .get()
+          .filter({ related: true, correct: true })
+          .select("rt")
+          .mean();
 
-          let correct_unrelated = jsPsych.data.get().filter({ related: false, both_words: true, correct: true }).count();
-          let total_unrelated = jsPsych.data.get().filter({ related: false, both_words: true }).count();
-          let mean_rt_unrelated = jsPsych.data.get().filter({ related: false, both_words: true, correct: true }).select('rt').mean();
+        let correct_unrelated = jsPsych.data
+          .get()
+          .filter({ related: false, both_words: true, correct: true })
+          .count();
+        let total_unrelated = jsPsych.data
+          .get()
+          .filter({ related: false, both_words: true })
+          .count();
+        let mean_rt_unrelated = jsPsych.data
+          .get()
+          .filter({ related: false, both_words: true, correct: true })
+          .select("rt")
+          .mean();
 
-
-          // Show results and debrief
-          let results = `<p>You were correct on ${correct_related} of ${total_related} related word pairings!
-            Your average correct response time for these was ${Math.round(mean_rt_related)} milliseconds.</p>
+        // Show results and debrief
+        let results = `<p>You were correct on ${correct_related} of ${total_related} related word pairings!
+            Your average correct response time for these was ${Math.round(
+              mean_rt_related
+            )} milliseconds.</p>
             <p>For unrelated word pairings, you were correct on ${correct_unrelated} of ${total_unrelated}!
-            Your average correct response time for these was ${Math.round(mean_rt_unrelated)} milliseconds.</p>`
-          return results + debrief
+            Your average correct response time for these was ${Math.round(
+              mean_rt_unrelated
+            )} milliseconds.</p>`;
+        return results + debrief;
       },
-      choices: 'NO_KEYS'
+      choices: "NO_KEYS",
     };
 
     timeline.push(data_summary);
@@ -197,4 +248,40 @@ From the jsPsych code [above](#initial-code), copy everything between `const tim
 
 ### Import plugins
 
-In the jsPsych code [above](#initial-code), plugins are loaded within script tags. In a Pushkin experiment, plugins are loaded with `import` statements. The basic template already includes the html-keyboard-response plugin as a dependency, so no additional modifications are needed. However, if you wanted to add additional jsPsych plugins to this experiment, you would need to add them as dependencies and import them in `experiment.js` following the procedure described [here](../advanced/modifying-experiment-templates/README.md#adding-additional-jspsych-plugins).
+In the jsPsych code [above](#initial-code), plugins are loaded with `<script>` tags. In a Pushkin experiment, plugins are loaded with `import` statements. The basic template already includes the html-keyboard-response plugin as a dependency, so no additional modifications are needed. If you wanted to add additional jsPsych plugins to this experiment, you would simply use additional import statements in the same format (see examples [here](../advanced/modifying-experiment-templates/README.md#adding-additional-jspsych-plugins)).
+
+### Moving CSS styling
+
+The experiment [above](#initial-code) relies on CSS styling described in a `<style>` tag to display the experiment correctly. This styling needs be moved to `/experiments/lex/web page/src/assets/experiment.css` in order to apply your Pushkin experiment. The new CSS file will look like:
+
+```css
+@import url("https://unpkg.com/jspsych@7.3.3/css/jspsych.css");
+
+.fixation {
+  border: 2px solid black;
+  height: 100px;
+  width: 200px;
+  font-size: 24px;
+  position: relative;
+  margin: auto;
+}
+.fixation p {
+  width: 100%;
+  position: absolute;
+  margin: 0.25em;
+}
+.fixation p.top {
+  top: 0px;
+}
+.fixation p.bottom {
+  bottom: 0px;
+}
+
+.correct {
+  border-color: green;
+}
+
+.incorrect {
+  border-color: red;
+}
+```
