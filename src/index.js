@@ -502,7 +502,7 @@ const handleInstall = async (what, verbose) => {
                 const url = verList[ver];
                 await getExpTemplate(path.join(process.cwd(), config.experimentsDir), url, longName, shortName, process.cwd(), verbose);
                 // Procedure for importing a plain jsPsych experiment.html
-                if (expType === 'basic') {
+                if (expType === 'basic' && ver.search(/v[5-9]/) === 0) {
                   inquirer.prompt(
                     [{ type: 'confirm', name: 'expHtmlBool', default: false, message: 'Would you like to import a jsPsych experiment.html?'}]
                   ).then((answers) => {
