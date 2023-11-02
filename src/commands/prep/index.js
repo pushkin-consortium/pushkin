@@ -94,6 +94,27 @@ const prepApi = async (expDir, controller, verbose) => {
   })
 }
 
+// copy a directory
+const copyRecursiveAsync = async (source, destination) => {
+  const entries = await fs.promises.readdir(source, { withFileTypes: true });
+
+  // Ensure the destination directory exists
+  await fs.promises.mkdir(destination, { recursive: true });
+
+  for (let entry of entries) {
+    const srcPath = path.join(source, entry.name);
+    const destPath = path.join(destination, entry.name);
+
+    if (entry.isDirectory()) {
+      // Recursive call for directories
+      await copyRecursiveAsync(srcPath, destPath);
+    } else {
+      // Copy file
+      await fs.promises.copyFile(srcPath, destPath);
+    }
+  }
+};
+
 // prepare a single experiment's web page
 const prepWeb = async (expDir, expConfig, coreDir, verbose) => {
   if (verbose) console.log('--verbose flag set inside prepWeb()');
@@ -120,6 +141,26 @@ const prepWeb = async (expDir, expConfig, coreDir, verbose) => {
       console.error(`Problem copying logo file for `, expConfig.shortName);
       throw(e);
     })
+  
+  // Check for the timeline directory and copy its contents if it exists
+  const timelineDir = path.join(webPageLoc, 'src/assets', 'timeline');
+  try {
+    const timelineExists = await fs.promises.access(timelineDir, fs.constants.F_OK)
+      .then(() => true)
+      .catch(() => false);
+
+    if (timelineExists) {
+      const publicDestDir = path.join(coreDir, 'front-end/public', expConfig.shortName);
+      await copyRecursiveAsync(timelineDir, publicDestDir);
+      if (verbose) console.log(`Timeline assets for ${expConfig.experimentName} copied to ${publicDestDir}`);
+    } else {
+      if (verbose) console.log(`No timeline directory found for ${expConfig.experimentName}, nothing was copied.`);
+      return;
+    }
+  } catch (err) {
+    console.error(`An error occurred while copying the timeline assets for ${expConfig.experimentName}: ${err}`);
+    throw err;
+  }
 
   if (verbose) console.log(`Added ${expConfig.experimentName} to experiments.js`);
   return { moduleName, listAppendix: modListAppendix };
