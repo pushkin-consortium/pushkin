@@ -150,7 +150,12 @@ const prepWeb = async (expDir, expConfig, coreDir, verbose) => {
       .catch(() => false);
 
     if (timelineExists) {
-      const publicDestDir = path.join(coreDir, 'front-end/public', expConfig.shortName);
+      // Create the 'experiment' directory if it doesn't exist
+      const experimentDir = path.join(coreDir, 'front-end/public/experiments');
+      await fs.promises.mkdir(experimentDir, { recursive: true });
+
+      // Set the destination directory within the 'experiment' folder
+      const publicDestDir = path.join(experimentDir, expConfig.shortName);
       await copyRecursiveAsync(timelineDir, publicDestDir);
       if (verbose) console.log(`Timeline assets for ${expConfig.experimentName} copied to ${publicDestDir}`);
     } else {
