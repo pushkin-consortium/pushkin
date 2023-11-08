@@ -84,12 +84,12 @@ Assume your experiment's `web page/src/assets/timeline` directory looks like thi
 
 ```text
 └── timeline
-    └── colors
-        ├── blue.png
-        └── orange.png
-    └── shapes
-        ├── square.jpg
-        └── circle.jpg
+    ├── colors
+    │   ├── blue.png
+    │   └── orange.png
+    ├── shapes
+    │   ├── square.jpg
+    │   └── circle.jpg
     ├── cat.mp4
     └── dog.mp4
 ```
