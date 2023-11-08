@@ -42,13 +42,9 @@ Finally, when the timeline finishes, `endExperiment()` will be called. In the cu
 
 ### Assets
 
-The `assets` folder should contain any static assets that will be imported by React.
+The `assets` folder primarily contains static assets that will be imported by React. It also contains a folder called `timeline`, which holds assets which are needed inside the jsPsych timeline (e.g. audiovisual stimuli). The contents of the timeline assets folder get copied to the site's `pushkin/front-end/public` folder during `pushkin prep`. The reason this is necessary is that jsPsych timelines are not compiled by React, so the contents of the `assets` directory will not be accessible when jsPsych runs. However, create-react-app provides a nifty workaround: `process.env.PUBLIC_URL` will point to the folder `pushkin/front-end/public` during runtime.
 
-Note that this method of importation won’t work for files referenced with a jsPsych experiment. jsPsych timelines are not compiled by React, so by the time jsPsych runs, the files on the server are no longer accessible. However, create-react-app provides a nifty workaround: `process.env.PUBLIC_URL` will point to the folder `pushkin/front-end/public` during runtime. Thus, if your experiment uses image files, add them to the `pushkin/front-end/public` directory of your your site and specify their paths in the experiment file like this:
-
-```javascript
-process.env.PUBLIC_URL + "/my_image_file.jpg";
-```
+See [here](../modifying-experiment-templates/README.md#adding-static-assets) for an example of how to refer to audiovisual stimulus files within a jsPsych timeline.
 
 ## Customizing the client
 
