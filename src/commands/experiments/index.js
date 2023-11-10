@@ -54,55 +54,64 @@ const promiseExpFolderInit = async (initDir, dir, rootDir, modName, buildPath, v
 
 export async function getExpTemplate(experimentsDir, url, longName, newExpName, rootDir, verbose) {
   if (verbose) console.log('--verbose flag set inside getExpTemplate()');
+
+  // Validate experiment name
   if (!isValidExpName(newExpName)) {
     console.error(`'${newExpName}' is not a valid name. Names must start with a letter and can only contain alphanumeric characters.`);
     return;
   }
-  if (verbose) console.log(`Making ${newExpName} in ${experimentsDir}`);
+
+  // Create new directory for the experiment
   const newDir = path.join(experimentsDir, newExpName);
   if (fs.existsSync(newDir) && fs.lstatSync(newDir).isDirectory()) {
     console.error(`A directory in the experiments folder already exists with this name (${newExpName})`);
     return;
   }
 
-  // download files
+  // Check for URL validity
   if (!url) {
     console.error('Problem with URL for download.');
     return;
   }
+
   fs.mkdirSync(newDir);
   if (verbose) console.log(`retrieving from ${url}`);
   if (verbose) console.log('be patient...');
-  let response
+
+  // Attempt to download the experiment template
+  let response;
   try {
     response = await got(url);
+    const zipball_url = JSON.parse(response.body).assets[0].browser_download_url;
+
+    // Download and extract the zip file
+    await new Promise((resolve, reject) => {
+      sa.get(zipball_url)
+        .on('error', function (error) {
+          console.error('Download failed: ', error);
+          reject(error);
+        })
+        .pipe(fs.createWriteStream('temp.zip'))
+        .on('finish', async () => {
+          if (verbose) console.log('finished downloading');
+          var zip = new admZip('temp.zip');
+          try {
+            zip.extractAllTo(newDir, true);
+            await fs.promises.unlink('temp.zip');
+            shell.rm('-rf', '__MACOSX');
+            await initExperiment(newDir, newExpName, longName, rootDir, verbose);
+            resolve();
+          } catch (extractionError) {
+            reject(extractionError);
+          }
+        });
+    });
   } catch (error) {
-    console.error('Unable to download from specified site. Make sure your internet is on. If it is on but this error repeats, ask for help on the Pushkin forum.');
-    throw error
+    console.error('Unable to download or extract: ', error);
+    throw error;
   }
-  let zipball_url
-  try {
-    zipball_url = JSON.parse(response.body).assets[0].browser_download_url;
-  } catch(e) {
-    console.error('Problem parsing github JSON');
-    throw e
-  }
-  sa
-    .get(zipball_url)
-    .on('error', function(error){
-      console.error('Download failed: ',error);
-      process.exit();
-    })
-    .pipe(fs.createWriteStream('temp.zip'))
-    .on('finish', async () => {
-      if (verbose) console.log('finished downloading');
-      var zip = new admZip('temp.zip');
-      await zip.extractAllTo(newDir, true);
-      await fs.promises.unlink('temp.zip');
-      shell.rm('-rf','__MACOSX');
-      await initExperiment(newDir, newExpName, longName, rootDir, verbose);
-    })
 }
+
 
 export async function copyExpTemplate(experimentsDir, expPath, longName, newExpName, rootDir, verbose) {
   if (verbose) console.log('--verbose flag set inside copyExpTemplate()');
