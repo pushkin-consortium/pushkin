@@ -3,12 +3,18 @@ description: >-
   Pushkin provides a customizable, scalable ecosystem for massive online
   psychological experiments
 ---
-
 # Welcome!
 
 “Getting Started” will get a very simple demo site up and running. The remaining pages explain how to customize your website. Instructions are geared towards someone who ideally has at least some familiarity with JavaScript and React. Sections intended for more experienced programmers who need to understand the guts of Pushkin are labeled under Developers. See the full Table of contents [here](./#table-of-contents).
 
 To get the latest news and updates on Pushkin, sign up for our newsletter [here](https://groups.google.com/g/pushkinjs)
+
+---
+
+## 🚨 Important Note
+> **Due to an update in AWS resources, the CLI-based AWS deploy does not currently work and is being updated. In the meantime, you can still manually deploy to AWS.**
+
+---
 
 ## Table of contents
 
