@@ -299,10 +299,9 @@ const initExperiment = async (expDir, expName, longName, rootDir, verbose) => {
     console.error(`Failed to read experiment config file for `.concat(expName));
     throw err;
   }
-  /* 
+  
   expConfig.experimentName = longName;
-  expConfig.shortName = expName;
-  */
+  //expConfig.shortName = expName; // Should be unnecessary, shortName should already have this value
 
   try {
     fs.writeFileSync(path.join(expDir, 'config.yaml'), jsYaml.safeDump(expConfig), 'utf8');
