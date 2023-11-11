@@ -2,6 +2,13 @@
 
 Deploy your basic Pushkin site and experiments to Amazon Web Services.
 
+---
+
+## 🚨 Important Note
+> **Due to an update in AWS resources, the CLI-based AWS deploy does not currently work and is being updated. In the meantime, you can still manually deploy to AWS.**
+
+---
+
 ## Prerequisites
 
 Before you begin, make sure your have:

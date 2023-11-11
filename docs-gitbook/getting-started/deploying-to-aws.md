@@ -1,5 +1,11 @@
 # Deploying to AWS
 
+---
+
+## 🚨 Important Note
+> **Due to an update in AWS resources, the CLI-based AWS deploy does not currently work and is being updated. In the meantime, you can still manually deploy to AWS.**
+
+---
 ## Requirements
 
 * Finished the [Quickstart](https://languagelearninglab.gitbook.io/pushkin/getting-started/quickstart)
