@@ -503,11 +503,11 @@ const handleInstall = async (what, verbose) => {
                 let newExpJs; // Only used if they want to import a jsPsych experiment
                 // If they're using the basic template 5+, ask about importing a jsPsych experiment
                 if (expType === 'basic' && ver.search(/v[5-9]/) === 0) {
-                  inquirer.prompt(
+                  await inquirer.prompt(
                     [{ type: 'confirm', name: 'expHtmlBool', default: false, message: 'Would you like to import a jsPsych experiment.html?'}]
-                  ).then((answers) => {
+                  ).then(async (answers) => {
                     if (answers.expHtmlBool) {
-                      inquirer.prompt(
+                      await inquirer.prompt(
                         [{ type: 'input', name: 'expHtmlPath', message: 'What is absolute path to your experiment.html?'}]
                       ).then((answers) => {
                         if (!answers.expHtmlPath) {
