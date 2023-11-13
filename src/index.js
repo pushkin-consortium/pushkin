@@ -500,8 +500,8 @@ const handleInstall = async (what, verbose) => {
               ).then(async (answers) => {
                 let ver = answers.version;
                 const url = verList[ver];
-                await getExpTemplate(path.join(process.cwd(), config.experimentsDir), url, longName, shortName, process.cwd(), verbose);
-                // Procedure for importing a plain jsPsych experiment.html
+                let newExpJs; // Only used if they want to import a jsPsych experiment
+                // If they're using the basic template 5+, ask about importing a jsPsych experiment
                 if (expType === 'basic' && ver.search(/v[5-9]/) === 0) {
                   inquirer.prompt(
                     [{ type: 'confirm', name: 'expHtmlBool', default: false, message: 'Would you like to import a jsPsych experiment.html?'}]
@@ -522,13 +522,11 @@ const handleInstall = async (what, verbose) => {
                           let expHtmlTimeline = getJsPsychTimeline(answers.expHtmlPath);
                           if (expHtmlImports && expHtmlTimeline) {
                             // Create the necessary import statements from the object of jsPsych plugins
-                            let newExpJs;
                             let imports = '';
                             Object.keys(expHtmlImports).forEach((plugin) => {
                               imports = imports.concat(`import ${expHtmlImports[plugin]} from '${plugin}';\n`);
                             });
                             newExpJs = `${imports}\nexport function createTimeline(jsPsych) {\n${expHtmlTimeline}\n\nreturn timeline;\n}\n`;
-                            fs.writeFileSync(path.join(process.cwd(), config.experimentsDir, shortName, 'web page/src/experiment.js'), newExpJs);
                           } else {
                             console.log(`Problem importing experiment.html; installing the basic template as is.`);
                           }
@@ -536,6 +534,10 @@ const handleInstall = async (what, verbose) => {
                       })
                     }
                   })
+                }
+                await getExpTemplate(path.join(process.cwd(), config.experimentsDir), url, longName, shortName, process.cwd(), verbose);
+                if (newExpJs) {
+                  fs.writeFileSync(path.join(process.cwd(), config.experimentsDir, shortName, 'web page/src/experiment.js'), newExpJs);
                 }
               })
             })
