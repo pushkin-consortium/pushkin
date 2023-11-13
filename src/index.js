@@ -514,7 +514,7 @@ const handleInstall = async (what, verbose) => {
                           console.log('No path provided to jsPsych experiment; installing the basic template as is.');
                         } else if (!fs.existsSync(answers.expHtmlPath)) {
                           console.log('Path to jsPsych experiment does not exist; installing the basic template as is.');
-                        } else if (!fs.stat(answers.expHtmlPath).isFile()) {
+                        } else if (!fs.lstatSync(answers.expHtmlPath).isFile()) {
                           console.log('Invalid file path; installing the basic template as is.');
                         } else {
                           let expHtmlPlugins = getJsPsychPlugins(answers.expHtmlPath, verbose);
