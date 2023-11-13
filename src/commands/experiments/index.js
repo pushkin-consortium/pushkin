@@ -214,7 +214,7 @@ export function getJsPsychPlugins(experimentPath, verbose) {
     console.log('Could not extract any plugins from jsPsych experiment.\nMake sure you import the plugins you need in experiment.js');
     return;
   } else {
-    if (verbose) console.log('Found jsPsych packages:\n\t', plugins.join('\n\t'));
+    if (verbose) console.log('Found jsPsych packages:', '\n\t'.concat(plugins.join('\n\t')));
     return plugins;
   }
 }

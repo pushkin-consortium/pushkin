@@ -526,7 +526,7 @@ const handleInstall = async (what, verbose) => {
                             Object.keys(expHtmlImports).forEach((plugin) => {
                               imports = imports.concat(`import ${expHtmlImports[plugin]} from '${plugin}';\n`);
                             });
-                            newExpJs = `${imports}\nexport function createTimeline(jsPsych) {\n${expHtmlTimeline}\n\nreturn timeline;\n}\n`;
+                            newExpJs = `${imports}\nexport function createTimeline(jsPsych) {\n${expHtmlTimeline}\nreturn timeline;\n}\n`;
                           } else {
                             console.log(`Problem importing experiment.html; installing the basic template as is.`);
                           }
