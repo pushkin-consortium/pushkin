@@ -260,6 +260,7 @@ export function getJsPsychImports(plugins, verbose) {
     if (verbose) console.log('New import statements for jsPsych packages created');
     return imports;
   } else {
+    console.log('Problem creating import statements for jsPsych packages');
     return; // If no plugins were found, return undefined
   }
 }

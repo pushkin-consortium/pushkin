@@ -537,6 +537,7 @@ const handleInstall = async (what, verbose) => {
                 }
                 await getExpTemplate(path.join(process.cwd(), config.experimentsDir), url, longName, shortName, process.cwd(), verbose);
                 if (newExpJs) {
+                  if (verbose) console.log(`Writing new experiment.js file`);
                   fs.writeFileSync(path.join(process.cwd(), config.experimentsDir, shortName, 'web page/src/experiment.js'), newExpJs);
                 }
               })
