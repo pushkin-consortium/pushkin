@@ -515,11 +515,11 @@ const handleInstall = async (what, verbose) => {
                         } else if (!fs.existsSync(answers.expHtmlPath)) {
                           console.log('Path to jsPsych experiment does not exist; installing the basic template as is.');
                         } else {
-                          let expHtmlPlugins = getJsPsychPlugins(answers.expHtmlPath);
+                          let expHtmlPlugins = getJsPsychPlugins(answers.expHtmlPath, verbose);
                           // If you wanted to add a feature to ask the user if there are additional plugins they want,
                           // here would probably be the place to implement it.
-                          let expHtmlImports = getJsPsychImports(expHtmlPlugins);
-                          let expHtmlTimeline = getJsPsychTimeline(answers.expHtmlPath);
+                          let expHtmlImports = getJsPsychImports(expHtmlPlugins, verbose);
+                          let expHtmlTimeline = getJsPsychTimeline(answers.expHtmlPath, verbose);
                           if (expHtmlImports && expHtmlTimeline) {
                             // Create the necessary import statements from the object of jsPsych plugins
                             let imports = '';
