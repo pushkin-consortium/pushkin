@@ -194,6 +194,7 @@ export function getJsPsychTimeline(experimentPath, verbose) {
     console.log('Could not extract timeline from jsPsych experiment');
     return;
   } else {
+    if (verbose) console.log('Timeline extracted from jsPsych experiment');
     return jsPsychExp.slice(timelineBegin, timelineEnd);
   }
 }
@@ -256,6 +257,7 @@ export function getJsPsychImports(plugins, verbose) {
     }
   });
   if (Object.keys(imports).length > 0) {
+    if (verbose) console.log('New import statements for jsPsych packages created');
     return imports;
   } else {
     return; // If no plugins were found, return undefined
