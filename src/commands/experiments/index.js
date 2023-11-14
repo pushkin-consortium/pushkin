@@ -183,19 +183,26 @@ export function getJsPsychTimeline(experimentPath, verbose) {
   // Read in entire experiment file as text
   let jsPsychExp = fs.readFileSync(experimentPath, 'utf8');
   // Extract timeline name by looking for the argument supplied to jsPsych.run()
-  let timelineName = jsPsychExp.match(/(?<=jsPsych\.run\().+?(?=\))/g)[0]; // [0] because match() returns an array
-  // Look for where the timeline is declared
-  let beginRegex = new RegExp(`(const|let|var) ${timelineName}`, 'gm');
-  let timelineBegin = jsPsychExp.search(beginRegex);
-  // Look for where jsPsych.run() is called
-  let timelineEnd = jsPsychExp.search(/^\s*?jsPsych\.run/gm);
-  // Return the extracted timeline procedure
-  if (timelineBegin < 0 || timelineEnd < 0) { // If either search fails, return undefined
-    console.log('Could not extract timeline from jsPsych experiment');
+  let jsPsychRunSearch = new RegExp(/(?<=jsPsych\.run\().+?(?=\))/, 'g');
+  if (!jsPsychRunSearch.test(jsPsychExp)) {
+    console.log('Could not find call to jsPsych.run in experiment.html');
     return;
   } else {
-    if (verbose) console.log('Timeline extracted from jsPsych experiment');
-    return jsPsychExp.slice(timelineBegin, timelineEnd);
+    if (verbose) console.log('Extracting timeline from experiment.html');
+    let timelineName = jsPsychExp.match(jsPsychRunSearch)[0]; // [0] because match() returns an array
+    // Look for where the timeline is declared
+    let beginRegex = new RegExp(`(const|let|var) ${timelineName}`, 'gm');
+    let timelineBegin = jsPsychExp.search(beginRegex);
+    // Look for where jsPsych.run() is called
+    let timelineEnd = jsPsychExp.search(/^\s*?jsPsych\.run/gm);
+    // Return the extracted timeline procedure
+    if (timelineBegin < 0 || timelineEnd < 0) { // If either search fails, return undefined
+      console.log('Could not extract timeline from jsPsych experiment');
+      return;
+    } else {
+      if (verbose) console.log('Timeline extracted from jsPsych experiment');
+      return jsPsychExp.slice(timelineBegin, timelineEnd);
+    }
   }
 }
 
@@ -212,7 +219,7 @@ export function getJsPsychPlugins(experimentPath, verbose) {
   // (b) if they've modified the plugin, it won't match what we import from npm
   if (!plugins) {
     console.log(`Could not extract any plugins from jsPsych experiment.
-      \nCheck your jsPsych experiment and make sure you import the plugins you need in your Pushkin experiment.js`);
+    Check your jsPsych experiment and make sure to import the necessary plugins in your Pushkin experiment.js`);
     return;
   } else {
     if (verbose) console.log('Found jsPsych packages:', '\n\t'.concat(plugins.join('\n\t')));
