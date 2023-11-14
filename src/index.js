@@ -508,7 +508,7 @@ const handleInstall = async (what, verbose) => {
                   ).then(async (answers) => {
                     if (answers.expHtmlBool) {
                       await inquirer.prompt(
-                        [{ type: 'input', name: 'expHtmlPath', message: 'What is absolute path to your experiment.html?'}]
+                        [{ type: 'input', name: 'expHtmlPath', message: 'What is the absolute path to your experiment.html?'}]
                       ).then((answers) => {
                         if (!answers.expHtmlPath) {
                           console.log('No path provided to jsPsych experiment; installing the basic template as is.');

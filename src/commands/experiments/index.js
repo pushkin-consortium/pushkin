@@ -321,7 +321,7 @@ const initExperiment = async (expDir, expName, longName, rootDir, verbose) => {
     throw err;
   }
   
-  expConfig.experimentName = longName;
+  //expConfig.experimentName = longName; This could be uncommented, but might introduce compatibility issues with older exp templates
   //expConfig.shortName = expName; // Should be unnecessary, shortName should already have this value
 
   try {
