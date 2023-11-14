@@ -211,7 +211,8 @@ export function getJsPsychPlugins(experimentPath, verbose) {
   // (a) it might be hard to tell what version of the plugin they're using
   // (b) if they've modified the plugin, it won't match what we import from npm
   if (!plugins) {
-    console.log('Could not extract any plugins from jsPsych experiment.\nMake sure you import the plugins you need in experiment.js');
+    console.log(`Could not extract any plugins from jsPsych experiment.
+      \nCheck your jsPsych experiment and make sure you import the plugins you need in your Pushkin experiment.js`);
     return;
   } else {
     if (verbose) console.log('Found jsPsych packages:', '\n\t'.concat(plugins.join('\n\t')));
@@ -224,6 +225,7 @@ export function getJsPsychPlugins(experimentPath, verbose) {
 export function getJsPsychImports(plugins, verbose) {
   if (verbose) console.log('--verbose flag set inside getJsPsychImports()');
   let imports = {};
+  if (!plugins) return; // If no plugins were found by getJsPsychPlugins, return undefined
   plugins.forEach((plugin) => {
     // Plugin name formats to capture:
     // - @jspsych/plugin-some-name[@version] OR @jspsych-contrib/plugin-some-name[@version] --> jsPsychSomeName
