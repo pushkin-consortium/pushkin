@@ -321,8 +321,11 @@ const initExperiment = async (expDir, expName, longName, rootDir, verbose) => {
     throw err;
   }
   
-  //expConfig.experimentName = longName; This could be uncommented, but might introduce compatibility issues with older exp templates
-  //expConfig.shortName = expName; // Should be unnecessary, shortName should already have this value
+  // These two lines should be unnecessary, but without them,
+  // it looks like there will be compatibility issues with
+  // previous versions of experiment templates
+  expConfig.experimentName = expName;
+  expConfig.shortName = expName;
 
   try {
     fs.writeFileSync(path.join(expDir, 'config.yaml'), jsYaml.safeDump(expConfig), 'utf8');
