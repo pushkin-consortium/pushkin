@@ -173,6 +173,9 @@ const prepWeb = async (expDir, expConfig, coreDir, verbose) => {
     console.error(`Failed on publishing web page: ${err}`);
     throw err;
   }
+  // chekc if moduleName exists
+  console.log(moduleName);
+
   if (verbose) console.log(`Loaded web page for ${expConfig.experimentName} (${moduleName})`);
   const modListAppendix = "{ fullName: `".concat(expConfig.experimentName).concat("`,") 
     .concat(`shortName: '${expConfig.shortName}', 
@@ -206,7 +209,6 @@ const prepWeb = async (expDir, expConfig, coreDir, verbose) => {
       if (verbose) console.log(`Timeline assets for ${expConfig.experimentName} copied to ${publicDestDir}`);
     } else {
       if (verbose) console.log(`No timeline directory found for ${expConfig.experimentName}, nothing was copied.`);
-      return;
     }
   } catch (err) {
     console.error(`An error occurred while copying the timeline assets for ${expConfig.experimentName}: ${err}`);
