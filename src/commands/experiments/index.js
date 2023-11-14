@@ -321,11 +321,8 @@ const initExperiment = async (expDir, expName, longName, rootDir, verbose) => {
     throw err;
   }
   
-  // These two lines should be unnecessary, but without them,
-  // it looks like there will be compatibility issues with
-  // previous versions of experiment templates
-  expConfig.experimentName = expName;
-  expConfig.shortName = expName;
+  expConfig.experimentName = longName;
+  //expConfig.shortName = expName; // Should be unnecessary
 
   try {
     fs.writeFileSync(path.join(expDir, 'config.yaml'), jsYaml.safeDump(expConfig), 'utf8');
