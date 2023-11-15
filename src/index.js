@@ -143,7 +143,7 @@ class DefaultHandler {
 			stimGroups: `${dbTablePrefix}_stimulusGroups`,
 			stimGroupStim: `${dbTablePrefix}_stimulusGroupStimuli`
 		};
-
+		console.log(`setting up main db connection with ${JSON.stringify(connection)}`)
 		this.knexInfo = { 
 			client: 'pg', 
 			version: '11',
