@@ -531,7 +531,7 @@ const handleInstall = async (what, verbose) => {
                                 let pluginNoVersion = '@' + plugin.split('@')[1] // [1] will be the plugin name, add back leading '@'
                                 let pluginVersion = '@' + plugin.split('@')[2] // [2] will be the version number, add back leading '@'
                                 // Add version info as a comment after the import statement (to be read by prep later)
-                                imports = imports.concat(`import ${expHtmlImports[plugin]} from '${pluginNoVersion}'; // version:${pluginVersion}\n`);
+                                imports = imports.concat(`import ${expHtmlImports[plugin]} from '${pluginNoVersion}'; // version:${pluginVersion} //\n`);
                               } else {
                                 imports = imports.concat(`import ${expHtmlImports[plugin]} from '${plugin}';\n`);
                               }

@@ -43,7 +43,7 @@ const publishLocalPackage = async (modDir, modName, verbose) => {
         let pluginsToUpgrade = [];
         plugins.forEach((plugin) => {
           // Create a regex to find the version number specified after the import statement
-          let versionMatch = new RegExp(`(?<=${plugin}'; \/\/ version:).+$`, 'gm');
+          let versionMatch = new RegExp(`(?<=${plugin}'; \/\/ version:).+?(?= \/\/)`, 'g');
           let pluginVersion = '';
           if (expJs.includes(`${plugin}'; // version:`)) {
             pluginVersion = expJs.match(versionMatch)[0];
