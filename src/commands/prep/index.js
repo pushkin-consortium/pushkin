@@ -69,7 +69,7 @@ const publishLocalPackage = async (modDir, modName, verbose) => {
             throw e;
           }
         }
-        if (pluginsToUpgrade > 0) {
+        if (pluginsToUpgrade.length > 0) {
           if (verbose) console.log(`Upgrading jsPsych plugins in ${modName}:\n\t${pluginsToUpgrade.join('\n\t')}`);
           try {
             let upgradeCmd = pacMan.concat(' --mutex network upgrade ').concat(pluginsToUpgrade.join(' '));
