@@ -38,36 +38,47 @@ const publishLocalPackage = async (modDir, modName, verbose) => {
         // Find everything that starts with "@jspsych" up to a single or double quote
         // This should capture all jsPsych packages imported into the experiment
         const plugins = expJs.match(/@jspsych.*?(?=['"])/g);
+        // Create lists of plugins to add and upgrade
+        let pluginsToAdd = [];
+        let pluginsToUpgrade = [];
         plugins.forEach((plugin) => {
+          // Create a regex to find the version number specified after the import statement
+          let versionMatch = new RegExp(`(?<=${plugin}'; \/\/ version:).+$`, 'gm');
+          let pluginVersion = '';
+          if (expJs.includes(`${plugin}'; // version:`)) {
+            pluginVersion = expJs.match(versionMatch)[0];
+          }
           // If any jsPsych plugins are not yet added to package.json, add them
           if (!packageJson.dependencies[plugin]) {
-            if (verbose) console.log(`${plugin} not yet added to ${modName}; adding it now`);
-            try {
-              let addCmd = pacMan.concat(' --mutex network add ').concat(plugin);
-              exec(addCmd, { cwd: modDir });
-            } catch (e) {
-              console.error(`Problem adding ${plugin} to ${modName}`);
-              throw e;
-            }
+            pluginsToAdd.push(plugin.concat(pluginVersion));
           } else { // package is already added to package.json
-            // Check if the plugin version/tag is specified
-            if (plugin.search(/(?<=@).+@/) > -1) { // Look for a second @ sign
-              let pluginName = plugin.split('@')[1]; // First array element will be empty string
-              let pluginVersion = plugin.split('@')[2];
-              // Check if the package being imported is the same version as the one in package.json
-              if (packageJson.dependencies[plugin] !== pluginVersion) {
-                if (verbose) console.log(`Upgrading ${pluginName} to ${pluginVersion} in ${modName}`);
-                try {
-                  let upgradeCmd = pacMan.concat(' --mutex network upgrade ').concat(plugin);
-                  exec(upgradeCmd, { cwd: modDir });
-                } catch (e) {
-                  console.error(`Problem upgrading ${pluginName} to ${pluginVersion} in ${modName}`);
-                  throw e;
-                }
-              }
+            // Check if version/tag is specified and differs from the one in package.json
+            if (pluginVersion !== '' && packageJson.dependencies[plugin] !== pluginVersion) {
+              pluginsToUpgrade.push(plugin.concat(pluginVersion));
             }
           }
         })
+        // If any plugins need to be added or upgraded, do so
+        if (pluginsToAdd.length > 0) {
+          if (verbose) console.log(`Adding jsPsych plugins to ${modName}:\n\t${pluginsToAdd.join('\n\t')}`);
+          try {
+            let addCmd = pacMan.concat(' --mutex network add ').concat(pluginsToAdd.join(' '));
+            execSync(addCmd, { cwd: modDir });
+          } catch (e) {
+            console.error(`Problem adding jsPsych plugins to ${modName}`);
+            throw e;
+          }
+        }
+        if (pluginsToUpgrade > 0) {
+          if (verbose) console.log(`Upgrading jsPsych plugins in ${modName}:\n\t${pluginsToUpgrade.join('\n\t')}`);
+          try {
+            let upgradeCmd = pacMan.concat(' --mutex network upgrade ').concat(pluginsToUpgrade.join(' '));
+            execSync(upgradeCmd, { cwd: modDir });
+          } catch (e) {
+            console.error(`Problem upgrading jsPsych plugins in ${modName}`);
+            throw e;
+          }
+        }
       } else {
         if (verbose) console.log(`No experiment.js found in ${modName}`);
       }
