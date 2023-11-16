@@ -27,6 +27,69 @@ const publishLocalPackage = async (modDir, modName, verbose) => {
       const pacRunner = (pacMan == 'yarn') ? 'yarn' : 'npx';
       buildCmd = pacRunner.concat(' build-if-changed');
     }
+    // Check whether the package is a web page component
+    if (modName.endsWith('_web')) {
+      // Look for the experiment.js file
+      const expJsPath = path.join(modDir, 'src/experiment.js');
+      if (fs.existsSync(expJsPath)) {
+        // Get all the jsPsych plugins/extensions/timelines imported into experiment.js
+        if (verbose) console.log(`Checking jsPsych packages in ${modName}`);
+        const expJs = fs.readFileSync(expJsPath, { encoding: 'utf8' }); // Specify encoding so string methods work
+        // Find everything that starts with "@jspsych" up to a single or double quote
+        // This should capture all jsPsych packages imported into the experiment
+        const plugins = expJs.match(/@jspsych.*?(?=['"])/g);
+        // Create lists of plugins to add and upgrade
+        let pluginsToAdd = [];
+        let pluginsToUpgrade = [];
+        plugins.forEach((plugin) => {
+          // Create a regex to find the version number specified after the import statement
+          let versionMatch = new RegExp(`(?<=${plugin}'; \/\/ version:).+?(?= \/\/)`, 'g');
+          let pluginVersion = '';
+          if (expJs.includes(`${plugin}'; // version:`)) {
+            pluginVersion = expJs.match(versionMatch)[0];
+          }
+          // If any jsPsych plugins are not yet added to package.json, add them
+          if (!packageJson.dependencies[plugin]) {
+            if (pluginVersion === '') {
+              // Just add the plugin name if no version/tag is specified
+              pluginsToAdd.push(plugin);
+            } else {
+              // Append the version/tag if specified
+              pluginsToAdd.push(plugin + '@' + pluginVersion);
+            }
+          } else { // package is already added to package.json
+            // Check if version/tag is specified and differs from the one in package.json
+            if (pluginVersion !== '' && packageJson.dependencies[plugin] !== pluginVersion) {
+              pluginsToUpgrade.push(plugin + '@' + pluginVersion);
+            }
+          }
+        })
+        // If any plugins need to be added or upgraded, do so
+        if (pluginsToAdd.length > 0) {
+          if (verbose) console.log(`Adding jsPsych plugins to ${modName}:\n\t${pluginsToAdd.join('\n\t')}`);
+          try {
+            let addCmd = pacMan.concat(' --mutex network add ').concat(pluginsToAdd.join(' '));
+            execSync(addCmd, { cwd: modDir }); // Probably needs to be sync so it finishes before install
+          } catch (e) {
+            console.error(`Problem adding jsPsych plugins to ${modName}`);
+            throw e;
+          }
+        }
+        if (pluginsToUpgrade.length > 0) {
+          if (verbose) console.log(`Upgrading jsPsych plugins in ${modName}:\n\t${pluginsToUpgrade.join('\n\t')}`);
+          try {
+            let upgradeCmd = pacMan.concat(' --mutex network upgrade ').concat(pluginsToUpgrade.join(' '));
+            execSync(upgradeCmd, { cwd: modDir }); // Probably needs to be sync so it finishes before install
+          } catch (e) {
+            console.error(`Problem upgrading jsPsych plugins in ${modName}`);
+            throw e;
+          }
+        }
+      } else {
+        if (verbose) console.log(`No experiment.js found in ${modName}`);
+      }
+      if (verbose) console.log(`Finished checking jsPsych packages in ${modName}`);
+    }
     if (verbose) console.log(`Installing dependencies for ${modDir}`);
     exec(pacMan.concat(' --mutex network install'), { cwd: modDir })
       .then(() => {
@@ -94,6 +157,27 @@ const prepApi = async (expDir, controller, verbose) => {
   })
 }
 
+// copy a directory
+const copyRecursiveAsync = async (source, destination) => {
+  const entries = await fs.promises.readdir(source, { withFileTypes: true });
+
+  // Ensure the destination directory exists
+  await fs.promises.mkdir(destination, { recursive: true });
+
+  for (let entry of entries) {
+    const srcPath = path.join(source, entry.name);
+    const destPath = path.join(destination, entry.name);
+
+    if (entry.isDirectory()) {
+      // Recursive call for directories
+      await copyRecursiveAsync(srcPath, destPath);
+    } else {
+      // Copy file
+      await fs.promises.copyFile(srcPath, destPath);
+    }
+  }
+};
+
 // prepare a single experiment's web page
 const prepWeb = async (expDir, expConfig, coreDir, verbose) => {
   if (verbose) console.log('--verbose flag set inside prepWeb()');
@@ -101,11 +185,14 @@ const prepWeb = async (expDir, expConfig, coreDir, verbose) => {
   if (verbose) console.log(`Started loading web page for ${expConfig.shortName}`);
   let moduleName
   try {
-    moduleName = await publishLocalPackage(webPageLoc, expConfig.shortName.concat('_web'))
+    moduleName = await publishLocalPackage(webPageLoc, expConfig.shortName.concat('_web'), verbose)
   } catch (err) {
     console.error(`Failed on publishing web page: ${err}`);
     throw err;
   }
+  // chekc if moduleName exists
+  console.log(moduleName);
+
   if (verbose) console.log(`Loaded web page for ${expConfig.experimentName} (${moduleName})`);
   const modListAppendix = "{ fullName: `".concat(expConfig.experimentName).concat("`,") 
     .concat(`shortName: '${expConfig.shortName}', 
@@ -120,6 +207,30 @@ const prepWeb = async (expDir, expConfig, coreDir, verbose) => {
       console.error(`Problem copying logo file for `, expConfig.shortName);
       throw(e);
     })
+  
+  // Check for the timeline directory and copy its contents if it exists
+  const timelineDir = path.join(webPageLoc, 'src/assets', 'timeline');
+  try {
+    const timelineExists = await fs.promises.access(timelineDir, fs.constants.F_OK)
+      .then(() => true)
+      .catch(() => false);
+
+    if (timelineExists) {
+      // Create the 'experiment' directory if it doesn't exist
+      const experimentDir = path.join(coreDir, 'front-end/public/experiments');
+      await fs.promises.mkdir(experimentDir, { recursive: true });
+
+      // Set the destination directory within the 'experiment' folder
+      const publicDestDir = path.join(experimentDir, expConfig.shortName);
+      await copyRecursiveAsync(timelineDir, publicDestDir);
+      if (verbose) console.log(`Timeline assets for ${expConfig.experimentName} copied to ${publicDestDir}`);
+    } else {
+      if (verbose) console.log(`No timeline directory found for ${expConfig.experimentName}, nothing was copied.`);
+    }
+  } catch (err) {
+    console.error(`An error occurred while copying the timeline assets for ${expConfig.experimentName}: ${err}`);
+    throw err;
+  }
 
   if (verbose) console.log(`Added ${expConfig.experimentName} to experiments.js`);
   return { moduleName, listAppendix: modListAppendix };
@@ -137,7 +248,6 @@ export const readConfig = (expDir) => {
     throw err
   }
 }
-
 
 // the main prep function for prepping all experiments
 export const prep = async (experimentsDir, coreDir, verbose) => {
@@ -179,6 +289,10 @@ export const prep = async (experimentsDir, coreDir, verbose) => {
     throw e
   }
 
+  // Get an array of all experiment directories
+  // Iterate over this later to prep each experiment's api, web page, and worker 
+  const expDirs = fs.readdirSync(experimentsDir);
+
   const prepAPIWrapper = (exp, verbose) => {
     if (verbose) {
       console.log('--verbose flag set inside prepAPIWrapper()');
@@ -205,7 +319,6 @@ export const prep = async (experimentsDir, coreDir, verbose) => {
     })
   }
 
-  const expDirs = fs.readdirSync(experimentsDir);
   let preppedAPI;
   try {
     preppedAPI = Promise.all(expDirs.map((exp) => prepAPIWrapper(exp, verbose)));

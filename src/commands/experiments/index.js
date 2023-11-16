@@ -46,7 +46,7 @@ const promiseExpFolderInit = async (initDir, dir, rootDir, modName, buildPath, v
             })
       })
     } catch (e) {
-      console.error('Problem installing dependencies for ${dir}')
+      console.error(`Problem installing dependencies for ${dir}`)
       throw(e)
     }
   })
@@ -54,55 +54,64 @@ const promiseExpFolderInit = async (initDir, dir, rootDir, modName, buildPath, v
 
 export async function getExpTemplate(experimentsDir, url, longName, newExpName, rootDir, verbose) {
   if (verbose) console.log('--verbose flag set inside getExpTemplate()');
+
+  // Validate experiment name
   if (!isValidExpName(newExpName)) {
     console.error(`'${newExpName}' is not a valid name. Names must start with a letter and can only contain alphanumeric characters.`);
     return;
   }
-  if (verbose) console.log(`Making ${newExpName} in ${experimentsDir}`);
+
+  // Create new directory for the experiment
   const newDir = path.join(experimentsDir, newExpName);
   if (fs.existsSync(newDir) && fs.lstatSync(newDir).isDirectory()) {
     console.error(`A directory in the experiments folder already exists with this name (${newExpName})`);
     return;
   }
 
-  // download files
+  // Check for URL validity
   if (!url) {
     console.error('Problem with URL for download.');
     return;
   }
+
   fs.mkdirSync(newDir);
   if (verbose) console.log(`retrieving from ${url}`);
   if (verbose) console.log('be patient...');
-  let response
+
+  // Attempt to download the experiment template
+  let response;
   try {
     response = await got(url);
+    const zipball_url = JSON.parse(response.body).assets[0].browser_download_url;
+
+    // Download and extract the zip file
+    await new Promise((resolve, reject) => {
+      sa.get(zipball_url)
+        .on('error', function (error) {
+          console.error('Download failed: ', error);
+          reject(error);
+        })
+        .pipe(fs.createWriteStream('temp.zip'))
+        .on('finish', async () => {
+          if (verbose) console.log('finished downloading');
+          var zip = new admZip('temp.zip');
+          try {
+            zip.extractAllTo(newDir, true);
+            await fs.promises.unlink('temp.zip');
+            shell.rm('-rf', '__MACOSX');
+            await initExperiment(newDir, newExpName, longName, rootDir, verbose);
+            resolve();
+          } catch (extractionError) {
+            reject(extractionError);
+          }
+        });
+    });
   } catch (error) {
-    console.error('Unable to download from specified site. Make sure your internet is on. If it is on but this error repeats, ask for help on the Pushkin forum.');
-    throw error
+    console.error('Unable to download or extract: ', error);
+    throw error;
   }
-  let zipball_url
-  try {
-    zipball_url = JSON.parse(response.body).assets[0].browser_download_url;
-  } catch(e) {
-    console.error('Problem parsing github JSON');
-    throw e
-  }
-  sa
-    .get(zipball_url)
-    .on('error', function(error){
-      console.error('Download failed: ',error);
-      process.exit();
-    })
-    .pipe(fs.createWriteStream('temp.zip'))
-    .on('finish', async () => {
-      if (verbose) console.log('finished downloading');
-      var zip = new admZip('temp.zip');
-      await zip.extractAllTo(newDir, true);
-      await fs.promises.unlink('temp.zip');
-      shell.rm('-rf','__MACOSX');
-      await initExperiment(newDir, newExpName, longName, rootDir, verbose);
-    })
 }
+
 
 export async function copyExpTemplate(experimentsDir, expPath, longName, newExpName, rootDir, verbose) {
   if (verbose) console.log('--verbose flag set inside copyExpTemplate()');
@@ -167,6 +176,104 @@ export async function copyExpTemplate(experimentsDir, expPath, longName, newExpN
   return(initExperiment(newDir, newExpName, longName, rootDir, verbose));
 }
 
+// Takes a path to a jsPsych experiment and returns the timeline procedure
+// from the declaration of the timeline up to the call to jsPsych.run()
+export function getJsPsychTimeline(experimentPath, verbose) {
+  if (verbose) console.log('--verbose flag set inside getJsPsychTimeline()');
+  // Read in entire experiment file as text
+  let jsPsychExp = fs.readFileSync(experimentPath, 'utf8');
+  // Extract timeline name by looking for the argument supplied to jsPsych.run()
+  let jsPsychRunSearch = new RegExp(/(?<=jsPsych\.run\().+?(?=\))/, 'g');
+  if (!jsPsychRunSearch.test(jsPsychExp)) {
+    console.log('Could not find call to jsPsych.run in experiment.html');
+    return;
+  } else {
+    if (verbose) console.log('Extracting timeline from experiment.html');
+    let timelineName = jsPsychExp.match(jsPsychRunSearch)[0]; // [0] because match() returns an array
+    // Look for where the timeline is declared
+    let beginRegex = new RegExp(`(const|let|var) ${timelineName}`, 'gm');
+    let timelineBegin = jsPsychExp.search(beginRegex);
+    // Look for where jsPsych.run() is called
+    let timelineEnd = jsPsychExp.search(/^\s*?jsPsych\.run/gm);
+    // Return the extracted timeline procedure
+    if (timelineBegin < 0 || timelineEnd < 0) { // If either search fails, return undefined
+      console.log('Could not extract timeline from jsPsych experiment');
+      return;
+    } else {
+      if (verbose) console.log('Timeline extracted from jsPsych experiment');
+      return jsPsychExp.slice(timelineBegin, timelineEnd);
+    }
+  }
+}
+
+// Takes a path to a jsPsych experiment and an array of the necessary plugins
+export function getJsPsychPlugins(experimentPath, verbose) {
+  if (verbose) console.log('--verbose flag set inside getJsPsychPlugins()');
+  // Read in entire experiment file as text
+  let jsPsychExp = fs.readFileSync(experimentPath, 'utf8');
+  // Extract the names of the plugins used
+  let plugins = jsPsychExp.match(/@jspsych.+?(?=['"])/g);
+  // This should work for CDN links and import statements, but not for user-hosted plugins
+  // That's probably a good thing, since
+  // (a) it might be hard to tell what version of the plugin they're using
+  // (b) if they've modified the plugin, it won't match what we import from npm
+  if (!plugins) {
+    console.log(`Could not extract any plugins from jsPsych experiment.
+    Check your jsPsych experiment and make sure to import the necessary plugins in your Pushkin experiment.js`);
+    return;
+  } else {
+    if (verbose) console.log('Found jsPsych packages:', '\n\t'.concat(plugins.join('\n\t')));
+    return plugins;
+  }
+}
+
+// Takes an array of plugin names and returns an object
+// mapping the plugin names with which we need to import them
+export function getJsPsychImports(plugins, verbose) {
+  if (verbose) console.log('--verbose flag set inside getJsPsychImports()');
+  let imports = {};
+  if (!plugins) return; // If no plugins were found by getJsPsychPlugins, return undefined
+  plugins.forEach((plugin) => {
+    // Plugin name formats to capture:
+    // - @jspsych/plugin-some-name[@version] OR @jspsych-contrib/plugin-some-name[@version] --> jsPsychSomeName
+    // - @jspsych/extension-some-name[@version] OR @jspsych-contrib/extension-some-name[@version] --> jsPsychExtensionSomeName
+    // - @jspsych-timelines/some-name[@version] --> jsPsychTimelineSomeName
+    let pluginName;
+    let camelCase;
+    // If the name includes "plugin-" or "extension-"
+    if (plugin.search(/(plugin-|extension-)/) > -1) {
+      // get an array of the words after "plugin-" or "extension-" (not including the version tag, if present)
+      pluginName = plugin.match(/(?<=-)[a-z]+(?=(-|@|$))/g);
+      // capitalize the first letter of each word and join them together
+      camelCase = pluginName.map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join('');
+      if (plugin.includes('plugin-')) {
+        // If it's a plugin, add "jsPsych" to the beginning
+        imports[plugin] = 'jsPsych' + camelCase;
+      } else {
+        // Otherwise, it's an extension, so add "jsPsychExtension" to the beginning
+        imports[plugin] = 'jsPsychExtension' + camelCase;
+      }
+    } else if (plugin.includes('@jspsych-timelines/')) {
+      // Get an array of the words after the '/' (and potentially before the version tag)
+      pluginName = plugin.split('@')[1].split('/')[1].split('-');
+      // Capitalize the first letter of each word and join them together
+      camelCase = pluginName.map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join('');
+      // Add "jsPsychTimeline" to the beginning
+      imports[plugin] = 'jsPsychTimeline' + camelCase;
+    } else {
+      // If it's not a plugin or extension, warn the user and skip it
+      console.log(`Problem adding "${plugin}" to imports.\nMake sure you import the plugins you need in experiment.js`);
+    }
+  });
+  if (Object.keys(imports).length > 0) {
+    if (verbose) console.log('New import statements for jsPsych packages created');
+    return imports;
+  } else {
+    console.log('Problem creating import statements for jsPsych packages');
+    return; // If no plugins were found, return undefined
+  }
+}
+
 const initExperiment = async (expDir, expName, longName, rootDir, verbose) => {
   if (verbose) console.log('--verbose flag set inside initExperiment()');
   const options = {
@@ -213,8 +320,10 @@ const initExperiment = async (expDir, expName, longName, rootDir, verbose) => {
     console.error(`Failed to read experiment config file for `.concat(expName));
     throw err;
   }
-  expConfig.experimentName = longName;
-  expConfig.shortName = expName;
+  
+  // These lines seem unnecessary, but...
+  expConfig.experimentName = longName; // this allows the experiment's long name to be different from the short one
+  expConfig.shortName = expName; // this preserves compatibility with some older versions of exp templates
 
   try {
     fs.writeFileSync(path.join(expDir, 'config.yaml'), jsYaml.safeDump(expConfig), 'utf8');
