@@ -59,7 +59,7 @@ import jsPsychSurveyText from "@jspsych/plugin-survey-text";
 import jsPsychHtmlButtonResponse from "@jspsych/plugin-html-button-response";
 ```
 
-You'll also need to add the additional plugins as dependencies for your experiment. To do this, navigate to the `web page` directory of the experiment using `cd` and run `yarn add` for each particular plugin:
+The next time you run `pushkin prep`, any additional jsPsych plugins you want to import will be automatically added as dependencies to your experiment's web page component (provided they are available via npm -- this does not apply to custom plugins). If, for some reason, you wish to add these dependencies yourself prior to running `prep`, navigate to the `web page` directory of the experiment using `cd` and run `yarn add` for each particular plugin:
 
 ```bash
  cd 'experiments/[experiment_name]/web page'
@@ -67,11 +67,7 @@ You'll also need to add the additional plugins as dependencies for your experime
  yarn add @jspsych/plugin-html-button-response
 ```
 
-Be sure to navigate back to the root directory of your site before running `pushkin prep` etc.:
-
-```bash
- cd ../../..
-```
+See [Yarn's documentation](https://classic.yarnpkg.com/lang/en/docs/cli/add/) for instructions regarding adding specific versions of a particular package.
 
 This same procedure will work with community-developed plugins available through npm via the [jspsych-contrib repository](https://github.com/jspsych/jspsych-contrib). Just replace "@jspsych" with "@jspsych-contrib". The [self-paced reading template](self-paced-reading-template.md) uses a [plugin](https://github.com/jspsych/jspsych-contrib/blob/main/packages/plugin-self-paced-reading/docs/jspsych-self-paced-reading.md) from jspsych-contrib.
 
@@ -84,17 +80,38 @@ The procedure above only works for jsPsych plugins available through npm. If you
 
 ## Adding static assets
 
-The current experiment templates do not use any image or video stimuli. To use static assets, put them in the experiment assets folder (web page/src/assets). Running `pushkin prep` will place them in an accessible public folder. This folder can be referred to using the environment variable `process.env.PUBLIC_URL`.
+The current experiment templates do not use any image, audio, or video stimuli. In order to reference static assets such as these in your jsPsych timeline, put them in the experiment's `web page/src/assets/timeline` folder. You can use whatever directory structure inside that folder you please, if, for instance, you want to keep audio files separate from images or divide assets from different experimental lists. When you run `pushkin prep`, the contents of the timeline assets folder will be copied to `pushkin/front-end/public/experiments/[experiment_name]`, where `[experiment_name]` is replaced with the same name as the folder within your site's experiments directory. The folder `pushkin/front-end/public` can be referenced at runtime using the environment variable `process.env.PUBLIC_URL`. Thus, when you refer to static assets in your jsPsych timeline, the reference should be as follows.
 
-For example:
+Assume your experiment's `web page/src/assets/timeline` directory looks like this:
+
+```text
+└── timeline
+    ├── colors
+    │   ├── blue.png
+    │   └── orange.png
+    ├── shapes
+    │   ├── square.jpg
+    │   └── circle.jpg
+    ├── cat.mp4
+    └── dog.mp4
+```
+
+Then references to these files in your experiment would look like:
 
 ```javascript
-var test_stimuli = [
-  { stimulus: process.env.PUBLIC_URL + "/blue.png" },
-  { stimulus: process.env.PUBLIC_URL + "/orange.png" },
+var block_1_stimuli = [
+  { stimulus: process.env.PUBLIC_URL + "/[experiment_name]/colors/blue.png" },
+  { stimulus: process.env.PUBLIC_URL + "/[experiment_name]/shapes/square.jpg" },
+  { stimulus: process.env.PUBLIC_URL + "/[experiment_name]/cat.mp4" },
+];
+
+var block_2_stimuli = [
+  { stimulus: process.env.PUBLIC_URL + "/[experiment_name]/colors/orange.png" },
+  { stimulus: process.env.PUBLIC_URL + "/[experiment_name]/shapes/circle.jpg" },
+  { stimulus: process.env.PUBLIC_URL + "/[experiment_name]/dog.mp4" },
 ];
 ```
 
-No special imports are required.
+The other contents of `web page/src/assets` should be static assets that will be imported by React. The reason for this process of copying to the site's public folder is that jsPsych timelines are not compiled by React. By the time jsPsych runs, the files here are no longer accessible. While you could store timeline assets from the beginning in the site's public folder, keeping them in the experiment's timeline assets folder allows you to store all of a particular experiment's resources in the same place. Additionally, your experiment &mdash; along with all its multimedia stimuli &mdash; can now be distributed as a template.
 
-Note that this works for local development. Depending on how you deploy to the web, this environment variable may not be available.
+Note that `process.env.PUBLIC_URL` works for local development. Depending on how you deploy to the web, this environment variable may not be available.

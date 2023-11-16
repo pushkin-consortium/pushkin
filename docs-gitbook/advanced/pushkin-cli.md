@@ -60,11 +60,32 @@ Syntax: `pushkin install experiment`
 
 Downloads an experiment template. First will prompt for which experiment template \(see current list [here](modifying-experiment-templates/#current-templates)\), then prompt for a version to be selected. Most often, the latest version will be the best option.
 
+If you select the basic template, you will also be asked if you want to import a plain jsPsych experiment.html. If you answer 'yes', a new experiment.js will be automatically generated from the provided file. If you answer 'no', experiment.js will remain as a "Hello, world!" example.
+
 The command `pushkin install experiment` has two optional arguments: `--verbose` and `--help`.
 
 Run `pushkin install experiment --verbose` to see additional console output which may be helpful for debugging.
 
 Running `pushkin install experiment --help` will display help for the command.
+
+#### Details of importing an existing jsPsych experiment
+
+Selecting the basic template (v5+) will give you the option to import an existing jsPsych experiment (note that the latest basic template and thus this feature only support jsPsych 7+). This feature assumes a workflow where you first implement the basics of your experiment design as a standalone jsPsych experiment, which is a bit faster to test, before turning it into a Pushkin experiment. This feature executes two tasks: (1) identifying which jsPsych plugins you're using and (2) extracting the code which builds up the experiment's timeline. In order for these tasks to be sucessful, keep the following in mind:
+
+- **Plugin identification**
+
+  - Only jsPsych plugins available via npm can be added automatically (any package scoped under [@jspsych](https://www.npmjs.com/org/jspsych), [@jspsych-contrib](https://www.npmjs.com/org/jspsych-contrib), or [@jspsych-timelines](https://www.npmjs.com/org/jspsych-timelines)). Custom plugins can still be used in your experiment, but you'll need to add them manually, as described [here](./modifying-experiment-templates/README.md#adding-custom-jspsych-plugins).
+  - Your experiment.html must use CDN-hosted plugins or import the plugins from npm. Plugins which you've downloaded and are hosting yourself will not be added automatically. See [jsPsych's documentation](https://www.jspsych.org/7.3/tutorials/hello-world/) for details.
+  - If your experiment.html specifies a specific version of a plugin, `pushkin install experiment` records the version number or tag in a comment after the import statement in experiment.js. This comment, if present, is later read by `pushkin prep` in order to add that particular version to your experiment. Before running `prep`, you may edit the version number in order to change the version in your experiment, but be careful not to change the format of the comment.
+  - If you you've forgetten to import a plugin in experiment.html, it won't be added to your Pushkin experiment. In this case, your experiment.html wouldn't be running, so you should hopefully be aware of the problem before trying to import the experiment into Pushkin.
+  - Likewise, if you import any extraneous plugins that aren't being used in experiment.html, they will also be added to your Pushkin experiment.
+
+- **Timeline extraction**
+
+  - This feature works simply by looking for the argument you provide to `jsPsych.run()` and copying everything from where that variable is declared until before `jsPsych.run()` is called. Consequently, the argument of `jsPsych.run()` must be the _name_ of an array of timeline objects, not the array itself.
+  - Likewise, whatever you name the argument of `jsPsych.run()`, it must be declared before any of its component timeline objects are created. This is fairly standard practice, as something like `const timeline = [];` is usually near the top of most jsPsych experiments.
+  - Your experiment's equivalent to `const timeline = [];` can't come before initializing jsPsych (i.e. `const jsPsych = initJsPsych();`). You don't want to call `initJsPsych()` in a Pushkin experiment.js (rather, it's called in index.js).
+  - Any specifications for your stimuli must be created inside your experiment.html between the two lines of the script mentioned above. If your stimuli rely on other files, you'll need to add them manually as described [here](./modifying-experiment-templates/README.md). This includes non-inline CSS styling (see the [lexical decision template](./modifying-experiment-templates/lexical-decision-template.md) for how to include custom CSS in the experiment.css file).
 
 ### updateDB
 

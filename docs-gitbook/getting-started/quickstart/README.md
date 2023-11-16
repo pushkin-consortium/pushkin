@@ -118,7 +118,7 @@ To create a new experiment from the boilerplate template Pushkin provides, run
  pushkin install experiment
 ```
 
-Choose a **basic** experiment. When prompted, name your experiment `vocab` and choose the recommended version. Repeat the process to add **basic** experiments called `mind` and `whichenglish` as well.
+Choose a **basic** experiment. When prompted, name your experiment `vocab` and choose the recommended version. Choose 'no' when asked if you want to import a jsPsych experiment. Repeat the process to add **basic** experiments called `mind` and `whichenglish` as well.
 
 ![](../../.gitbook/assets/quickstart_3.gif)
 
