@@ -1,0 +1,49 @@
+{
+    "name": "pushkin-client",
+    "version": "1.7.1",
+    "description": "A front-end Javascript module for interfacing with a Pushkin API",
+    "main": "build/index.js",
+    "jest": {
+        "transform": {
+            "^.+\\.[t|j]sx?$": "babel-jest"
+        },
+        "transformIgnorePatterns": [
+            "/node_modules/(?!(axios)/)",
+            "\\.pnp\\.[^\\/]+$"
+        ],
+        "testEnvironment": "jsdom"
+    },
+    "files": [
+        "build/*"
+    ],
+    "scripts": {
+        "test": "jest",
+        "build": "babel src -d build"
+    },
+    "keywords": [
+        "pushkin",
+        "client"
+    ],
+    "author": "L3",
+    "license": "MIT",
+    "dependencies": {
+        "axios": "^1.4.0"
+    },
+    "devDependencies": {
+        "@babel/cli": "^7.10.5",
+        "@babel/core": "^7.10.5",
+        "@babel/plugin-proposal-class-properties": "^7.10.4",
+        "@babel/preset-env": "^7.22.10",
+        "babel-eslint": "^10.1.0",
+        "babel-jest": "^26.1.0",
+        "eslint": "^7.5.0",
+        "eslint-config-airbnb": "^18.2.0",
+        "eslint-plugin-import": "^2.22.0",
+        "eslint-plugin-jsx-a11y": "^6.3.1",
+        "eslint-plugin-react": "^7.20.3",
+        "eslint-plugin-react-hooks": "^4.0.8",
+        "fs": "^0.0.1-security",
+        "jest": "^29.6.3",
+        "jest-environment-jsdom": "^29.6.3"
+    }
+}
