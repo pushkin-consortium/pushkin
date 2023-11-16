@@ -50,11 +50,11 @@ const publishLocalPackage = async (modDir, modName, verbose) => {
           }
           // If any jsPsych plugins are not yet added to package.json, add them
           if (!packageJson.dependencies[plugin]) {
-            pluginsToAdd.push(plugin.concat(pluginVersion));
+            pluginsToAdd.push(plugin + '@' + pluginVersion);
           } else { // package is already added to package.json
             // Check if version/tag is specified and differs from the one in package.json
             if (pluginVersion !== '' && packageJson.dependencies[plugin] !== pluginVersion) {
-              pluginsToUpgrade.push(plugin.concat(pluginVersion));
+              pluginsToUpgrade.push(plugin + '@' + pluginVersion);
             }
           }
         })

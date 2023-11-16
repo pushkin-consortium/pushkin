@@ -529,7 +529,7 @@ const handleInstall = async (what, verbose) => {
                               // Check if plugin specifies version (is there another "@" after initial one?)
                               if (plugin.slice(1).includes('@')) {
                                 let pluginNoVersion = '@' + plugin.split('@')[1] // [1] will be the plugin name, add back leading '@'
-                                let pluginVersion = '@' + plugin.split('@')[2] // [2] will be the version number, add back leading '@'
+                                let pluginVersion = plugin.split('@')[2] // [2] will be the version number
                                 // Add version info as a comment after the import statement (to be read by prep later)
                                 imports = imports.concat(`import ${expHtmlImports[plugin]} from '${pluginNoVersion}'; // version:${pluginVersion} //\n`);
                               } else {

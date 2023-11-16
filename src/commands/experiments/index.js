@@ -321,10 +321,9 @@ const initExperiment = async (expDir, expName, longName, rootDir, verbose) => {
     throw err;
   }
   
-  // It seems like we should be able to switch names in the experiment template yaml to 'pushkintemplate'
-  // and avoid the need for these lines, but it doesn't work
-  expConfig.experimentName = longName;
-  expConfig.shortName = expName;
+  // These lines seem unnecessary, but...
+  expConfig.experimentName = longName; // this allows the experiment's long name to be different from the short one
+  expConfig.shortName = expName; // this preserves compatibility with some older versions of exp templates
 
   try {
     fs.writeFileSync(path.join(expDir, 'config.yaml'), jsYaml.safeDump(expConfig), 'utf8');
