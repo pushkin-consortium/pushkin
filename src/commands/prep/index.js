@@ -50,7 +50,13 @@ const publishLocalPackage = async (modDir, modName, verbose) => {
           }
           // If any jsPsych plugins are not yet added to package.json, add them
           if (!packageJson.dependencies[plugin]) {
-            pluginsToAdd.push(plugin + '@' + pluginVersion);
+            if (pluginVersion === '') {
+              // Just add the plugin name if no version/tag is specified
+              pluginsToAdd.push(plugin);
+            } else {
+              // Append the version/tag if specified
+              pluginsToAdd.push(plugin + '@' + pluginVersion);
+            }
           } else { // package is already added to package.json
             // Check if version/tag is specified and differs from the one in package.json
             if (pluginVersion !== '' && packageJson.dependencies[plugin] !== pluginVersion) {
@@ -63,7 +69,7 @@ const publishLocalPackage = async (modDir, modName, verbose) => {
           if (verbose) console.log(`Adding jsPsych plugins to ${modName}:\n\t${pluginsToAdd.join('\n\t')}`);
           try {
             let addCmd = pacMan.concat(' --mutex network add ').concat(pluginsToAdd.join(' '));
-            execSync(addCmd, { cwd: modDir });
+            execSync(addCmd, { cwd: modDir }); // Probably needs to be sync so it finishes before install
           } catch (e) {
             console.error(`Problem adding jsPsych plugins to ${modName}`);
             throw e;
@@ -73,7 +79,7 @@ const publishLocalPackage = async (modDir, modName, verbose) => {
           if (verbose) console.log(`Upgrading jsPsych plugins in ${modName}:\n\t${pluginsToUpgrade.join('\n\t')}`);
           try {
             let upgradeCmd = pacMan.concat(' --mutex network upgrade ').concat(pluginsToUpgrade.join(' '));
-            execSync(upgradeCmd, { cwd: modDir });
+            execSync(upgradeCmd, { cwd: modDir }); // Probably needs to be sync so it finishes before install
           } catch (e) {
             console.error(`Problem upgrading jsPsych plugins in ${modName}`);
             throw e;
