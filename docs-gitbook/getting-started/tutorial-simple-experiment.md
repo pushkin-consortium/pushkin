@@ -8,7 +8,7 @@ The tutorial below starts with a simple lexical decision task written in plain j
 
 If you are not familiar with jsPsych, please consult the [documentation](https://www.jspsych.org/) first. We recommend you also walk through some of the tutorials.
 
-**Note:** As of v3.6.0 of the Pushkin CLI, the procedures described here for [moving the timeline](#move-the-timeline) and [importing plugins](#import-plugins) can be automated if you choose to import a jsPsych experiment when you run `pushkin install experiment` and select the basic template (v5+). You can still do these manually if you choose, or you may need to do parts of these procedures in the course of modifying one of the other templates.
+**Note:** As of v3.6.0 of the Pushkin CLI, the procedures described here for [moving the timeline](#move-the-timeline) and [importing plugins](#import-plugins) can be automated if you choose to import a jsPsych experiment when you run `pushkin install experiment` and select the basic template (v5+). You can still do these manually if you choose. You may also need to do parts of these procedures in the course of modifying one of the other experiment templates.
 
 ### Initial code
 

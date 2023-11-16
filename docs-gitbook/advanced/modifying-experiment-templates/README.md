@@ -67,6 +67,8 @@ The next time you run `pushkin prep`, any additional jsPsych plugins you want to
  yarn add @jspsych/plugin-html-button-response
 ```
 
+See [Yarn's documentation](https://classic.yarnpkg.com/lang/en/docs/cli/add/) for instructions regarding adding specific versions of a particular package.
+
 This same procedure will work with community-developed plugins available through npm via the [jspsych-contrib repository](https://github.com/jspsych/jspsych-contrib). Just replace "@jspsych" with "@jspsych-contrib". The [self-paced reading template](self-paced-reading-template.md) uses a [plugin](https://github.com/jspsych/jspsych-contrib/blob/main/packages/plugin-self-paced-reading/docs/jspsych-self-paced-reading.md) from jspsych-contrib.
 
 ## Adding custom jsPsych plugins
