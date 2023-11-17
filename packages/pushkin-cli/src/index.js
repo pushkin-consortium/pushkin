@@ -10,8 +10,7 @@ import { execSync, exec } from 'child_process'; // eslint-disable-line
 // subcommands
 import { listExpTemplates, getExpTemplate, copyExpTemplate, getJsPsychTimeline, getJsPsychPlugins, getJsPsychImports } from './commands/experiments/index.js';
 import { listSiteTemplates, getPushkinSite, copyPushkinSite } from './commands/sites/index.js';
-import AWS from 'aws-sdk';
-import { awsInit, nameProject, addIAM, awsArmageddon, awsList, createAutoScale } from './commands/aws/index.js'
+import { checkIAMUser, awsInit, nameProject, addIAM, awsArmageddon, awsList, createAutoScale } from './commands/aws/index.js'
 //import prep from './commands/prep/index.js'; //has to be separate from other imports from prep/index.js; this is the default export
 import {prep, setEnv} from './commands/prep/index.js';
 import { setupdb, setupTestTransactionsDB } from './commands/setupdb/index.js';
@@ -587,13 +586,6 @@ const handleAWSInit = async (force) => {
 
   let projName, useIAM, awsName, stdOut
 
-  try {
-    execSync('aws --version')
-  } catch(e) {
-    console.error('Please install the AWS CLI before continuing.')
-    process.exit();
-  }
-
   let newProj = true
   if (config.info.projName) {
     let myChoices = (config.info.projName ? [config.info.projName, 'new'] : ['new'])
@@ -630,22 +622,25 @@ const handleAWSInit = async (force) => {
     }
   }
 
-
   try {
     useIAM = await inquirer.prompt([{ type: 'input', name: 'iam', message: 'Provide your AWS profile username that you want to use for managing this project.'}])
   } catch (e) {
     console.error('Problem getting AWS IAM username.\n', e)
     process.exit()
   }
+  
   try {
-    stdOut = execSync(`aws configure list --profile ${useIAM.iam}`).toString()
+    checkIAMUser(useIAM)
   } catch (e) {
-    console.error(`The IAM user ${useIAM.iam} is not configured on the AWS CLI. For more information see https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html`)
-    process.exit();
+    console.error(e)
+    process.exit()
   }
+
+  console.log(`Looks good!`)
+  process.exit()
   let addedIAM
   try {
-    addedIAM = addIAM(useIAM.iam) //this doesn't need to be synchronous      
+    addedIAM = addIAM(useIAM.am) //this doesn't need to be synchronous      
   } catch(e) {
     console.error(e)
     process.exit()

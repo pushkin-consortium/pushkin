@@ -30,8 +30,9 @@
     "eslint-plugin-import": "^2.22.0"
   },
   "dependencies": {
+    "@aws-sdk/client-sts": "^3.454.0",
+    "@aws-sdk/credential-provider-ini": "^3.451.0",
     "adm-zip": "^0.4.16",
-    "aws-sdk": "^2.1499.0",
     "balanced-match": "^1.0.0",
     "command-line-args": "^5.1.1",
     "commander": "^6.0.0",

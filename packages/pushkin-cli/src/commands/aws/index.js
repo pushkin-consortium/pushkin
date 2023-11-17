@@ -10,8 +10,26 @@ import { migrateTransactionsDB, runMigrations, getMigrations } from '../setupdb/
 import { updatePushkinJs, readConfig } from '../prep/index.js'
 import inquirer from 'inquirer'
 import { kill } from 'process';
+//Importing AWS SDK components
+import { STSClient, GetCallerIdentityCommand } from "@aws-sdk/client-sts";
+import { fromIni } from "@aws-sdk/credential-provider-ini";
+
+
 const exec = util.promisify(require('child_process').exec);
 const mkdir = util.promisify(require('fs').mkdir);
+
+export const checkIAMUser = async (useIAM) => {
+  const sts = new STSClient({ 
+    credentials: fromIni({ profile: useIAM.iam }) 
+  });
+  
+  try {
+    await sts.send(new GetCallerIdentityCommand({}));
+  } catch (e) {
+    console.error(`The IAM user ${useIAM.iam} is not configured on the AWS SDK. For more information see https://docs.aws.amazon.com/sdk-for-javascript/v3/developer-guide/loading-node-credentials-shared.html`)
+    throw e;
+  }
+}
 
 const publishToDocker = async (DHID, rebuiltWorkers) => {
   console.log('Publishing images to DockerHub')
