@@ -636,15 +636,14 @@ const handleAWSInit = async (force) => {
     process.exit()
   }
 
-  console.log(`Looks good!`)
-  process.exit()
   let addedIAM
   try {
-    addedIAM = addIAM(useIAM.am) //this doesn't need to be synchronous      
+    addedIAM = addIAM(useIAM.iam) //this records while IAM user we are using, doesn't need to be synchronous      
   } catch(e) {
     console.error(e)
     process.exit()
   }
+
   try {
     await Promise.all([awsInit(projName.name, awsName, useIAM.iam, config.DockerHubID), addedIAM])
   } catch(e) {

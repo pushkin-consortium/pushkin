@@ -13,6 +13,7 @@ import { kill } from 'process';
 //Importing AWS SDK components
 import { STSClient, GetCallerIdentityCommand } from "@aws-sdk/client-sts";
 import { fromIni } from "@aws-sdk/credential-provider-ini";
+import { ACMClient, ListCertificatesCommand } from "@aws-sdk/client-acm";
 
 
 const exec = util.promisify(require('child_process').exec);
@@ -1351,6 +1352,35 @@ const setupTransactionsWrapper = async (completedDBs) => {
   return setupTransactionsTable
 }
 
+const chooseCertificate = async(useIAM) => {
+  console.log('Setting up SSL for load-balancer');
+
+  const acm = new ACMClient({ 
+    region: "us-east-1", 
+    credentials: fromIni({ profile: useIAM }) 
+  });
+
+  let certificates;
+  try {
+    const response = await acm.send(new ListCertificatesCommand({}));
+    certificates = response.CertificateSummaryList.reduce((acc, c) => {
+      acc[c.DomainName] = c.CertificateArn;
+      return acc;
+    }, {});
+  } catch(e) {
+    console.error(`Unable to get list of SSL certificates`);
+    throw e;
+  }
+
+  console.log(`Choosing...`);
+  const answers = await inquirer.prompt(
+    [{ type: 'list', name: 'certificate', choices: Object.keys(certificates), default: 0, 
+    message: 'Which SSL certificate would you like to use for your site?' }]
+  );
+  
+  return certificates[answers.certificate];
+}
+
 export async function awsInit(projName, awsName, useIAM, DHID) {
   let temp
   let pushkinConfig
@@ -1362,35 +1392,15 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
     throw e
   }
 
-  const chooseCertificate = async(useIAM) => {
-    console.log('Setting up SSL for load-balancer')
-    let temp
-    try {
-      temp = await exec(`aws acm list-certificates --profile ${useIAM}`)
-    } catch(e) {
-      console.error(`Unable to get list of SSL certificates`)
-    }
-    let certificates = {}
-    JSON.parse(temp.stdout).CertificateSummaryList.forEach((c) => {
-      certificates[c.DomainName] = c.CertificateArn
-    })
-
-    return new Promise((resolve, reject) => {
-      console.log(`Choosing...`)
-      inquirer.prompt(
-          [{ type: 'list', name: 'certificate', choices: Object.keys(certificates), default: 0, 
-          message: 'Which SSL certificate would you like to use for your site?' }]
-        ).then((answers) => {
-          resolve(certificates[answers.certificate])
-        })
-      })     
-  }
   let myCertificate
   try {
     myCertificate = await chooseCertificate(useIAM) //Waiting because otherwise input query gets buried
   } catch (e) {
     throw e
   }
+
+  console.log(`Looks good!`)
+  process.exit()
 
   const chooseDomain = async(useIAM) => {
     console.log('Choosing domain name for site')
