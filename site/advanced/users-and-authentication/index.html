@@ -1,0 +1,1989 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../troubleshooting-pushkin/">
+      
+      
+        <link rel="next" href="../deploying/">
+      
+      
+      <link rel="icon" href="../../img/pushkin_bw_w_text.png">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.4.10">
+    
+    
+      
+        <title>Users & Authentication - Pushkin</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.fad675c6.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.356b1318.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="orange" data-md-color-accent="red">
+  
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&"object"==typeof palette.color)for(var key of Object.keys(palette.color))document.body.setAttribute("data-md-color-"+key,palette.color[key])</script>
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#users-authentication" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Pushkin" class="md-header__button md-logo" aria-label="Pushkin" data-md-component="logo">
+      
+  <img src="../../img/pushkin_bw_w_text.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Pushkin
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Users & Authentication
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="orange" data-md-color-accent="red"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6zm0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4zM7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="orange" data-md-color-accent="red"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Pushkin" class="md-nav__button md-logo" aria-label="Pushkin" data-md-component="logo">
+      
+  <img src="../../img/pushkin_bw_w_text.png" alt="logo">
+
+    </a>
+    Pushkin
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Welcome!
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Advanced
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Advanced
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pushkin-cli/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Pushkin CLI
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pushkin-client/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Pushkin Client
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../testing-pushkin-with-jest/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Testing Pushkin with Jest
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../troubleshooting-pushkin/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Troubleshooting Pushkin
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Users & Authentication
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Users & Authentication
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#generating-userids" class="md-nav__link">
+    <span class="md-ellipsis">
+      Generating UserIDs
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Generating UserIDs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#randomly-generated-string" class="md-nav__link">
+    <span class="md-ellipsis">
+      Randomly-generated string
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#auth0" class="md-nav__link">
+    <span class="md-ellipsis">
+      Auth0
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#using-userids" class="md-nav__link">
+    <span class="md-ellipsis">
+      Using UserIDs
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_6" id="__nav_2_6_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Deploying
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_6">
+            <span class="md-nav__icon md-icon"></span>
+            Deploying
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deploying/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deployment
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deploying/awsDeletion/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    AWS Deletion
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_7" id="__nav_2_7_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Experiment structure
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_7">
+            <span class="md-nav__icon md-icon"></span>
+            Experiment structure
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../experiment-structure/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Experiment Component Structure
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../experiment-structure/experiment-config-files/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Experiment Config.yaml Files
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../experiment-structure/experiment-web-page-component/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Experiment Web Page Component
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../experiment-structure/worker-component-migration-and-seed/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Worker Component, Migration, and Seed
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_8" id="__nav_2_8_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Modifying experiment templates
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_8">
+            <span class="md-nav__icon md-icon"></span>
+            Modifying experiment templates
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modifying-experiment-templates/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Using Experiment Templates
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modifying-experiment-templates/grammaticality-judgment-template/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Grammaticality judgment template
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modifying-experiment-templates/lexical-decision-template/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Lexical decision template
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modifying-experiment-templates/self-paced-reading-template/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Self-paced reading template
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_9" id="__nav_2_9_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Modifying site template
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_9">
+            <span class="md-nav__icon md-icon"></span>
+            Modifying site template
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modifying-site-template/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Modifying Site Templates
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modifying-site-template/about-page/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    About Page
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modifying-site-template/feedback-page/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Feedback Page
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modifying-site-template/findings-page/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Findings Page
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modifying-site-template/header-and-footer/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Header and Footer
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modifying-site-template/home-page/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home Page
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modifying-site-template/react-bootstrap/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    React Bootstrap
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_10" id="__nav_2_10_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Pushkin api
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_10">
+            <span class="md-nav__icon md-icon"></span>
+            Pushkin api
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pushkin-api/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    pushkin-api
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pushkin-api/api-controller-builder/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    API Controller Builder
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pushkin-api/core-api/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Core API
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Developers
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Developers
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developers/developing-with-pushkin/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Developing with Pushkin
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developers/getting-started-on-development/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Getting Started on Development
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developers/overview-of-tech/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Overview of Technologies
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developers/working-with-templates/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Working with Templates
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Faq
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Faq
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../faq/FAQ/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Frequently Asked Qustions (FAQs)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Getting started
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Getting started
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/deploying-to-aws/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deploying to AWS
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/tutorial-simple-experiment/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Tutorial: Simple Experiment
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_3" id="__nav_5_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Deploying to aws
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_3">
+            <span class="md-nav__icon md-icon"></span>
+            Deploying to aws
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/deploying-to-aws/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deploying to AWS
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/deploying-to-aws/configure-aws-and-ecs-clis/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configure the AWS CLI and ECS CLIs
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/deploying-to-aws/dockerhub/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    DockerHub
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/deploying-to-aws/domain-registration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Register a domain
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/deploying-to-aws/initializing-aws-deploy/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Initializing AWS deploy
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/deploying-to-aws/install-required-software/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Install Required Software
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/deploying-to-aws/view-your-data/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    View Your Data
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_4" id="__nav_5_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Installing pushkin and dependencies
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_4">
+            <span class="md-nav__icon md-icon"></span>
+            Installing pushkin and dependencies
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/installing-pushkin-and-dependencies/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Installing Pushkin and dependencies
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/installing-pushkin-and-dependencies/ec2-install/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    AWS EC2 Instance
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/installing-pushkin-and-dependencies/macos-install/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    macOS
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/installing-pushkin-and-dependencies/ubuntu-install/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Ubuntu Linux
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/installing-pushkin-and-dependencies/windows-install/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Windows 10
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_5" id="__nav_5_5_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Quickstart
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_5">
+            <span class="md-nav__icon md-icon"></span>
+            Quickstart
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Quickstart
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/quickstart/sample_output/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Quickstart: Example Outputs
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+<h1 id="users-authentication">Users &amp; Authentication</h1>
+<p>Subject responses are associated with a username. This is either a randomly-generated string, or it’s based off an auth0 userID. The value of the username is maintained in the redux store as <code>UserID</code>.</p>
+<p>The userID is set by a redux saga:</p>
+<pre><code class="language-javascript">//actions/userInfo.js
+
+export function getUser(isAuthenticated, user) {
+  return {
+    type: GET_USER,
+    isAuthenticated: isAuthenticated,
+    user: user
+  };
+}
+
+//sagas/userInfo.js
+
+export function* getUserLogic(action) {
+  console.log('Saga2 initialized...');
+  const id = action.isAuthenticated ?
+    action.user :
+    yield session.get();
+  console.log(id);
+  yield put({ type: SET_USER_ID, id: id });
+}
+
+export function* getUser() {
+  yield takeLatest(GET_USER, getUserLogic);
+}
+</code></pre>
+<p>Note that the action needs to be passed <code>isAuthenticated</code> and <code>user</code>, both of which come from the AuthProvidor (see below). For convenience, this saga is triggered every time the Header is loaded (which is on every page):</p>
+<pre><code class="language-javascript">const Header = props =&gt; {
+  const { isAuthenticated, loginWithRedirect, logout, user } = useAuth0();
+  if (!CONFIG.useAuth) {
+    const isAuthenticated = false;
+    const user = null;
+  }
+
+  useEffect(() =&gt; {
+    props.dispatch(getUser(isAuthenticated, user));
+  }, [isAuthenticated, props.userID, user]);
+</code></pre>
+<p>Note that <code>userEffect</code> is a React <a href="https://itnext.io/add-state-and-lifecycle-methods-to-function-components-with-react-hooks-8e2bdc44d43d">lifecycle hook for functional components</a>. It gets triggered when the component is loaded, as well as any time the values of <code>isAuthenticated, props.userID</code> or <code>user</code> change.</p>
+<p>In principle, this saga could be triggered elsewhere. One thing to keep track of is that because it is asynchronous, components (including the header) may load before the user has been set.</p>
+<h2 id="generating-userids">Generating UserIDs</h2>
+<h3 id="randomly-generated-string">Randomly-generated string</h3>
+<p>If authenticated with auth0 is not enabled, then the value of <code>props.userID</code> comes from a cookie. For that code, see <code>front-end/src/utils/session.js</code>. The purpose of the cookie is to enable the userID to persist across browser refreshes (browser refresh re-initializes the Redux store.) Maximum life of the cookie is 2 days. (We aren’t in the business of tracking people without opt-in consent.)</p>
+<p>Note that if authentication is not enabled, then the value of <code>isAuthenticated</code> will always be <code>false</code>. (See the variable definitions in the Header component.)</p>
+<p>Note that the action triggering the creation (or checking) of the cookie (<code>getSessionUser()</code>) is handled by a Redux Saga (see <code>front-end/src/sagas</code>).</p>
+<h3 id="auth0">Auth0</h3>
+<p>If authentication is enabled, then userIDs can be supplied by auth0. We use code from the auth0 SPA quickstart, which is found in <code>front-end/src/utils/react-auth0-spa.js</code>. This code provides a component that wraps the entire application in <code>front-end/src/index.js</code>:</p>
+<pre><code class="language-jsx">&lt;Auth0Provider
+  domain={CONFIG.authDomain}
+  client_id={CONFIG.authClientID}
+  redirect_uri={window.location.origin}
+  onRedirectCallback={onRedirectCallback}
+&gt;
+  &lt;Provider store={store}&gt;
+    &lt;Router history={customHistory}&gt;
+      &lt;App /&gt;
+    &lt;/Router&gt;
+  &lt;/Provider&gt;
+&lt;/Auth0Provider&gt;,
+</code></pre>
+<p>As you can see, it looks a lot like the Redux provider. It works similarly: children get access to a few useful variables and methods. You can see this in <code>react-auth0-spa.js</code>:</p>
+<pre><code class="language-jsx">return (
+  &lt;Auth0Context.Provider
+    value={{
+      isAuthenticated,
+      user,
+      loading,
+      popupOpen,
+      loginWithPopup,
+      handleRedirectCallback,
+      getIdTokenClaims: (...p) =&gt; auth0Client.getIdTokenClaims(...p),
+      loginWithRedirect: (...p) =&gt; auth0Client.loginWithRedirect(...p),
+      getTokenSilently: (...p) =&gt; auth0Client.getTokenSilently(...p),
+      getTokenWithPopup: (...p) =&gt; auth0Client.getTokenWithPopup(...p),
+      logout: (...p) =&gt; auth0Client.logout(...p)
+    }}
+  &gt;
+    {children}
+  &lt;/Auth0Context.Provider&gt;
+);
+</code></pre>
+<p>You will notice <code>user</code>. By default, the value of <code>user</code> is the username from whatever social media application (etc.) the user used to authenticate. This is often the user’s actual name, which we don’t want. So the auth0 quickstart code was modified to retrieve the auth0 numerical ID instead, which is presumably (??) unique to your application. We then immediately run this through a salted hash.</p>
+<p>Why? It makes it harder to link data in a Pushkin database to a person. That is, someone who had access to your database and to your auth0 account still wouldn’t be able to match the user data to an individual in auth0. They would also need the salt string, which is stored separately. Even if they had it, it would be a pain to use, because you can’t easily decrypt something that has been hashed. The only option would be to encrypt every auth0 ID and then see what in the database matches.</p>
+<p>They key code is in <code>utils/react-auth0-spa.js</code>. First, we define a helper function:</p>
+<pre><code class="language-javascript">var crypto = require('crypto');
+var sha512 = function(id, salt){
+    var hash = crypto.createHmac('sha512', salt); /** Hashing algorithm sha512 */
+    hash.update(id);
+    var value = hash.digest('base64');
+    return value;
+};
+</code></pre>
+<p>There are several different places where userIDs are retrieved. In each case, we encrypt:</p>
+<pre><code class="language-javascript">const claims = await auth0FromHook.getIdTokenClaims();
+const encrypted = await sha512(claims.sub, CONFIG.salt);
+setUser(encrypted);
+</code></pre>
+<p>Finally, note that when users log out of auth0, the <code>userID</code> is set to <code>null</code>:</p>
+<pre><code class="language-jsx">&lt;b.Button onClick={() =&gt; {
+    logout();
+    props.dispatch(setUserID(null));
+    }
+  }&gt;Logout&lt;/b.Button&gt;
+</code></pre>
+<p>This will trigger the assignment of a new <code>userID</code> via the cookie method.</p>
+<h2 id="using-userids">Using UserIDs</h2>
+<p><code>userID</code> is automatically available to any component that is connected to the Redux store. This unfortunately does not include the quizzes themselves. Instead, the TakeQuiz component passes the entire Redux store as a prop:</p>
+<pre><code class="language-jsx">class TakeQuiz extends React.Component {
+  render() {
+    const { match } = this.props;
+    const QuizComponent = expObject[match.params.quizName];
+    return (
+      &lt;div&gt;
+        &lt;QuizComponent {...this.props} /&gt;
+      &lt;/div&gt;
+    );
+  }
+}
+</code></pre>
+<p>(Note that TakeQuiz is a connected component, so its props include the entire Redux store.)</p>
+<p>Most of the methods for Pushkin-Client expect to be explicitly sent the userID. This can be done from within the QuizComponent. For example:</p>
+<pre><code class="language-javascript">endExperiment() {
+  this.setState({ experimentComplete: true });
+  pushkin.endExperiment(this.props.userID);
+}
+</code></pre>
+<p>The exception is any Pushkin Client method that is called directly by jsPsych’s <code>onFinish</code> function. This is because this function takes a single argument, which is trial data. Here is an example:</p>
+<pre><code class="language-javascript">saveStimulusResponse(data) {
+  // Because we are saving data, it should be coming with a userID already
+  // Might make sense at some point to confirm this is what we expect
+  const postData = {
+    user_id: data.user_id,
+    data_string: data
+  };
+  return this.con.post('/stimulusResponse', postData);
+}
+</code></pre>
+<p>You will see that this expects <code>user_id</code> to be passed as part of the data. The easiest way to make this happen is to use jsPsych’s handy <a href="https://www.jspsych.org/core_library/jspsych-data/#jspsychdataaddproperties">data.addProperties method</a>. Here is a code snippet from one of the template experiments:</p>
+<pre><code class="language-javascript">async startExperiment() {
+  this.props.history.listen(jsPsych.endExperiment);
+
+  jsPsych.data.addProperties({user_id: this.props.userID}); //See https://www.jspsych.org/core_library/jspsych-data/#jspsychdataaddproperties
+</code></pre>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var tab,labels=set.querySelector(".tabbed-labels");for(tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12Z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": ["toc.integrate", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.annotation", "content.code.copy"], "search": "../../assets/javascripts/workers/search.f886a092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.6c14ae12.min.js"></script>
+      
+    
+  </body>
+</html>

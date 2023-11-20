@@ -1,0 +1,30 @@
+site_name: Pushkin
+theme:
+  name: material
+  favicon: 'img/pushkin_bw_w_text.png'
+  logo: 'img/pushkin_bw_w_text.png'
+  features:
+    - toc.integrate
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
+    - content.code.annotation
+    - content.code.copy
+  language: en
+  palette:
+    - scheme: default
+      toggle:
+        icon: material/toggle-switch-off-outline 
+        name: Switch to dark mode
+      primary: orange
+      accent: red
+    - scheme: slate 
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to light mode    
+      primary: orange
+      accent: red
+extra:
+  version:
+    provider: mike
