@@ -86,5 +86,5 @@ Confirm that you have at least Docker Engine 23.0 and Docker Desktop 4.19.
 
 ### Next steps
 
-Great! You're all done. Head over [here](../quickstart/) to build a basic Pushkin site and experiment.
+Great! You're all done. Head over [here](../quickstart/README.md) to build a basic Pushkin site and experiment.
 

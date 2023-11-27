@@ -5,7 +5,8 @@ description: >-
 ---
 # Welcome!
 
-“Getting Started” will get a very simple demo site up and running. The remaining pages explain how to customize your website. Instructions are geared towards someone who ideally has at least some familiarity with JavaScript and React. Sections intended for more experienced programmers who need to understand the guts of Pushkin are labeled under Developers. See the full Table of contents [here](./#table-of-contents).
+“Getting Started” will get a very simple demo site up and running. The remaining pages explain how to customize your website. Instructions are geared towards someone who ideally has at least some familiarity with JavaScript and React. Sections intended for more experienced programmers who need to understand the guts of Pushkin are labeled under Developers. 
+
 
 To get the latest news and updates on Pushkin, sign up for our newsletter [here](https://groups.google.com/g/pushkinjs)
 
@@ -18,14 +19,14 @@ To get the latest news and updates on Pushkin, sign up for our newsletter [here]
 
 ## Table of contents
 
-* **Getting Started**
-  * [Installing Pushkin and dependencies](getting-started/installing-pushkin-and-dependencies/)
+# Getting Started
+  * [Installing Pushkin and dependencies](getting-started/installing-pushkin-and-dependencies/README.md)
     * [macOS](getting-started/installing-pushkin-and-dependencies/macos-install.md)
     * Windows 10
       * [Windows Subsystem for Linux](getting-started/installing-pushkin-and-dependencies/windows-install.md) (preferred)
-      * [AWS EC2 Instance](getting-started/installing-pushkin-and-dependencies/ec2-install.md) 
+      * [AWS EC2 Instance](getting-started/installing-pushkin-and-dependencies/ec2-install.md)
     * [Ubuntu Linux](getting-started/installing-pushkin-and-dependencies/ubuntu-install.md)
-  * [Quickstart](getting-started/quickstart/)
+  * [Quickstart](getting-started/quickstart/README.md)
   * [Deploying to AWS](getting-started/deploying-to-aws/README.md)
     * [Install required software.](getting-started/deploying-to-aws/install-required-software.md)
     * [Configure the AWS and ECS CLIs.](getting-started/deploying-to-aws/configure-aws-and-ecs-clis.md)
@@ -35,10 +36,10 @@ To get the latest news and updates on Pushkin, sign up for our newsletter [here]
 
   * [Tutorial: Simple Experiment](getting-started/tutorial-simple-experiment.md)
 
-* **FAQ**
+# FAQ
   * [FAQ](faq/FAQ.md)
 
-* **Advanced**
+# Advanced
   * [Pushkin CLI](advanced/pushkin-cli.md)
     * [config](advanced/pushkin-cli.md#config)
     * [install site](advanced/pushkin-cli.md#install-site)
@@ -50,11 +51,11 @@ To get the latest news and updates on Pushkin, sign up for our newsletter [here]
     * [kill](advanced/pushkin-cli.md#kill)
     * [armageddon](advanced/pushkin-cli.md#armageddon)
     * [help](advanced/pushkin-cli.md#help)
-  * [Using Experiment Templates](advanced/modifying-experiment-templates/)
+  * [Using Experiment Templates](advanced/modifying-experiment-templates/README.md)
     * [Lexical decision template](advanced/modifying-experiment-templates/lexical-decision-template.md)
-    * [Grammaticality judgment template](advanced/modifying-experiment-templates/grammaticality-judgment-template.md)
+    * [Grammaticality judgment template](advanced/modifying-experiment-templates/grammaticality-judgement-template.md)
     * [Self-paced reading template](advanced/modifying-experiment-templates/self-paced-reading-template.md)
-  * [Experiment Structure](advanced/experiment-structure/)
+  * [Experiment Structure](advanced/experiment-structure/README.md)
     * [Config File](advanced/experiment-structure/experiment-config-files.md)
     * [Experiment Web Page Component](advanced/experiment-structure/experiment-web-page-component.md)
     * [Recommended Structure](advanced/experiment-structure/experiment-web-page-component.md#recommended-structure)
@@ -79,17 +80,17 @@ To get the latest news and updates on Pushkin, sign up for our newsletter [here]
   * [Users & Authentication](advanced/users-and-authentication.md)
     * [Generating UserIDs](advanced/users-and-authentication.md#generating-userids)
     * [Using UserIDs](advanced/users-and-authentication.md#using-userids)
-  * [Modifying Site Template](advanced/modifying-site-template/)
+  * [Modifying Site Template](advanced/modifying-site-template/README.md)
     * [React Bootstrap](advanced/modifying-site-template/react-bootstrap.md)
     * [Header and Footer](advanced/modifying-site-template/header-and-footer.md)
     * [Home Page](advanced/modifying-site-template/home-page.md)
     * [Findings Page](advanced/modifying-site-template/findings-page.md)
     * [About Page](advanced/modifying-site-template/about-page.md)
     * [Feedback Page](advanced/modifying-site-template/feedback-page.md)
-  * [Deployment](advanced/deploying/)
+  * [Deployment](advanced/deploying/README.md)
     * [Deleting AWS](advanced/deploying/awsDeletion.md)
 
-* **Developers**
+# Developers
   * [Developing with Pushkin](developers/developing-with-pushkin.md)
   * [Getting Started on Development](developers/getting-started-on-development.md)
     * [Understanding the Front End](developers/getting-started-on-development.md#understanding-the-front-end)
@@ -98,4 +99,3 @@ To get the latest news and updates on Pushkin, sign up for our newsletter [here]
     * [Pushkin jsPsych](https://github.com/pushkin-consortium/pushkin/tree/423120801ce745e971a197dd80d762db002b1749/docs-gitbook/developers/getting-started-on-development/README.md#pushkin-jspsych)
   * [Testing Pushkin with Jest](advanced/testing-pushkin-with-jest.md)
   * [Working with Templates](developers/working-with-templates.md)
-

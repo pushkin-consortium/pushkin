@@ -23,7 +23,7 @@ Over time, new site and experiment templates are likely to be added. If you want
 
 - [Basic template](../../getting-started/tutorial-simple-experiment.md) - follow link to see a tutorial for adding an existing jsPsych experiment to a basic Pushkin template.
 - [Lexical decision template](lexical-decision-template.md)
-- [Grammaticality judgment template](grammaticality-judgment-template.md)
+- [Grammaticality judgment template](grammaticality-judgement-template.md)
 - [Self-paced reading template](self-paced-reading-template.md)
 
 ## General settings and editing content

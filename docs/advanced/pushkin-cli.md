@@ -58,7 +58,7 @@ Running `pushkin install site --help` will display help for the command.
 
 Syntax: `pushkin install experiment`
 
-Downloads an experiment template. First will prompt for which experiment template \(see current list [here](modifying-experiment-templates/#current-templates)\), then prompt for a version to be selected. Most often, the latest version will be the best option.
+Downloads an experiment template. First will prompt for which experiment template \(see current list [here](modifying-experiment-templates/README.md#current-templates)\), then prompt for a version to be selected. Most often, the latest version will be the best option.
 
 If you select the basic template, you will also be asked if you want to import a plain jsPsych experiment.html. If you answer 'yes', a new experiment.js will be automatically generated from the provided file. If you answer 'no', experiment.js will remain as a "Hello, world!" example.
 

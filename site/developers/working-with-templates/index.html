@@ -1941,16 +1941,16 @@
 <h1 id="working-with-templates">Working with Templates</h1>
 <h2 id="publishing-a-template">Publishing a template</h2>
 <p>The Pushkin CLI <code>install</code> command is integrated with the GitHub release functionality. On the GitHub website, there is a <code>releases</code> panel on the right-hand side of the repo homepage.</p>
-<p><img alt="" src="assets/GitHubReleases1.jpg" /></p>
+<p><img alt="" src="../../assets/GitHubReleases1.jpg" /></p>
 <p>Click on the panel to open the releases page. Then select <code>draft new release</code>.</p>
-<p><img alt="" src="assets/GitHubReleases2.jpg" /></p>
+<p><img alt="" src="../../assets/GitHubReleases2.jpg" /></p>
 <p>The Pushkin CLI assumes semantic versioning. You will need to create a tag for your release of the form <code>vX.Y.Z</code>. GitHub has a reasonable explanation on this page (see right-hand side).</p>
-<p><img alt="" src="assets/GitHubReleases3.jpg" /></p>
+<p><img alt="" src="../../assets/GitHubReleases3.jpg" /></p>
 <p>You can choose whatever title you want. We suggest you include an informative description of this particular release. If it's the first release for your project, you might just put in the description "initial release". This is up to you.</p>
 <p>What is critical is that you zip up the files in your repo into a file called <code>Archive.zip</code>. Do NOT zip up the whole folder, but rather the files inside. This is what the Pushkin CLI expects. Moreover, on a Mac, at least, this will ensure that hidden files and folders are not included.</p>
-<p><img alt="" src="assets/GitHubReleases4.jpg" /></p>
+<p><img alt="" src="../../assets/GitHubReleases4.jpg" /></p>
 <p>On the <code>draft new release</code> page, you should see the option to <code>attach binaries by dropping them here or selecting them</code>. Use that option to upload <code>Archive.zip</code>.</p>
-<p><img alt="" src="assets/GitHubReleases5.jpg" /></p>
+<p><img alt="" src="../../assets/GitHubReleases5.jpg" /></p>
 <p>Then click <code>publish release</code> and you are done.</p>
 <h3 id="using-a-self-published-template">Using a self-published template</h3>
 <p>Run <code>pushkin install site</code> or <code>pushkin install experiment</code>, depending on which sort of template you are using. When asked where to install from, choose <code>url</code>. The URL is just the URL for your repo, with <code>/releases</code> added to the end:</p>

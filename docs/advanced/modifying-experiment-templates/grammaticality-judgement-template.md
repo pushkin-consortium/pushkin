@@ -2,11 +2,11 @@
 
 To install this experiment template, use the command `pushkin install experiment`, then select **grammaticality**.
 
-- [config info](grammaticality-judgment-template.md#config-js)
-- [stim info](grammaticality-judgment-template.md#stim-js)
-- [Example: Customizing a grammaticality judgment experiment](grammaticality-judgment-template.md#example-customizing-a-grammaticality-judgment-experiment)
+- [config info](grammaticality-judgement-template.md#config-js)
+- [stim info](grammaticality-judgement-template.md#stim-js)
+- [Example: Customizing a grammaticality judgment experiment](grammaticality-judgement-template.md#example-customizing-a-grammaticality-judgment-experiment)
 
-![Grammaticality judgment experiment template, with corrective response set to true.](../../assets/ezgif.com-video-to-gif-8-.gif)
+![Grammaticality judgement experiment template, with corrective response set to true.](../../assets/ezgif.com-video-to-gif-8-.gif)
 
 ### config.js
 

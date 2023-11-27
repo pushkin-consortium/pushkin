@@ -20,7 +20,7 @@ Pushkin requires using WSL 2. To check which version of WSL you are using, run t
  wsl --list --verbose
 ```
 
-![](assets/wsl1.gif)
+![](../..assets/wsl1.gif)
 
 This will give you a list of your installed Linux distributions and what version of WSL they are using. If your distribution is using WSL 1, run:
 
@@ -34,7 +34,7 @@ As the tutorial details, you will need Windows 10 version 2004 to be able to use
 
 After you have enabled WSL 2 and installed Ubuntu, you will probably also want to enable copy and paste in the terminal by right-clicking on the terminal window, selecting *Properties* and following [these instructions](https://devblogs.microsoft.com/commandline/copy-and-paste-arrives-for-linuxwsl-consoles/).
 
-![](assets/copyPasteScreenshot.jpg)
+![](../..assets/copyPasteScreenshot.jpg)
 
 Next, run the following commands in the Ubuntu terminal to update your Ubuntu packages. This (and other commands with `sudo` in front of them) will prompt you to give the Ubuntu password you set up when you installed it. It will also prompt you to respond with `y` and press ENTER to confirm that you would like to install or update software. 
 

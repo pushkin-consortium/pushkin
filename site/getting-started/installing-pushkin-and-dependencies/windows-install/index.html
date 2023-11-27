@@ -1907,14 +1907,14 @@
 <p>Pushkin requires using WSL 2. To check which version of WSL you are using, run the following command in Windows Powershell:</p>
 <pre><code class="language-bash"> wsl --list --verbose
 </code></pre>
-<p><img alt="" src="assets/wsl1.gif" /></p>
+<p><img alt="" src="../..assets/wsl1.gif" /></p>
 <p>This will give you a list of your installed Linux distributions and what version of WSL they are using. If your distribution is using WSL 1, run:</p>
 <pre><code class="language-bash"> wsl --set-version &lt;distribution name&gt; 2
 </code></pre>
 <p>The distribution name should be the name given in the previous list for your Linux distribution.</p>
 <p>As the tutorial details, you will need Windows 10 version 2004 to be able to use WSL 2. If you follow the instructions in the tutorial and cannot update to version 2004, <a href="https://www.bleepingcomputer.com/news/microsoft/windows-10-2004-update-not-offered-heres-how-to-get-it-now/">these steps</a> may be able to help.</p>
 <p>After you have enabled WSL 2 and installed Ubuntu, you will probably also want to enable copy and paste in the terminal by right-clicking on the terminal window, selecting <em>Properties</em> and following <a href="https://devblogs.microsoft.com/commandline/copy-and-paste-arrives-for-linuxwsl-consoles/">these instructions</a>.</p>
-<p><img alt="" src="assets/copyPasteScreenshot.jpg" /></p>
+<p><img alt="" src="../..assets/copyPasteScreenshot.jpg" /></p>
 <p>Next, run the following commands in the Ubuntu terminal to update your Ubuntu packages. This (and other commands with <code>sudo</code> in front of them) will prompt you to give the Ubuntu password you set up when you installed it. It will also prompt you to respond with <code>y</code> and press ENTER to confirm that you would like to install or update software. </p>
 <pre><code class="language-bash"> sudo apt update
  sudo apt upgrade

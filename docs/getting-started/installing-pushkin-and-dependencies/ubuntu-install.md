@@ -25,7 +25,7 @@ First, ensure that you have curl installed, as this will be necessary to downloa
  sudo apt install curl
 ```
 
-![](/assets/ubuntu1%20%281%29.gif)
+![](../../assets/ubuntu1%20%281%29.gif)
 
 ### Install Node.js
 
@@ -189,5 +189,5 @@ Next, follow [these post-installation instructions](https://docs.docker.com/engi
 
 ### Next steps
 
-Great! You're all done. Head over [here](../quickstart/) to build a basic Pushkin site and experiment.
+Great! You're all done. Head over [here](../quickstart/README.md) to build a basic Pushkin site and experiment.
 
