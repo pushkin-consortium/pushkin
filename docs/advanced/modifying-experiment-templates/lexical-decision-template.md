@@ -6,7 +6,7 @@ To install this experiment template, use the command `pushkin install experiment
 - [stim info](#stimjs)
 - [Example: Customizing a lexical decision experiment](#example-customizing-a-lexical-decision-experiment)
 
-![Lexical decision experiment template, with corrective response set to true.](../../.gitbook/assets/ezgif.com-video-to-gif-9-.gif)
+![Lexical decision experiment template, with corrective response set to true.](../../assets/ezgif.com-video-to-gif-9-.gif)
 
 ## config.js
 
