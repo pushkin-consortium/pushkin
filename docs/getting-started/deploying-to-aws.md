@@ -54,7 +54,7 @@ You can change your ID at any point by re-running this command.
 
 You can buy domains many places, but there is some convenience to doing it through AWS itself, which is reasonably priced:
 
-![](../.gitbook/assets/DomainPurchase.png)
+![](../../assets/DomainPurchase.png)
 
 Cheaper domains on AWS currently cost around $12/yr, but if you would like a trendier domain, you can expect to pay more. Students may be able to get a free domain through [NameCheap for Education](https://nc.me/).
 
@@ -67,7 +67,7 @@ In order to have encryption&mdash;which you want!&mdash;you need a certificate. 
 3. Request a public certificate.
 4. Enter (1) your domain and (2) your domain preceded by `*.`. Thus for 'gameswithwords.org', you would enter `gameswithwords.org` and `*.gameswithwords.org`\).
 5. If you registered your domain with AWS, use DNS validation. Otherwise, follow the instructions.
-6. Skip through the next couple steps, then create a CNAME record. This is simple if you used AWS for your domain registration; otherwise, follow the instructions. ![](../.gitbook/assets/SSL.mov)
+6. Skip through the next couple steps, then create a CNAME record. This is simple if you used AWS for your domain registration; otherwise, follow the instructions. ![](../..../../assets/SSL.mov)
 
 At this point, you wait for your certificate to be issued. Depending on how you registered your domain, this may take variable amounts of time. For us, it usually only takes a few minutes.
 

@@ -28,7 +28,7 @@ Open a terminal window. Create an empty directory \(e.g., `pushkin_quickstart`\)
  cd pushkin_quickstart/
 ```
 
-![](../../.gitbook/assets/quickstart_1.gif)
+![](../../assets/quickstart_1.gif)
 
 \(For more on basic terminal commands, you can check out [this blog post](https://medium.com/@grace.m.nolan/terminal-for-beginners-e492ba10902a).\)
 
@@ -40,7 +40,7 @@ Install your first pushkin site the in the directory you just created:
 
 You will be asked to select a site template to use. Choose **basic**, then choose the recommended version.
 
-![](../../.gitbook/assets/quickstart_2.gif)
+![](../../assets/quickstart_2.gif)
 
 \(See example output for this command [here](sample_output.md#example-output-for-pushkin-install-site).\)
 
@@ -120,7 +120,7 @@ To create a new experiment from the boilerplate template Pushkin provides, run
 
 Choose a **basic** experiment. When prompted, name your experiment `vocab` and choose the recommended version. Choose 'no' when asked if you want to import a jsPsych experiment. Repeat the process to add **basic** experiments called `mind` and `whichenglish` as well.
 
-![](../../.gitbook/assets/quickstart_3.gif)
+![](../../assets/quickstart_3.gif)
 
 \(See example output for this command [here](sample_output.md#example-output-for-pushkin-install-experiment).\)
 
@@ -161,7 +161,7 @@ Keeping all the files for an experiment within the same root folder is convenien
  pushkin prep
 ```
 
-![](../../.gitbook/assets/quickstart_4.gif)
+![](../../assets/quickstart_4.gif)
 
 \(See example output for this command [here](sample_output.md#example-output-for-pushkin-prep).\)
 
@@ -180,21 +180,21 @@ Coming soon!
 
 <!-- Go to auth0.com and create an Auth0 account. -->
 
-<!-- ![](../../.gitbook/assets/auth0_1.gif) -->
+<!-- ![](../../assets/auth0_1.gif) -->
 
 <!-- Go to the _Applications_ section of the Auth0 dashboard and click _Create Application_. Give your application and a name. Select _Single Page Web App_ as your application type. Click _Create_. -->
 
-<!-- ![](../../.gitbook/assets/auth0_2.gif) -->
+<!-- ![](../../assets/auth0_2.gif) -->
 
 <!-- 4. Choose the _Settings_ tab. In _Allowed Callback URLs_, add `http://localhost/`. In _Allowed Logout URLs_, add `http://localhost`. In _Allowed Web Origins_, also add `http://localhost`. Click the _Save Changes_ button. -->
 
-<!-- ![](../../.gitbook/assets/auth0_3.gif) -->
+<!-- ![](/../../assets/auth0_3.gif) -->
 
 <!-- Note that these URLs are used for development. When you launch the live version of your website, you will need to add your public URLs. Repeat the instructions above, replacing [http://localhost](http://localhost) with [https://YOUR-WEBSITE](https://YOUR-WEBSITE). For instance, for gameswithwords, the URLs are `https://gameswithwords.org` and `https://gameswithwords/callback`. -->
 
 <!-- If you are using an AWS EC2 instance, navigate to the IPv4 Public IP address of your instance instead of `http://localhost`. This can be found in the AWS EC2 console. -->
 
-<!-- ![](../../.gitbook/assets/38%20%281%29.gif) -->
+<!-- ![](/../../assets/38%20%281%29.gif) -->
 
 <!-- On the settings page, you will see a `Domain` \(something like `gameswithwords.auth0.com`\) and a `Client ID`. Edit `pushkin/front-end/src/config.js` to match: -->
 
@@ -202,7 +202,7 @@ Coming soon!
 <!-- authDomain: '<YOUR_AUTH0_DOMAIN>', -->
 <!-- authClientID: '<YOUR_AUTH0_CLIENT_ID>', -->
 <!-- ``` -->
-<!-- ![](../../.gitbook/assets/auth0_4.gif) -->
+<!-- ![](/../../assets/auth0_4.gif) -->
 
 <!-- Run `pushkin prep` again since you have made a change to your code. -->
 
@@ -214,18 +214,18 @@ Now, let’s look at your website! Make sure Docker is running by running the co
  pushkin start
 ```
 
-![](../../.gitbook/assets/quickstart_5.gif)
+![](../../assets/quickstart_5.gif)
 
 \(See example output for this command [here](sample_output.md#example-output-for-pushkin-start).\)
 
 Now browse to `http://localhost` to see the stub website.
 
-![](../../.gitbook/assets/quickstart_6.gif)
+![](../../assets/quickstart_6.gif)
 
 If you are using an AWS EC2 instance, navigate to the IPv4 Public IP address of your instance instead of `http://localhost`. This can be found in the AWS EC2 console.
 Note: You will not be able to locally test a default site if you are using an AWS EC2 instance. The authentication software used in the default site template requires the site to be accessed from localhost. In order to locally test a site on an AWS EC2 instance, it must have a "basic" site template.
 
-![](../../.gitbook/assets/39.gif)
+![](../../assets/39.gif)
 
 When you are done looking at your website, stop it by running:
 
@@ -233,7 +233,7 @@ When you are done looking at your website, stop it by running:
  pushkin stop
 ```
 
-![](../../.gitbook/assets/quickstart_7.gif)
+![](../../assets/quickstart_7.gif)
 
 If you don’t do that, the web server will keep running in Docker until you quit Docker or restart. When the command has finished running, it should output `done`.
 
@@ -254,7 +254,7 @@ This tutorial will assume that you've downloaded and installed [pgAdmin](https:/
 
 When you start pgAdmin, it will take a moment to load and then will appear as a new tab in your web browser. When you install it the first time, it will ask you to set a master password. This can be whatever you'd like, but make sure you keep it in a secure place.
 
-![](../../.gitbook/assets/pgadmin_1.png)
+![](../../assets/pgadmin_1.png)
 
 Under the _Quick Links_, click **Add New Server**. (Make sure you have run `pushkin start;` and that your site is running in `localhost` or at your IPv4 Public IP address.) Then follow these steps:
 
@@ -263,7 +263,7 @@ Under the _Quick Links_, click **Add New Server**. (Make sure you have run `push
 3. Set the password to the default password, `example`, which you can find in `pushkin.yaml`.
 4. Click **Save** and your _Pushkin Testing_ server should appear in the left sidebar.
 
-![](../../.gitbook/assets/pgadmin_2.gif)
+![](../../assets/pgadmin_2.gif)
 
 To view your data tables, navigate to the left sidebar:
 
@@ -274,11 +274,11 @@ To view your data tables, navigate to the left sidebar:
 
 By default, you should have 5 tables: `knex_migrations`, `knex_migrations_lock`, `pushkin_userMeta`, `pushkin_userResults`, and `pushkin_users`. You should also have one table for each experiment; if you've followed this tutorial, you should also have `mind_stimulusResponses`, `vocab_stimulusResponses`, and `which_english_stimulusResponses`.
 
-![](../../.gitbook/assets/pgadmin_3.gif)
+![](../../assets/pgadmin_3.gif)
 
 To view a given table, right-click on it, hover over _View/Edit Data_, and click on **All Rows**, which will then appear in a new pgAdmin tab.
 
-![](../../.gitbook/assets/pgadmin_4.gif)
+![](../../assets/pgadmin_4.gif)
 
 For more information on how to use pgAdmin, you can read their documentation [here](https://www.pgadmin.org/docs/).
 

@@ -8,35 +8,35 @@ First, you will need to generate access keys. Best practices dictate that you [c
 
 To create an IAM user, sign into [Identity and Access Management](https://console.aws.amazon.com/iam/) in your AWS console using your root user credentials.
 
-![](../../.gitbook/assets/aws_8.gif)
+![](../../assets/aws_8.gif)
 
 Navigate to *My Account* and enable access to billing data for IAM users.
 
-![](../../.gitbook/assets/aws_10.gif)
+![](../../assets/aws_10.gif)
 
 Navigate back to [Identity and Access Management](https://console.aws.amazon.com/iam/), select *Users* in the left sidebar and click **Add user**. 
 
-![](../../.gitbook/assets/aws_12.gif)
+![](../../assets/aws_12.gif)
 
 Set username as `Administrator` and click *Next: Permissions*.
 
-![](../../.gitbook/assets/aws_13.gif)
+![](../../assets/aws_13.gif)
 
 Under the *Add user to group* tab, select **Create group**. Call the group name `Administrators` and check the *AdministratorAccess* job function in the list of policies. Then click *Create group* to continue.
 
-![](../../.gitbook/assets/aws_14.gif)
+![](../../assets/aws_14.gif)
 
 Click through the *Tags* page, review your settings and click **Create user**. Download the CSV with login information.
 
-![](../../.gitbook/assets/aws_15.gif)
+![](../../assets/aws_15.gif)
 
 Return to the *Users* page and select the **Security credentials** tab for the `Administrator` user you just created. 
 
-![](../../.gitbook/assets/aws_16.gif)
+![](../../assets/aws_16.gif)
 
 Under *Access keys*, click **Create access keys**.
 
-![](../../.gitbook/assets/aws_17.gif)
+![](../../assets/aws_17.gif)
 
 
 Run `aws configure --profile myprofile` (where you substitute `myprofile` with a name of your choosing; this is just in case you want to have multiple logins, which you probably will), pasting your Access Key ID and Secret Access key as needed.
@@ -53,7 +53,7 @@ Default region name [None]: us-east-1
 Default output format [None]: json
 ```
 
-![](../../.gitbook/assets/aws_24.gif)
+![](../../assets/aws_24.gif)
 
 
 ## ECS CLI
@@ -75,4 +75,4 @@ To see the Access Key ID and Secret Access Key for a given profile, run the foll
 ```
 
 
-![](../../.gitbook/assets/aws_25.gif)
+![](../../assets/aws_25.gif)
