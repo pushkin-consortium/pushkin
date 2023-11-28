@@ -10,10 +10,16 @@ import { createTimeline } from "./experiment";
 jest.useFakeTimers();
 
 describe("createTimeline", () => {
-    // Create a div to hold the experiment in case experiment.js refers to it
-    document.body.innerHTML = '<div id="jsPsychTarget"></div>';
-    // Initialize jsPsych, since createTimeline takes jsPsych as an argument
-    let jsPsych = initJsPsych();
+    let jsPsych;
+
+    beforeEach(() => {
+        // Create a div to hold the experiment in case experiment.js refers to it
+        document.body.innerHTML = '<div id="jsPsychTarget"></div>';
+        // Initialize jsPsych, since createTimeline takes jsPsych as an argument
+        jsPsych = initJsPsych({
+            display_element: document.getElementById('jsPsychTarget'),
+        });
+    });
     
     // This test should pass regardless of any user customizations of the template
     it("returns a valid jsPsych timeline", async () => {
