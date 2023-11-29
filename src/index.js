@@ -4,6 +4,34 @@ import amqp from 'amqplib';
 import knex from 'knex';
 const trim = (s, len) => s.length > len ? s.substring(0, len) : s;
 
+const mysql_real_escape_string = (str) => {
+	//Thanks https://stackoverflow.com/a/7760578/3291354
+    return str.replace(/[\0\x08\x09\x1a\n\r"'\\\%]/g, function (char) {
+        switch (char) {
+            case "\0":
+                return "\\0";
+            case "\x08":
+                return "\\b";
+            case "\x09":
+                return "\\t";
+            case "\x1a":
+                return "\\z";
+            case "\n":
+                return "\\n";
+            case "\r":
+                return "\\r";
+            case "\"":
+            case "'":
+            case "\\":
+            case "%":
+                return "\\"+char; // prepends a backslash to backslash, percent,
+                                  // and double/single quotes
+            default:
+                return char;
+        }
+    });
+}
+
 class PushkinWorker {
 	constructor(options) {
 		this.amqpAddress = options.amqpAddress;
@@ -29,7 +57,6 @@ class PushkinWorker {
 		});
 	}
 	handle(method, handler) {
-		console.log(`handling ${method} with ${handler}`);
 		this.handlers.set(method, handler);
 	}
 	// useDefaultHandles(dbUrl, dbTablePrefix, transactionOps) {
@@ -38,8 +65,8 @@ class PushkinWorker {
 	// 		this.handle(h, handler[h].bind(handler));
 	// 	});
 	// }
-	useHandler(ahandler, dbUrl, dbTablePrefix, transactionOps) {
-		const handler = new ahandler(dbUrl, dbTablePrefix, transactionOps);
+	useHandler(ahandler, connection, dbTablePrefix, transactionOps) {
+		const handler = new ahandler(connection, dbTablePrefix, transactionOps);
 		let methods = handler.methods();
 		methods.forEach(h => {
 			this.handle(h, handler[h].bind(handler));
@@ -54,8 +81,7 @@ class PushkinWorker {
 				ch.prefetch(1);
 				const consumeCallback = msg => {
 					console.log(`got message: ${msg.content.toString()}`);
-					Promise.resolve(msg.content.toString())
-						.then(JSON.parse)
+					Promise.resolve(JSON.parse(msg.content))
 						.then(req => {
 							if (!req || !req.method || req.data === undefined)
 								throw new Error('requests must have a method and data field');
@@ -66,7 +92,8 @@ class PushkinWorker {
 							return this.handlers.get(req.method)(sessId, req.data, req.params);
 						})
 						.then(res => {
-							console.log(`responding ${res}`);
+							// Is anyone actually reading this response? I don't think so...
+							console.log(`responding ${JSON.stringify(res)}`);
 							ch.sendToQueue(msg.properties.replyTo,
 								new Buffer.from(JSON.stringify(res)),
 								{correlationId: msg.properties.correlationId}
@@ -106,7 +133,7 @@ function handleJSON(str) {
 }
 
 class DefaultHandler {
-	constructor(db_url, dbTablePrefix, transactionOps) {
+	constructor(connection, dbTablePrefix, transactionOps) {
 		this.tables = {
 			users: `pushkin_users`,
 			userResults: `pushkin_userResults`,
@@ -116,20 +143,77 @@ class DefaultHandler {
 			stimGroups: `${dbTablePrefix}_stimulusGroups`,
 			stimGroupStim: `${dbTablePrefix}_stimulusGroupStimuli`
 		};
-		this.pg_main = knex({ client: 'pg', connection: db_url, });
+		console.log(`setting up main db connection with ${JSON.stringify(connection)}`)
+		this.knexInfo = { 
+			client: 'pg', 
+			version: '11',
+			connection: connection, 
+			debug: true
+		} //fubar -- get rid of debug
 
+		try {
+			this.pg_main = knex(this.knexInfo); 
+		} catch (error) {
+			console.error(`Problem setting up on main db: ${error}`)
+			throw error
+		}
+		console.log("check that we are connected to the main db")
+		try {
+			this.pg_main(this.tables.users)
+				.then(rows => {
+					console.log("testing: " + rows)
+				})
+		} catch (error) {
+			console.error(`Problem with simple select from transaction DB: ${error}`)
+		}
+		console.log(`checking logging: ${JSON.stringify(transactionOps)}`)
 		this.logging = transactionOps ? true : false;
 		if (this.logging) {
-			this.trans_table = transactionOps.tableName;
-			this.pg_trans = knex({ client: 'pg', connection: transactionOps.url });
-			this.trans_mapper = transactionOps.mapper;
+			try {
+				this.trans_table = transactionOps.tableName;
+				this.pg_trans = knex({ 
+					client: 'pg', 
+					version: '11', 
+					connection: transactionOps.connection, 
+					debug: true }); //fubar get rid of debug when not needed
+			} catch (error) {
+				console.error(`Problem setting up logger: ${error}`)
+				console.error(`Turning off logging.`)
+				this.logging = false;
+			}
+			console.log("check that we are connected to the transaction db")
+			try {
+				this.pg_trans(this.trans_table)
+					.then(rows => {
+						console.log("testing: " + rows)
+					})
+			} catch (error) {
+				console.error(`Problem with simple select from transaction DB: ${error}`)
+			}
 		}
+		console.log(`Checked logging`)
 	}
 
 	async logTransaction(knexCommand) {
 		if (!this.logging) return knexCommand;
-		const toInsert = this.trans_mapper(knexCommand.toString());
-		await this.pg_trans(this.trans_table).insert(toInsert);
+		const toInsert = {
+		//	query: knexCommand.toSQL().toNative().sql,
+		//	bindings: knexCommand.toSQL().toNative().bindings,
+			query: knexCommand.toString(),
+			bindings: '',
+			created_at: new Date()
+		}
+		try {
+			console.log(`logging transaction: ${JSON.stringify(toInsert)}`)
+			let temp = await this.pg_trans(this.trans_table).insert({
+				query: mysql_real_escape_string(knexCommand.toString()),
+				bindings: '',
+				created_at: new Date()
+			})
+			console.log("sent to log: " + temp.toString())
+		} catch (error) {
+			console.error(`Problem logging transaction: ${error}`)
+		}		
 		return knexCommand;
 	}
 
@@ -142,7 +226,7 @@ class DefaultHandler {
 		if (!data.experiment)
 			throw new Error('startExperiment got invalid userID');
 
-		const results = 'Completed this experiment with flying colors'; //stub
+		const results = {message: `Completed this experiment with flying colors`}; //stub
 
 		return this.logTransaction(this.pg_main(this.tables.userResults).insert({
 			user_id: data.user_id,
@@ -151,24 +235,41 @@ class DefaultHandler {
 			created_at: new Date()
 		}));
 	}
-
-	async startExperiment(sessId, data) {
+	async startExperiment(sessId, data, params) {
 		if (!sessId)
 			throw new Error('startExperiment got invalid session id');
 		if (!data.user_id)
 			throw new Error('startExperiment got invalid userID');
 
 		const userId = data.user_id;
-
-		const userCount = (await this.pg_main(this.tables.users).where('user_id', userId).count('*'))[0].count;
+		const toInsert = {
+			user_id: userId,
+			created_at: new Date()
+		}
+		console.log('to insert:\n ',toInsert)
+		let userCount
+		try {
+			let temp = await this.pg_main(this.tables.users).where('user_id', userId).count('*')
+			userCount = temp[0].count;
+		} catch (error) {
+			console.error(`Problem checking if user exists: ${error}`)
+			throw error
+		}
+		console.log('userCount: ', userCount)
 		if (userCount>0) {
+			console.log(`user ${userId} already exists. No need to recreate.`)
 			//only need to insert if new subject
-			return 
+			return {user_id: userId}
 		} else {
-			return this.logTransaction(this.pg_main(this.tables.users).insert({
-				user_id: data.user_id,
-				created_at: new Date()
-			}));
+			console.log(`Adding ${userId} to users ${this.tables.users}.`)
+			let returnVal
+			try {
+				returnVal = this.logTransaction(this.pg_main(this.tables.users).insert(toInsert));
+			} catch (error) {
+				console.error(`Problem inserting user: ${error}`)
+				throw error
+			}
+			return {user_id: userId}
 		}
 	}
 
@@ -201,13 +302,14 @@ class DefaultHandler {
 
 		console.log(`inserting response for user ${data.user_id}: ${trim(JSON.stringify(data.data_string), 100)}`);
 
-
-		return this.logTransaction(this.pg_main(this.tables.stimResp).insert({
+		let toInsert = {
 			user_id: data.user_id,
-			stimulus: JSON.stringify(data.data_string.stimulus),
+			stimulus: JSON.stringify(data.data_string.stimulus).substring(0,1000),
 			response: JSON.stringify(data.data_string),
 			created_at: new Date()
-		}));
+		}
+		console.log('to insert:\n ',toInsert)
+		return this.logTransaction(this.pg_main(this.tables.stimResp).insert(toInsert));
 	}
 
 	async insertMetaResponse(sessId, data) {
