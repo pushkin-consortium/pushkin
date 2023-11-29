@@ -3,7 +3,7 @@
  */
 
 import { initJsPsych } from 'jspsych';
-import { pressKey, startTimeline } from "@jspsych/test-utils";
+import { pressKey, startTimeline, simulateTimeline } from "@jspsych/test-utils";
 
 import { createTimeline } from "./experiment";
 
@@ -22,7 +22,7 @@ describe("createTimeline", () => {
     });
     
     // This test should pass regardless of any user customizations of the template
-    it("returns a valid jsPsych timeline", async () => {
+    test("returns a valid jsPsych timeline", async () => {
         const timeline = createTimeline(jsPsych);
         // Check that the timeline is an array
         expect(Array.isArray(timeline)).toBeTruthy();
@@ -33,8 +33,17 @@ describe("createTimeline", () => {
         await expectRunning();
     });
 
-    // This test will probably fail if the user customizes the template
-    it("returns a timeline with a single 'Hello, world!' trial", async () => {
+    // This test should probably still pass if the user customizes the template,
+    // unless they use a plugin which doesn't support simulation mode
+    test("returns a timeline that runs to completion in simulation mode", async () => {
+        // Check that the timeline runs and finishes with expected data
+        const timeline = createTimeline(jsPsych);
+        const { expectFinished } = await simulateTimeline(timeline, 'data-only', {}, jsPsych);
+        await expectFinished();
+    });
+
+    // This test will almost definitely fail if the user customizes the template
+    test("returns a timeline with a single 'Hello, world!' trial", async () => {
         // Check that the timeline runs and finishes with expected data
         const timeline = createTimeline(jsPsych);
         const { expectFinished, getData } = await startTimeline(timeline);
