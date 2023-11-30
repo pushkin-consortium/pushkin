@@ -1,0 +1,43 @@
+{
+  "name": "pushkin-worker",
+  "version": "3.0.0",
+  "description": "A basic starter worker used to communicate between a Pushkin API and databases",
+  "main": "build/index.js",
+  "files": [
+    "build/*"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "babel src -d build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pushkin-consortium/pushkin-worker.git"
+  },
+  "keywords": [
+    "pushkin",
+    "worker"
+  ],
+  "author": "L3",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/pushkin-consortium/pushkin-worker/issues"
+  },
+  "homepage": "https://github.com/pushkin-consortium/pushkin-worker#readme",
+  "devDependencies": {
+    "@babel/cli": "^7.7.4",
+    "@babel/core": "^7.7.4",
+    "@babel/plugin-syntax-export-default-from": "^7.7.4",
+    "@babel/preset-env": "^7.7.4",
+    "babel-eslint": "^10.0.3",
+    "eslint": "^7.5.0"
+  },
+  "dependencies": {
+    "@babel/polyfill": "^7.7.0",
+    "amqplib": "^0.6.0",
+    "core-js": "^3.4.5",
+    "knex": "^2.4.2",
+    "pg": "^8.11.0",
+    "regenerator-runtime": "^0.13.3"
+  }
+}
