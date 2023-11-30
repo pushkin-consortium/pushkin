@@ -6,14 +6,14 @@ description: Start here to build a basic Pushkin site and experiment.
 
 ## Skip to section
 
-- [Creating a basic new Pushkin site](./#creating-basic-new-pushkin-site)
-- [Updating configs](./#updating-configs)
-- [Making an experiment](./#making-an-experiment)
-- [Setting up logins](./#setting-up-logins)
-- [Local testing](./#local-testing)
-- [Updating](./#updating)
-- [Viewing your database with a Postgres manager](./#viewing-your-database-with-a-postgres-manager)
-- [Starting over](./#starting-over)
+- [Creating a basic new Pushkin site](#creating-basic-new-pushkin-site)
+- [Updating configs](#updating-configs)
+- [Making an experiment](#making-an-experiment)
+- [Setting up logins](#setting-up-logins)
+- [Local testing](#local-testing)
+- [Updating](#updating)
+- [Viewing your database with a Postgres manager](#viewing-your-database-with-a-postgres-manager)
+- [Starting over](#starting-over)
 
 **If you haven't installed pushkin-cli and its dependencies, start** [**here**](../installing-pushkin-and-dependencies/README.md) **first.**
 

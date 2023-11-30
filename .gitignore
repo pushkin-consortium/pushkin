@@ -74,3 +74,4 @@ typings/
 
 # Docs build
 site/
+venv/
