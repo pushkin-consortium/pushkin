@@ -43,36 +43,32 @@ describe("createTimeline", () => {
     
     // These tests may fail if the user customizes the template
     describe("Experiment config options", () => {
-        const responseTypeOptions = ['2afc', 'likert', 'slider'];
         const feedbackOptions = [true, false];
-        // Loop through all combinations of feedback/responseType options,
-        // testing each combination for successful completion and data collection
-        for (const responseType of responseTypeOptions) {
-            for (const feedback of feedbackOptions) {
-                test(`produce expected data when responseType=${responseType} and feedback=${feedback}`, async () => {
-                    // Reset the module registry
-                    // This is necessary because the original config.js will be cached
-                    jest.resetModules();
-                    // Mock config.js with the various feedback/response options
-                    // doMock seems to be necessary (vs. mock) for scope reasons
-                    jest.doMock('./config', () => {
-                        const originalConfig = jest.requireActual('./config');
-                        return {
-                            ...originalConfig,
-                            correctiveFeedback: feedback, // Your mocked correctiveFeedback
-                            responseType: responseType, // Your mocked responseType
-                        };
-                    });
-                    // Now re-import createTimeline so it gets the mocked config.js object
-                    const { createTimeline } = require('./experiment');
-
-                    // Check that the timeline runs and finishes with expected data
-                    const timeline = createTimeline(jsPsych);
-                    const { getData, expectFinished } = await simulateTimeline(timeline, 'data-only', {}, jsPsych);
-                    await expectFinished();
-                    expect(getData().filter({ responseType: responseType }).count()).toBe(stimArray.length);
+        // Testing feedback options for successful completion and data collection
+        for (const feedback of feedbackOptions) {
+            test(`produce expected data when feedback=${feedback}`, async () => {
+                // Reset the module registry
+                // This is necessary because the original config.js will be cached
+                jest.resetModules();
+                // Mock config.js with the various feedback/response options
+                // doMock seems to be necessary (vs. mock) for scope reasons
+                jest.doMock('./config', () => {
+                    const originalConfig = jest.requireActual('./config');
+                    return {
+                        ...originalConfig,
+                        correctiveFeedback: feedback, // mocked correctiveFeedback
+                    };
                 });
-            }
+                // Now re-import createTimeline so it gets the mocked config.js object
+                const { createTimeline } = require('./experiment');
+
+                // Check that the timeline runs and finishes with expected data
+                const timeline = createTimeline(jsPsych);
+                const { getData, expectFinished } = await simulateTimeline(timeline, 'data-only', {}, jsPsych);
+                await expectFinished();
+                // Have to filter on correct=true OR correct=false to get all the experimental trials 
+                expect(getData().filter([{ correct: true}, { correct: false}]).count()).toBe(stimArray.length);
+            });
         }
     });
 });

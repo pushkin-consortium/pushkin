@@ -36,7 +36,7 @@ describe("createTimeline", () => {
     // This test should probably still pass if the user customizes the template,
     // unless they use a plugin which doesn't support simulation mode
     test("returns a timeline that runs to completion in simulation mode", async () => {
-        // Check that the timeline runs and finishes with expected data
+        // Check that the timeline finishes running
         const timeline = createTimeline(jsPsych);
         const { expectFinished } = await simulateTimeline(timeline, 'data-only', {}, jsPsych);
         await expectFinished();
