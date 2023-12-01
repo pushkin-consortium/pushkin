@@ -55,6 +55,7 @@ nav:
     - Register a Domain: 'getting-started/deploying-to-aws/domain-registration.md'
     - Set up Dockerhub: 'getting-started/deploying-to-aws/dockerhub.md'
     - Initialize AWS Deploy: 'getting-started/deploying-to-aws/initializing-aws-deploy.md'
+    - View Your Data: 'getting-started/deploying-to-aws/view-your-data.md'
   - Tutorial - Simple Experiment: 
     - Tutorial: 'getting-started/tutorial-simple-experiment.md'
 - FAQ: 
@@ -92,4 +93,5 @@ nav:
   - Developing with Pushkin: 'developers/developing-with-pushkin.md'
   - Getting Started on Development: 'developers/getting-started-on-development.md'
   - Overview of Technologies: 'developers/overview-of-tech.md'
+  - Testing with Jest: 'advanced/testing-pushkin-with-jest.md'
   - Working with Templates: 'developers/working-with-templates.md'
