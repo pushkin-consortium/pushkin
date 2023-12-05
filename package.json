@@ -10,5 +10,11 @@
   },
   "devDependencies": {
     "jest": "^29.7.0"
+  },
+  "jest": {
+    "projects": [
+      "<rootDir>/packages/*",
+      "<rootDir>/templates/experiments/*/web page"
+    ]
   }
 }
