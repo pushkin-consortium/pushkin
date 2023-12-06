@@ -1,8 +1,8 @@
 site_name: Pushkin
 theme:
   name: material
-  favicon: 'img/pushkin_bw_w_text.png'
-  logo: 'img/pushkin_bw_w_text.png'
+  favicon: 'img/pushkin_bw_no_text.png'
+  logo: 'img/pushkin_bw_no_text.png'
   features:
     - navigation.top
     - navigation.instant
@@ -20,19 +20,22 @@ theme:
   palette:
     - scheme: default
       toggle:
-        icon: material/toggle-switch-off-outline 
+        icon: material/weather-night
         name: Switch to dark mode
-      primary: deep orange
-      accent: deep purple
+        primary: indigo
+        accent: deep orange
     - scheme: slate 
       toggle:
-        icon: material/toggle-switch
-        name: Switch to light mode    
-      primary: deep orange
-      accent: deep purple
+        icon: material/weather-sunny
+        name: Switch to light mode
+        primary: indigo
+        accent: deep orange
 extra:
   version:
     provider: mike
+plugins:
+  - mike:
+      version_selector: true
 repo_url: https://github.com/pushkin-consortium/pushkin
 repo_name: pushkin-constortium/pushkin
 nav:
