@@ -18,24 +18,29 @@ theme:
     - toc.follow
   language: en
   palette:
-    - scheme: default
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
       toggle:
         icon: material/weather-night
         name: Switch to dark mode
-        primary: indigo
-        accent: deep orange
-    - scheme: slate 
+      primary: teal
+      accent: pink
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate 
       toggle:
         icon: material/weather-sunny
         name: Switch to light mode
-        primary: indigo
-        accent: deep orange
+      primary: teal
+      accent: pink
 extra:
   version:
     provider: mike
 plugins:
   - mike:
-      version_selector: true
+      # Set to true for subsequent releases
+      version_selector: false
 repo_url: https://github.com/pushkin-consortium/pushkin
 repo_name: pushkin-constortium/pushkin
 nav:
