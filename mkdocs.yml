@@ -42,7 +42,7 @@ plugins:
       # Set to true for subsequent releases
       version_selector: false
 repo_url: https://github.com/pushkin-consortium/pushkin
-repo_name: pushkin-constortium/pushkin
+repo_name: pushkin-consortium/pushkin
 nav:
 - Introduction: 'README.md'
 - Getting Started:
