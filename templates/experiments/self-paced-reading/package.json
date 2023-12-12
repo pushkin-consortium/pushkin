@@ -1,0 +1,18 @@
+{
+  "private": true,
+  "name": "@pushkin-templates/exp-self-paced-reading",
+  "version": "5.0.2",
+  "description": "A Pushkin experiment template containing a jsPsych self-paced-reading timeline.",
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.23.6",
+    "@babel/preset-env": "^7.23.6",
+    "@jspsych-contrib/plugin-self-paced-reading": "^2.0.0",
+    "@jspsych/plugin-html-keyboard-response": "^1.1.2",
+    "@jspsych/test-utils": "^1.1.2",
+    "jest": "^29.7.0",
+    "jspsych": "^7.3.4"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "private": true,
+  "name": "@pushkin-templates/site-basic",
+  "version": "0.2.4",
+  "description": "A template for building a bare-bones Pushkin site. No authentication, no forum, no dashboard, but everything else you need.",
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.23.6",
+    "@babel/preset-env": "^7.23.6",
+    "jest": "^29.7.0"
+  }
+}
