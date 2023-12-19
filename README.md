@@ -1,5 +1,5 @@
 # pushkin
 
-<img src="./pushkin_bw_w_text.png" height="400" width="450">
+<img src="./docs/img/pushkin_bw_w_text.png" height="400" width="450">
 
-This is the documentation for the Pushkin package. To view the documentation, visit [this link](https://languagelearninglab.gitbook.io/pushkin/).
+Pushkin is a customizable, scalable ecosystem for massive online psychological experiments. Read the documentation [here](https://pushkin-consortium.github.io/pushkin).

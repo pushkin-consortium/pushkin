@@ -1,0 +1,32 @@
+@import url('https://unpkg.com/jspsych@7.3.3/css/jspsych.css');
+
+/* Fixation box styling */
+.fixation {
+    border: 2px solid black;
+    height: 100px;
+    width: 200px;
+    font-size: 24px;
+    position: relative;
+    margin: auto;
+}
+.fixation p {
+    width: 100%;
+    position: absolute;
+    margin: 0.25em;
+}
+.fixation p.top {
+    top: 0px;
+}
+.fixation p.bottom {
+    bottom: 0px;
+}
+
+/* Color for box border when correct */
+.correct {
+    border-color: green;
+}
+
+/* Color for box border when incorrect */
+.incorrect {
+    border-color: red;
+}

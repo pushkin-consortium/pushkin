@@ -1,0 +1,53 @@
+{
+  "name": "pushkin-cli",
+  "version": "3.6.0",
+  "description": "A CLI for automating basic Pushkin tasks",
+  "main": "build/index.js",
+  "files": [
+    "build/*",
+    "images/*"
+  ],
+  "bin": {
+    "pushkin": "build/index.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "babel src -d build"
+  },
+  "keywords": [
+    "pushkin",
+    "cli"
+  ],
+  "author": "L3",
+  "license": "MIT",
+  "devDependencies": {
+    "@babel/cli": "^7.10.5",
+    "@babel/core": "^7.10.5",
+    "@babel/preset-env": "^7.10.4",
+    "babel-eslint": "^10.1.0",
+    "eslint": "^7.5.0",
+    "eslint-config-airbnb-base": "^14.2.0",
+    "eslint-plugin-import": "^2.22.0"
+  },
+  "dependencies": {
+    "adm-zip": "^0.4.16",
+    "balanced-match": "^1.0.0",
+    "command-line-args": "^5.1.1",
+    "commander": "^6.0.0",
+    "core-js": "^3.6.5",
+    "corejs": "^1.0.0",
+    "docker-compose": "^0.23.5",
+    "got": "^11.5.1",
+    "graceful-fs": "^4.2.11",
+    "inquirer": "^7.3.2",
+    "js-yaml": "^3.14.0",
+    "knex": "^2.4.2",
+    "pg": "^8.11.0",
+    "regenerator-runtime": "^0.13.5",
+    "replace-in-file": "^6.1.0",
+    "shelljs": "^0.8.4",
+    "superagent": "^5.3.1",
+    "tar": "^6.0.2",
+    "uuid": "^8.3.0"
+  }
+}

@@ -1,0 +1,14 @@
+@import url('https://unpkg.com/jspsych@7.3.3/css/jspsych.css');
+
+.fixationcross {
+    font-size: 30px;
+    font-weight: bolder;
+}
+
+.correct {
+    color: green;
+}
+
+.incorrect {
+    color: red;
+}
