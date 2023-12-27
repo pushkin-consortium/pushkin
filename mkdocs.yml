@@ -53,6 +53,7 @@ nav:
       - Windows Subsystem for Linux: 'getting-started/installing-pushkin-and-dependencies/windows-install.md'
       - AWS EC2 Instance: 'getting-started/installing-pushkin-and-dependencies/ec2-install.md'
     - Ubuntu Linux: 'getting-started/installing-pushkin-and-dependencies/ubuntu-install.md'
+    - Github Codespaces: 'getting-started/installing-pushkin-and-dependencies/codespaces.md'
   - Quickstart: 
     - Introduction: 'getting-started/quickstart/README.md'
     - Quickstart - Example Outputs: 'getting-started/quickstart/sample_output.md'
