@@ -36,6 +36,7 @@ theme:
       accent: pink
 copyright: 'Copyright &copy; 2015-2023 Joshua Hartshorne'
 markdown_extensions:
+  - admonition
   - pymdownx.superfences
   - pymdownx.tabbed:
       alternate_style: true
