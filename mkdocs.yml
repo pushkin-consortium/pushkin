@@ -52,7 +52,7 @@ plugins:
 repo_url: https://github.com/pushkin-consortium/pushkin
 repo_name: pushkin-consortium/pushkin
 nav:
-- Introduction: 'README.md'
+- Introduction: 'index.md'
 - Getting Started:
   - Installing Pushkin and Dependencies: 
     - Choose Your OS: 'getting-started/installing-pushkin-and-dependencies/README.md'
