@@ -34,9 +34,16 @@ theme:
         name: Switch to light mode
       primary: teal
       accent: pink
-copyright: 'Copyright &copy; 2015-2023 Joshua Hartshorne'
+copyright: 'Copyright &copy; 2015-2024 Joshua Hartshorne'
 markdown_extensions:
   - admonition
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+      use_pygments: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
   - pymdownx.superfences
   - pymdownx.tabbed:
       alternate_style: true
@@ -53,8 +60,9 @@ plugins:
 repo_url: https://github.com/pushkin-consortium/pushkin
 repo_name: pushkin-consortium/pushkin
 nav:
-- Introduction: 'index.md'
+- Home: 'index.md'
 - Getting Started:
+  - Installation: 'getting-started/installing-pushkin-and-dependencies/installation.md'
   - Installing Pushkin and Dependencies: 
     - Choose Your OS: 'getting-started/installing-pushkin-and-dependencies/README.md'
     - macOS: 'getting-started/installing-pushkin-and-dependencies/macos-install.md'

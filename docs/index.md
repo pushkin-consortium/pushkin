@@ -1,3 +1,10 @@
+---
+hide:
+  - toc
+---
+
+# <!--- Omit the title (i.e. "Home") --->
+
 !!! warning
     **Due to an update in AWS resources, the CLI-based AWS deploy does not currently work and is being updated. In the meantime, you can still manually deploy to AWS.**
 
@@ -10,3 +17,6 @@ The goal of the Pushkin project is to help researchers efficiently create and ma
 It's recommended for new users to start by [installing Pushkin and its dependencies]() and completing the [quickstart tutorial](), in which they'll create a simple demo site. Since Pushkin uses [jsPsych](https://www.jspsych.org/) to build experiments, it's also recommended that users consult the jsPsych documentation if they are not previously familiar with those tools. From there, users might want to consult the materials on Pushkin's [site]() and [experiment templates]().
 
 If you'd like to ask a question, report a bug, or request a feature, [GitHub Discussions](https://github.com/pushkin-consortium/pushkin/discussions) is the place to start. To get the latest news and updates on Pushkin, sign up for our [newsletter](https://groups.google.com/g/pushkinjs).
+
+!!! note
+    You're viewing version 3.6 of the Pushkin documentation, which corresponds to version 3.6 of [pushkin-cli](https://www.npmjs.com/package/pushkin-cli), the primary software in the Pushkin ecosystem. Other Pushkin packages and templates are independently versioned, and any compatibility constraints with pushkin-cli are noted on their respective documentation pages.
