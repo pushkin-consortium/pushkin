@@ -35,6 +35,7 @@ theme:
       primary: teal
       accent: pink
 copyright: 'Copyright &copy; 2015-2024 Joshua Hartshorne'
+site_description: 'Pushkin provides a customizable, scalable ecosystem for massive online psychological experiments.'
 markdown_extensions:
   - admonition
   - pymdownx.highlight:
@@ -84,6 +85,15 @@ nav:
     - View Your Data: 'getting-started/deploying-to-aws/view-your-data.md'
   - Tutorial - Simple Experiment: 
     - Tutorial: 'getting-started/tutorial-simple-experiment.md'
+- Site templates:
+  - Overview of site templates: 'site-templates/site-templates-overview.md'
+  - template-site-basic: 'site-templates/template-site-basic.md'
+- Experiment templates:
+  - Overview of experiment templates: 'exp-templates/exp-templates-overview.md'
+  - template-exp-basic: 'exp-templates/template-exp-basic.md'
+  - template-exp-lexical-decision: 'exp-templates/template-exp-lexical-decision.md'
+  - template-exp-grammaticality-judgment: 'exp-templates/template-exp-grammaticality-judgment.md'
+  - template-exp-self-paced-reading: 'exp-templates/template-exp-self-paced-reading.md'
 - Packages:
   - Overview of packages: 'packages/packages-overview.md'
   - pushkin-cli: 'packages/pushkin-cli.md'
