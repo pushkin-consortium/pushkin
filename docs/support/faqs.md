@@ -1,4 +1,4 @@
-# Frequently Asked Qustions \(FAQs\)
+# Frequently Asked Qustions (FAQs)
 
 ## What are all these different GitHub repos?
 

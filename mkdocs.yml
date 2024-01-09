@@ -84,8 +84,6 @@ nav:
     - View Your Data: 'getting-started/deploying-to-aws/view-your-data.md'
   - Tutorial - Simple Experiment: 
     - Tutorial: 'getting-started/tutorial-simple-experiment.md'
-- FAQ: 
-  - FAQ: 'faq/FAQ.md'
 - Advanced: 
   - Pushkin CLI: 'advanced/pushkin-cli.md'
   - Experiment Templates:
@@ -121,3 +119,11 @@ nav:
   - Overview of Technologies: 'developers/overview-of-tech.md'
   - Testing with Jest: 'advanced/testing-pushkin-with-jest.md'
   - Working with Templates: 'developers/working-with-templates.md'
+- Support:
+  - FAQs: 'support/faqs.md'
+  - Troubleshooting: 'support/troubleshooting.md'
+  - GitHub: 'support/github.md'
+  - Learning Resources: 'support/learning-resources.md'
+- About:
+  -About Pushkin: 'about/about-pushkin.md'
+  -License: 'about/pushkin-license.md'
