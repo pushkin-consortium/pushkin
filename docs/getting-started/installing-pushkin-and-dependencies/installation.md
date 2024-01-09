@@ -81,7 +81,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     
     ![](../../assets/ubuntu1%20%281%29.gif)
 
-=== "Codespaces"
+=== "GitHub Codespaces"
     Test
 
 ## 2. Install Node
@@ -140,7 +140,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     
     ![](../../assets/ubuntu2%20%281%29.gif)
 
-=== "Codespaces"
+=== "GitHub Codespaces"
     Test
 
 ## 3. Install Yarn
@@ -183,7 +183,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     
     ![](../../assets/ubuntu4%20%281%29.gif)
 
-=== "Codespaces"
+=== "GitHub Codespaces"
     Test
 
 ## 4. Install yalc
@@ -206,7 +206,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     
     ![](https://github.com/pushkin-consortium/pushkin/tree/ed8e59c86dfdd71e3662583683010b92cb95b39d/docs-gitbook/.gitbook/assets/ubuntu13.gif)
 
-=== "Codespaces"
+=== "GitHub Codespaces"
     Test
 
 ## 5. Install pushkin-cli
@@ -261,7 +261,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     pushkin --version
     ```
 
-=== "Codespaces"
+=== "GitHub Codespaces"
     Test
 
 ## 6. Install Docker
@@ -342,5 +342,5 @@ The first step for new users of Pushkin is to install Pushkin's command line int
 
     ![](../../assets/ubuntu11%20%281%29.gif)
 
-=== "Codespaces"
+=== "GitHub Codespaces"
     Test
