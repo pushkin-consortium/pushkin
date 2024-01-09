@@ -1,4 +1,4 @@
-# Pushkin CLI
+# pushkin-cli
 
 ## Skip to section
 

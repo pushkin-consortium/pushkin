@@ -1,4 +1,4 @@
-# Pushkin Client
+# pushkin-client
 
 ## Skip to section
 
