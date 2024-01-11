@@ -11,7 +11,7 @@ For Windows users encountering issues with local installations of "pushkin", Git
 ### Setting Up a Codespace 
 
 #### Accessing Codespaces
-Visit the main github codespaces page and set up a blank codespace
+Visit the main github codespaces page and click on set up a blank codespace
 ![](../../assets/codespaces-gif.gif)
 If it's your first time, you might need to set up a plan or request access, as Codespaces is a paid feature with a free tier available. Since pushkin is installed via the command line, you do not need to open codespaces from the pushkin main repository 
 
