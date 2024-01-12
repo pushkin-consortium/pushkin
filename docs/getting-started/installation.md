@@ -11,11 +11,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
 ## Setup
 
 === "Mac"
-    If you haven't previously installed [Homebrew](https://brew.sh/), you'll need to install it. If you're not sure if you've previously installed it, you can run:
-
-    ```
-    brew --version
-    ```
+    If you haven't previously installed [Homebrew](https://brew.sh/), you'll need to install it. If you're not sure if you've previously installed it, you can try running `brew --version` in the terminal.
     
     If it's installed, you'll see the version (otherwise, the `brew` command will not be found). Installing Homebrew will require Xcode Command Line Tools. If you don't have Xcode Command Line Tools (or the entire Xcode distribution) installed yet, the Homebrew installation will prompt you to install that as well.
 
@@ -89,13 +85,13 @@ The first step for new users of Pushkin is to install Pushkin's command line int
 
     ![](../assets/codespaces-gif.gif)
 
-    The standard Codespaces environment has most of Pushkin's dependencies pre-installed, but in order for Pushkin's commands to run properly, you need to add Yarn's global install location to the PATH with this command:
+    The standard Codespaces environment has most of Pushkin's dependencies pre-installed, but in order for Pushkin's commands to run properly, you need to add Yarn's global install location to the PATH by running this command in the terminal:
 
     ```
     export PATH="$(yarn global bin):$PATH"
     ```
 
-## Install Node
+## Installing Node
 
 === "Mac"
     If you haven't installed Node previously, you should install it:
@@ -161,7 +157,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     nvm use <node_version>
     ```
 
-## Install Yarn
+## Installing Yarn
 
 === "Mac"
     You will next need to install the Yarn package manager, which will let you download Pushkin. Run the following command:
@@ -210,7 +206,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     npm install --global yarn@<yarn_version>
     ```
 
-## Install yalc
+## Installing yalc
 
 === "Mac"
     Next, install yalc globally:
@@ -237,7 +233,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     yarn global add yalc
     ```
 
-## Install pushkin-cli
+## Installing pushkin-cli
 
 === "Mac"
     Then install the Pushkin command line interface globally:
@@ -310,7 +306,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     pushkin --version
     ```
 
-## Install Docker
+## Installing Docker
 
 === "Mac"
     Next, install [Docker](https://docs.docker.com/get-docker/).
@@ -391,7 +387,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
 === "GitHub Codespaces"
     Docker is already installed in the Codespaces environment. You can confirm this by running `docker --version`.
 
-## Optional: install a Postgres manager
+## Installing a Postgres manager
 
 One of Pushkin's notable features is automatically setting up a PostgreSQL database where all of your website's experiments' data will be stored. In order to view, manipulate, or download the data, you're probably going to want a Postgres manager. There are many options for this type of software (paid and free), or you could avoid the need for a Postgres manager altogether and interact with the database solely through the command line (not documented here).
 
