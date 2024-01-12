@@ -8,7 +8,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
 !!! note
     Due to frequent compatibility issues with Windows, we strongly recommend Windows users consider using GitHub Codespaces. Future Pushkin releases may no longer support Windows.
 
-## 1. Setup
+## Setup
 
 === "Mac"
     If you haven't previously installed [Homebrew](https://brew.sh/), you'll need to install it. If you're not sure if you've previously installed it, you can run:
@@ -39,7 +39,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     wsl --list --verbose
     ```
     
-    ![](../../assets/wsl1.gif)
+    ![](../assets/wsl1.gif)
     
     This will give you a list of your installed Linux distributions and what version of WSL they are using. If your distribution is using WSL 1, run:
 
@@ -53,7 +53,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     
     After you have enabled WSL 2 and installed Ubuntu, you will probably also want to enable copy and paste in the terminal by right-clicking on the terminal window, selecting *Properties* and following [these instructions](https://devblogs.microsoft.com/commandline/copy-and-paste-arrives-for-linuxwsl-consoles/).
     
-    ![](../../assets/copyPasteScreenshot.jpg)
+    ![](../assets/copyPasteScreenshot.jpg)
     
     Next, run the following commands in the Ubuntu terminal to update your Ubuntu packages. This (and other commands with `sudo` in front of them) will prompt you to give the Ubuntu password you set up when you installed it. It will also prompt you to respond with `y` and press ENTER to confirm that you would like to install or update software. 
 
@@ -62,7 +62,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     sudo apt upgrade
     ```
     
-    ![](../../assets/wsl2.gif)
+    ![](../assets/wsl2.gif)
     
     For more on package management with apt, see the [documentation](https://ubuntu.com/server/docs/package-management). To learn more about the basics of the Linux command line, you can follow [this tutorial](https://ubuntu.com/tutorials/command-line-for-beginners#1-overview).
 
@@ -79,33 +79,23 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     sudo apt install curl
     ```
     
-    ![](../../assets/ubuntu1%20%281%29.gif)
+    ![](../assets/ubuntu1%20%281%29.gif)
 
 === "GitHub Codespaces"
 
-    GitHub Codespaces is a cloud-based development environment powered by VSCode that allows you to develop entirely in the browser. For Windows users encountering issues with local installations of "pushkin", GitHub Codespaces offers a seamless alternative. 
+    GitHub Codespaces is a cloud-based development environment powered by VS Code that allows you to develop entirely in the browser. If you use VS Code already, you can also use the Codespaces [extension](https://marketplace.visualstudio.com/items?itemName=GitHub.codespaces). Codespaces is not entirely free (see details [here](https://docs.github.com/en/billing/managing-billing-for-github-codespaces/about-billing-for-github-codespaces)), but the free allocation of storage and compute time that comes with your GitHub account should be enough to acquaint yourself with the basics of Pushkin. 
 
-    To get started, visit the main [Github Codespaces](https://github.com/features/codespaces) page and click on set up a blank codespace. Since pushkin is installed via the command line, you do not need to open codespaces from the pushkin main repository 
+    To get started, go to [Github Codespaces](https://github.com/codespaces) and select the blank template. This should open a development environment that will look quite familiar if you've previously used VS Code.
 
-    ![](../../assets/codespaces-gif.gif)
+    ![](../assets/codespaces-gif.gif)
 
-    Wait for the environment to build. This process might take a few minutes, especially if this is your first time making a codespace. The terminal in Codespaces acts just like your local one. Once the environment is ready, you can use the same commands you would locally to install and run "pushkin".
-
-    To get ready to install pushkin, you'll need to install [Homebrew](https://brew.sh/) in your codespace. Since it doesn't come installed by default, use this command to install it in the codespace terminal. 
-
-    ``` 
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-    ```
-
-    ![](../../assets/codespaces-terminal.gif)
+    The standard Codespaces environment has most of Pushkin's dependencies pre-installed, but in order for Pushkin's commands to run properly, you need to add Yarn's global install location to the PATH with this command:
 
     ```
-    brew --version
+    export PATH="$(yarn global bin):$PATH"
     ```
-    To check that homebrew was installed successfully, run this command in the codespace terminal to display its version. 
 
-
-## 2. Install Node
+## Install Node
 
 === "Mac"
     If you haven't installed Node previously, you should install it:
@@ -159,39 +149,19 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     nvm use <node_version>
     ```
     
-    ![](../../assets/ubuntu2%20%281%29.gif)
+    ![](../assets/ubuntu2%20%281%29.gif)
 
 === "GitHub Codespaces"
-    If you haven't installed Node previously, you should install it:
-
-    ```
-    brew install node
-    ```
-
-    You can check your version (or whether you've installed it) with `node --version`.
-
-    You may additionally want to install nvm (Node version manager). To do so, run the following command:
-
-    ```
-    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
-    ```
-
-    At this point, you may need to close and reopen your terminal for the `nvm` command to be recognized. Then run:
-
-    ```
-    nvm install 20.2.0
-    ```
-
-    See [here](https://github.com/nvm-sh/nvm?tab=readme-ov-file#troubleshooting-on-macos) if installation issues persist.
-
-    If you want to switch your preferred version of Node.js, use the following commands:
+    Node and nvm (Node version manager) come pre-installed in the Codespaces environment, so you can skip to the next step.
+    
+    You can check your version with `node --version`. If you did ever want to switch your version of Node.js, you can use the following commands:
 
     ```
     nvm install <node_version>
     nvm use <node_version>
     ```
 
-## 3. Install Yarn
+## Install Yarn
 
 === "Mac"
     You will next need to install the Yarn package manager, which will let you download Pushkin. Run the following command:
@@ -200,7 +170,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     brew install yarn
     ```
     
-    ![](../../assets/ezgif.com-video-to-gif-2-%20%281%29%20%281%29.gif)
+    ![](../assets/ezgif.com-video-to-gif-2-%20%281%29%20%281%29.gif)
 
     You can check your version with `yarn --version`.
 
@@ -219,7 +189,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     yarn --version
     ```
     
-    ![](../../assets/ubuntu3%20%281%29.gif)
+    ![](../assets/ubuntu3%20%281%29.gif)
     
     In order to run Pushkin, you'll need to allow yarn to install packages globally. To do so, run the following commands, based on [this Stack Overflow solution](https://stackoverflow.com/questions/40317578/yarn-global-command-not-working/53879534#53879534):
 
@@ -229,20 +199,18 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     source ~/. bashrc
     ```
     
-    ![](../../assets/ubuntu4%20%281%29.gif)
+    ![](../assets/ubuntu4%20%281%29.gif)
 
 === "GitHub Codespaces"
-    You will next need to install the Yarn package manager, which will let you download Pushkin. Run the following command:
-
-    ```
-    brew install yarn
-    ```
+    Yarn comes pre-installed in the Codespaces environment, so you can skip to the next step.
     
-    ![](../../assets/ezgif.com-video-to-gif-2-%20%281%29%20%281%29.gif)
+    You can check your version with `yarn --version`. If you did ever want to switch your version of Yarn, you can use the following command:
 
-    You can check your version with `yarn --version`.
+    ```
+    npm install --global yarn@<yarn_version>
+    ```
 
-## 4. Install yalc
+## Install yalc
 
 === "Mac"
     Next, install yalc globally:
@@ -251,7 +219,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     yarn global add yalc
     ```
     
-    ![](../../assets/ezgif.com-video-to-gif-6-%20%281%29.gif)
+    ![](../assets/ezgif.com-video-to-gif-6-%20%281%29.gif)
 
 === "Ubuntu Linux"
     Install Yalc globally:
@@ -263,15 +231,13 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     ![](https://github.com/pushkin-consortium/pushkin/tree/ed8e59c86dfdd71e3662583683010b92cb95b39d/docs-gitbook/.gitbook/assets/ubuntu13.gif)
 
 === "GitHub Codespaces"
-    Next, install yalc globally:
+    Install yalc globally:
 
     ```
     yarn global add yalc
     ```
-    
-    ![](../../assets/ezgif.com-video-to-gif-6-%20%281%29.gif)
 
-## 5. Install pushkin-cli
+## Install pushkin-cli
 
 === "Mac"
     Then install the Pushkin command line interface globally:
@@ -280,7 +246,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     yarn global add pushkin-cli
     ```
     
-    ![](../../assets/ezgif.com-video-to-gif-3-%20%281%29%20%281%29.gif)
+    ![](../assets/ezgif.com-video-to-gif-3-%20%281%29%20%281%29.gif)
     
     Confirm that pushkin-cli is installed by running:
 
@@ -290,7 +256,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     
     You should see a list of commands with some documentation for each.
     
-    ![](../../assets/ezgif.com-video-to-gif-1-%20%281%29%20%281%29.gif)
+    ![](../assets/ezgif.com-video-to-gif-1-%20%281%29%20%281%29.gif)
     
     Confirm that you have version `2.0.0` or later by running:
 
@@ -305,7 +271,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     yarn global add pushkin-cli
     ```
     
-    ![](../../assets/ubuntu5%20%281%29.gif)
+    ![](../assets/ubuntu5%20%281%29.gif)
     
     Confirm that pushkin-cli is installed by running:
 
@@ -315,7 +281,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     
     You should get a list of commands with some documentation for each.
     
-    ![](../../assets/ubuntu6%20%281%29.gif)
+    ![](../assets/ubuntu6%20%281%29.gif)
     
     Confirm that you have version `2.0.0` or later by running:
 
@@ -330,8 +296,6 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     yarn global add pushkin-cli
     ```
     
-    ![](../../assets/ezgif.com-video-to-gif-3-%20%281%29%20%281%29.gif)
-    
     Confirm that pushkin-cli is installed by running:
 
     ```
@@ -340,20 +304,18 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     
     You should see a list of commands with some documentation for each.
     
-    ![](../../assets/ezgif.com-video-to-gif-1-%20%281%29%20%281%29.gif)
-    
     Confirm that you have version `2.0.0` or later by running:
 
     ```
     pushkin --version
     ```
 
-## 6. Install Docker
+## Install Docker
 
 === "Mac"
     Next, install [Docker](https://docs.docker.com/get-docker/).
 
-    ![](../../assets/ezgif.com-video-to-gif-5-%20%281%29%20%281%29.gif)
+    ![](../assets/ezgif.com-video-to-gif-5-%20%281%29%20%281%29.gif)
     
     Confirm that you have at least Docker Engine 23.0 by running `docker --version`.
 
@@ -365,7 +327,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     sudo apt-get install ca-certificates curl gnupg
     ```
 
-    ![](../../assets/ubuntu7%20%281%29.gif)
+    ![](../assets/ubuntu7%20%281%29.gif)
 
     Add Docker’s official GPG key:
 
@@ -384,7 +346,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
     ```
     
-    ![](../../assets/ubuntu8%20%281%29.gif)
+    ![](../assets/ubuntu8%20%281%29.gif)
     
     Next, update the apt package index:
 
@@ -398,7 +360,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose docker-compose-plugin
     ```
     
-    ![](../../assets/ubuntu9%20%281%29.gif)
+    ![](../assets/ubuntu9%20%281%29.gif)
     
     Check that Docker Engine is installed correctly by running:
 
@@ -413,7 +375,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     This message shows that your installation appears to be working correctly.
     ```
 
-    ![](../../assets/ubuntu10%20%281%29.gif)
+    ![](../assets/ubuntu10%20%281%29.gif)
 
     Next, follow [these post-installation instructions](https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user) (copied below for convenience) to manage Docker as a non-root user. You can ignore the other post-installation instructions.
 
@@ -424,7 +386,20 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     docker run hello-world
     ```
 
-    ![](../../assets/ubuntu11%20%281%29.gif)
+    ![](../assets/ubuntu11%20%281%29.gif)
 
 === "GitHub Codespaces"
-    GitHub Codespaces provides a fully configured development environment with a wide range of tools and languages preinstalled. This environment includes Docker, meaning you don't need to install it separately.
+    Docker is already installed in the Codespaces environment. You can confirm this by running `docker --version`.
+
+## Optional: install a Postgres manager
+
+One of Pushkin's notable features is automatically setting up a PostgreSQL database where all of your website's experiments' data will be stored. In order to view, manipulate, or download the data, you're probably going to want a Postgres manager. There are many options for this type of software (paid and free), or you could avoid the need for a Postgres manager altogether and interact with the database solely through the command line (not documented here).
+
+Two free options which should serve the needs of beginning users are [pgAdmin](https://www.pgadmin.org/download/) or [SQLTools](https://marketplace.visualstudio.com/items?itemName=mtxr.sqltools) (with the corresponding [PostgreSQL driver](https://marketplace.visualstudio.com/items?itemName=mtxr.sqltools-driver-pg)). pgAdmin is a standalone desktop app, while SQLTools is an extension for [VS Code](https://code.visualstudio.com/). You can install either option from the links above. If you choose SQLTools, be sure to also install the extension "SQLTools PostgreSQL/Cockroach Driver".
+
+!!! note "For Codespaces users:"
+    Your easiest option for a Postgres manager will probably be adding a VS Code extension within your codespace. Select the "Extensions" tab on the left side of the window and search for "SQLTools" and "SQLTools PostgreSQL/Cockroach Driver". After installing those two extensions, you're ready to continue.
+
+## Next steps
+
+If you've completed those steps successfully, you're ready to start using Pushkin! At this point, we recommend working through our [Quickstart tutorial](quickstart.md) to familiarize yourself with the basic Pushkin commands. From there, you might want to read about [AWS deployment]() or explore the details of [experiment templates]().

@@ -55,23 +55,18 @@ extra:
   version:
     provider: mike
 plugins:
+  - search
   - mike:
       # Set to true for subsequent releases
       version_selector: false
+  - open-in-new-tab
 repo_url: https://github.com/pushkin-consortium/pushkin
 repo_name: pushkin-consortium/pushkin
 nav:
 - Home: 'index.md'
 - Getting Started:
-  - Installation: 'getting-started/installing-pushkin-and-dependencies/installation.md'
-  - Installing Pushkin and Dependencies: 
-    - Choose Your OS: 'getting-started/installing-pushkin-and-dependencies/README.md'
-    - macOS: 'getting-started/installing-pushkin-and-dependencies/macos-install.md'
-    - Windows 10:
-      - Windows Subsystem for Linux: 'getting-started/installing-pushkin-and-dependencies/windows-install.md'
-      - AWS EC2 Instance: 'getting-started/installing-pushkin-and-dependencies/ec2-install.md'
-    - Ubuntu Linux: 'getting-started/installing-pushkin-and-dependencies/ubuntu-install.md'
-    - Github Codespaces: 'getting-started/installing-pushkin-and-dependencies/codespaces.md'
+  - Installation: 'getting-started/installation.md'
+  - Quickstart tutorial: 'getting-started/quickstart.md'
   - Quickstart: 
     - Introduction: 'getting-started/quickstart/README.md'
     - Quickstart - Example Outputs: 'getting-started/quickstart/sample_output.md'
