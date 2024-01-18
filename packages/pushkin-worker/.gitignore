@@ -1,14 +1,9 @@
-**/*.DS_Store
+# Sublime
 **/*.sublime*
 
-# Build files
+# build & test files
 build/
-
-# Test files
 testing/
-
-# Swap files
-*.swp
 
 # Logs
 logs
@@ -71,7 +66,3 @@ typings/
 
 # next.js build output
 .next
-
-# Docs build
-site/
-venv/

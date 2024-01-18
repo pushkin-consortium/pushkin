@@ -3,17 +3,15 @@
 ---
 
 ## 🚨 Important Note
-
 > **Due to an update in AWS resources, the CLI-based AWS deploy does not currently work and is being updated. In the meantime, you can still manually deploy to AWS.**
 
 ---
-
 ## Requirements
 
-- Finished the [Quickstart](https://languagelearninglab.gitbook.io/pushkin/getting-started/quickstart)
-- Install a Postgres manager such as [SQLPro for Postgres](https://macpostgresclient.com/), which costs $7.99/month after the free trial ends. Free and open-source managers are also available \(e.g., [pgadmin](https://www.pgadmin.org/download/)). Or, if you become very comfortable connecting to postgres through the command line \(not documented in this tutorial\), then you may not need a Postgres manager.
-- \(Must be done approximately 24 hours in advance:\) Create an [Amazon Web Services](https://aws.amazon.com/free/?sc_channel=PS&sc_campaign=acquisition_US&sc_publisher=google&sc_medium=cloud_computing_b&sc_content=aws_url_e_control_q32016&sc_detail=amazon.%20web%20services&sc_category=cloud_computing&sc_segment=188908164670&sc_matchtype=e&sc_country=US&s_kwcid=AL!4422!3!188908164670!e!!g!!amazon.%20web%20services&ef_id=WUGhAAAAAHs2P1qP:20171016145411:s.) account.
-- [Install](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html) and [configure](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html) the AWS CLI.
+* Finished the [Quickstart](https://languagelearninglab.gitbook.io/pushkin/getting-started/quickstart)
+* Install a Postgres manager such as [SQLPro for Postgres](https://macpostgresclient.com/), which costs $7.99/month after the free trial ends. Free and open-source managers are also available \(e.g., [pgadmin](https://www.pgadmin.org/download/)). Or, if you become very comfortable connecting to postgres through the command line \(not documented in this tutorial\), then you may not need a Postgres manager.
+* \(Must be done approximately 24 hours in advance:\) Create an [Amazon Web Services](https://aws.amazon.com/free/?sc_channel=PS&sc_campaign=acquisition_US&sc_publisher=google&sc_medium=cloud_computing_b&sc_content=aws_url_e_control_q32016&sc_detail=amazon.%20web%20services&sc_category=cloud_computing&sc_segment=188908164670&sc_matchtype=e&sc_country=US&s_kwcid=AL!4422!3!188908164670!e!!g!!amazon.%20web%20services&ef_id=WUGhAAAAAHs2P1qP:20171016145411:s.) account.
+* [Install](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html) and [configure](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html) the AWS CLI.
 
 **Note**: When configuring AWS, be sure to specify `json` as your default output format:
 
@@ -25,7 +23,7 @@ Default region name [None]: us-east-1
 Default output format [None]: json
 ```
 
-- Install [ECS CLI](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ECS_CLI_installation.html). \(Do only the first page. There's no need to configure to the 'configuration' page. The Pushkin CLI will handle this for you.)
+* Install [ECS CLI](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ECS_CLI_installation.html). \(Do only the first page. There's no need to configure to the 'configuration' page. The Pushkin CLI will handle this for you.)
 
 <!---
 **Note**: In configuring the ECS CLI, you'll need the AWS profile name you are using, as well as the related Access Key ID and Secret Access Key. If you can't remember the name of your profile, you can get a list of active profiles on your computer using:
@@ -42,7 +40,7 @@ To see the Access Key ID and Secret Access Key for a given profile, run the foll
 ```
 --->
 
-- [Create a DockerHub account](https://id.docker.com) if you haven't already. Then tell Pushkin what your DockerHub ID is by running:
+* [Create a DockerHub account]([https://id.docker.com](https://id.docker.com)) if you haven't already. Then tell Pushkin what your DockerHub ID is by running:
 
 ```bash
  pushkin setDockerHub

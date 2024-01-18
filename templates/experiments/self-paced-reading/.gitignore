@@ -1,5 +1,6 @@
+**/*.sublime-project
+**/*.sublime-workspace
 **/*.DS_Store
-**/*.sublime*
 
 # Build files
 build/
@@ -71,7 +72,3 @@ typings/
 
 # next.js build output
 .next
-
-# Docs build
-site/
-venv/
