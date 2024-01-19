@@ -75,3 +75,6 @@ typings/
 # Docs build
 site/
 venv/
+
+# VS Code files
+.vscode/
