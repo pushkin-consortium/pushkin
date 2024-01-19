@@ -5,4 +5,4 @@
 "pushkin-cli": patch
 ---
 
-fixed image tags for npm packages
+Fixed image tags in package READMEs so they display properly on npm
