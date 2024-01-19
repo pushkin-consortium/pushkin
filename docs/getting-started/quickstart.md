@@ -5,7 +5,7 @@
 
 ## Starting Docker
 
-First, open Docker Desktop and make sure Docker Engine is running. You can check by running `docker ps` in the terminal, which will show an (empty) list of your containers:
+First, open Docker Desktop and make sure Docker Engine is running. You can check by running `docker ps` in the terminal, which will show a list of your running containers, which should be empty at this point:
 
 ```
 CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
@@ -15,7 +15,7 @@ If Docker isn't running, you'll see a message that you "cannot connect to the Do
 
 ## Creating a basic Pushkin site
 
-Create an empty directory (e.g., `pushkin_quickstart`) in a location of your choosing (we'll use the Desktop here) and enter this directory using the following commands:
+Create a new directory (e.g., `pushkin_quickstart`) in a location of your choosing (we'll use the Desktop here) and enter this directory using the following commands:
 
 ```
 cd Desktop
@@ -98,7 +98,7 @@ You can ignore most of these settings for now, but you should probably change:
 The one you should _definitely_ change is `salt`. This is used to encrypt private information. Type in any alphanumeric text here, for instance:
 
 ```yaml
-salt: "ilovecognitivescience"
+salt: "cognitivescience"
 ```
 
 ## Adding experiments
@@ -183,7 +183,7 @@ Now let’s look at your website! Start your local deploy by running:
 
 ![](../../assets/quickstart_5.gif)
 
-In a web browser, open [localhost](http://localhost) and you should see your site with the experiments you made. Click on the one you called `hello`. It should display "Hello world!". Complete the experiment by simply pressing any key. If you want to take a look at other experiments you made, feel free to look over those too now.
+In a web browser, open [localhost](http://localhost) and you should see your site with the experiments you made. Click on the one you called `hello`. It should display "Hello world!". Complete the experiment by pressing any key. If you want to take a look at the other experiments you made, feel free to look over those now too.
 
 When you are done looking at your website, stop the local deploy by running:
 
@@ -197,7 +197,7 @@ If you don’t do that, the web server will keep running in Docker until you qui
 
 ## Updating your site
 
-Imagine now you want to add another experiment, or you saw a mistake during local testing. Every time you update your site, you’ll need to run `pushkin prep` (and `pushkin start` if you want to look at your updates) again:
+Imagine now you want to add another experiment or edit an existing one. Every time you update your site, you’ll need to run `pushkin prep` (and `pushkin start` if you want to look at your updates) again:
 
 ```
  pushkin prep
@@ -214,10 +214,10 @@ When you start pgAdmin, it will take a moment to load and then will appear as a 
 
 ![](../assets/pgadmin_1.png)
 
-Under the _Quick Links_, click **Add New Server**. (Make sure you have run `pushkin start;` and that your site is running in `localhost` or at your IPv4 Public IP address.) Then follow these steps:
+Under _Quick Links_, click **Add New Server**. Make sure you have run `pushkin start` and that your site is running in `localhost`. Then follow these steps:
 
-1. You can set the name of the server to anything, for example `Pushkin Testing`.
-2. Then move to the _Connection_ tab and set **Host name/address** to `localhost` (or your IPv4 Public IP address).
+1. You can set the name of the server to anything, e.g. `Pushkin Testing`.
+2. Then move to the _Connection_ tab and set **Host name/address** to `localhost`.
 3. Set the password to the default password, `example`, which you can find in `pushkin.yaml`.
 4. Click **Save** and your _Pushkin Testing_ server should appear in the left sidebar.
 
@@ -228,13 +228,11 @@ To view your data tables, navigate to the left sidebar:
 1. Click to expand your _Pushkin Testing_ server.
 2. Select **test_db** under _Databases_.
 3. Select **Schemas**, which will also open its subitem **public**.
-4. Under **public**, choose **Tables**.
-
-By default, you should have 5 tables: `knex_migrations`, `knex_migrations_lock`, `pushkin_userMeta`, `pushkin_userResults`, and `pushkin_users`. You should also have one table for each experiment; if you've followed this tutorial, you should also have `mind_stimulusResponses`, `vocab_stimulusResponses`, and `which_english_stimulusResponses`.
+4. Under **public**, choose **Tables**. 
 
 ![](../assets/pgadmin_3.gif)
 
-To view a given table, right-click on it, hover over _View/Edit Data_, and click on **All Rows**, which will then appear in a new pgAdmin tab.
+You should see a list of tables including some that end in `_stimulusResponses` corresponding to each of your experiments. Right click any one of those, hover over _View/Edit Data_, and click on **All Rows**, which will open a new pgAdmin tab displaying the records in that table.
 
 ![](../assets/pgadmin_4.gif)
 
@@ -242,18 +240,18 @@ For more information on how to use pgAdmin, you can read their documentation [he
 
 ### Using SQLTools
 
-The following instructions should work whether you're using the desktop VS Code application or browser-based VS Code via GitHub Codespaces. Assuming you have installed SQLTools and the necessary Postgres driver, click on the SQLTools tab on the left side of the window. Click "Add New Connection" and you'll see some fields you need to fill out:
+The following instructions should work whether you're using the desktop VS Code application or browser-based VS Code via GitHub Codespaces. Assuming you have installed SQLTools and the necessary Postgres driver, click on the SQLTools tab on the left side of the window. Click **Add New Connection** and you'll see some fields you need to fill out:
 
 ![](../img/getting-started/quickstart/sqltools1.png)
 
-Name the connection whatever you want. We'll call it "Pushkin Test" here. For the database and username, fill in `test_db` and `postgres` respectively. These are Pushkin's default database configurations. For the "Use password" field, select "Ask on connect". Click "SAVE CONNECTION" at the bottom of that screen. You should now be prompted to fill in the password (`example`, unless you changed it earlier in you site's config file).
+Name the connection whatever you want. We'll call it `Pushkin Test` here. For the database and username, fill in `test_db` and `postgres` respectively. These are Pushkin's default database configurations. For the _Use password_ field, select **Ask on connect**. Click **SAVE CONNECTION** at the bottom of that screen. You should now be prompted to fill in the password (`example`, unless you changed it earlier in you site's config file).
 
-You should see your connection in the left-hand window of the screen. Now select "Pushkin Test" > "test_db" > "Schemas" > "public" > "Tables".
+You should see your connection in the left-hand window of the screen. Now select _Pushkin Test_ > *test_db* > _Schemas_ > _public_ > _Tables_.
 
 ![](../img/getting-started/quickstart/sqltools2.png)
 
-You should see a list of tables including some that end in `_stimulusResponses` corresponding to each of your experiments. Right click any of those and select "Show Table Records". You should now see any data you created for that experiment.
+You should see a list of tables including some that end in `_stimulusResponses` corresponding to each of your experiments. Right click any of those and select **Show Table Records**. You should now see any data you created for that experiment.
 
 ## Starting over
 
-The great thing about Docker is that it saves your work. \(Read up on Docker to see what I mean.\) The bad thing is that it saves your work. Simply editing your code locally may not change what Docker thinks the code is. If you are updating something but it’s not showing up in your website or if you are getting error messages from Docker … ideally, you should read up on Docker. However, as a fail-safe, run `pushkin kill` to delete all your Pushkin-specific code in Docker. Then just run `pushkin prep` again. This will take a while but should address any Docker-specific problems. If you really need a fresh Docker install, run `pushkin armageddon`, which will completely clean Docker.
+In some cases, you may find that editing your local code does not change what Docker thinks the code is. If you are updating something, but it’s not showing up in localhost, the issue may be related to Docker. You may also see Docker-related error messages. Ideally, in these cases, you should read up on Docker. However, as a fail-safe, you can run `pushkin kill` to delete all your Pushkin-specific code in Docker. Then just run `pushkin prep` again. This will take a while but should address any Docker-specific problems. If you really need a fresh Docker install, run `pushkin armageddon`, which will completely clean Docker.
