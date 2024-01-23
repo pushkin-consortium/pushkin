@@ -53,12 +53,16 @@ markdown_extensions:
 extra:
   version:
     provider: mike
+extra_javascript:
+  - https://unpkg.com/tablesort@5.3.0/dist/tablesort.min.js
+  - javascripts/tablesort.js
 plugins:
   - search
   - mike:
       # Set to true for subsequent releases
       version_selector: false
   - open-in-new-tab
+  - table-reader
 repo_url: https://github.com/pushkin-consortium/pushkin
 repo_name: pushkin-consortium/pushkin
 nav:
