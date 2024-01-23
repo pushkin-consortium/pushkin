@@ -15,11 +15,11 @@ Before you begin, make sure your have:
 
 ## AWS Deployment Steps
 
-* [Install required software.](#install-required-software)
-* [Configure the AWS and ECS CLIs.](#configure-the-aws-cli-and-ecs-clis)
-* [Register a domain.](#register-a-domain)
-* [Set up DockerHub.](#dockerhub)
-* [Initialize AWS Deploy](#initializing-aws-deploy)
+* [Install required software.](##install-required-software)
+* [Configure the AWS and ECS CLIs.](##configure-the-aws-cli-and-ecs-cli)
+* [Register a domain.](##register-a-domain)
+* [Set up DockerHub.](##dockerhub)
+* [Initialize AWS Deploy](##initializing-aws-deploy)
 * [View your data](#view-your-data)
 
 

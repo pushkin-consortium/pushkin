@@ -66,14 +66,7 @@ nav:
 - Getting Started:
   - Installation: 'getting-started/installation.md'
   - Quickstart tutorial: 'getting-started/quickstart.md'
-  - Deploying to AWS: 
-    - Introduction: 'getting-started/deploying-to-aws/README.md'
-    - Install Required Software: 'getting-started/deploying-to-aws/install-required-software.md'
-    - Configure the AWS and ECS CLIs: 'getting-started/deploying-to-aws/configure-aws-and-ecs-clis.md'
-    - Register a Domain: 'getting-started/deploying-to-aws/domain-registration.md'
-    - Set up Dockerhub: 'getting-started/deploying-to-aws/dockerhub.md'
-    - Initialize AWS Deploy: 'getting-started/deploying-to-aws/initializing-aws-deploy.md'
-    - View Your Data: 'getting-started/deploying-to-aws/view-your-data.md'
+  - Deploying to AWS: 'getting-started/deploying-to-aws.md'
   - Tutorial - Simple Experiment: 
     - Tutorial: 'getting-started/tutorial-simple-experiment.md'
 - Site templates:
