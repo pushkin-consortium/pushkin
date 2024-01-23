@@ -7,7 +7,6 @@ theme:
     - navigation.top
     - navigation.instant
     - navigation.instant.progress
-    - navigation.sections
     - navigation.path
     - navigation.footer
     - search.suggest
