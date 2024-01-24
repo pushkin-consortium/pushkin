@@ -39,7 +39,9 @@ jobs:
           git config --global user.email "${GITHUB_ACTOR_ID}+${GITHUB_ACTOR}@users.noreply.github.com"
 
       - name: Deploy docs
-        run: yarn docs:deploy ${{ env.version_major_minor }}
+        run: |
+          ### Won't work yet ### yarn docs:deploy ${{ env.version_major_minor }}
+          poetry install --no-root && poetry run mike deploy -u ${{ env.version_major_minor }}
 
       - name: Switch to gh-pages branch
         run: git checkout gh-pages
@@ -49,5 +51,3 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: gh-pages
-
-
