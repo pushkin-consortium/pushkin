@@ -115,6 +115,8 @@ nav:
   - Deployment:  
     - Deleting AWS: 'advanced/deploying/awsDeletion.md'
 - Developers: 
+  - Contributor guidelines: 'developers/contributor-guidelines.md'
+  - Documentation: 'developers/documentation.md'
   - Developing with Pushkin: 'developers/developing-with-pushkin.md'
   - Getting Started on Development: 'developers/getting-started-on-development.md'
   - Overview of Technologies: 'developers/overview-of-tech.md'
