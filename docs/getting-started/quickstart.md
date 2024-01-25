@@ -58,42 +58,44 @@ This sets up a skeleton website in the current folder and a development database
 Open `pushkin.yaml` in your project root directory. It should look something like:
 
 ```yaml
-# main directories relative to project root ('..')
-experimentsDir: "experiments"
-coreDir: "pushkin"
-DockerHubID: ""
-
-# databases configs experiments can use
+experimentsDir: experiments
+coreDir: pushkin
+DockerHubID: ''
 databases:
   localtestdb:
-    user: "postgres"
-    pass: "example"
-    url: "test_db"
-    name: "test_db"
-    host: "localhost"
-
-# basic site configuration
+    user: postgres
+    pass: example
+    url: localhost
+    port: '5432'
+    name: test_db
+    host: test_db
+  localtransactiondb:
+    user: postgres
+    pass: example
+    host: test_transaction_db
+    port: '5433'
+    url: localhost
+    name: test_transaction_db
 info:
-  rootDomain: "localhost"
-  whoAmI: "Citizen Science Website"
-  hashtags: "science, learn"
-  email: "me@mydomain.com"
-  shortName: "CSW"
+  rootDomain: localhost
+  whoAmI: Citizen Science Website
+  hashtags: 'science, learn'
+  email: me@mydomain.com
+  shortName: CSW
 addons:
   useForum: false
-  useAuth: true
-  authDomain: "<YOUR_AUTH0_DOMAIN>"
-  authClientID: "<YOUR_AUTH0_CLIENT_ID>"
-salt: "abc123"
-fc: { popup: false }
+  useAuth: false
+salt: abc123
+fc:
+  popup: false
 ```
 
 You can ignore most of these settings for now, but you should probably change:
 
 - whoAmI: This is the name of your website that will be displayed to users
-- shortName: An abbreviated name of your website
 - hashtags: These are hashtags used for social media
 - email: An email where notifications, etc., will be sent to.
+- shortName: An abbreviated name of your website
 
 The one you should _definitely_ change is `salt`. This is used to encrypt private information. Type in any alphanumeric text here, for instance:
 
