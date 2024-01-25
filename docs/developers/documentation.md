@@ -18,7 +18,7 @@ The easiest way to install Poetry is with [pipx](https://github.com/pypa/pipx). 
 pipx install poetry
 ```
 
-For more details, see Poetry's [installation instructions](https://python-poetry.org/docs/#installation).
+For details, see Poetry's [installation instructions](https://python-poetry.org/docs/#installation).
 
 ### Install dependencies
 
@@ -47,20 +47,20 @@ poetry run mike deploy -u <docs_version>
 
 Getting the version number right isn't particularly important if all you're doing is local testing. It will simply change whether you overwrite an existing version of the docs or create a new one in your local `gh-pages` branch. In either case, you'll be able to select the version to which you made changes when you view the docs in the next step.
 
-This command builds the docs and commits the new or updated version to your local `gh-pages` branch. Note that you will not be able to push any commits to remote unless you are a core Pushkin maintainer, as doing so would affect the public deployment of the docs site.
+This command builds the docs and commits the new or updated version to your local `gh-pages` branch. Note that you will not be able to push any of these commits to remote unless you are a core Pushkin maintainer, as doing so would affect the public deployment of the docs site. Of course, you can still push your commits editing the source files to whatever development branch/fork you like before making a pull request.
 
 ### Preview the docs
 
 In the root of the repo, run either:
 
 ```
-yarn docs:serve (1)
+yarn docs:serve
 ```
+
+or (1)
 { .annotate }
 
-1.  See note above on potentially requiring `yarn install`.
-
-or
+1.  As above, `yarn docs:serve` may require previously running `yarn install`.
 
 ```
 poetry run mike serve
@@ -76,9 +76,11 @@ You should now be able to view the docs at http://localhost:8000.
     git reset --hard origin/gh-pages
     ```
     
-    This will reset your local `gh-pages` branch to its remote state (i.e. whatever is currently deployed on the live site).
+    This will reset your local `gh-pages` branch to the remote state (i.e. whatever is currently deployed on the live site).
 
 ## Public deployment
 
-!!! warning "For core Pushkin maintainers only"
+!!! warning
+    Only core Pushkin maintainers have permissions to push to `gh-pages`.
 
+As mentioned [above](#build-the-docs-locally), building the docs locally will automatically commit to `gh-pages`. Pushing these commits will update the public site. Typically, these steps should be automated by the workflow defined in `/.github/workflows/publish-docs.yml`, which helps ensure that `gh-pages` isn't being updated with changes that haven't yet been merged into `main`; however, in some cases, it may be necessary to update `gh-pages` manually.

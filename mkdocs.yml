@@ -37,6 +37,8 @@ copyright: 'Copyright &copy; 2015-2024 Joshua Hartshorne'
 site_description: 'Pushkin provides a customizable, scalable ecosystem for massive online psychological experiments.'
 markdown_extensions:
   - admonition
+  - attr_list
+  - md_in_html
   - pymdownx.highlight:
       anchor_linenums: true
       line_spans: __span
