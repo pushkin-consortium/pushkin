@@ -1,2 +1,4 @@
 site/
+node_modules/
 venv/
+.vscode
