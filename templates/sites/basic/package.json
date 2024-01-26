@@ -1,10 +1,20 @@
 {
-  "private": true,
-  "name": "@pushkin-templates/site-basic",
+  "name": "@pushkin/template-site-basic",
   "version": "0.2.4",
   "description": "A template for building a bare-bones Pushkin site. No authentication, no forum, no dashboard, but everything else you need.",
+  "keywords": [
+    "pushkin",
+    "template"
+  ],
+  "author": "L3",
+  "license": "MIT",
+  "files": [
+    "build/*"
+  ],
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "build": "mkdir -p build && cd src && zip -FS -r -q ../build/template.zip .",
+    "postinstall": "unzip build/template.zip -d $INIT_CWD"
   },
   "devDependencies": {
     "@babel/core": "^7.23.6",

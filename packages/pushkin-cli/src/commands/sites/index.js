@@ -13,6 +13,20 @@ const shell = require('shelljs');
 import pacMan from '../../pMan.js';  //which package manager is available?
 
 
+export const initSite = async () => {
+  try {
+    // Create the package.json
+    await exec(`${pacMan} init -yp`);
+    // Edit package.json
+    const packageJson = JSON.parse(fs.readFileSync('package.json'));
+    delete packageJson.main;
+    packageJson.name = 'pushkin-site';
+    fs.writeFileSync('package.json', JSON.stringify(packageJson, null, 2));
+  } catch (error) {
+    console.error('Error initializing site:', error);
+  }
+}
+
 export function listSiteTemplates() {
   return templates;
 }

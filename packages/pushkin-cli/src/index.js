@@ -22,10 +22,8 @@ const shell = require('shelljs');
 
 const version = require("../package.json").version
 
-
 const program = new Command();
 program.version(version);
-
 
 const moveToProjectRoot = () => {
   // better checking to make sure this is indeed a pushkin project would be goodf
@@ -48,7 +46,6 @@ const loadConfig = (configFile) => {
     }
   })
 };
-
 
 const updateS3 = async () => {
   let awsName, useIAM
@@ -394,168 +391,175 @@ const getVersions = async (url) => {
   return verList
 }
 
-const handleInstall = async (what, verbose) => {
+const handleInstallSite = async (verbose) => {
+  if (verbose) console.log('--verbose flag set inside handleInstallSite()');
   try {
-    if (verbose) console.log('--verbose flag set inside handleInstall()');
-    if (what == 'site') {
-      const siteList = await listSiteTemplates();
-      inquirer.prompt([
-          { type: 'list', name: 'sites', choices: Object.keys(siteList).concat("path","url"), default: 0, message: 'Which site template do you want to use?'}
-        ]).then(answers => {
-          let siteType = answers.sites
-          if (siteType == "path") {
+    // Fetch a list of available site templates
+    const siteList = await listSiteTemplates();
+    // Let the user select which template they want (or provide a path to their own)
+    inquirer.prompt([
+        { type: 'list', name: 'sites', choices: Object.keys(siteList).concat("path","url"), default: 0, message: 'Which site template do you want to use?'}
+    ]).then(answers => {
+      let siteType = answers.sites
+      if (siteType == "path") {
+        inquirer.prompt(
+          [{ type: 'input', name: 'path', message: 'What is the absolute path to your site template?'}]
+        ).then(async (answers) => {
+          await copyPushkinSite(process.cwd(), answers.path, verbose)
+          if (verbose) console.log("setting up transactions db");
+          await setupTestTransactionsDB(verbose) //Not distributed with sites since it's the same for all of them.
+        })
+      }else if (siteType == "url") {
+        inquirer.prompt(
+          [{ type: 'input', name: 'url', message: 'What is the url for your site template (this should begin with "https://" and end with "releases", but either api.github.com or github.com URLs are accepted)?'}]
+        ).then((answers) => {
+          let templateURL = answers.url
+          // Check whether URL is for GitHub API and, if not, convert it so it works with getPushkinSite()
+          if (templateURL.startsWith('https://github.com')) {
+            templateURL = templateURL.replace('github.com', 'api.github.com/repos')
+          }
+          // Check URL to make sure it doesn't end with slash, since that will mess up GitHub API URLs
+          if (templateURL.endsWith('/')) {
+            templateURL = templateURL.slice(0,-1) // Remove the last character (i.e. '/')
+          }
+          // Fetch a list of available versions of the selected template
+          getVersions(templateURL)
+          .then((verList) => {
             inquirer.prompt(
-              [{ type: 'input', name: 'path', message: 'What is the absolute path to your site template?'}]
+              [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version?'}]
             ).then(async (answers) => {
-              await copyPushkinSite(process.cwd(), answers.path, verbose)
+              await getPushkinSite(process.cwd(), verList[answers.version], verbose)
               if (verbose) console.log("setting up transactions db");
               await setupTestTransactionsDB(verbose) //Not distributed with sites since it's the same for all of them.
             })
-          }else if (siteType == "url") {
-            inquirer.prompt(
-              [{ type: 'input', name: 'url', message: 'What is the url for your site template (this should begin with "https://" and end with "releases", but either api.github.com or github.com URLs are accepted)?'}]
-            ).then((answers) => {
-              let templateURL = answers.url
-              // Check whether URL is for GitHub API and, if not, convert it so it works with getPushkinSite()
-              if (templateURL.startsWith('https://github.com')) {
-                templateURL = templateURL.replace('github.com', 'api.github.com/repos')
-              }
-              // Check URL to make sure it doesn't end with slash, since that will mess up GitHub API URLs
-              if (templateURL.endsWith('/')) {
-                templateURL = templateURL.slice(0,-1) // Remove the last character (i.e. '/')
-              }
-              getVersions(templateURL)
-              .then((verList) => {
-                inquirer.prompt(
-                  [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version?'}]
-                ).then(async (answers) => {
-                  await getPushkinSite(process.cwd(), verList[answers.version], verbose)
-                  if (verbose) console.log("setting up transactions db");
-                  await setupTestTransactionsDB(verbose) //Not distributed with sites since it's the same for all of them.
-                })
-              })
-            })
-          }else{
-            getVersions(siteList[siteType])
-            .then((verList) => {
-              inquirer.prompt(
-                [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version? (Recommend:'.concat(Object.keys(verList)[0]).concat(')')}]
-              ).then(async (answers) => {
-                await getPushkinSite(process.cwd(), verList[answers.version], verbose)
-                if (verbose) console.log("setting up transactions db");
-                await setupTestTransactionsDB(verbose) //Not distributed with sites since it's the same for all of them.
-              })
-            })
-          }
+          })
         })
-    } else {
-      //definitely experiment then
-      moveToProjectRoot()
+      }else{
+        getVersions(siteList[siteType])
+        .then((verList) => {
+          inquirer.prompt(
+            [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version? (Recommend:'.concat(Object.keys(verList)[0]).concat(')')}]
+          ).then(async (answers) => {
+            await getPushkinSite(process.cwd(), verList[answers.version], verbose)
+            if (verbose) console.log("setting up transactions db");
+            await setupTestTransactionsDB(verbose) //Not distributed with sites since it's the same for all of them.
+          })
+        })
+      }
+    })
+  } catch(e) {
+    throw e
+  }
+}
+
+const handleInstallExp = async (verbose) => {
+  try {
+    if (verbose) console.log('--verbose flag set inside handleInstallSite()');
+    moveToProjectRoot()
+    inquirer.prompt(
+      [{ type: 'input', name: 'name', message: 'What do you want to call your experiment?'}]
+    ).then(async (answers) => {
+      const longName = answers.name
+      const shortName = longName.replace(/[^\w\s]/g, "").replace(/ /g,"_");
+      let config = await loadConfig('pushkin.yaml');
+      const expList = await listExpTemplates();
       inquirer.prompt(
-        [{ type: 'input', name: 'name', message: 'What do you want to call your experiment?'}]
-      ).then(async (answers) => {
-        const longName = answers.name
-        const shortName = longName.replace(/[^\w\s]/g, "").replace(/ /g,"_");
-        let config = await loadConfig('pushkin.yaml');
-        const expList = await listExpTemplates();
-        inquirer.prompt(
-          [{ type: 'list', name: 'experiments', choices: Object.keys(expList).concat("path","url"), default: 0, message: 'Which experiment template do you want to use?'}]
-        ).then(answers => {
-          let expType = answers.experiments
-          if (expType == "path") {
-            inquirer.prompt(
-              [{ type: 'input', name: 'path', message: 'What is the absolute path to your experiment template?'}]
-            ).then(async (answers) => {
-              await copyExpTemplate(path.join(process.cwd(), config.experimentsDir), answers.path, longName, shortName, process.cwd(), verbose)
-            })
-          } else if (expType == "url") {
-            inquirer.prompt(
-              [{ type: 'input', name: 'url', message: 'What is the url for your experiment template (this should begin with "https://" and end with "releases", but either api.github.com or github.com URLs are accepted)?'}]
-            ).then((answers) => {
-              let templateURL = answers.url
-              // Check whether URL is for GitHub API and, if not, convert it so it works with getPushkinSite()
-              if (templateURL.startsWith('https://github.com')) {
-                templateURL = templateURL.replace('github.com', 'api.github.com/repos')
-              }
-              // Check URL to make sure it doesn't end with slash, since that will mess up GitHub API URLs
-              if (templateURL.endsWith('/')) {
-                templateURL = templateURL.slice(0,-1) // Remove the last character (i.e. '/')
-              }
-              getVersions(templateURL)
-              .then((verList) => {
-                inquirer.prompt(
-                  [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version?'}]
-                ).then(async (answers) => {
-                  let ver = answers.version
-                  const url = verList[ver]
-                  await getExpTemplate(path.join(process.cwd(), config.experimentsDir), url, longName, shortName, process.cwd(), verbose)
-                })
-              })
-            })
-          }else{
-            getVersions(expList[expType])
+        [{ type: 'list', name: 'experiments', choices: Object.keys(expList).concat("path","url"), default: 0, message: 'Which experiment template do you want to use?'}]
+      ).then(answers => {
+        let expType = answers.experiments
+        if (expType == "path") {
+          inquirer.prompt(
+            [{ type: 'input', name: 'path', message: 'What is the absolute path to your experiment template?'}]
+          ).then(async (answers) => {
+            await copyExpTemplate(path.join(process.cwd(), config.experimentsDir), answers.path, longName, shortName, process.cwd(), verbose)
+          })
+        } else if (expType == "url") {
+          inquirer.prompt(
+            [{ type: 'input', name: 'url', message: 'What is the url for your experiment template (this should begin with "https://" and end with "releases", but either api.github.com or github.com URLs are accepted)?'}]
+          ).then((answers) => {
+            let templateURL = answers.url
+            // Check whether URL is for GitHub API and, if not, convert it so it works with getPushkinSite()
+            if (templateURL.startsWith('https://github.com')) {
+              templateURL = templateURL.replace('github.com', 'api.github.com/repos')
+            }
+            // Check URL to make sure it doesn't end with slash, since that will mess up GitHub API URLs
+            if (templateURL.endsWith('/')) {
+              templateURL = templateURL.slice(0,-1) // Remove the last character (i.e. '/')
+            }
+            getVersions(templateURL)
             .then((verList) => {
               inquirer.prompt(
-                [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version? (Recommend:'.concat(Object.keys(verList)[0]).concat(')')}]
+                [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version?'}]
               ).then(async (answers) => {
-                let ver = answers.version;
-                const url = verList[ver];
-                let newExpJs; // Only used if they want to import a jsPsych experiment
-                // If they're using the basic template 5+, ask about importing a jsPsych experiment
-                if (expType === 'basic' && ver.search(/v[5-9]/) === 0) {
-                  await inquirer.prompt(
-                    [{ type: 'confirm', name: 'expHtmlBool', default: false, message: 'Would you like to import a jsPsych experiment.html?'}]
-                  ).then(async (answers) => {
-                    if (answers.expHtmlBool) {
-                      await inquirer.prompt(
-                        [{ type: 'input', name: 'expHtmlPath', message: 'What is the absolute path to your experiment.html?'}]
-                      ).then((answers) => {
-                        if (!answers.expHtmlPath) {
-                          console.log('No path provided to jsPsych experiment; installing the basic template as is.');
-                        } else if (!fs.existsSync(answers.expHtmlPath)) {
-                          console.log('Path to jsPsych experiment does not exist; installing the basic template as is.');
-                        } else if (!fs.lstatSync(answers.expHtmlPath).isFile()) {
-                          console.log('Invalid file path; installing the basic template as is.');
-                        } else {
-                          let expHtmlPlugins = getJsPsychPlugins(answers.expHtmlPath, verbose);
-                          // If you wanted to add a feature to ask the user if there are additional plugins they want,
-                          // here would probably be the place to implement it.
-                          let expHtmlImports = getJsPsychImports(expHtmlPlugins, verbose);
-                          let expHtmlTimeline = getJsPsychTimeline(answers.expHtmlPath, verbose);
-                          if (expHtmlImports && expHtmlTimeline) {
-                            // Create the necessary import statements from the object of jsPsych plugins
-                            let imports = '';
-                            Object.keys(expHtmlImports).forEach((plugin) => {
-                              // Check if plugin specifies version (is there another "@" after initial one?)
-                              if (plugin.slice(1).includes('@')) {
-                                let pluginNoVersion = '@' + plugin.split('@')[1] // [1] will be the plugin name, add back leading '@'
-                                let pluginVersion = plugin.split('@')[2] // [2] will be the version number
-                                // Add version info as a comment after the import statement (to be read by prep later)
-                                imports = imports.concat(`import ${expHtmlImports[plugin]} from '${pluginNoVersion}'; // version:${pluginVersion} //\n`);
-                              } else {
-                                imports = imports.concat(`import ${expHtmlImports[plugin]} from '${plugin}';\n`);
-                              }
-                            });
-                            newExpJs = `${imports}\nexport function createTimeline(jsPsych) {\n${expHtmlTimeline}\nreturn timeline;\n}\n`;
-                          } else {
-                            console.log(`Problem importing experiment.html; installing the basic template as is.`);
-                          }
-                        }
-                      })
-                    }
-                  })
-                }
-                await getExpTemplate(path.join(process.cwd(), config.experimentsDir), url, longName, shortName, process.cwd(), verbose);
-                if (newExpJs) {
-                  if (verbose) console.log(`Writing new experiment.js file`);
-                  fs.writeFileSync(path.join(process.cwd(), config.experimentsDir, shortName, 'web page/src/experiment.js'), newExpJs);
-                }
+                let ver = answers.version
+                const url = verList[ver]
+                await getExpTemplate(path.join(process.cwd(), config.experimentsDir), url, longName, shortName, process.cwd(), verbose)
               })
             })
-          }
-        })
+          })
+        }else{
+          getVersions(expList[expType])
+          .then((verList) => {
+            inquirer.prompt(
+              [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version? (Recommend:'.concat(Object.keys(verList)[0]).concat(')')}]
+            ).then(async (answers) => {
+              let ver = answers.version;
+              const url = verList[ver];
+              let newExpJs; // Only used if they want to import a jsPsych experiment
+              // If they're using the basic template 5+, ask about importing a jsPsych experiment
+              if (expType === 'basic' && ver.search(/v[5-9]/) === 0) {
+                await inquirer.prompt(
+                  [{ type: 'confirm', name: 'expHtmlBool', default: false, message: 'Would you like to import a jsPsych experiment.html?'}]
+                ).then(async (answers) => {
+                  if (answers.expHtmlBool) {
+                    await inquirer.prompt(
+                      [{ type: 'input', name: 'expHtmlPath', message: 'What is the absolute path to your experiment.html?'}]
+                    ).then((answers) => {
+                      if (!answers.expHtmlPath) {
+                        console.log('No path provided to jsPsych experiment; installing the basic template as is.');
+                      } else if (!fs.existsSync(answers.expHtmlPath)) {
+                        console.log('Path to jsPsych experiment does not exist; installing the basic template as is.');
+                      } else if (!fs.lstatSync(answers.expHtmlPath).isFile()) {
+                        console.log('Invalid file path; installing the basic template as is.');
+                      } else {
+                        let expHtmlPlugins = getJsPsychPlugins(answers.expHtmlPath, verbose);
+                        // If you wanted to add a feature to ask the user if there are additional plugins they want,
+                        // here would probably be the place to implement it.
+                        let expHtmlImports = getJsPsychImports(expHtmlPlugins, verbose);
+                        let expHtmlTimeline = getJsPsychTimeline(answers.expHtmlPath, verbose);
+                        if (expHtmlImports && expHtmlTimeline) {
+                          // Create the necessary import statements from the object of jsPsych plugins
+                          let imports = '';
+                          Object.keys(expHtmlImports).forEach((plugin) => {
+                            // Check if plugin specifies version (is there another "@" after initial one?)
+                            if (plugin.slice(1).includes('@')) {
+                              let pluginNoVersion = '@' + plugin.split('@')[1] // [1] will be the plugin name, add back leading '@'
+                              let pluginVersion = plugin.split('@')[2] // [2] will be the version number
+                              // Add version info as a comment after the import statement (to be read by prep later)
+                              imports = imports.concat(`import ${expHtmlImports[plugin]} from '${pluginNoVersion}'; // version:${pluginVersion} //\n`);
+                            } else {
+                              imports = imports.concat(`import ${expHtmlImports[plugin]} from '${plugin}';\n`);
+                            }
+                          });
+                          newExpJs = `${imports}\nexport function createTimeline(jsPsych) {\n${expHtmlTimeline}\nreturn timeline;\n}\n`;
+                        } else {
+                          console.log(`Problem importing experiment.html; installing the basic template as is.`);
+                        }
+                      }
+                    })
+                  }
+                })
+              }
+              await getExpTemplate(path.join(process.cwd(), config.experimentsDir), url, longName, shortName, process.cwd(), verbose);
+              if (newExpJs) {
+                if (verbose) console.log(`Writing new experiment.js file`);
+                fs.writeFileSync(path.join(process.cwd(), config.experimentsDir, shortName, 'web page/src/experiment.js'), newExpJs);
+              }
+            })
+          })
+        }
       })
-    }
+    })
   } catch(e) {
     throw e
   }
@@ -687,24 +691,29 @@ const killLocal = async () => {
 }
 
 async function main() {
-//  program
-//    .option('-d, --debug', 'output extra debugging')
-//    .option('-s, --small', 'small pizza size')
-//    .option('-p, --pizza-type <type>', 'flavour of pizza');
 
   program
-    .command('install <what>')
+    .command('install')
+    .alias('i')
+    .argument('<what>', `Which type of template to install. Options are "site" or "experiment" (or "exp").`)
     .option('-v, --verbose', 'output extra debugging info')
-    .description(`Install template website ('site') or experiment ('experiment').`)
+    .description(`Install website ('site') or experiment template.`)
     .action((what, options) => {
-      if (what == 'site' | what == 'experiment'){
+      if (what === 'site'){
         try {
-          handleInstall(what, options.verbose)
+          handleInstallSite(options.verbose)
         } catch(e) {
           console.error(e)
           process.exit()
         }
-      }else{
+      } else if (what === 'experiment' || what === 'exp') {
+        try {
+          handleInstallExp(options.verbose)
+        } catch(e) {
+          console.error(e)
+          process.exit()
+        }
+      } else {
         console.error(`Command not recognized. Run 'pushkin --help' for help.`)
       }
     });
