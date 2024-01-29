@@ -35,7 +35,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     wsl --list --verbose
     ```
     
-    ![](../assets/wsl1.gif)
+    ![](../assets/getting-started/installation/wsl1.gif)
     
     This will give you a list of your installed Linux distributions and what version of WSL they are using. If your distribution is using WSL 1, run:
 
@@ -49,7 +49,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     
     After you have enabled WSL 2 and installed Ubuntu, you will probably also want to enable copy and paste in the terminal by right-clicking on the terminal window, selecting *Properties* and following [these instructions](https://devblogs.microsoft.com/commandline/copy-and-paste-arrives-for-linuxwsl-consoles/).
     
-    ![](../assets/copyPasteScreenshot.jpg)
+    ![](../assets/getting-started/installation/copyPasteScreenshot.jpg)
     
     Next, run the following commands in the Ubuntu terminal to update your Ubuntu packages. This (and other commands with `sudo` in front of them) will prompt you to give the Ubuntu password you set up when you installed it. It will also prompt you to respond with `y` and press ENTER to confirm that you would like to install or update software. 
 
@@ -58,7 +58,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     sudo apt upgrade
     ```
     
-    ![](../assets/wsl2.gif)
+    ![](../assets/getting-started/installation/wsl2.gif)
     
     For more on package management with apt, see the [documentation](https://ubuntu.com/server/docs/package-management). To learn more about the basics of the Linux command line, you can follow [this tutorial](https://ubuntu.com/tutorials/command-line-for-beginners#1-overview).
 
@@ -75,7 +75,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     sudo apt install curl
     ```
     
-    ![](../assets/ubuntu1%20%281%29.gif)
+    ![](../assets/getting-started/installation/ubuntu1.gif)
 
 === "GitHub Codespaces"
 
@@ -83,7 +83,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
 
     To get started, go to [Github Codespaces](https://github.com/codespaces) and select the blank template. This should open a development environment that will look quite familiar if you've previously used VS Code.
 
-    ![](../assets/codespaces-gif.gif)
+    ![](../assets/getting-started/installation/codespaces-gif.gif)
 
     The standard Codespaces environment has most of Pushkin's dependencies pre-installed, but in order for Pushkin's commands to run properly, you need to add Yarn's global install location to the PATH by running this command in the terminal:
 
@@ -145,7 +145,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     nvm use <node_version>
     ```
     
-    ![](../assets/ubuntu2%20%281%29.gif)
+    ![](../assets/getting-started/installation/ubuntu2.gif)
 
 === "GitHub Codespaces"
     Node and nvm (Node version manager) come pre-installed in the Codespaces environment, so you can skip to the next step.
@@ -166,7 +166,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     brew install yarn
     ```
     
-    ![](../assets/ezgif.com-video-to-gif-2-%20%281%29%20%281%29.gif)
+    ![](../assets/getting-started/installation/ezgif.com-video-to-gif-2-%20%281%29%20%281%29.gif)
 
     You can check your version with `yarn --version`.
 
@@ -185,7 +185,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     yarn --version
     ```
     
-    ![](../assets/ubuntu3%20%281%29.gif)
+    ![](../assets/getting-started/installation/ubuntu3.gif)
     
     In order to run Pushkin, you'll need to allow yarn to install packages globally. To do so, run the following commands, based on [this Stack Overflow solution](https://stackoverflow.com/questions/40317578/yarn-global-command-not-working/53879534#53879534):
 
@@ -195,7 +195,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     source ~/. bashrc
     ```
     
-    ![](../assets/ubuntu4%20%281%29.gif)
+    ![](../assets/getting-started/installation/ubuntu4.gif)
 
 === "GitHub Codespaces"
     Yarn comes pre-installed in the Codespaces environment, so you can skip to the next step.
@@ -215,7 +215,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     yarn global add yalc
     ```
     
-    ![](../assets/ezgif.com-video-to-gif-6-%20%281%29.gif)
+    ![](../assets/getting-started/installation/ezgif.com-video-to-gif-6-%20%281%29.gif)
 
 === "Ubuntu Linux"
     Install Yalc globally:
@@ -242,7 +242,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     yarn global add pushkin-cli
     ```
     
-    ![](../assets/ezgif.com-video-to-gif-3-%20%281%29%20%281%29.gif)
+    ![](../assets/getting-started/installation/ezgif.com-video-to-gif-3-%20%281%29%20%281%29.gif)
     
     Confirm that pushkin-cli is installed by running:
 
@@ -252,7 +252,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     
     You should see a list of commands with some documentation for each.
     
-    ![](../assets/ezgif.com-video-to-gif-1-%20%281%29%20%281%29.gif)
+    ![](../assets/getting-started/installation/ezgif.com-video-to-gif-1-%20%281%29%20%281%29.gif)
     
     Confirm that you have version `2.0.0` or later by running:
 
@@ -267,7 +267,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     yarn global add pushkin-cli
     ```
     
-    ![](../assets/ubuntu5%20%281%29.gif)
+    ![](../assets/getting-started/installation/ubuntu5.gif)
     
     Confirm that pushkin-cli is installed by running:
 
@@ -277,7 +277,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     
     You should get a list of commands with some documentation for each.
     
-    ![](../assets/ubuntu6%20%281%29.gif)
+    ![](../assets/getting-started/installation/ubuntu6.gif)
     
     Confirm that you have version `2.0.0` or later by running:
 
@@ -311,7 +311,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
 === "Mac"
     Next, install [Docker](https://docs.docker.com/get-docker/).
 
-    ![](../assets/ezgif.com-video-to-gif-5-%20%281%29%20%281%29.gif)
+    ![](../assets/getting-started/installation/ezgif.com-video-to-gif-5-%20%281%29%20%281%29.gif)
     
     Confirm that you have at least Docker Engine 23.0 by running `docker --version`.
 
@@ -323,7 +323,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     sudo apt-get install ca-certificates curl gnupg
     ```
 
-    ![](../assets/ubuntu7%20%281%29.gif)
+    ![](../assets/getting-started/installation/ubuntu7.gif)
 
     Add Docker’s official GPG key:
 
@@ -342,7 +342,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
     ```
     
-    ![](../assets/ubuntu8%20%281%29.gif)
+    ![](../assets/getting-started/installation/ubuntu8.gif)
     
     Next, update the apt package index:
 
@@ -356,7 +356,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose docker-compose-plugin
     ```
     
-    ![](../assets/ubuntu9%20%281%29.gif)
+    ![](../assets/getting-started/installation/ubuntu9.gif)
     
     Check that Docker Engine is installed correctly by running:
 
@@ -371,7 +371,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     This message shows that your installation appears to be working correctly.
     ```
 
-    ![](../assets/ubuntu10%20%281%29.gif)
+    ![](../assets/getting-started/installation/ubuntu10.gif)
 
     Next, follow [these post-installation instructions](https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user) (copied below for convenience) to manage Docker as a non-root user. You can ignore the other post-installation instructions.
 
@@ -382,7 +382,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     docker run hello-world
     ```
 
-    ![](../assets/ubuntu11%20%281%29.gif)
+    ![](../assets/getting-started/installation/ubuntu11.gif)
 
 === "GitHub Codespaces"
     Docker is already installed in the Codespaces environment. You can confirm this by running `docker --version`.

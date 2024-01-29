@@ -57,35 +57,35 @@ First, you will need to generate access keys. Best practices dictate that you [c
 
 To create an IAM user, sign into [Identity and Access Management](https://console.aws.amazon.com/iam/) in your AWS console using your root user credentials.
 
-![](../../assets/aws_8.gif)
+![](../../assets/getting-started/deploying-to-aws/aws_8.gif)
 
 Navigate to *My Account* and enable access to billing data for IAM users.
 
-![](../../assets/aws_10.gif)
+![](../../assets/getting-started/deploying-to-aws/aws_10.gif)
 
 Navigate back to [Identity and Access Management](https://console.aws.amazon.com/iam/), select *Users* in the left sidebar and click **Add user**. 
 
-![](../../assets/aws_12.gif)
+![](../../assets/getting-started/deploying-to-aws/aws_12.gif)
 
 Set username as `Administrator` and click *Next: Permissions*.
 
-![](../../assets/aws_13.gif)
+![](../../assets/getting-started/deploying-to-aws/aws_13.gif)
 
 Under the *Add user to group* tab, select **Create group**. Call the group name `Administrators` and check the *AdministratorAccess* job function in the list of policies. Then click *Create group* to continue.
 
-![](../../assets/aws_14.gif)
+![](../../assets/getting-started/deploying-to-aws/aws_14.gif)
 
 Click through the *Tags* page, review your settings and click **Create user**. Download the CSV with login information.
 
-![](../../assets/aws_15.gif)
+![](../../assets/getting-started/deploying-to-aws/aws_15.gif)
 
 Return to the *Users* page and select the **Security credentials** tab for the `Administrator` user you just created. 
 
-![](../../assets/aws_16.gif)
+![](../../assets/getting-started/deploying-to-aws/aws_16.gif)
 
 Under *Access keys*, click **Create access keys**.
 
-![](../../assets/aws_17.gif)
+![](../../assets/getting-started/deploying-to-aws/aws_17.gif)
 
 
 Run `aws configure --profile myprofile` (where you substitute `myprofile` with a name of your choosing; this is just in case you want to have multiple logins, which you probably will), pasting your Access Key ID and Secret Access key as needed.
@@ -102,7 +102,7 @@ Default region name [None]: us-east-1
 Default output format [None]: json
 ```
 
-![](../../assets/aws_24.gif)
+![](../../assets/getting-started/deploying-to-aws/aws_24.gif)
 
 
 ### ECS CLI
@@ -124,7 +124,7 @@ To see the Access Key ID and Secret Access Key for a given profile, run the foll
 ```
 
 
-![](../../assets/aws_25.gif)
+![](../../assets/getting-started/deploying-to-aws/aws_25.gif)
 
 
 ## Register a domain
@@ -133,7 +133,7 @@ To see the Access Key ID and Secret Access Key for a given profile, run the foll
 
 You can buy domains in many places, but there is some convenience to doing it through AWS itself, which is reasonably priced:
 
-![](../../assets/DomainPurchase.png)
+![](../../assets/getting-started/deploying-to-aws/DomainPurchase.png)
 
 Cheaper domains on AWS currently cost around $12/yr, but if you would like a trendier domain, you can expect to pay more. Students may be able to get a free domain through [NameCheap for Education](https://nc.me/).
 
@@ -146,8 +146,9 @@ In order to have encryption&mdash;which you want!&mdash;you need a certificate. 
 3. Request a public certificate.
 4. Enter two your domain preceded by an `*` \(thus 'gameswithwords.org' would be entered as `*.gameswithwords.org`\).
 5. If you registered your domain with AWS, use DNS validation. Otherwise, follow the instructions.
-6. If you used AWS for your domain registration, Skip through the next couple of steps and click "request". If you did not, it may be more complicated. ![](../../assets/SSL.mov)
+6. If you used AWS for your domain registration, Skip through the next couple of steps and click "request". If you did not, it may be more complicated. ![](../../assets/getting-started/deploying-to-aws/SSL.mov)
 7. If you used AWS for your domain registration, select the certificate from the list of certificates. Scroll down to "Domains" and click "Create records in Route 53". Select the domain from the list.
+
 
 At this point, you wait for your certificate to be issued. Depending on how you registered your domain, this may take variable amounts of time. For us, it usually only takes a few minutes.
 
