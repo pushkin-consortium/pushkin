@@ -44,48 +44,78 @@ View config file for _**what**_, replacing **_what_** with **_site_** or any of 
 
 ### install site
 
-Syntax: `pushkin install site`
+```bash
+pushkin install site
+```
+The `install site` command uses a website template to set up the file structure of your site in the current working directory. You will be prompted to select which template you want, and then which version. Typically, the latest version will be the best option. You also have the option to select `url`, enabling you to use a Pushkin site template released on GitHub but not part of the main Pushkin distribution, or to select `path`, enabling you to use a site template on your local system. The `path` option is particularly useful for developing your own site templates and for using unreleased development versions of templates.
 
-Downloads Pushkin site template. It first will prompt for which site template, then which version. Most often, the latest version will be the best option.
+**Optional arguments**
 
-The command `pushkin install site` has two optional arguments: `--verbose` and `--help`.
+- verbose: `pushkin install site --verbose` shows additional console output during the installation process which may be helpful for debugging.
 
-Run `pushkin install site --verbose` to see additional console output which may be helpful for debugging.
+- help: `pushkin install site --help` displays the command's help information.
 
-Running `pushkin install site --help` will display help for the command.
+**Details**
+The behavior of `install site` initially depends on which type of template you select. 
+
+1. Pre-built templates: If you select one of the [pre-built templates](link to relevant spot in the docs) included in the Pushkin distribution (currently only `basic`, but additional site templates will be added in the future), the command will look for the versions of that template released on GitHub and ask you to pick one. 
+
+2. URL option: Selecting the `url` option does essentially the same thing but looks at the repo of your choosing instead of one of the official Pushkin ones. Once you select the version that you want, the command downloads the template from GitHub and installs it in your current working directory. 
+Path option: The process is similar to choosing a template from a url when you choose `path`, but the template contents are copied from the specified path instead of downloaded.
+
+`install site` also sets up your Pushkin site’s test transaction database. The command reviews the presence of configuration files: `pushkin/docker-compose.dev.yml` and `pushkin.yaml`. These configurations detail the database setup, including parameters such as ports and passwords. Should the necessary configurations for the Test Tra nsaction Database be absent, the command establishes them automatically. 
+
+The 'test transaction database' can be conceptualized as a sandbox environment, enabling experimentation, query testing, and simulated operations without risks to live data. This database provides a controlled environment for thorough verification before moving to production. This database is simply a test version of the main transaction database. A pushkin site has multiple databases for each experiment, as well an overarching transaction database.
+
+PostgreSQL, a widely-used relational database system, is employed in the test transaction database. The structure or format of required database tables is dictated by Knex migrations. These migrations serve as blueprints for database tables. If migration files for the transactions table are missing, the command autonomously establishes a foundational structure for it, guaranteeing a uniform schema for testing.
+
+Other stuff `install site` does:
+Writes the front-end environment variable and configuration file
+Installs dependencies for `pushkin/front-end` and `pushkin/api` and builds those components
+
 
 ### install experiment
 
-Syntax: `pushkin install experiment`
+```bash
+pushkin install experiment
+```
 
-Downloads an experiment template. First will prompt for which experiment template \(see current list [here](modifying-experiment-templates/README.md#current-templates)\), then prompt for a version to be selected. Most often, the latest version will be the best option.
+The `install experiment` command helps users set up a new experiment using one of the available Pushkin experiment templates. Upon executing this command, you will be prompted to name your experiment and select an experiment template. Depending on the chosen method (`path`, `url`, or a pre-built template), the command will either download the chosen template or copy it from the provided path, creating a directory with the given experiment name.
 
-If you select the basic template, you will also be asked if you want to import a plain jsPsych experiment.html. If you answer 'yes', a new experiment.js will be automatically generated from the provided file. If you answer 'no', experiment.js will remain as a "Hello, world!" example.
+**Optional arguments**
 
-The command `pushkin install experiment` has two optional arguments: `--verbose` and `--help`.
+- verbose: `pushkin install experiment --verbose` provides additional console output, useful for debugging.
+  
+- help: `pushkin install experiment --help` displays the command's help information.
 
-Run `pushkin install experiment --verbose` to see additional console output which may be helpful for debugging.
+**Template Choices:**
 
-Running `pushkin install experiment --help` will display help for the command.
+1. Pre-built templates: Select from available experiment templates included in the Pushkin distribution.
+   
+2. URL templates: Provide a URL to a GitHub repository containing an experiment template. The command fetches the list of available versions and prompts for selection.
+   
+3. Path templates: Specify the absolute path to a local directory with the experiment template, and the command will copy from there.
+
+The command also integrates a new experiment into the Pushkin framework. It performs key tasks such as updating file strings to reflect the new experiment's name, setting up database migrations, initializing essential directories for the experiment's API, webpage, and worker, and ensuring the experiment is correctly configured in the Docker environment.  The API and webpage components are then published using yalc. The command also manages the listing of API controllers to prevent overlaps.
 
 #### Details of importing an existing jsPsych experiment
 
 Selecting the basic template (v5+) will give you the option to import an existing jsPsych experiment (note that the latest basic template and thus this feature only support jsPsych 7+). This feature assumes a workflow where you first implement the basics of your experiment design as a standalone jsPsych experiment, which is a bit faster to test, before turning it into a Pushkin experiment. This feature executes two tasks: (1) identifying which jsPsych plugins you're using and (2) extracting the code which builds up the experiment's timeline. In order for these tasks to be sucessful, keep the following in mind:
 
-- **Plugin identification**
+**Plugin identification**
 
-  - Only jsPsych plugins available via npm can be added automatically (any package scoped under [@jspsych](https://www.npmjs.com/org/jspsych), [@jspsych-contrib](https://www.npmjs.com/org/jspsych-contrib), or [@jspsych-timelines](https://www.npmjs.com/org/jspsych-timelines)). Custom plugins can still be used in your experiment, but you'll need to add them manually, as described [here](./modifying-experiment-templates/README.md#adding-custom-jspsych-plugins).
-  - Your experiment.html must use CDN-hosted plugins or import the plugins from npm. Plugins which you've downloaded and are hosting yourself will not be added automatically. See [jsPsych's documentation](https://www.jspsych.org/7.3/tutorials/hello-world/) for details.
-  - If your experiment.html specifies a specific version of a plugin, `pushkin install experiment` records the version number or tag in a comment after the import statement in experiment.js. This comment, if present, is later read by `pushkin prep` in order to add that particular version to your experiment. Before running `prep`, you may edit the version number in order to change the version in your experiment, but be careful not to change the format of the comment.
-  - If you you've forgetten to import a plugin in experiment.html, it won't be added to your Pushkin experiment. In this case, your experiment.html wouldn't be running, so you should hopefully be aware of the problem before trying to import the experiment into Pushkin.
-  - Likewise, if you import any extraneous plugins that aren't being used in experiment.html, they will also be added to your Pushkin experiment.
+- Only jsPsych plugins available via npm can be added automatically (any package scoped under [@jspsych](https://www.npmjs.com/org/jspsych), [@jspsych-contrib](https://www.npmjs.com/org/jspsych-contrib), or [@jspsych-timelines](https://www.npmjs.com/org/jspsych-timelines)). Custom plugins can still be used in your experiment, but you'll need to add them manually, as described [here](./modifying-experiment-templates/README.md#adding-custom-jspsych-plugins).
+- Your experiment.html must use CDN-hosted plugins or import the plugins from npm. Plugins which you've downloaded and are hosting yourself will not be added automatically. See [jsPsych's documentation](https://www.jspsych.org/7.3/tutorials/hello-world/) for details.
+- If your experiment.html specifies a specific version of a plugin, `pushkin install experiment` records the version number or tag in a comment after the import statement in experiment.js. This comment, if present, is later read by `pushkin prep` in order to add that particular version to your experiment. Before running `prep`, you may edit the version number in order to change the version in your experiment, but be careful not to change the format of the comment.
+- If you you've forgetten to import a plugin in experiment.html, it won't be added to your Pushkin experiment. In this case, your experiment.html wouldn't be running, so you should hopefully be aware of the problem before trying to import the experiment into Pushkin.
+- Likewise, if you import any extraneous plugins that aren't being used in experiment.html, they will also be added to your Pushkin experiment.
 
-- **Timeline extraction**
+**Timeline extraction**
 
-  - This feature works simply by looking for the argument you provide to `jsPsych.run()` and copying everything from where that variable is declared until before `jsPsych.run()` is called. Consequently, the argument of `jsPsych.run()` must be the _name_ of an array of timeline objects, not the array itself.
-  - Likewise, whatever you name the argument of `jsPsych.run()`, it must be declared before any of its component timeline objects are created. This is fairly standard practice, as something like `const timeline = [];` is usually near the top of most jsPsych experiments.
-  - Your experiment's equivalent to `const timeline = [];` can't come before initializing jsPsych (i.e. `const jsPsych = initJsPsych();`). You don't want to call `initJsPsych()` in a Pushkin experiment.js (rather, it's called in index.js).
-  - Any specifications for your stimuli must be created inside your experiment.html between the two lines of the script mentioned above. If your stimuli rely on other files, you'll need to add them manually as described [here](./modifying-experiment-templates/README.md). This includes non-inline CSS styling (see the [lexical decision template](./modifying-experiment-templates/lexical-decision-template.md) for how to include custom CSS in the experiment.css file).
+- This feature works simply by looking for the argument you provide to `jsPsych.run()` and copying everything from where that variable is declared until before `jsPsych.run()` is called. Consequently, the argument of `jsPsych.run()` must be the _name_ of an array of timeline objects, not the array itself.
+- Likewise, whatever you name the argument of `jsPsych.run()`, it must be declared before any of its component timeline objects are created. This is fairly standard practice, as something like `const timeline = [];` is usually near the top of most jsPsych experiments.
+- Your experiment's equivalent to `const timeline = [];` can't come before initializing jsPsych (i.e. `const jsPsych = initJsPsych();`). You don't want to call `initJsPsych()` in a Pushkin experiment.js (rather, it's called in index.js).
+- Any specifications for your stimuli must be created inside your experiment.html between the two lines of the script mentioned above. If your stimuli rely on other files, you'll need to add them manually as described [here](./modifying-experiment-templates/README.md). This includes non-inline CSS styling (see the [lexical decision template](./modifying-experiment-templates/lexical-decision-template.md) for how to include custom CSS in the experiment.css file).
 
 ### updateDB
 
