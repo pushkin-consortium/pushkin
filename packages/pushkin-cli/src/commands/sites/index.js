@@ -13,17 +13,35 @@ const shell = require('shelljs');
 import pacMan from '../../pMan.js';  //which package manager is available?
 
 
-export const initSite = async () => {
+export const initSite = async (verbose) => {
   try {
+    // Check that there isn't already a package.json
+    if (fs.existsSync('package.json')) {
+      console.error("A package.json already exists in this directory. You should run `pushkin install site` in a new directory.");
+      process.exit(1);
+    }
+    if (fs.existsSync('pushkin')) {
+      console.error("A `pushkin` directory already exists here. You should run `pushkin install site` in a new directory.");
+      process.exit(1);
+    }
+    try {
+      // Make sure files with passwords don't get pushed to GitHub
+      const ignoreFiles = ['pushkin.yaml', '.docker', '.DS_Store', 'node_modules', 'build'];
+      fs.writeFileSync('.gitignore', ignoreFiles.join('\n'));
+    } catch (e) {
+      console.error('Unable to write .gitignore during site template setup');
+      process.exit(1);
+    }
     // Create the package.json
+    if (verbose) console.log("Setting up site package");
     await exec(`${pacMan} init -yp`);
     // Edit package.json
-    const packageJson = JSON.parse(fs.readFileSync('package.json'));
+    const packageJson = JSON.parse(fs.readFileSync('package.json'), 'utf8');
     delete packageJson.main;
     packageJson.name = 'pushkin-site';
     fs.writeFileSync('package.json', JSON.stringify(packageJson, null, 2));
   } catch (error) {
-    console.error('Error initializing site:', error);
+    console.error('Error setting up site package:', error);
   }
 }
 
@@ -49,6 +67,21 @@ export const promiseFolderInit = async (initDir, dir, verbose) => {
     throw(e)
   }
   return "Built"
+}
+
+export async function setupPushkinSite(verbose) {
+  if (verbose) console.log('--verbose flag set inside setupPushkinSite()');
+  shell.rm('-rf','__MACOSX'); // fs doesn't have a stable direct removal function yet      
+  return new Promise((resolve, reject) => {
+    // Move/rename pushkin.yaml and config.js in their proper locations
+    const pushkinYaml = fs.promises.rename('pushkin/pushkin.yaml.bak', './pushkin.yaml').catch((e) => { console.error(e); });
+    const configJS = fs.promises.rename('pushkin/config.js.bak', 'pushkin/front-end/src/config.js').catch((e) => { console.error(e); });
+    // Make the experiments directory
+    const mkExps = fs.promises.mkdir('experiments').catch((err) => { console.error(err); });
+    const apiPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'api', verbose).catch((err) => { console.error(err); });
+    const frontendPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'front-end', verbose).catch((err) => { console.error(err); });
+    resolve(Promise.all([pushkinYaml, configJS, mkExps, apiPromise, frontendPromise]));
+  })
 }
 
 export async function getPushkinSite(initDir, url, verbose) {

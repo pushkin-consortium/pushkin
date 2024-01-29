@@ -9,7 +9,7 @@ import 'regenerator-runtime/runtime';
 import { execSync, exec } from 'child_process'; // eslint-disable-line
 // subcommands
 import { listExpTemplates, getExpTemplate, copyExpTemplate, getJsPsychTimeline, getJsPsychPlugins, getJsPsychImports } from './commands/experiments/index.js';
-import { listSiteTemplates, getPushkinSite, copyPushkinSite } from './commands/sites/index.js';
+import { initSite, listSiteTemplates, getPushkinSite, copyPushkinSite } from './commands/sites/index.js';
 import { awsInit, nameProject, addIAM, awsArmageddon, awsList, createAutoScale } from './commands/aws/index.js'
 //import prep from './commands/prep/index.js'; //has to be separate from other imports from prep/index.js; this is the default export
 import {prep, setEnv} from './commands/prep/index.js';
@@ -394,63 +394,137 @@ const getVersions = async (url) => {
 const handleInstallSite = async (verbose) => {
   if (verbose) console.log('--verbose flag set inside handleInstallSite()');
   try {
-    // Fetch a list of available site templates
-    const siteList = await listSiteTemplates();
-    // Let the user select which template they want (or provide a path to their own)
-    inquirer.prompt([
-        { type: 'list', name: 'sites', choices: Object.keys(siteList).concat("path","url"), default: 0, message: 'Which site template do you want to use?'}
-    ]).then(answers => {
-      let siteType = answers.sites
-      if (siteType == "path") {
-        inquirer.prompt(
-          [{ type: 'input', name: 'path', message: 'What is the absolute path to your site template?'}]
-        ).then(async (answers) => {
-          await copyPushkinSite(process.cwd(), answers.path, verbose)
-          if (verbose) console.log("setting up transactions db");
-          await setupTestTransactionsDB(verbose) //Not distributed with sites since it's the same for all of them.
-        })
-      }else if (siteType == "url") {
-        inquirer.prompt(
-          [{ type: 'input', name: 'url', message: 'What is the url for your site template (this should begin with "https://" and end with "releases", but either api.github.com or github.com URLs are accepted)?'}]
-        ).then((answers) => {
-          let templateURL = answers.url
-          // Check whether URL is for GitHub API and, if not, convert it so it works with getPushkinSite()
-          if (templateURL.startsWith('https://github.com')) {
-            templateURL = templateURL.replace('github.com', 'api.github.com/repos')
-          }
-          // Check URL to make sure it doesn't end with slash, since that will mess up GitHub API URLs
-          if (templateURL.endsWith('/')) {
-            templateURL = templateURL.slice(0,-1) // Remove the last character (i.e. '/')
-          }
-          // Fetch a list of available versions of the selected template
-          getVersions(templateURL)
-          .then((verList) => {
-            inquirer.prompt(
-              [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version?'}]
-            ).then(async (answers) => {
-              await getPushkinSite(process.cwd(), verList[answers.version], verbose)
-              if (verbose) console.log("setting up transactions db");
-              await setupTestTransactionsDB(verbose) //Not distributed with sites since it's the same for all of them.
-            })
-          })
-        })
-      }else{
-        getVersions(siteList[siteType])
-        .then((verList) => {
-          inquirer.prompt(
-            [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version? (Recommend:'.concat(Object.keys(verList)[0]).concat(')')}]
-          ).then(async (answers) => {
-            await getPushkinSite(process.cwd(), verList[answers.version], verbose)
-            if (verbose) console.log("setting up transactions db");
-            await setupTestTransactionsDB(verbose) //Not distributed with sites since it's the same for all of them.
-          })
-        })
+    // Ask the user where they want to get their site template from
+    const siteSourcePrompt = await inquirer.prompt([
+      { type: 'list',
+        name: 'siteSource',
+        choices: [
+          { name: "Official Pushkin distribution (@pushkin)", value: 'pushkin', short: "@pushkin"},
+          { name: "Local path", value: 'path', short: "path" },
+          { name: "Another npm package", value: 'npm', short: "npm"}],
+        default: 0,
+        message: "Where do you want to look for site templates?"
       }
-    })
+    ]);
+    const siteSource = siteSourcePrompt.siteSource;
+    if (siteSource === "path") {
+      // Ask the user for the path to their site template
+      const sitePathPrompt = await inquirer.prompt([
+        { type: 'input',
+          name: 'sitePath',
+          message: 'What is the absolute path to your site template?'
+        }
+      ])
+      const sitePath = sitePathPrompt.sitePath;
+      // Check that the path exists
+      if (!fs.existsSync(sitePath)) {
+        console.error('That path does not exist. Please try again!');
+        process.exit(1);
+      }
+      // Extract the package name from the package.json
+      let packageJson;
+      try {
+        packageJson = JSON.parse(fs.readFileSync(path.join(sitePath,'package.json'), 'utf8'));
+        if (!packageJson.scripts.postinstall) {
+          console.error("The site template package must have a postinstall script");
+          process.exit(1);
+        }
+      } catch (e) {
+        console.error('Could not parse site template package.json');
+        throw e;
+      }
+      // Locally publish the site template package
+      if (verbose) console.log("Locally publishing the site template package");
+      execSync('yalc publish', { cwd: sitePath });
+      // Initialize the user's site directory as a private package
+      await initSite(verbose);
+      // Install the site template as a dependency of the user's site
+      if (verbose) console.log("Installing the site template package");
+      execSync(`yalc add ${packageJson.name}@${packageJson.version}; yarn`);
+    } else if (siteSource === "npm") {
+      // Ask the user for the npm package for their site template
+      const npmSitePackagePrompt = await inquirer.prompt([
+        { type: 'input',
+          name: 'npmSitePackage',
+          message: "Enter the npm package info (e.g. my-pushkin-site@latest)."
+        }
+      ])
+      const npmSitePackage = npmSitePackagePrompt.npmSitePackage;
+
+    } else { // siteSource === "pushkin"
+      const siteList = await listSiteTemplates();
+      const siteTypePrompt = await inquirer.prompt([
+        { type: 'list',
+          name: 'siteType',
+          choices: Object.keys(siteList).concat("path"),
+          default: 0,
+          message: 'Which site template do you want to use?'
+        }
+      ]);
+      const siteType = siteTypePrompt.siteType;
+    }
+    // Set up the template files
+    if (verbose) console.log('Setting up site template files');
+    await setupPushkinSite(verbose);
+    if (verbose) console.log('Finished setting up site template files');
+    // Set up the transactions database
+    if (verbose) console.log("setting up transactions db");
+    await setupTestTransactionsDB(verbose) // Not distributed with sites since it's the same for all of them.
   } catch(e) {
-    throw e
+    throw e;
   }
 }
+    
+//     // Fetch a list of available site templates
+    
+//     // Let the user select which template they want (or provide a path to their own)
+    
+//     if (siteType == "path") {
+      
+      
+//     }
+//       else if (siteType == "url") {
+//         inquirer.prompt(
+//           [{ type: 'input', name: 'url', message: 'What is the url for your site template (this should begin with "https://" and end with "releases", but either api.github.com or github.com URLs are accepted)?'}]
+//         ).then((answers) => {
+//           let templateURL = answers.url
+//           // Check whether URL is for GitHub API and, if not, convert it so it works with getPushkinSite()
+//           if (templateURL.startsWith('https://github.com')) {
+//             templateURL = templateURL.replace('github.com', 'api.github.com/repos')
+//           }
+//           // Check URL to make sure it doesn't end with slash, since that will mess up GitHub API URLs
+//           if (templateURL.endsWith('/')) {
+//             templateURL = templateURL.slice(0,-1) // Remove the last character (i.e. '/')
+//           }
+//           // Fetch a list of available versions of the selected template
+//           getVersions(templateURL)
+//           .then((verList) => {
+//             inquirer.prompt(
+//               [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version?'}]
+//             ).then(async (answers) => {
+//               await getPushkinSite(process.cwd(), verList[answers.version], verbose)
+//               if (verbose) console.log("setting up transactions db");
+//               await setupTestTransactionsDB(verbose) //Not distributed with sites since it's the same for all of them.
+//             })
+//           })
+//         })
+//       }else{
+//         getVersions(siteList[siteType])
+//         .then((verList) => {
+//           inquirer.prompt(
+//             [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version? (Recommend:'.concat(Object.keys(verList)[0]).concat(')')}]
+//           ).then(async (answers) => {
+//             await getPushkinSite(process.cwd(), verList[answers.version], verbose)
+//             if (verbose) console.log("setting up transactions db");
+//             await setupTestTransactionsDB(verbose) //Not distributed with sites since it's the same for all of them.
+//           })
+//         })
+//       }
+//     })
+//   } catch(e) {
+//     throw e
+//   }
+// }
 
 const handleInstallExp = async (verbose) => {
   try {
