@@ -78,8 +78,9 @@ export async function setupPushkinSite(verbose) {
     const configJS = fs.promises.rename('pushkin/config.js.bak', 'pushkin/front-end/src/config.js').catch((e) => { console.error(e); });
     // Make the experiments directory
     const mkExps = fs.promises.mkdir('experiments').catch((err) => { console.error(err); });
-    const apiPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'api', verbose).catch((err) => { console.error(err); });
-    const frontendPromise = promiseFolderInit(path.join(initDir, 'pushkin'), 'front-end', verbose).catch((err) => { console.error(err); });
+    // Set up the api and front-end packages
+    const apiPromise = promiseFolderInit(path.join(process.cwd(), 'pushkin'), 'api', verbose).catch((err) => { console.error(err); });
+    const frontendPromise = promiseFolderInit(path.join(process.cwd(), 'pushkin'), 'front-end', verbose).catch((err) => { console.error(err); });
     resolve(Promise.all([pushkinYaml, configJS, mkExps, apiPromise, frontendPromise]));
   })
 }

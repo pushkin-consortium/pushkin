@@ -9,7 +9,7 @@ import 'regenerator-runtime/runtime';
 import { execSync, exec } from 'child_process'; // eslint-disable-line
 // subcommands
 import { listExpTemplates, getExpTemplate, copyExpTemplate, getJsPsychTimeline, getJsPsychPlugins, getJsPsychImports } from './commands/experiments/index.js';
-import { initSite, listSiteTemplates, getPushkinSite, copyPushkinSite } from './commands/sites/index.js';
+import { initSite, setupPushkinSite, listSiteTemplates, getPushkinSite, copyPushkinSite } from './commands/sites/index.js';
 import { awsInit, nameProject, addIAM, awsArmageddon, awsList, createAutoScale } from './commands/aws/index.js'
 //import prep from './commands/prep/index.js'; //has to be separate from other imports from prep/index.js; this is the default export
 import {prep, setEnv} from './commands/prep/index.js';
@@ -19,6 +19,7 @@ import { Command } from 'commander'
 import inquirer from 'inquirer'
 import got from 'got';
 const shell = require('shelljs');
+import pacMan from './pMan.js';  //which package manager is available?
 
 const version = require("../package.json").version
 
@@ -400,8 +401,9 @@ const handleInstallSite = async (verbose) => {
         name: 'siteSource',
         choices: [
           { name: "Official Pushkin distribution (@pushkin)", value: 'pushkin', short: "@pushkin"},
-          { name: "Local path", value: 'path', short: "path" },
-          { name: "Another npm package", value: 'npm', short: "npm"}],
+          { name: "Another npm package", value: 'npm', short: "npm"},
+          { name: "Local path", value: 'path', short: "path" }
+        ],
         default: 0,
         message: "Where do you want to look for site templates?"
       }
@@ -414,7 +416,7 @@ const handleInstallSite = async (verbose) => {
           name: 'sitePath',
           message: 'What is the absolute path to your site template?'
         }
-      ])
+      ]);
       const sitePath = sitePathPrompt.sitePath;
       // Check that the path exists
       if (!fs.existsSync(sitePath)) {
@@ -425,14 +427,21 @@ const handleInstallSite = async (verbose) => {
       let packageJson;
       try {
         packageJson = JSON.parse(fs.readFileSync(path.join(sitePath,'package.json'), 'utf8'));
+        if (!packageJson.scripts.build) {
+          console.error("The site template package must have a build script that zips the template files into build/template.zip");
+          process.exit(1);
+        }
         if (!packageJson.scripts.postinstall) {
-          console.error("The site template package must have a postinstall script");
+          console.error("The site template package must have a postinstall script that unzips the template files into the site directory");
           process.exit(1);
         }
       } catch (e) {
         console.error('Could not parse site template package.json');
         throw e;
       }
+      // Make sure the package has been built
+      if (verbose) console.log("Building the site template package");
+      execSync(`${pacMan} build`, { cwd: sitePath });
       // Locally publish the site template package
       if (verbose) console.log("Locally publishing the site template package");
       execSync('yalc publish', { cwd: sitePath });
@@ -440,7 +449,7 @@ const handleInstallSite = async (verbose) => {
       await initSite(verbose);
       // Install the site template as a dependency of the user's site
       if (verbose) console.log("Installing the site template package");
-      execSync(`yalc add ${packageJson.name}@${packageJson.version}; yarn`);
+      execSync(`yalc add ${packageJson.name}@${packageJson.version}; ${pacMan} install`);
     } else if (siteSource === "npm") {
       // Ask the user for the npm package for their site template
       const npmSitePackagePrompt = await inquirer.prompt([
