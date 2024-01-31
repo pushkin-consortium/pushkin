@@ -166,7 +166,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     brew install yarn
     ```
     
-    ![](../assets/getting-started/installation/ezgif.com-video-to-gif-2-%20%281%29%20%281%29.gif)
+    ![](../assets/getting-started/installation/install-yarn.gif)
 
     You can check your version with `yarn --version`.
 
@@ -215,7 +215,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     yarn global add yalc
     ```
     
-    ![](../assets/getting-started/installation/ezgif.com-video-to-gif-6-%20%281%29.gif)
+    ![](../assets/getting-started/installation/add-yalc.gif)
 
 === "Ubuntu Linux"
     Install Yalc globally:
@@ -242,7 +242,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     yarn global add pushkin-cli
     ```
     
-    ![](../assets/getting-started/installation/ezgif.com-video-to-gif-3-%20%281%29%20%281%29.gif)
+    ![](../assets/getting-started/installation/add-pushkin-cli.gif)
     
     Confirm that pushkin-cli is installed by running:
 
@@ -252,7 +252,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
     
     You should see a list of commands with some documentation for each.
     
-    ![](../assets/getting-started/installation/ezgif.com-video-to-gif-1-%20%281%29%20%281%29.gif)
+    ![](../assets/getting-started/installation/pushkin-help.gif)
     
     Confirm that you have version `2.0.0` or later by running:
 
@@ -311,7 +311,7 @@ The first step for new users of Pushkin is to install Pushkin's command line int
 === "Mac"
     Next, install [Docker](https://docs.docker.com/get-docker/).
 
-    ![](../assets/getting-started/installation/ezgif.com-video-to-gif-5-%20%281%29%20%281%29.gif)
+    ![](../assets/getting-started/installation/install-docker.gif)
     
     Confirm that you have at least Docker Engine 23.0 by running `docker --version`.
 
