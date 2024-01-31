@@ -20,6 +20,8 @@ import inquirer from 'inquirer'
 import got from 'got';
 const shell = require('shelljs');
 import pacMan from './pMan.js';  //which package manager is available?
+import { get } from 'http';
+import { forEach } from 'shelljs/commands.js';
 
 const version = require("../package.json").version
 
@@ -369,116 +371,189 @@ const handleAWSArmageddon = async () => {
   return awsArmageddon(useIAM.iam, 'armageddon')
 }
 
-const getVersions = async (url) => {
-  //Function: getVersions()
-   //Retrieves URLs for versions of site and experiment templates.
-   //Parameters:
-   // url - a GitHub API URL to the releases of a site or experiment template repo
-   //Returns:
-   // verList - an object with keys as version names and values as GitHub API URLs for each version
+// Allowing for flexibility in scope, in case we ever do a pushkin-contrib scope or similar
+const getTemplates = async (scope, templateType, verbose) => {
   let response
   let body
-  let verList = {}
+  let templates = []
+  if (verbose) console.log('--verbose flag set inside getTemplates()')
+  if (verbose) console.log(`Fetching available ${templateType} templates`)
   try {
-    const response = await got(url);
-    body = JSON.parse(response.body)
-    body.forEach((r) => { // Loop through the objects corresponding to each version
-      verList[r.tag_name] = r.url; // Fill out verList object with GitHub API URLs for each version
-    })
+    // Search with npm API for all packages under given scope (250 is max number of results; 20 is default limit)
+    response = await got(`https://registry.npmjs.org/-/v1/search?text=scope:${scope}&size=250`);
+    body = JSON.parse(response.body);
+    body.objects.forEach((searchResult) => {
+      let template = searchResult.package.name
+      // If a template package matches the given scope and template type, add it to the list
+      // Note for exp templates, templateType will be "experiment", but the package name will start with "@pushkin/template-exp-"
+      if (template.startsWith(`@${scope}/${templateType === 'experiement' ? 'exp' : templateType}`))
+      templates.push(template);
+    });
+    templates.sort();
   } catch (error) {
-    console.error('Problem parsing github JSON');
-    throw error;
+    console.error(`Problem fetching available ${templateType} templates`);
+    process.exit(1);
   }
-  return verList
+  return templates;
 }
 
-const handleInstallSite = async (verbose) => {
-  if (verbose) console.log('--verbose flag set inside handleInstallSite()');
+const getVersions = async (packageName, verbose) => {
+  let response
+  let body
+  let versions = new Object();
+  if (verbose) console.log('--verbose flag set inside getVersions()')
+  if (verbose) console.log(`Fetching available versions of ${packageName}`)
   try {
-    // Ask the user where they want to get their site template from
-    const siteSourcePrompt = await inquirer.prompt([
+    response = await got(`https://registry.npmjs.org/${packageName}`);
+    body = JSON.parse(response.body);
+    // Extract version info and add to the versions object
+    versions.name = body.name // should equal packageName, but trying not to put user input into execSync()
+    versions.versionList = Object.keys(body.versions).reverse() // reverse the list so most recent versions are first
+    versions.latest = body['dist-tags'].latest
+  } catch (error) {
+    console.error(`Problem fetching available versions of ${packageName}`);
+    process.exit(1);
+  }
+  return versions;
+}
+
+const handleInstall = async (templateType, verbose) => {
+  if (verbose) console.log('--verbose flag set inside handleInstall()');
+  try {
+    /* The first major section of handleInstall() is mostly the same for both site and exp templates.
+    The goal is to determine which template the user wants, install it as a dependency of their site,
+    and copy the template files into the relevant directory (handled by the package's postinstall script).
+    In this first section, the only difference between site and exp templates is that for site templates,
+    the user's site directory must first be initialized as a private package before adding any dependencies.
+    The second major section of handleInstall() is different for site and exp templates,
+    since what we do with the template files differs between sites and experiments. */
+    
+    // Ask the user where they want to get their template from
+    const templateSourcePrompt = await inquirer.prompt([
       { type: 'list',
-        name: 'siteSource',
+        name: 'templateSource',
         choices: [
           { name: "Official Pushkin distribution (@pushkin)", value: 'pushkin', short: "@pushkin"},
-          { name: "Another npm package", value: 'npm', short: "npm"},
+          { name: "Elsewhere on npm", value: 'npm', short: "npm"},
           { name: "Local path", value: 'path', short: "path" }
         ],
         default: 0,
-        message: "Where do you want to look for site templates?"
+        message: `Where do you want to look for ${templateType} templates?`
       }
     ]);
-    const siteSource = siteSourcePrompt.siteSource;
-    if (siteSource === "path") {
-      // Ask the user for the path to their site template
-      const sitePathPrompt = await inquirer.prompt([
+    const templateSource = templateSourcePrompt.templateSource;
+    
+    if (templateSource === "path") {
+      // Ask the user for the path to their template
+      const templatePathPrompt = await inquirer.prompt([
         { type: 'input',
-          name: 'sitePath',
-          message: 'What is the absolute path to your site template?'
+          name: 'templatePath',
+          message: `What is the absolute path to your ${templateType} template?`
         }
       ]);
-      const sitePath = sitePathPrompt.sitePath;
+      const templatePath = templatePathPrompt.templatePath;
       // Check that the path exists
-      if (!fs.existsSync(sitePath)) {
+      if (!fs.existsSync(templatePath)) {
         console.error('That path does not exist. Please try again!');
         process.exit(1);
       }
-      // Extract the package name from the package.json
+      // Extract the package.json and check that it has the necessary scripts
       let packageJson;
       try {
-        packageJson = JSON.parse(fs.readFileSync(path.join(sitePath,'package.json'), 'utf8'));
+        packageJson = JSON.parse(fs.readFileSync(path.join(templatePath,'package.json'), 'utf8'));
         if (!packageJson.scripts.build) {
-          console.error("The site template package must have a build script that zips the template files into build/template.zip");
+          console.error(`The ${templateType} template package must have a build script that zips the template files into build/template.zip`);
           process.exit(1);
         }
         if (!packageJson.scripts.postinstall) {
-          console.error("The site template package must have a postinstall script that unzips the template files into the site directory");
+          console.error(`The ${templateType} template package must have a postinstall script that unzips the template files into the ${templateType} directory`);
           process.exit(1);
         }
       } catch (e) {
-        console.error('Could not parse site template package.json');
+        console.error('Could not parse template package.json');
         throw e;
       }
       // Make sure the package has been built
-      if (verbose) console.log("Building the site template package");
-      execSync(`${pacMan} build`, { cwd: sitePath });
-      // Locally publish the site template package
-      if (verbose) console.log("Locally publishing the site template package");
-      execSync('yalc publish', { cwd: sitePath });
-      // Initialize the user's site directory as a private package
-      await initSite(verbose);
-      // Install the site template as a dependency of the user's site
-      if (verbose) console.log("Installing the site template package");
+      if (verbose) console.log(`Building the ${templateType} template package`);
+      execSync(`${pacMan} build`, { cwd: templatePath });
+      // Locally publish the template package
+      if (verbose) console.log(`Locally publishing the ${templateType} template package`);
+      execSync('yalc publish', { cwd: templatePath });
+      // If the user is installing a site template, initialize the user's site directory as a private package
+      if (templateType === "site") {
+        await initSite(verbose);
+      }
+      // Install the template as a dependency of the user's site
+      if (verbose) console.log(`Installing the ${templateType} template package`);
       execSync(`yalc add ${packageJson.name}@${packageJson.version}; ${pacMan} install`);
-    } else if (siteSource === "npm") {
-      // Ask the user for the npm package for their site template
-      const npmSitePackagePrompt = await inquirer.prompt([
-        { type: 'input',
-          name: 'npmSitePackage',
-          message: "Enter the npm package info (e.g. my-pushkin-site@latest)."
-        }
-      ])
-      const npmSitePackage = npmSitePackagePrompt.npmSitePackage;
+    
+    } else { // templateSource === "npm" || templateSource === "pushkin"
+      let templateName;
+      
+      if (templateSource === "pushkin") {
+        // If the user wants an official Pushkin template, fetch a list of available ones
+        const templateNames = await getTemplates('jspsych', 'plugin-', verbose);
+        // Ask the user which template they want to use
+        const templateNamePrompt = await inquirer.prompt([
+          { type: 'list',
+            name: 'templateName',
+            choices: templateNames,
+            message: `Which ${templateType} template would you like to use?`
+          }
+        ]);
+        templateName = templateNamePrompt.templateName;
+      
+      } else { // templateSource === "npm"
+        // Ask the user for the npm package for their template
+        const npmTemplateNamePrompt = await inquirer.prompt([
+          { type: 'input',
+            name: 'npmTemplateName',
+            message: "What is the name of the npm package?"
+          }
+        ])
+        templateName = npmTemplateNamePrompt.npmTemplateName;
+      }
 
-    } else { // siteSource === "pushkin"
-      const siteList = await listSiteTemplates();
-      const siteTypePrompt = await inquirer.prompt([
+      // Fetch available versions of the template package
+      const templateVersions = await getVersions(templateName, verbose);
+      // Ask the user which version they want to use
+      const templateVersionPrompt = await inquirer.prompt([
         { type: 'list',
-          name: 'siteType',
-          choices: Object.keys(siteList).concat("path"),
-          default: 0,
-          message: 'Which site template do you want to use?'
+          name: 'templateVersion',
+          choices: templateVersions.versionList,
+          default: templateVersions.latest,
+          // If the user is using an official Pushkin site template, recommend the latest version
+          message: `Which version would you like to use?${templateSource === "pushkin" ? ` (Recommended: ${templateVersions.latest})` : ''}`
         }
       ]);
-      const siteType = siteTypePrompt.siteType;
+      const templateVersion = templateVersionPrompt.templateVersion;
+      // Check that the package has a postinstall script (this check should only be necessary for unofficial templates)
+      const versionInfo = await got(`https://registry.npmjs.org/${templateVersions.name}/${templateVersion}`)
+      if (!JSON.parse(versionInfo.body).scripts.postinstall) {
+        console.error(`The ${templateType} template package must have a postinstall script that unzips the template files into the ${templateType} directory`);
+        process.exit(1);
+      }
+      // If the user is installing a site template, initialize the user's site directory as a private package
+      if (templateType === "site") {
+        await initSite(verbose);
+      }
+      // Install the template as a dependency of the user's site
+      if (verbose) console.log(`Installing the ${templateType} template package`);
+      // Using templateVersions.name rather than templateName out of an abundance of caution,
+      // as templateName can be user input, but templateVersions.name is always fetched from npm
+      execSync(`${pacMan} add ${templateVersions.name}@${templateVersion}; ${pacMan} install`);      
     }
-    // Set up the template files
-    if (verbose) console.log('Setting up site template files');
-    await setupPushkinSite(verbose);
-    if (verbose) console.log('Finished setting up site template files');
-    // Set up the transactions database
-    if (verbose) console.log("setting up transactions db");
-    await setupTestTransactionsDB(verbose) // Not distributed with sites since it's the same for all of them.
+    
+    // At this point, the behavior of handleInstall() diverges significantly for site and experiment templates
+    if (templateType === "site") {
+      // Set up the template files
+      if (verbose) console.log('Setting up site template files');
+      await setupPushkinSite(verbose);
+      if (verbose) console.log('Finished setting up site template files');
+      // Set up the transactions database
+      if (verbose) console.log("setting up transactions db");
+      await setupTestTransactionsDB(verbose) // Not distributed with sites since it's the same for all of them.
+    }
   } catch(e) {
     throw e;
   }
@@ -782,22 +857,21 @@ async function main() {
     .option('-v, --verbose', 'output extra debugging info')
     .description(`Install website ('site') or experiment template.`)
     .action((what, options) => {
-      if (what === 'site'){
-        try {
-          handleInstallSite(options.verbose)
-        } catch(e) {
-          console.error(e)
-          process.exit()
+      if (['site','experiment','exp'].includes(what)){
+        let templateType;
+        if (what === 'exp') {
+          templateType = 'experiment';
+        } else {
+          templateType = what;
         }
-      } else if (what === 'experiment' || what === 'exp') {
         try {
-          handleInstallExp(options.verbose)
+          handleInstall(templateType, options.verbose);
         } catch(e) {
-          console.error(e)
-          process.exit()
+          console.error(e);
+          process.exit();
         }
       } else {
-        console.error(`Command not recognized. Run 'pushkin --help' for help.`)
+        console.error(`Command not recognized. Run 'pushkin --help' for help.`);
       }
     });
 
