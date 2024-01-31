@@ -202,7 +202,7 @@ We will start with a simple lexical decision experiment. The code has been adapt
 
 ### Move the timeline
 
-Follow the [Quickstart](./quickstart/README.md) through `pushkin install site` or navigate to the root directory of an existing site. Create a new experiment named "lex" and select the latest version of the basic template:
+Follow the [Quickstart](./quickstart.md) through `pushkin install site` or navigate to the root directory of an existing site. Create a new experiment named "lex" and select the latest version of the basic template:
 
 ```bash
 pushkin install experiment

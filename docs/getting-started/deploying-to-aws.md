@@ -57,35 +57,35 @@ First, you will need to generate access keys. Best practices dictate that you [c
 
 To create an IAM user, sign into [Identity and Access Management](https://console.aws.amazon.com/iam/) in your AWS console using your root user credentials.
 
-![](../../assets/getting-started/deploying-to-aws/aws_8.gif)
+![](../assets/getting-started/deploying-to-aws/aws_8.gif)
 
 Navigate to *My Account* and enable access to billing data for IAM users.
 
-![](../../assets/getting-started/deploying-to-aws/aws_10.gif)
+![](../assets/getting-started/deploying-to-aws/aws_10.gif)
 
 Navigate back to [Identity and Access Management](https://console.aws.amazon.com/iam/), select *Users* in the left sidebar and click **Add user**. 
 
-![](../../assets/getting-started/deploying-to-aws/aws_12.gif)
+![](../assets/getting-started/deploying-to-aws/aws_12.gif)
 
 Set username as `Administrator` and click *Next: Permissions*.
 
-![](../../assets/getting-started/deploying-to-aws/aws_13.gif)
+![](../assets/getting-started/deploying-to-aws/aws_13.gif)
 
 Under the *Add user to group* tab, select **Create group**. Call the group name `Administrators` and check the *AdministratorAccess* job function in the list of policies. Then click *Create group* to continue.
 
-![](../../assets/getting-started/deploying-to-aws/aws_14.gif)
+![](../assets/getting-started/deploying-to-aws/aws_14.gif)
 
 Click through the *Tags* page, review your settings and click **Create user**. Download the CSV with login information.
 
-![](../../assets/getting-started/deploying-to-aws/aws_15.gif)
+![](../assets/getting-started/deploying-to-aws/aws_15.gif)
 
 Return to the *Users* page and select the **Security credentials** tab for the `Administrator` user you just created. 
 
-![](../../assets/getting-started/deploying-to-aws/aws_16.gif)
+![](../assets/getting-started/deploying-to-aws/aws_16.gif)
 
 Under *Access keys*, click **Create access keys**.
 
-![](../../assets/getting-started/deploying-to-aws/aws_17.gif)
+![](../assets/getting-started/deploying-to-aws/aws_17.gif)
 
 
 Run `aws configure --profile myprofile` (where you substitute `myprofile` with a name of your choosing; this is just in case you want to have multiple logins, which you probably will), pasting your Access Key ID and Secret Access key as needed.
@@ -102,7 +102,7 @@ Default region name [None]: us-east-1
 Default output format [None]: json
 ```
 
-![](../../assets/getting-started/deploying-to-aws/aws_24.gif)
+![](../assets/getting-started/deploying-to-aws/aws_24.gif)
 
 
 ### ECS CLI
@@ -124,7 +124,7 @@ To see the Access Key ID and Secret Access Key for a given profile, run the foll
 ```
 
 
-![](../../assets/getting-started/deploying-to-aws/aws_25.gif)
+![](../assets/getting-started/deploying-to-aws/aws_25.gif)
 
 
 ## Register a domain
@@ -133,7 +133,7 @@ To see the Access Key ID and Secret Access Key for a given profile, run the foll
 
 You can buy domains in many places, but there is some convenience to doing it through AWS itself, which is reasonably priced:
 
-![](../../assets/getting-started/deploying-to-aws/DomainPurchase.png)
+![](../assets/getting-started/deploying-to-aws/DomainPurchase.png)
 
 Cheaper domains on AWS currently cost around $12/yr, but if you would like a trendier domain, you can expect to pay more. Students may be able to get a free domain through [NameCheap for Education](https://nc.me/).
 
@@ -146,7 +146,7 @@ In order to have encryption&mdash;which you want!&mdash;you need a certificate. 
 3. Request a public certificate.
 4. Enter two your domain preceded by an `*` \(thus 'gameswithwords.org' would be entered as `*.gameswithwords.org`\).
 5. If you registered your domain with AWS, use DNS validation. Otherwise, follow the instructions.
-6. If you used AWS for your domain registration, Skip through the next couple of steps and click "request". If you did not, it may be more complicated. ![](../../assets/getting-started/deploying-to-aws/SSL.mov)
+6. If you used AWS for your domain registration, Skip through the next couple of steps and click "request". If you did not, it may be more complicated. ![](../assets/getting-started/deploying-to-aws/SSL.mov)
 7. If you used AWS for your domain registration, select the certificate from the list of certificates. Scroll down to "Domains" and click "Create records in Route 53". Select the domain from the list.
 
 
@@ -194,7 +194,7 @@ AWS will charge you for services you have running. If you are just doing a test 
  pushkin aws armageddon
 ```
 
-When it completes, Armageddon will list remaining services that it hasn't deleted. Armageddon is usually unable to delete everything the first time. This is certain services can't be deleted until other services have finished deleting. You will usually see an error message. Wait a few minutes and run `pushkin aws armageddon`. The second time should be the charm. If you are still having problems, see [deleting through the console](../../advanced/deploying/awsDeletion.md).
+When it completes, Armageddon will list remaining services that it hasn't deleted. Armageddon is usually unable to delete everything the first time. This is certain services can't be deleted until other services have finished deleting. You will usually see an error message. Wait a few minutes and run `pushkin aws armageddon`. The second time should be the charm. If you are still having problems, see [deleting through the console](../advanced/deploying/awsDeletion.md).
 
 **To get the latest news and updates on Pushkin, sign up for our newsletter** [**here.**](https://groups.google.com/g/pushkinjs)
 
@@ -203,7 +203,7 @@ When it completes, Armageddon will list remaining services that it hasn't delete
 
 After you have deployed to AWS, you will want to view your data. 
 
-An introduction to viewing your database with a Postgres manager is given in the [Quickstart](../../getting-started/quickstart/README.md#viewing-your-database-with-a-postgres-manager). Start there for information about how to download and install [pgAdmin](https://www.pgadmin.org/download/) and how to view your data when testing locally.
+An introduction to viewing your database with a Postgres manager is given in the [Quickstart](../getting-started/quickstart/README.md#viewing-your-database-with-a-postgres-manager). Start there for information about how to download and install [pgAdmin](https://www.pgadmin.org/download/) and how to view your data when testing locally.
 
 This tutorial will cover how to view your data from an AWS deployment. 
 

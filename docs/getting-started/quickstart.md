@@ -23,7 +23,7 @@ mkdir pushkin_quickstart
 cd pushkin_quickstart
 ```
 
-![](../assets/quickstart_1.gif)
+![](../assets/getting-started/quickstart/quickstart_1.gif)
 
 (For more on basic terminal commands, you can check out [this blog post](https://medium.com/@grace.m.nolan/terminal-for-beginners-e492ba10902a).)
 
@@ -35,7 +35,7 @@ pushkin install site
 
 You will be asked to select a site template to use. Choose **basic**, then choose the recommended version.
 
-![](../../assets/quickstart_2.gif)
+![](../assets/getting-started/quickstart/quickstart_2.gif)
 
 This sets up a skeleton website in the current folder and a development database. Once the command finishes, you should have a directory tree like this:
 
@@ -117,7 +117,7 @@ Then you'll be asked which experiment template you want to use. The **basic** te
 
 Repeat the process above but this time select the **lexical-decision** template. You can call this one `lexdec`. Now do the same thing for the **grammaticality-judgment** and **self-paced-reading** templates, naming them `gram` and `spr`.
 
-![](../../assets/quickstart_3.gif)
+![](../assets/getting-started/quickstart/quickstart_3.gif)
 
 The `experiments` directory of your site should now look like this:
 
@@ -170,7 +170,7 @@ Keeping all the files for an experiment within the same root folder is convenien
  pushkin prep
 ```
 
-![](../../assets/quickstart_4.gif)
+![](../assets/getting-started/quickstart/quickstart_4.gif)
 
 !!! note
     Don't worry: `pushkin prep` won't jumble up the files in the `pushkin_quickstart` directory you created; rather it reorganizes the files into Docker containers. There's never any need to "unprep" your site. You can run `pushkin prep`, make changes in your local site directory, re-run `pushkin prep`, and the changes you made will be reflected in Docker.
@@ -183,7 +183,7 @@ Now let’s look at your website! Start your local deploy by running:
  pushkin start
 ```
 
-![](../../assets/quickstart_5.gif)
+![](../assets/getting-started/quickstart/quickstart_5.gif)
 
 In a web browser, open [localhost](http://localhost) and you should see your site with the experiments you made. Click on the one you called `hello`. It should display "Hello world!". Complete the experiment by pressing any key. If you want to take a look at the other experiments you made, feel free to look over those now too.
 
@@ -193,7 +193,7 @@ When you are done looking at your website, stop the local deploy by running:
  pushkin stop
 ```
 
-![](../../assets/quickstart_7.gif)
+![](../assets/getting-started/quickstart/quickstart_7.gif)
 
 If you don’t do that, the web server will keep running in Docker until you quit Docker or restart. When the command has finished running, it should output `done`.
 
@@ -214,7 +214,7 @@ At this point, you should have generated some data by testing at least one of yo
 
 When you start pgAdmin, it will take a moment to load and then will appear as a new tab in your web browser. When you install it the first time, it will ask you to set a master password. This can be whatever you'd like, but make sure you keep it in a secure place.
 
-![](../assets/pgadmin_1.png)
+![](../assets/getting-started/quickstart/pgadmin_1.png)
 
 Under _Quick Links_, click **Add New Server**. Make sure you have run `pushkin start` and that your site is running in `localhost`. Then follow these steps:
 
@@ -223,7 +223,7 @@ Under _Quick Links_, click **Add New Server**. Make sure you have run `pushkin s
 3. Set the password to the default password, `example`, which you can find in `pushkin.yaml`.
 4. Click **Save** and your _Pushkin Testing_ server should appear in the left sidebar.
 
-![](../assets/pgadmin_2.gif)
+![](../assets/getting-started/quickstart/pgadmin_2.gif)
 
 To view your data tables, navigate to the left sidebar:
 
@@ -232,11 +232,11 @@ To view your data tables, navigate to the left sidebar:
 3. Select **Schemas**, which will also open its subitem **public**.
 4. Under **public**, choose **Tables**. 
 
-![](../assets/pgadmin_3.gif)
+![](../assets/getting-started/quickstart/pgadmin_3.gif)
 
 You should see a list of tables including some that end in `_stimulusResponses` corresponding to each of your experiments. Right click any one of those, hover over _View/Edit Data_, and click on **All Rows**, which will open a new pgAdmin tab displaying the records in that table.
 
-![](../assets/pgadmin_4.gif)
+![](../assets/getting-started/quickstart/pgadmin_4.gif)
 
 For more information on how to use pgAdmin, you can read their documentation [here](https://www.pgadmin.org/docs/).
 
