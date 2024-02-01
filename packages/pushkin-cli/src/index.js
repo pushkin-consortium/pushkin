@@ -433,7 +433,7 @@ const handleInstall = async (templateType, verbose) => {
       { type: 'list',
         name: 'templateSource',
         choices: [
-          { name: "Official Pushkin distribution (@pushkin)", value: 'pushkin', short: "@pushkin"},
+          { name: "Official Pushkin distribution (@pushkin-templates)", value: 'pushkin', short: "@pushkin-templates"},
           { name: "Elsewhere on npm", value: 'npm', short: "npm"},
           { name: "Local path", value: 'path', short: "path" }
         ],
@@ -492,7 +492,7 @@ const handleInstall = async (templateType, verbose) => {
       
       if (templateSource === "pushkin") {
         // If the user wants an official Pushkin template, fetch a list of available ones
-        const templateNames = await getTemplates('jspsych', 'plugin-', verbose);
+        const templateNames = await getTemplates('pushkin-templates', templateType, verbose);
         // Ask the user which template they want to use
         const templateNamePrompt = await inquirer.prompt([
           { type: 'list',
