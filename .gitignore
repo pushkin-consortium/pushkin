@@ -7,6 +7,12 @@ build/
 # Test files
 testing/
 
+# Ignore all LICENSE files...
+LICENSE
+# except for the one in the root
+!/LICENSE
+# Root LICENSE will be included when each package is published
+
 # Swap files
 *.swp
 
