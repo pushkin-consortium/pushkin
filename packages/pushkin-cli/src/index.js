@@ -512,7 +512,7 @@ const handleInstall = async (templateType, verbose) => {
       
       if (templateType === "site") {
         // For sites, just add and install the package
-        execSync(`yalc add ${packageJson.name}@${packageJson.version}; ${pacMan} install`);
+        execSync(`yalc add ${packageJson.name}@${packageJson.version} --dev; ${pacMan} install`);
       
       } else { // templateType === "experiment"
         // Make sure we're in the root of the site directory
@@ -520,9 +520,9 @@ const handleInstall = async (templateType, verbose) => {
         // Check if the package is already installed (affects postinstall script execution)
         let packageInstalled;
         const sitePackageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-        sitePackageJson.dependencies[packageJson.name] ? packageInstalled = true : packageInstalled = false;
+        sitePackageJson.devDependencies[packageJson.name] ? packageInstalled = true : packageInstalled = false;
         // Add the package
-        execSync(`yalc add ${packageJson.name}@${packageJson.version}`);
+        execSync(`yalc add ${packageJson.name}@${packageJson.version} --dev`);
         // Install or upgrade depending on whether the package was previously installed
         // Provide EXP_NAME environment variable so postinstall knows where to put the files
         execSync(`EXP_NAME=${shortName} ${pacMan} ${packageInstalled ? `upgrade ${packageJson.name}`: 'install'}`);        
@@ -581,7 +581,7 @@ const handleInstall = async (templateType, verbose) => {
       if (verbose) console.log(`Installing the ${templateType} template package`);
       // Using templateVersions.name rather than templateName out of an abundance of caution,
       // as templateName can be user input, but templateVersions.name is always fetched from npm
-      execSync(`${pacMan} add ${templateVersions.name}@${templateVersion}; ${pacMan} install`);      
+      execSync(`${pacMan} add ${templateVersions.name}@${templateVersion} --dev; ${pacMan} install`);      
     }
     
     // At this point, the behavior of handleInstall() diverges significantly for site and experiment templates
