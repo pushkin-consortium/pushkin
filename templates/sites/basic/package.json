@@ -21,14 +21,13 @@
     "build/*"
   ],
   "scripts": {
-    "test": "jest",
+    "test": "jest --passWithNoTests",
     "build": "mkdir -p build && cd src && zip -FS -r -q ../build/template.zip .",
     "prepack": "cp ../../../LICENSE .",
     "postinstall": "unzip build/template.zip -d $INIT_CWD"
   },
   "devDependencies": {
     "@babel/core": "^7.23.6",
-    "@babel/preset-env": "^7.23.6",
-    "jest": "^29.7.0"
+    "@babel/preset-env": "^7.23.6"
   }
 }

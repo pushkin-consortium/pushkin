@@ -423,11 +423,35 @@ const handleInstall = async (templateType, verbose) => {
     /* The first major section of handleInstall() is mostly the same for both site and exp templates.
     The goal is to determine which template the user wants, install it as a dependency of their site,
     and copy the template files into the relevant directory (handled by the package's postinstall script).
-    In this first section, the only difference between site and exp templates is that for site templates,
-    the user's site directory must first be initialized as a private package before adding any dependencies.
+
+    In this first section, the differences between site and exp templates are that:
+      1. For sites, the site directory must be initialized as a private package before adding any dependencies.
+      2. For experiments, we need to ask the user for the name of their experiment.
+    
     The second major section of handleInstall() is different for site and exp templates,
     since what we do with the template files differs between sites and experiments. */
     
+    let longName; // Only for experiments
+    let shortName; // Only for experiments
+    if (templateType === "experiment") {
+      // Ask the user for the name of their experiment
+      const expNamePrompt = await inquirer.prompt([
+        { type: 'input',
+          name: 'expName',
+          message: "What do you want to call your experiment?"
+        }
+      ]);
+      longName = expNamePrompt.expName;
+      // Make sure the experiment name begins with a letter
+      if (!/^[a-zA-z]/.test(longName)) {
+        console.error('Experiment names must begin with a letter');
+        process.exit(1);
+      }
+      // Create a short name for the experiment
+      // Remove any character that's not alphanumeric, underscore, or whitespace
+      // Then replace any whitespace with underscores
+      shortName = longName.replace(/[^\w\s]/g, "").replace(/\s/g, "_");
+    }
     // Ask the user where they want to get their template from
     const templateSourcePrompt = await inquirer.prompt([
       { type: 'list',
@@ -483,10 +507,26 @@ const handleInstall = async (templateType, verbose) => {
       if (templateType === "site") {
         await initSite(verbose);
       }
-      // Install the template as a dependency of the user's site
+      // Installation of the package differs slightly for sites and experiments
       if (verbose) console.log(`Installing the ${templateType} template package`);
-      execSync(`yalc add ${packageJson.name}@${packageJson.version}; ${pacMan} install`);
-    
+      
+      if (templateType === "site") {
+        // For sites, just add and install the package
+        execSync(`yalc add ${packageJson.name}@${packageJson.version}; ${pacMan} install`);
+      
+      } else { // templateType === "experiment"
+        // Make sure we're in the root of the site directory
+        moveToProjectRoot();
+        // Check if the package is already installed (affects postinstall script execution)
+        let packageInstalled;
+        const sitePackageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+        sitePackageJson.dependencies[packageJson.name] ? packageInstalled = true : packageInstalled = false;
+        // Add the package
+        execSync(`yalc add ${packageJson.name}@${packageJson.version}`);
+        // Install or upgrade depending on whether the package was previously installed
+        // Provide EXP_NAME environment variable so postinstall knows where to put the files
+        execSync(`EXP_NAME=${shortName} ${pacMan} ${packageInstalled ? `upgrade ${packageJson.name}`: 'install'}`);        
+      }
     } else { // templateSource === "npm" || templateSource === "pushkin"
       let templateName;
       
