@@ -45,7 +45,7 @@ const loadConfig = (configFile) => {
       resolve(jsYaml.safeLoad(fs.readFileSync(configFile, 'utf8')));
     } catch (e) { 
       console.error(`Pushkin config file missing, error: ${e}`); 
-      process.exit(); 
+      process.exit(1); 
     }
   })
 };
@@ -433,8 +433,12 @@ const handleInstall = async (templateType, verbose) => {
     
     let longName; // Only for experiments
     let shortName; // Only for experiments
+    let config; // Only for experiments
     if (templateType === "experiment") {
+      // Make sure we're in the root of the site directory
+      moveToProjectRoot();
       // Ask the user for the name of their experiment
+      config = await loadConfig('pushkin.yaml');
       const expNamePrompt = await inquirer.prompt([
         { type: 'input',
           name: 'expName',
@@ -444,13 +448,18 @@ const handleInstall = async (templateType, verbose) => {
       longName = expNamePrompt.expName;
       // Make sure the experiment name begins with a letter
       if (!/^[a-zA-z]/.test(longName)) {
-        console.error('Experiment names must begin with a letter');
+        console.error('Experiment names must begin with a letter. Please choose a different name.');
         process.exit(1);
       }
       // Create a short name for the experiment
       // Remove any character that's not alphanumeric, underscore, or whitespace
       // Then replace any whitespace with underscores
       shortName = longName.replace(/[^\w\s]/g, "").replace(/\s/g, "_");
+      // Check that the experiment name is not already in use
+      if (fs.existsSync(path.join(process.cwd(), config.experimentsDir, shortName))) {
+        console.error('An experiment with this name already exists. Please choose a different name.');
+        process.exit(1);
+      }
     }
     // Ask the user where they want to get their template from
     const templateSourcePrompt = await inquirer.prompt([
@@ -481,16 +490,12 @@ const handleInstall = async (templateType, verbose) => {
         console.error('That path does not exist. Please try again!');
         process.exit(1);
       }
-      // Extract the package.json and check that it has the necessary scripts
+      // Extract the package.json and check that it has the necessary build script
       let packageJson;
       try {
         packageJson = JSON.parse(fs.readFileSync(path.join(templatePath,'package.json'), 'utf8'));
-        if (!packageJson.scripts.build) {
+        if (!packageJson.scripts.build || !packageJson.scripts.build.includes('build/template.zip')) {
           console.error(`The ${templateType} template package must have a build script that zips the template files into build/template.zip`);
-          process.exit(1);
-        }
-        if (!packageJson.scripts.postinstall) {
-          console.error(`The ${templateType} template package must have a postinstall script that unzips the template files into the ${templateType} directory`);
           process.exit(1);
         }
       } catch (e) {
@@ -509,24 +514,17 @@ const handleInstall = async (templateType, verbose) => {
       }
       // Installation of the package differs slightly for sites and experiments
       if (verbose) console.log(`Installing the ${templateType} template package`);
-      
-      if (templateType === "site") {
-        // For sites, just add and install the package
-        execSync(`yalc add ${packageJson.name}@${packageJson.version} --dev; ${pacMan} install`);
-      
-      } else { // templateType === "experiment"
-        // Make sure we're in the root of the site directory
-        moveToProjectRoot();
-        // Check if the package is already installed (affects postinstall script execution)
-        let packageInstalled;
-        const sitePackageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-        sitePackageJson.devDependencies[packageJson.name] ? packageInstalled = true : packageInstalled = false;
-        // Add the package
-        execSync(`yalc add ${packageJson.name}@${packageJson.version} --dev`);
-        // Install or upgrade depending on whether the package was previously installed
-        // Provide EXP_NAME environment variable so postinstall knows where to put the files
-        execSync(`EXP_NAME=${shortName} ${pacMan} ${packageInstalled ? `upgrade ${packageJson.name}`: 'install'}`);        
+      // Add and install the package (this should work even for repeat installs of the same exp template)
+      execSync(`yalc add ${packageJson.name}@${packageJson.version} --dev; ${pacMan} install`);
+      // Unzip the template files into the appropriate directory
+      try {
+        if (verbose) console.log(`Unzipping template files into ${templateType} directory`);
+        execSync(`unzip .yalc/${packageJson.name}/build/template.zip ${templateType === 'experiment' ? `-d ${path.join(config.experimentsDir, shortName)}` : ''}`);
+      } catch (e) {
+        console.error(`Problem unzipping template files`);
+        throw e;
       }
+
     } else { // templateSource === "npm" || templateSource === "pushkin"
       let templateName;
       
@@ -581,7 +579,7 @@ const handleInstall = async (templateType, verbose) => {
       if (verbose) console.log(`Installing the ${templateType} template package`);
       // Using templateVersions.name rather than templateName out of an abundance of caution,
       // as templateName can be user input, but templateVersions.name is always fetched from npm
-      execSync(`${pacMan} add ${templateVersions.name}@${templateVersion} --dev; ${pacMan} install`);      
+      execSync(`${pacMan} add ${templateVersions.name}@${templateVersion} --dev; ${pacMan} install`);
     }
     
     // At this point, the behavior of handleInstall() diverges significantly for site and experiment templates

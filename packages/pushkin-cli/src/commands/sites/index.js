@@ -24,6 +24,10 @@ export const initSite = async (verbose) => {
       console.error("A `pushkin` directory already exists here. You should run `pushkin install site` in a new directory.");
       process.exit(1);
     }
+    if (fs.existsSync('users')) {
+      console.error("A `users` directory already exists here. You should run `pushkin install site` in a new directory.");
+      process.exit(1);
+    }
     try {
       // Make sure files with passwords don't get pushed to GitHub
       const ignoreFiles = ['pushkin.yaml', '.docker', '.DS_Store', 'node_modules', 'build'];

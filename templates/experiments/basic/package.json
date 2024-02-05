@@ -23,8 +23,7 @@
   "scripts": {
     "test": "jest",
     "build": "mkdir -p build && cd src && zip -FS -r -q ../build/template.zip .",
-    "prepack": "cp ../../../LICENSE .",
-    "postinstall": "unzip build/template.zip -d $INIT_CWD/experiments/$EXP_NAME"
+    "prepack": "cp ../../../LICENSE ."
   },
   "devDependencies": {
     "@babel/core": "^7.23.6",
