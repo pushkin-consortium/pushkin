@@ -4,7 +4,7 @@
 
 Pushkin’s modularity means that, in principle, you could probably use any javascript-based experiment engine to write your experiments. However, we highly recommend using [jsPsych](https://www.jspsych.org/). Pushkin has only been extensively tested with jsPsych, and all the documentation currently assumes you are using jsPsych.
 
-The tutorial below starts with a simple lexical decision task written in plain jsPsych 7. The tutorial below explains how to modify this code to run in Pushkin. **This is a recommended tutorial for learning the ropes, but a more complete experiment template for lexical decision is available to install through Pushkin ([**read more**](../advanced/modifying-experiment-templates/lexical-decision-template.md))**
+The tutorial below starts with a simple lexical decision task written in plain jsPsych 7. The tutorial below explains how to modify this code to run in Pushkin. **This is a recommended tutorial for learning the ropes, but a more complete experiment template for lexical decision is available to install through Pushkin ([**read more**](../exp-templates/template-exp-lexical-decision.md))**
 
 If you are not familiar with jsPsych, please consult the [documentation](https://www.jspsych.org/) first. We recommend you also walk through some of the tutorials.
 
@@ -248,7 +248,7 @@ From the jsPsych code [above](#initial-code), copy everything between `const tim
 
 ### Import plugins
 
-In the jsPsych code [above](#initial-code), plugins are loaded with `<script>` tags. In a Pushkin experiment, plugins are loaded with `import` statements. The basic template already includes the html-keyboard-response plugin as a dependency, so no additional modifications are needed. If you wanted to add additional jsPsych plugins to this experiment, you would simply use additional import statements in the same format (see examples [here](../advanced/modifying-experiment-templates/README.md#adding-additional-jspsych-plugins)).
+In the jsPsych code [above](#initial-code), plugins are loaded with `<script>` tags. In a Pushkin experiment, plugins are loaded with `import` statements. The basic template already includes the html-keyboard-response plugin as a dependency, so no additional modifications are needed. If you wanted to add additional jsPsych plugins to this experiment, you would simply use additional import statements in the same format (see examples [here](../advanced/customizing-experiments.md)).
 
 ### Moving CSS styling
 

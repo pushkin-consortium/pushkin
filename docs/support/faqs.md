@@ -23,7 +23,7 @@ If you want to run an unpublished development version of the CLI rather than a p
  yarn build
 ```
 
-Start Docker, navigate to the location where you want to install your Pushkin site, and create the directory just as in the [quickstart](../getting-started/quickstart/README.md#creating-a-basic-new-pushkin-site). Now instead of running `pushkin install site`, you can access the unpublished CLI command by running:
+Start Docker, navigate to the location where you want to install your Pushkin site, and create the directory just as in the [quickstart](../getting-started/quickstart.md). Now instead of running `pushkin install site`, you can access the unpublished CLI command by running:
 
 ```bash
  node [path_to_repo]/pushkin-cli/build/index.js install site

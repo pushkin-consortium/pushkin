@@ -244,13 +244,13 @@ For more information on how to use pgAdmin, you can read their documentation [he
 
 The following instructions should work whether you're using the desktop VS Code application or browser-based VS Code via GitHub Codespaces. Assuming you have installed SQLTools and the necessary Postgres driver, click on the SQLTools tab on the left side of the window. Click **Add New Connection** and you'll see some fields you need to fill out:
 
-![](../img/getting-started/quickstart/sqltools1.png)
+![](../assets/getting-started/quickstart/sqltools1.png)
 
 Name the connection whatever you want. We'll call it `Pushkin Test` here. For the database and username, fill in `test_db` and `postgres` respectively. These are Pushkin's default database configurations. For the _Use password_ field, select **Ask on connect**. Click **SAVE CONNECTION** at the bottom of that screen. You should now be prompted to fill in the password (`example`, unless you changed it earlier in you site's config file).
 
 You should see your connection in the left-hand window of the screen. Now select _Pushkin Test_ > *test_db* > _Schemas_ > _public_ > _Tables_.
 
-![](../img/getting-started/quickstart/sqltools2.png)
+![](../assets/getting-started/quickstart/sqltools2.png)
 
 You should see a list of tables including some that end in `_stimulusResponses` corresponding to each of your experiments. Right click any of those and select **Show Table Records**. You should now see any data you created for that experiment.
 

@@ -10,7 +10,7 @@ Deploy your basic Pushkin site and experiments to Amazon Web Services.
 
 Before you begin, make sure your have:
  
-1. Finished the [Quickstart](../quickstart.md), including [installing a Postgres manager](../quickstart.md##viewing-your-database-with-a-postgres-manager). 
+1. Finished the [Quickstart](./quickstart.md), including [installing a Postgres manager](quickstart.md#viewing-your-data). 
 2. Created an [Amazon Web Services](https://aws.amazon.com/free/?all-free-tier.sort-by=item.additionalFields.SortRank&all-free-tier.sort-order=asc) account. (**Note:** This must be done approximately 24 hours in advance of when you would like to follow this tutorial.) 
 
 <!---
@@ -29,7 +29,7 @@ You can change your ID at any point by re-running this command.
 
 [Install](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html) the AWS CLI. Install the version for your operating system, not the Docker image.
 
-Configuration steps will follow on the [next page](./configure-aws-and-ecs-clis.md).
+Configuration steps will follow on the [next page](#configure-the-aws-cli-and-ecs-clis).
 
 ### ECS CLI
 
@@ -184,7 +184,7 @@ AWS will charge you for services you have running. If you are just doing a test 
  pushkin aws armageddon
 ```
 
-When it completes, Armageddon will list remaining services that it hasn't deleted. Armageddon is usually unable to delete everything the first time. This is certain services can't be deleted until other services have finished deleting. You will usually see an error message. Wait a few minutes and run `pushkin aws armageddon`. The second time should be the charm. If you are still having problems, see [deleting through the console](../advanced/deploying/awsDeletion.md).
+When it completes, Armageddon will list remaining services that it hasn't deleted. Armageddon is usually unable to delete everything the first time. This is certain services can't be deleted until other services have finished deleting. You will usually see an error message. Wait a few minutes and run `pushkin aws armageddon`. The second time should be the charm. If you are still having problems, see [deleting through the console](link to relevant docs).
 
 **To get the latest news and updates on Pushkin, sign up for our newsletter** [**here.**](https://groups.google.com/g/pushkinjs)
 
@@ -193,7 +193,7 @@ When it completes, Armageddon will list remaining services that it hasn't delete
 
 After you have deployed to AWS, you will want to view your data. 
 
-An introduction to viewing your database with a Postgres manager is given in the [Quickstart](../getting-started/quickstart/README.md#viewing-your-database-with-a-postgres-manager). Start there for information about how to download and install [pgAdmin](https://www.pgadmin.org/download/) and how to view your data when testing locally.
+An introduction to viewing your database with a Postgres manager is given in the [Quickstart](./quickstart.md#viewing-your-data). Start there for information about how to download and install [pgAdmin](https://www.pgadmin.org/download/) and how to view your data when testing locally.
 
 This tutorial will cover how to view your data from an AWS deployment. 
 

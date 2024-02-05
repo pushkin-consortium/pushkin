@@ -2,8 +2,6 @@
 
 To install this experiment template, use the command `pushkin install experiment`, then select **reading**.
 
-![Self-paced reading experiment template, with the setting "moving word" (see below for details)](../../assets/ezgif.com-video-to-gif-7-.gif)
-
 ## config.js
 
 **comprehension**: If `true`, each self-paced reading trial will be followed by a two-alternative forced-choice comprehension question. If `false`, the experiment goes right to the next self-paced reading trial.

@@ -1,8 +1,8 @@
 # Lexical decision template
-{{ read_json('docs/img/exp-templates/template-exp-lexical-decision/stim.json') }}
+{{ read_json('docs/assets/exp-templates/template-exp-lexical-decision/stim.json') }}
 
 ```json
---8<-- "docs/img/exp-templates/template-exp-lexical-decision/stim.json"
+--8<-- "docs/assets/exp-templates/template-exp-lexical-decision/stim.json"
 ```
 
 

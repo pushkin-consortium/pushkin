@@ -8,7 +8,7 @@ hide:
 !!! warning
     **Due to an update in AWS resources, the CLI-based AWS deploy does not currently work and is being updated. In the meantime, you can still manually deploy to AWS.**
 
-<img src="img/pushkin_bw_w_text.png" height="400" width="450" alt="pushkin logo" style="display: block; margin: 0 auto">
+<img src="assets/pushkin_bw_w_text.png" height="400" width="450" alt="pushkin logo" style="display: block; margin: 0 auto">
 
 ### Pushkin provides a customizable, scalable ecosystem for massive online psychological experiments.
 

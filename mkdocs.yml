@@ -1,8 +1,8 @@
 site_name: Pushkin
 theme:
   name: material
-  favicon: 'img/pushkin_bw_no_text.png'
-  logo: 'img/pushkin_bw_no_text.png'
+  favicon: 'assets/pushkin_bw_no_text.png'
+  logo: 'assets/pushkin_bw_no_text.png'
   features:
     - navigation.top
     - navigation.instant
@@ -99,7 +99,6 @@ nav:
   - Developing with Pushkin: 'developers/developing-with-pushkin.md'
   - Getting Started on Development: 'developers/getting-started-on-development.md'
   - Overview of Technologies: 'developers/overview-of-tech.md'
-  - Testing with Jest: 'advanced/testing-pushkin-with-jest.md'
   - Working with Templates: 'developers/working-with-templates.md'
 - Support:
   - FAQs: 'support/faqs.md'

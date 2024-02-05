@@ -4,7 +4,7 @@
 
 From the perspective of the web server, a Pushkin experiment involves a number of distinct elements. There is the HTML/Javascript for the stimulus display and response recording \(the “front end”\). There is the database, where data are stored. There is the worker, which handles reading and writing from the database \(plus potentially many other behind-the-scenes work!\). Finally, there is the API, which communicates between the front end and the worker.
 
-For convenience, all the code is kept in the experiments folder as defined in `pushkin.yaml`. The CLI command [prep](../../packages/pushkin-cli.md###prep) automagically redistributes this code where it needs to go.
+For convenience, all the code is kept in the experiments folder as defined in `pushkin.yaml`. The CLI command [prep](../packages/pushkin-cli.md###prep) automagically redistributes this code where it needs to go.
 
 ## Experiment Config.yaml Files
 
@@ -136,7 +136,7 @@ This houses the front-end component of an experiment. Dependencies are listed in
 
 ## Recommended Structure
 
-At a minimum, the `web page/src` folder needs to contain an `index.js` file that includes all your experiment code. Technically, you don't even have to use jsPsych to implement your experiment. However, we recommend building on top of an [experiment template](../modifying-experiment-templates/README.md). The `src` folder in experiment templates contains both `index.js` and `experiment.js` files. `experiment.js`, contains a function `createTimeline()`, within which you construct a jsPsych timeline just as you would for a standard jsPsych experiment; `createTimeline()` is then exported to `index.js`. The core functionality of interest is here:
+At a minimum, the `web page/src` folder needs to contain an `index.js` file that includes all your experiment code. Technically, you don't even have to use jsPsych to implement your experiment. However, we recommend building on top of an [experiment template](../exp-templates/exp-templates-overview.md). The `src` folder in experiment templates contains both `index.js` and `experiment.js` files. `experiment.js`, contains a function `createTimeline()`, within which you construct a jsPsych timeline just as you would for a standard jsPsych experiment; `createTimeline()` is then exported to `index.js`. The core functionality of interest is here:
 
 ```javascript
   async startExperiment() {
@@ -170,13 +170,12 @@ At a minimum, the `web page/src` folder needs to contain an `index.js` file that
 
 A line of code worth noting is `on_data_update: (data) => pushkin.saveStimulusResponse(data)`. This uses a helper function from pushkin-client to save data each time the jsPsych [on_data_update callback](https://www.jspsych.org/7.3/overview/events/#on_data_update) is triggered (i.e. at the end of each trial). Saving data after each trial is generally good practice, as opposed to sending all the data at the end of the experiment. You could write this behavior into the timeline itself, but this helper function saves some typing.
 
-Finally, when the timeline finishes, `endExperiment()` will be called. In the current experiment templates, this simply adds a "Thank you for participating" message. [Current templates](../modifying-experiment-templates/README.md#current-templates) besides the basic template include some simple feedback which is specified _inside_ the jsPsych timeline; however, one might have reasons for integrating more complex feedback into `endExperiment()`.
+Finally, when the timeline finishes, `endExperiment()` will be called. In the current experiment templates, this simply adds a "Thank you for participating" message. [Current templates](../exp-templates/exp-templates-overview.md) besides the basic template include some simple feedback which is specified _inside_ the jsPsych timeline; however, one might have reasons for integrating more complex feedback into `endExperiment()`.
 
 ### Assets
 
 The `assets` folder primarily contains static assets that will be imported by React. It also contains a folder called `timeline`, which holds assets which are needed inside the jsPsych timeline (e.g. audiovisual stimuli). The contents of the timeline assets folder get copied to the site's `pushkin/front-end/public/experiments/[experiment_name]` folder during `pushkin prep`. The reason this is necessary is that jsPsych timelines are not compiled by React, so the contents of the `assets` directory will not be accessible when jsPsych runs. However, create-react-app provides a nifty workaround: `process.env.PUBLIC_URL` will point to the folder `pushkin/front-end/public` during runtime.
 
-See [here](../modifying-experiment-templates/README.md#adding-static-assets) for an example of how to refer to audiovisual stimulus files within a jsPsych timeline.
 
 ## Customizing the client
 

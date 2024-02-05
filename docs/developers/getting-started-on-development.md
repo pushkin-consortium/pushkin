@@ -40,7 +40,7 @@ After you `yarn add` all of the dependencies, you can write the test codes.
 
 ### yalc for pushkin-worker, pushkin-api, and pushkin-client
 
-If you are working on any of the utility packages ([pushkin-worker](https://github.com/pushkin-consortium/pushkin-worker), [pushkin-api](https://github.com/pushkin-consortium/pushkin-api), or [pushkin-client](https://github.com/pushkin-consortium/pushkin-client)), trying out your new code is not straightforward. These packages are included in the experiments and sites via npm. Normally, that means you can only include published versions. We can get around this using [`yalc`](https://github.com/wclr/yalc). You've probably already installed yalc if you've followed the Pushkin [installation instructions](../getting-started/installing-pushkin-and-dependencies/README.md). If not, install yalc:
+If you are working on any of the utility packages ([pushkin-worker](https://github.com/pushkin-consortium/pushkin-worker), [pushkin-api](https://github.com/pushkin-consortium/pushkin-api), or [pushkin-client](https://github.com/pushkin-consortium/pushkin-client)), trying out your new code is not straightforward. These packages are included in the experiments and sites via npm. Normally, that means you can only include published versions. We can get around this using [`yalc`](https://github.com/wclr/yalc). You've probably already installed yalc if you've followed the Pushkin [installation instructions](../getting-started/installation.md). If not, install yalc:
 
 ```bash
 yarn global add yalc
