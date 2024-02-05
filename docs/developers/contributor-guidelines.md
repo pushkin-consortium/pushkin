@@ -22,7 +22,7 @@ We welcome contributions of any scope. Before we can merge changes into the main
 
 ### Contributing to the documentation
 
-We are very appreciative of both small and large contributions to the documentation, from fixing a typo to adding a whole new tutorial. All of the documentation that appears on this site is contained in the [`/docs` folder](https://github.com/pushkin-consortium/pushkin/main/docs) of the repository. The documentation is built using [MkDocs](https://www.mkdocs.org/) and themed using [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/). You can edit any of the markdown files and submit a pull request to modify documentation.
+We are very appreciative of both small and large contributions to the documentation, from fixing a typo to adding a whole new tutorial. All of the documentation that appears on this site is contained in the [`/docs` folder](https://github.com/pushkin-consortium/pushkin/blob/main/docs) of the repository. The documentation is built using [MkDocs](https://www.mkdocs.org/) and themed using [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/). You can edit any of the markdown files and submit a pull request to modify documentation.
 
 For anything substantive, you'll want to build and view the site locally using poetry to test your changes. After making changes in your development branch/fork, follow [these](./documentation.md) steps to test the site.
 
