@@ -100,6 +100,7 @@ nav:
   - Getting Started on Development: 'developers/getting-started-on-development.md'
   - Overview of Technologies: 'developers/overview-of-tech.md'
   - Working with Templates: 'developers/working-with-templates.md'
+  - Security: 'developers/security.md'
 - Support:
   - FAQs: 'support/faqs.md'
   - Troubleshooting: 'support/troubleshooting.md'

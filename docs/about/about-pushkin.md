@@ -1,6 +1,6 @@
 # About Pushkin
 
-Pushkin is an open-source project created by [Joshua Hartshorne](https://www.bc.edu/bc-web/schools/mcas/departments/psychology/people/faculty-directory/joshua-hartshorne.html).
+Pushkin is an open-source project created by [Joshua Hartshorne](https://www.bc.edu/bc-web/schools/mcas/departments/psychology/people/faculty-directory/joshua-hartshorne.html). The goal of the Pushkin project is to help researchers efficiently create and maintain an online laboratory. These websites typically take — and Pushkin primarily supports — a citizen-science approach to participant recruitment, in which strategies such as gamification and virality motivate participation. As such, Pushkin aims to include everything researchers need for their online labs, including (but not limited to) customizable website and experiment templates, streamlined site deployment, and database tools. With Pushkin, researchers can focus more on experiment design and less on the intricacies of modern web development.
 
 ## Citation
 
