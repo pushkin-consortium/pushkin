@@ -8,7 +8,7 @@ import 'core-js/stable';
 import 'regenerator-runtime/runtime';
 import { execSync, exec } from 'child_process'; // eslint-disable-line
 // subcommands
-import { listExpTemplates, getExpTemplate, copyExpTemplate, getJsPsychTimeline, getJsPsychPlugins, getJsPsychImports } from './commands/experiments/index.js';
+import { listExpTemplates, getExpTemplate, copyExpTemplate, getJsPsychTimeline, getJsPsychPlugins, getJsPsychImports, setupPushkinExp } from './commands/experiments/index.js';
 import { initSite, setupPushkinSite, listSiteTemplates, getPushkinSite, copyPushkinSite } from './commands/sites/index.js';
 import { awsInit, nameProject, addIAM, awsArmageddon, awsList, createAutoScale } from './commands/aws/index.js'
 //import prep from './commands/prep/index.js'; //has to be separate from other imports from prep/index.js; this is the default export
@@ -20,8 +20,6 @@ import inquirer from 'inquirer'
 import got from 'got';
 const shell = require('shelljs');
 import pacMan from './pMan.js';  //which package manager is available?
-import { get } from 'http';
-import { forEach } from 'shelljs/commands.js';
 
 const version = require("../package.json").version
 
@@ -386,7 +384,7 @@ const getTemplates = async (scope, templateType, verbose) => {
       let template = searchResult.package.name
       // If a template package matches the given scope and template type, add it to the list
       // Note for exp templates, templateType will be "experiment", but the package name will start with "@pushkin/template-exp-"
-      if (template.startsWith(`@${scope}/${templateType === 'experiement' ? 'exp' : templateType}`))
+      if (template.startsWith(`@${scope}/${templateType === 'experiment' ? 'exp' : templateType}`))
       templates.push(template);
     });
     templates.sort();
@@ -434,6 +432,9 @@ const handleInstall = async (templateType, verbose) => {
     let longName; // Only for experiments
     let shortName; // Only for experiments
     let config; // Only for experiments
+    let templateName;
+    let templateVersion;
+
     if (templateType === "experiment") {
       // Make sure we're in the root of the site directory
       moveToProjectRoot();
@@ -502,31 +503,16 @@ const handleInstall = async (templateType, verbose) => {
         console.error('Could not parse template package.json');
         throw e;
       }
+      templateName = packageJson.name;
+      templateVersion = packageJson.version;
       // Make sure the package has been built
       if (verbose) console.log(`Building the ${templateType} template package`);
       execSync(`${pacMan} build`, { cwd: templatePath });
       // Locally publish the template package
       if (verbose) console.log(`Locally publishing the ${templateType} template package`);
       execSync('yalc publish', { cwd: templatePath });
-      // If the user is installing a site template, initialize the user's site directory as a private package
-      if (templateType === "site") {
-        await initSite(verbose);
-      }
-      // Installation of the package differs slightly for sites and experiments
-      if (verbose) console.log(`Installing the ${templateType} template package`);
-      // Add and install the package (this should work even for repeat installs of the same exp template)
-      execSync(`yalc add ${packageJson.name}@${packageJson.version} --dev; ${pacMan} install`);
-      // Unzip the template files into the appropriate directory
-      try {
-        if (verbose) console.log(`Unzipping template files into ${templateType} directory`);
-        execSync(`unzip .yalc/${packageJson.name}/build/template.zip ${templateType === 'experiment' ? `-d ${path.join(config.experimentsDir, shortName)}` : ''}`);
-      } catch (e) {
-        console.error(`Problem unzipping template files`);
-        throw e;
-      }
 
     } else { // templateSource === "npm" || templateSource === "pushkin"
-      let templateName;
       
       if (templateSource === "pushkin") {
         // If the user wants an official Pushkin template, fetch a list of available ones
@@ -564,25 +550,28 @@ const handleInstall = async (templateType, verbose) => {
           message: `Which version would you like to use?${templateSource === "pushkin" ? ` (Recommended: ${templateVersions.latest})` : ''}`
         }
       ]);
-      const templateVersion = templateVersionPrompt.templateVersion;
-      // Check that the package has a postinstall script (this check should only be necessary for unofficial templates)
-      const versionInfo = await got(`https://registry.npmjs.org/${templateVersions.name}/${templateVersion}`)
-      if (!JSON.parse(versionInfo.body).scripts.postinstall) {
-        console.error(`The ${templateType} template package must have a postinstall script that unzips the template files into the ${templateType} directory`);
-        process.exit(1);
-      }
-      // If the user is installing a site template, initialize the user's site directory as a private package
-      if (templateType === "site") {
-        await initSite(verbose);
-      }
-      // Install the template as a dependency of the user's site
-      if (verbose) console.log(`Installing the ${templateType} template package`);
-      // Using templateVersions.name rather than templateName out of an abundance of caution,
-      // as templateName can be user input, but templateVersions.name is always fetched from npm
-      execSync(`${pacMan} add ${templateVersions.name}@${templateVersion} --dev; ${pacMan} install`);
+      templateVersion = templateVersionPrompt.templateVersion;
+    }
+
+    // If the user is installing a site template, initialize the user's site directory as a private package
+    if (templateType === "site") {
+      await initSite(verbose);
+    }
+
+    // Add and install the package (this should work even for repeat installs of the same exp template)
+    if (verbose) console.log(`Installing the ${templateType} template package`);
+    execSync(`${ templateSource === 'path' ? 'yalc' : pacMan } add ${templateName}@${templateVersion} --dev; ${pacMan} install`);
+    // Unzip the template files into the appropriate directory
+    if (verbose) console.log(`Unzipping template files into ${templateType} directory`);
+    try {
+      execSync(`unzip node_modules/${templateName}/build/template.zip ${ templateType === 'experiment' ? `-d ${path.join(config.experimentsDir, shortName)}` : '' }`);
+    } catch (e) {
+      console.error(`Problem unzipping ${templateType} template files`);
+      throw e;
     }
     
     // At this point, the behavior of handleInstall() diverges significantly for site and experiment templates
+    
     if (templateType === "site") {
       // Set up the template files
       if (verbose) console.log('Setting up site template files');
@@ -591,62 +580,15 @@ const handleInstall = async (templateType, verbose) => {
       // Set up the transactions database
       if (verbose) console.log("setting up transactions db");
       await setupTestTransactionsDB(verbose) // Not distributed with sites since it's the same for all of them.
+    
+    } else { // templateType === "experiment"
+      if (verbose) console.log('Setting up experiment template files');
+      await setupPushkinExp(longName, shortName, path.join(config.experimentsDir, shortName), process.cwd(), verbose);
     }
   } catch(e) {
     throw e;
   }
 }
-    
-//     // Fetch a list of available site templates
-    
-//     // Let the user select which template they want (or provide a path to their own)
-    
-//     if (siteType == "path") {
-      
-      
-//     }
-//       else if (siteType == "url") {
-//         inquirer.prompt(
-//           [{ type: 'input', name: 'url', message: 'What is the url for your site template (this should begin with "https://" and end with "releases", but either api.github.com or github.com URLs are accepted)?'}]
-//         ).then((answers) => {
-//           let templateURL = answers.url
-//           // Check whether URL is for GitHub API and, if not, convert it so it works with getPushkinSite()
-//           if (templateURL.startsWith('https://github.com')) {
-//             templateURL = templateURL.replace('github.com', 'api.github.com/repos')
-//           }
-//           // Check URL to make sure it doesn't end with slash, since that will mess up GitHub API URLs
-//           if (templateURL.endsWith('/')) {
-//             templateURL = templateURL.slice(0,-1) // Remove the last character (i.e. '/')
-//           }
-//           // Fetch a list of available versions of the selected template
-//           getVersions(templateURL)
-//           .then((verList) => {
-//             inquirer.prompt(
-//               [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version?'}]
-//             ).then(async (answers) => {
-//               await getPushkinSite(process.cwd(), verList[answers.version], verbose)
-//               if (verbose) console.log("setting up transactions db");
-//               await setupTestTransactionsDB(verbose) //Not distributed with sites since it's the same for all of them.
-//             })
-//           })
-//         })
-//       }else{
-//         getVersions(siteList[siteType])
-//         .then((verList) => {
-//           inquirer.prompt(
-//             [{ type: 'list', name: 'version', choices: Object.keys(verList), default: 0, message: 'Which version? (Recommend:'.concat(Object.keys(verList)[0]).concat(')')}]
-//           ).then(async (answers) => {
-//             await getPushkinSite(process.cwd(), verList[answers.version], verbose)
-//             if (verbose) console.log("setting up transactions db");
-//             await setupTestTransactionsDB(verbose) //Not distributed with sites since it's the same for all of them.
-//           })
-//         })
-//       }
-//     })
-//   } catch(e) {
-//     throw e
-//   }
-// }
 
 const handleInstallExp = async (verbose) => {
   try {

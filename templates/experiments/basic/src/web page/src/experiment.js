@@ -5,7 +5,7 @@ export function createTimeline(jsPsych) {
 
     var hello_trial = {
         type: jsPsychHtmlKeyboardResponse,
-        stimulus: 'Hello world!'
+        stimulus: 'Hello, world!'
     }
 
     timeline.push(hello_trial);
