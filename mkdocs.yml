@@ -39,6 +39,7 @@ markdown_extensions:
   - admonition
   - attr_list
   - md_in_html
+  - pymdownx.details
   - pymdownx.highlight:
       anchor_linenums: true
       line_spans: __span
@@ -76,13 +77,13 @@ nav:
   - Simple Experiment Tutorial: 'getting-started/tutorial-simple-experiment.md'
 - Site templates:
   - Overview of site templates: 'site-templates/site-templates-overview.md'
-  - template-site-basic: 'site-templates/template-site-basic.md'
+  - site-basic: 'site-templates/site-basic.md'
 - Experiment templates:
   - Overview of experiment templates: 'exp-templates/exp-templates-overview.md'
-  - template-exp-basic: 'exp-templates/template-exp-basic.md'
-  - template-exp-lexical-decision: 'exp-templates/template-exp-lexical-decision.md'
-  - template-exp-grammaticality-judgment: 'exp-templates/template-exp-grammaticality-judgment.md'
-  - template-exp-self-paced-reading: 'exp-templates/template-exp-self-paced-reading.md'
+  - exp-basic: 'exp-templates/exp-basic.md'
+  - exp-lexical-decision: 'exp-templates/exp-lexical-decision.md'
+  - exp-grammaticality-judgment: 'exp-templates/exp-grammaticality-judgment.md'
+  - exp-self-paced-reading: 'exp-templates/exp-self-paced-reading.md'
 - Packages:
   - Overview of packages: 'packages/packages-overview.md'
   - pushkin-cli: 'packages/pushkin-cli.md'

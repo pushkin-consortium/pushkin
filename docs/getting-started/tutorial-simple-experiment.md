@@ -4,7 +4,7 @@
 
 Pushkin’s modularity means that, in principle, you could probably use any javascript-based experiment engine to write your experiments. However, we highly recommend using [jsPsych](https://www.jspsych.org/). Pushkin has only been extensively tested with jsPsych, and all the documentation currently assumes you are using jsPsych.
 
-The tutorial below starts with a simple lexical decision task written in plain jsPsych 7. The tutorial below explains how to modify this code to run in Pushkin. **This is a recommended tutorial for learning the ropes, but a more complete experiment template for lexical decision is available to install through Pushkin ([**read more**](../exp-templates/template-exp-lexical-decision.md))**
+The tutorial below starts with a simple lexical decision task written in plain jsPsych 7. The tutorial below explains how to modify this code to run in Pushkin. **This is a recommended tutorial for learning the ropes, but a more complete experiment template for lexical decision is available to install through Pushkin ([**read more**](../exp-templates/exp-lexical-decision.md))**
 
 If you are not familiar with jsPsych, please consult the [documentation](https://www.jspsych.org/) first. We recommend you also walk through some of the tutorials.
 
