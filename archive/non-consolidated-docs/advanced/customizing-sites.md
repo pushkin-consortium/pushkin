@@ -1,8 +1,9 @@
-# About Page
+## Customizing Sites
+### About Page
 
 The About page is wrapped in a fluid `Container` component, which is a full-width container, spanning the entire width of the viewport.
 
-## Card Image Overlays
+#### Card Image Overlays
 
 The `<Card.ImgOverlay>` component turns an image into a card background and overlays your card’s text:
 
@@ -23,7 +24,7 @@ The `<Card.ImgOverlay>` component turns an image into a card background and over
 </Card>
 ```
 
-## Add a Team Member In About Page
+#### Add a Team Member In About Page
 
 To add a team member to the About page, open `People.js` located in `components/TeamMember`, it should be an array of objects that look like this:
 
@@ -53,7 +54,7 @@ To add a profile picture of the team member. Copy the image file into the `asset
 
 Then edit the image property in `People.js`, making sure the name of the image file and the image property here match, including the extension name, like: `bob.jpg`.
 
-# Feedback Page
+### Feedback Page
 
 You can go to the feedback page by clicking the `HERE` button of  jumbotron in the home page or clicking the `Leave Feedback` button in the footer.
 
@@ -64,9 +65,9 @@ To embed a Google form into the feedback page:
 3. This will give you an `<iframe>` snippet to place on the site template.
 4. Change the `src` attribute in `<iframe>` to your Google form link, it is located in `pushkin/front-end/src/pages/Feedback.js`
 
-# Findings Page
+### Findings Page
 
-## Add a Findings Card
+#### Add a Findings Card
 
 To add a card to the findings page, open `FindingsData.js` located in `components/Findings`. You should see an array of objects that looks like this:
 
@@ -106,11 +107,11 @@ You can edit five of the properties: **title**, **image**, **description**, **li
 
 To add an external link, set link property to `true` and fill the url property. Then a Read More button will appear on the findings card.
 
-## CardGroup
+#### CardGroup
 
 The `<CardGroup>` component renders cards as a single, attached element with equal width and height columns. We wrapped card components in `<CardGroup>` inside a `<Container>` in the findings page.
 
-## Align Card Vertically in CardGroup
+#### Align Card Vertically in CardGroup
 
 Use two `<Col>` components wrapped in one `<Row>` inside cards:
 
@@ -131,25 +132,25 @@ The content in the first `<Col>` will be on the left side of the card. And the c
 
 For example, the first card in the findings page has its `<Card.Img>` in the first `<Col>`, `<Card.Body>`, `<Card.Title>`, `<Card.Text>` in the second `<Col>`
 
-# Header and Footer
+### Header and Footer
 
 The `Header.js` and `Footer.js` components are located in `pushkin/front-end/src/components/Layout`
 
-## Navbar logo
+#### Navbar logo
 
 To Change the logo in the navbar, copy your logo image into the `pushkin/front-end/src/assets/logo` folder, modify the path in `src={require("../../assets/images/logo/NavbarLogo.png")}` in the `<Navbar.Brand>`. You can also modify the logo’s size using the `width` and `height` attributes in the `<img />` tag.
 
-## Navbar Color Schemes
+#### Navbar Color Schemes
 
 Choose from `variant="light"` for use with light background colors, `variant="dark"` for dark background colors. Then, customize with the `bg` prop or any custom css! You can also use the `className` prop in the `<Navbar>` component, like `className="navbar-dark bg-dark"`
 
-## Footer
+### Footer
 
 The footer is wrapped in `<Row>` component. You can change the background color in the style prop: `style={{backgroundColor:'#eeeeee'}}`.
 
-# Home Page
+### Home Page
 
-## Add a Quiz
+#### Add a Quiz
 
 To add a quiz, run `pushkin install experiment`. Select the experiment template of choice \([see this list for the options](../advanced/customizing-experiments.md)\). This will create a pushkin experiment template in the `experiments/` folder.
 
@@ -203,7 +204,7 @@ export default [
 
 Then the new quiz card will be automatically added to the home page.
 
-## Jumbotron
+#### Jumbotron
 
 [The Jumbotron](https://react-bootstrap.github.io/components/jumbotron/) is a lightweight, flexible component that can optionally extend the entire viewport to showcase key content on your site.
 
@@ -226,11 +227,11 @@ Then the new quiz card will be automatically added to the home page.
 
 It includes a link to the feedback page and an anchor tag wrapped in `<LinkContainer>` component.
 
-## CardDeck
+#### CardDeck
 
 The `<CardDeck>` creates a grid of cards that are of equal height and width. The layout will automatically adjust as you insert more cards. We recommend putting every 3 cards in a card deck. Quizzes are wrapped in card decks in `Home.js` located in `pushkin/front-end/src/pages`.
 
-## Card
+#### Card
 
 [Bootstrap’s cards](https://react-bootstrap.netlify.app/components/cards/) provides a flexible and extensible content container with multiple variants and options:
 
@@ -325,11 +326,11 @@ The components inside a quiz card, in order from top to bottom, are:
 > * `<Button>`: Wrapped in `<LinkContainer>`
 > * `<SocialIcon>`: The [react social icons](https://www.npmjs.com/package/react-social-icons) provides a set of beautiful svg social icons.
 
-# React Bootstrap
+### React Bootstrap
 
 The pushkin site template uses [React-Bootstrap](https://react-bootstrap.github.io/) as its front-end UI library. It is a complete re-implementation of the Bootstrap components using React. It has no dependency on either bootstrap.js or jQuery.
 
-## Import Libraries
+#### Import Libraries
 
 You should import individual components like: `react-bootstrap/Button` rather than the entire library. Doing so pulls in only the specific components that you use, which can significantly reduce the amount of code you end up sending to the client:
 
@@ -340,7 +341,7 @@ import Button from 'react-bootstrap/Button';
 import { Button } from 'react-bootstrap';
 ```
 
-## Inline Styling
+### Inline Styling
 
 In React, inline styles are not specified as a string. Instead, they are specified with an object whose key is the camelCased version of the style name, and whose value is the style’s value, usually a string:
 
@@ -372,7 +373,7 @@ React lets you add CSS inline, written as attributes and passed to elements:
 <Container className="p-0" fluid style={styles.container}>
 ```
 
-## Spacing
+### Spacing
 
 React Bootstrap spacing is a utility that assigns responsive margin or padding classes to elements to modify their display position.
 
@@ -423,7 +424,7 @@ It means `marginLeft` is 2 and `marginRight` is 2 as well.
 
 It means margins of all sides \(left, right, top, bottom\) are 4.
 
-## LinkContainer
+### LinkContainer
 
 `<LinkContainer>` is a component of [react-router-bootstrap](https://github.com/react-bootstrap/react-router-bootstrap). Wrap your React Bootstrap element in a `<LinkContainer>` to make it behave like a React Router `<Link>` `<LinkContainer>` accepts same parameters as React Router’s `<NavLink>`
 
