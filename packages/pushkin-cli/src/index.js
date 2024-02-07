@@ -435,7 +435,25 @@ const handleInstall = async (templateType, verbose) => {
     let templateName;
     let templateVersion;
 
-    if (templateType === "experiment") {
+    if (templateType === "site") {
+      // Make sure the directory is empty prior to the site install
+      if (fs.readdirSync(process.cwd()).length > 0) {
+        const emptyDirPrompt = await inquirer.prompt([
+          { type: 'list',
+            name: 'yesImSure',
+            choices: [
+              { name: "Yes, I'm sure.", value: true },
+              { name: "No, I'll make a new directory and try again.", value: false}
+            ],
+            default: 1,
+            message: "The current directory already has some contents. Are you sure you want to install your site here?"
+          }
+        ]);
+        if (!emptyDirPrompt.yesImSure) {
+          process.exit(1);
+        }
+      }
+    } else { // templateType === "experiment"}
       // Make sure we're in the root of the site directory
       moveToProjectRoot();
       // Ask the user for the name of their experiment
