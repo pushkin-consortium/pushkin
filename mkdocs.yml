@@ -97,12 +97,12 @@ nav:
   - Getting Started on Development: 'developers/getting-started-on-development.md'
   - Overview of Technologies: 'developers/overview-of-tech.md'
   - Working with Templates: 'developers/working-with-templates.md'
-  - Security: 'developers/security.md'
 - Support:
   - FAQs: 'support/faqs.md'
   - Troubleshooting: 'support/troubleshooting.md'
   - GitHub Discussions: 'support/github-discussions.md'
   - Learning Resources: 'support/learning-resources.md'
+  - Security: 'support/security.md'
 - About:
   - About Pushkin: 'about/about-pushkin.md'
   - License: 'about/pushkin-license.md'
