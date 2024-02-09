@@ -105,9 +105,8 @@ export const setupPushkinExp = async (longName, shortName, expDir, rootDir, verb
     console.error(`Failed to read experiment config file for ${shortName}`);
     throw err;
   }
-  // Come back to these lines
+  // Allow the long name to be used in the config (before this it will be the same as the short name)
   expConfig.experimentName = longName;
-  expConfig.shortName = shortName;
 
   try {
     fs.writeFileSync(path.join(expDir, 'config.yaml'), jsYaml.safeDump(expConfig), 'utf8');
