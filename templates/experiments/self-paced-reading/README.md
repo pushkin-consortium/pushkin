@@ -1,5 +1,5 @@
-<img src="/web page/src/assets/pushkin_bw_w_text.png" height="400" width="450">
+<img src="https://raw.githubusercontent.com/pushkin-consortium/pushkin/main/docs/img/pushkin_bw_w_text.png" height="400" width="450" alt="pushkin logo">
 
-# pushkin-exptemplates-lexical
+# @pushkin-templates/exp-self-paced-reading
 
-Basic jsPsych self-paced reading experiment.
+A Pushkin experiment template containing a jsPsych self-paced-reading timeline.
