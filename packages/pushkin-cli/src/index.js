@@ -429,11 +429,12 @@ const handleInstall = async (templateType, verbose) => {
     The second major section of handleInstall() is different for site and exp templates,
     since what we do with the template files differs between sites and experiments. */
     
+    let templateName;
+    let templateVersion;
     let longName; // Only for experiments
     let shortName; // Only for experiments
     let config; // Only for experiments
-    let templateName;
-    let templateVersion;
+    let newExpJs; // Only for import of jsPsych experiment.html with basic exp template
 
     if (templateType === "site") {
       // Make sure the directory is empty prior to the site install
@@ -552,7 +553,7 @@ const handleInstall = async (templateType, verbose) => {
             name: 'npmTemplateName',
             message: "What is the name of the npm package?"
           }
-        ])
+        ]);
         templateName = npmTemplateNamePrompt.npmTemplateName;
       }
 
@@ -574,6 +575,66 @@ const handleInstall = async (templateType, verbose) => {
     // If the user is installing a site template, initialize the user's site directory as a private package
     if (templateType === "site") {
       await initSite(verbose);
+    }
+
+    // If the user is installing the basic experiment template, ask if they want to import a jsPsych experiment.html
+    if (templateType === "experiment" && templateName === '@pushkin-templates/exp-basic') {
+      const importExpPrompt = await inquirer.prompt([
+        { type: 'confirm',
+          name: 'importExp',
+          default: false,
+          message: "Would you like to import a jsPsych experiment.html?"
+        }
+      ]);
+      const importExp = importExpPrompt.importExp;
+      if (importExp) {
+        const expHtmlPathPrompt = await inquirer.prompt([
+          { type: 'input',
+            name: 'expHtmlPath',
+            message: "What is the absolute path to your experiment.html?"
+          }
+        ]);
+        const expHtmlPath = expHtmlPathPrompt.expHtmlPath;
+        if (!expHtmlPath) {
+          console.log("No path provided to jsPsych experiment; installing the basic template as is.");
+        } else if (!fs.existsSync(expHtmlPath) || !fs.lstatSync(expHtmlPath).isFile()) {
+          console.error("Invalid file path to jsPsych experiment; please try again.");
+          process.exit(1);
+        } else { // If the path looks valid, try to import the jsPsych experiment.html
+          const expHtmlPlugins = getJsPsychPlugins(expHtmlPath, verbose);
+          // If you wanted to add a feature to ask the user if there are additional plugins they want,
+          // here would probably be the place to implement it.
+          const expHtmlImports = getJsPsychImports(expHtmlPlugins, verbose);
+          const expHtmlTimeline = getJsPsychTimeline(expHtmlPath, verbose);
+          if (expHtmlImports && expHtmlTimeline) {
+            // Create the necessary import statements from the object of jsPsych plugins
+            let imports = '';
+            Object.keys(expHtmlImports).forEach((plugin) => {
+              // Check if plugin specifies version (i.e. 'Is there another "@" after initial one?')
+              if (plugin.slice(1).includes('@')) {
+                let pluginNoVersion = '@' + plugin.split('@')[1] // [1] will be the plugin name, add back leading '@'
+                let pluginVersion = plugin.split('@')[2] // [2] will be the version number
+                // Add version info as a comment after the import statement (to be read by prep later)
+                imports = imports.concat(`import ${expHtmlImports[plugin]} from '${pluginNoVersion}'; // version:${pluginVersion} //\n`);
+              } else {
+                imports = imports.concat(`import ${expHtmlImports[plugin]} from '${plugin}';\n`);
+              }
+            });
+            newExpJs = `${imports}\nexport function createTimeline(jsPsych) {\n${expHtmlTimeline}\nreturn timeline;\n}\n`;
+          } else {
+            const importErrorPrompt = await inquirer.prompt([
+              { type: 'confirm',
+                name: 'installBasic',
+                default: false,
+                message: "There was a problem importing your experiment.html. Would you like to install the basic template as is?"
+              }
+            ]);
+            if (!importErrorPrompt.installBasic) {
+              process.exit(1);
+            }
+          }
+        }
+      }
     }
 
     // Add and install the package (this should work even for repeat installs of the same exp template)
@@ -602,6 +663,11 @@ const handleInstall = async (templateType, verbose) => {
     } else { // templateType === "experiment"
       if (verbose) console.log('Setting up experiment template files');
       await setupPushkinExp(longName, shortName, path.join(config.experimentsDir, shortName), process.cwd(), verbose);
+      // Overwrite experiment.js with the imported jsPsych experiment if desired
+      if (newExpJs) {
+        if (verbose) console.log(`Writing new experiment.js file`);
+        fs.writeFileSync(path.join(process.cwd(), config.experimentsDir, shortName, 'web page/src/experiment.js'), newExpJs);
+      }
     }
   } catch(e) {
     throw e;
