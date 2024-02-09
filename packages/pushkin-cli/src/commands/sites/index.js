@@ -9,6 +9,10 @@ const shell = require('shelljs');
 import pacMan from '../../pMan.js';  //which package manager is available?
 
 
+/**
+ * Sets up a new Pushkin site as a private Node package so site and experiment templates can be added as dependencies.
+ * @param {boolean} verbose Output extra information to the console for debugging purposes.
+ */
 export const initSite = async (verbose) => {
   try {
     // Check that there isn't already a package.json
@@ -45,26 +49,36 @@ export const initSite = async (verbose) => {
   }
 }
 
-export const promiseFolderInit = async (initDir, dir, verbose) => {
+/**
+ * Installs dependencies and builds the front-end and API packages for Pushkin sites (also used for experiment workers).
+ * @param {string} initDir The directory containing the component.
+ * @param {string} component The name of the site/exp component (e.g. "front-end", "api").
+ * @param {boolean} verbose Output extra information to the console for debugging purposes.
+*/
+export const promiseFolderInit = async (initDir, component, verbose) => {
   if (verbose) {
     console.log('--verbose flag set inside promiseFolderInit()');
-    console.log(`Installing dependencies for ${dir}`);
+    console.log(`Installing dependencies for ${component}`);
   }
   try {
-    await exec(pacMan.concat(' --mutex network install'), { cwd: path.join(initDir, dir) })
-    if (verbose) console.log(`Building ${dir}`);
+    await exec(pacMan.concat(' --mutex network install'), { cwd: path.join(initDir, component) })
+    if (verbose) console.log(`Building ${component}`);
     updatePushkinJs(verbose); //synchronous
     setEnv(false, verbose); //synchronous
     if (verbose) console.log(`Building front end`);
-    await exec(pacMan.concat(' --mutex network run build'), { cwd: path.join(initDir, dir) })
-    if (verbose) console.log(`${dir} is built`);
+    await exec(pacMan.concat(' --mutex network run build'), { cwd: path.join(initDir, component) })
+    if (verbose) console.log(`${component} is built`);
   } catch(e) {
-    console.error(`Problem installing dependencies for ${dir}`)
+    console.error(`Problem installing dependencies for ${component}`)
     throw(e)
   }
   return "Built"
 }
 
+/**
+ * Performs setup tasks for a Pushkin site after template files have been copied into the site directory.
+ * @param {boolean} verbose Output extra information to the console for debugging purposes.
+*/
 export const setupPushkinSite = async (verbose) => {
   if (verbose) console.log('--verbose flag set inside setupPushkinSite()');
   shell.rm('-rf','__MACOSX'); // fs doesn't have a stable direct removal function yet      

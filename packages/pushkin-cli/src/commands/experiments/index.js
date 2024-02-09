@@ -9,38 +9,54 @@ const exec = util.promisify(require('child_process').exec);
 const shell = require('shelljs');
 import pacMan from '../../pMan.js'; //which package manager is available?
 
-
-const promiseExpFolderInit = async (initDir, dir, rootDir, modName, buildPath, verbose) => {
+/**
+ * Installs dependencies and builds the front-end and API packages for Pushkin sites (also used for experiment workers).
+ * @param {string} expDir The directory for a particular experiment.
+ * @param {string} expComponent The experiment component (e.g. "web page").
+ * @param {string} packageName The name of the experiment component package (e.g. "<exp>_web").
+ * @param {string} rootDir The root directory of the Pushkin site.
+ * @param {string} buildPath The path to the site component to which the experiment component will be added (e.g. "pushkin/front-end").
+ * @param {boolean} verbose Output extra information to the console for debugging purposes.
+*/
+const promiseExpFolderInit = async (expDir, expComponent, packageName, rootDir, buildPath, verbose) => {
   //Similar to 'promiseFolderInit' in sites/index.js.
   //Modified to take advantage of yalc (not relevant for sites)
   if (verbose) console.log('--verbose flag set inside promiseExpFolderInit()');
   return new Promise ((resolve, reject) => {
-    if (verbose) console.log(`Installing dependencies for ${dir}`);
+    if (verbose) console.log(`Installing dependencies for ${packageName}`);
     try {
-      exec(pacMan.concat(' --mutex network install'), { cwd: path.join(initDir, dir) })
+      exec(`${pacMan} --mutex network install`, { cwd: path.join(expDir, expComponent) })
         .then(() => {
-          if (verbose) console.log(`Building ${modName} from ${dir}`);
-          exec(pacMan.concat(' --mutex network run build'), { cwd: path.join(initDir, dir) })
+          if (verbose) console.log(`Building ${packageName} from ${expComponent}`);
+          exec(`${pacMan} --mutex network run build`, { cwd: path.join(expDir, expComponent) })
             .then(() => {
-              if (verbose) console.log(`${modName} is built`);
-              exec('yalc publish', { cwd: path.join(initDir, dir) })
+              if (verbose) console.log(`${packageName} is built`);
+              exec('yalc publish', { cwd: path.join(expDir, expComponent) })
                 .then(() => {
-                  if (verbose) console.log(`${modName} is published locally via yalc`);
-                  exec('yalc add '.concat(modName), { cwd: path.join(rootDir, buildPath) })
+                  if (verbose) console.log(`${packageName} is published locally via yalc`);
+                  exec(`yalc add ${packageName}`, { cwd: path.join(rootDir, buildPath) })
                     .then(() => {
-                      if (verbose) console.log(`${modName} added to build cycle via yalc`);                  
-                      resolve(modName)
+                      if (verbose) console.log(`${packageName} added to build cycle via yalc`);                  
+                      resolve(packageName)
                     })
                 })
             })
       })
     } catch (e) {
-      console.error(`Problem installing dependencies for ${dir}`)
+      console.error(`Problem installing dependencies for ${packageName}`)
       throw(e)
     }
   })
 }
 
+/**
+ * Performs setup tasks for a Pushkin experiment after template files have been copied into the experiment directory.
+ * @param {string} longName The full name of the experiment (may include whitespace or special characters).
+ * @param {string} shortName The shortened name of the experiment (only alphanumerics and underscores).
+ * @param {string} expDir The directory for a particular experiment.
+ * @param {string} rootDir The root directory of the Pushkin site.
+ * @param {boolean} verbose Output extra information to the console for debugging purposes.
+*/
 export const setupPushkinExp = async (longName, shortName, expDir, rootDir, verbose) => {
   if (verbose) console.log('--verbose flag set inside setupPushkinExp()');
   // Perform some basic checks on the experiment template
@@ -99,8 +115,8 @@ export const setupPushkinExp = async (longName, shortName, expDir, rootDir, verb
     console.error("Unable to update config.yaml");
     throw e
   }
-  const apiPromise = promiseExpFolderInit(expDir, expConfig.apiControllers.location, rootDir, `${shortName}_api`, 'pushkin/api', verbose).catch((err) => { console.error(err); });
-  const webPromise = promiseExpFolderInit(expDir, expConfig.webPage.location, rootDir, `${shortName}_web`, 'pushkin/front-end', verbose).catch((err) => { console.error(err); });
+  const apiPromise = promiseExpFolderInit(expDir, expConfig.apiControllers.location, `${shortName}_api`, rootDir, 'pushkin/api', verbose).catch((err) => { console.error(err); });
+  const webPromise = promiseExpFolderInit(expDir, expConfig.webPage.location, `${shortName}_web`, rootDir, 'pushkin/front-end', verbose).catch((err) => { console.error(err); });
   // note that worker uses a different function, because it doesn't need yalc; it's published straight to Docker
   const workerPromise = promiseFolderInit(expDir, 'worker', verbose).catch((err) => { console.error(err); });
 
@@ -156,8 +172,12 @@ export const setupPushkinExp = async (longName, shortName, expDir, rootDir, verb
   return await Promise.all([ webPromise, renamedMigrations])
 }
 
-// Takes a path to a jsPsych experiment and returns the timeline procedure
-// from the declaration of the timeline up to the call to jsPsych.run()
+/**
+ * Extracts the timeline-creation procedure from a jsPsych experiment.
+ * @param {string} experimentPath The path to the jsPsych experiment.
+ * @param {boolean} verbose Output extra information to the console for debugging purposes.
+ * @returns {string} The timeline-creation procedure from the declaration of the timeline up to the call to jsPsych.run().
+ */
 export function getJsPsychTimeline(experimentPath, verbose) {
   if (verbose) console.log('--verbose flag set inside getJsPsychTimeline()');
   // Read in entire experiment file as text
@@ -186,7 +206,12 @@ export function getJsPsychTimeline(experimentPath, verbose) {
   }
 }
 
-// Takes a path to a jsPsych experiment and an array of the necessary plugins
+/**
+ * Extracts the necessary plugins from a jsPsych experiment.
+ * @param {string} experimentPath The path to the jsPsych experiment.
+ * @param {boolean} verbose Output extra information to the console for debugging purposes.
+ * @returns {Array} An array of plugins used in the experiment.
+ */
 export function getJsPsychPlugins(experimentPath, verbose) {
   if (verbose) console.log('--verbose flag set inside getJsPsychPlugins()');
   // Read in entire experiment file as text
@@ -207,8 +232,12 @@ export function getJsPsychPlugins(experimentPath, verbose) {
   }
 }
 
-// Takes an array of plugin names and returns an object
-// mapping the plugin names with which we need to import them
+/**
+ * Creates the necessary import statement for each jsPsych plugin for experiment.js.
+ * @param {Array} plugins An array of plugins used in the experiment.
+ * @param {boolean} verbose Output extra information to the console for debugging purposes.
+ * @returns {string} The import statements for jsPsych plugins for experiment.js.
+ */
 export function getJsPsychImports(plugins, verbose) {
   if (verbose) console.log('--verbose flag set inside getJsPsychImports()');
   let imports = {};
