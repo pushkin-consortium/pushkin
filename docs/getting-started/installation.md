@@ -398,4 +398,4 @@ Two free options which should serve the needs of beginning users are [pgAdmin](h
 
 ## Next steps
 
-If you've completed those steps successfully, you're ready to start using Pushkin! At this point, we recommend working through our [Quickstart tutorial](quickstart.md) to familiarize yourself with the basic Pushkin commands. From there, you might want to read about [AWS deployment]() or explore the details of [experiment templates]().
+If you've completed those steps successfully, you're ready to start using Pushkin! At this point, we recommend working through our [quickstart](quickstart.md) and [simple experiment tutorials](simple-experiment-tutorial.md) to familiarize yourself with the basic Pushkin commands and experiment structure. From there, you might want to read about [AWS deployment]() or explore the details of [experiment templates]().

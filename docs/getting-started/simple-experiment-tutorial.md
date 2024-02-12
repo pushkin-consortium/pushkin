@@ -1,4 +1,4 @@
-# Tutorial: Simple Experiment
+# Tutorial: A simple experiment
 
 ## Summary of tutorial content
 
