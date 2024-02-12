@@ -61,3 +61,45 @@ For substantive changes, it's best to build and view the site locally using poet
 If you're unsure about anything, need help with setup, or have questions about the contribution process, feel free to ask in our [community discussion forum](https://github.com/pushkin-consortium/pushkin/discussions). Our community is here to help!
 
 We look forward to your contributions and are excited to see how you will help improve the project!
+
+### Contributing Workflow
+```mermaid
+flowchart TD
+    A["The contributor makes a change to any package in their development branch or (fork) of the monorepo."] --> B["The contributor calls `yarn changeset` and follows the prompts from the changesets CLI,
+ categorizing the change as major, minor, or patch and describing the changes."]
+    B --> C["The contributor commits their change and corresponding changeset."]
+    C -->|"For substantial changes, 
+    break the contribution into multiple commits. 
+    They don’t need to add a changeset to every single commit; 
+    however, if their contribution can be broken down into two patches and a minor update, 
+    it makes sense to add a changeset for each one as they make their changes.
+
+Likewise, 
+if the contributor is making unrelated changes to two different packages, 
+    adding a changeset for each package will 
+    produce more streamlined changelogs 
+    (i.e. the changelog in one package won’t contain information about changes to other packages).
+
+
+In other words, 
+keep changesets in mind as you’re coding; 
+    don’t wait until you’ve written 10 patches and 4 new features to document what you’ve done."| D["The contributor submits a pull request."]
+    D --> E["The changesets bot looks at the PR and makes sure it contains at least one changeset.
+If there’s no changeset, the bot asks them to submit one."]
+    E --> F[""A Pushkin team-member accepts and merges the pull request.]
+    F --> G["Merging will trigger the changesets GitHub action, which runs `changeset version`. 
+     This command turns the changeset(s) into changelogs for all affected packages 
+     and increments version numbers in package.json files as needed. 
+     It then commits these changes to a dedicated branch and makes another pull request on the main branch."]
+    G --> H["A Pushkin team-member accepts and merges the second pull request."]
+    H --> I["Merging the second pull request into main again triggers the changesets GitHub action, 
+    which runs `changeset publish`. Any packages with updates are published to npm.
+"]
+    I --> J["At this point, we would need a mechanism, to publish updates to the docs will be needed."]
+    J --> |"There are a few steps to this action. It starts by setting up the python and Node environments 
+    and retrieving the major/minor version number from the primary package (@jspsych in jspsych's case, @pushkin-cli in ours). 
+    Then it calls a package script which builds the docs using the version number and commits the new documentation to the gh-pages branch. 
+    The final step is to push the gh-pages branch to remote, which will update the docs website.
+"| K[That's it!]
+    style J stroke:#f66,stroke-width:2px,color:#fff,stroke-dasharray: 5 5
+```
