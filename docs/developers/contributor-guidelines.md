@@ -62,51 +62,83 @@ If you're unsure about anything, need help with setup, or have questions about t
 
 We look forward to your contributions and are excited to see how you will help improve the project!
 
-### Contributing Workflow
+### Contribution Flowchart
+
 ```mermaid
-    flowchart TB
-        START(["`**START**`"])
-        changes["`Contributor makes changes in development fork`"]
-        what_changed(["`Do changes affect anything published to npm?`"])
-        changeset_needed["`Contributor adds changeset`"]
-        commit["`Contributor commits changes`"]
-        more_changes(["`Does contributor want to make additional changes?`"])
-        pull_request["`Contributor makes pull request on main`"]
-        review["`Pushkin team reviews pull request`"]
-        review_changes(["`Are additional changes needed?`"])
-        update_pr["`Contributor commits requested changes`"]
-        accept_pr["`Pushkin team merges changes`"]
-        what_changed2(["`Do changes affect anything published to npm?`"])
-        docs_affected(["`Do changes affect docs?`"])
-        changesets_action["`Changesets workflow is triggered; changesets are digested into changelogs, version numbers are incremented, workflow makes another pull request on main`"]
-        accept_changesets_pr["`Pushkin team merges changes`"]
-        changesets_action2["`Changesets workflow is triggered; updated packages are published to npm`"]
-        docs_deploy["`Pushkin team publishes updated docs`"]
-        END(["`**END**`"])
-
-        START --> changes:::contributor
-        changes --> what_changed
-        what_changed -- Yes --> changeset_needed:::contributor
-        what_changed -- No --> commit:::contributor
-        changeset_needed --> commit
-        commit --> more_changes
-        more_changes -- Yes --> changes:::contributor
-        more_changes -- No --> pull_request:::contributor
-        pull_request --> review:::pushkin-team
-        review --> review_changes
-        review_changes -- Yes --> update_pr:::contributor
-        update_pr --> review_changes
-        review_changes -- No --> accept_pr:::pushkin-team
-        accept_pr --> what_changed2
-        what_changed2 -- Yes --> changesets_action
-        what_changed2 -- No --> docs_affected
-        changesets_action --> accept_changesets_pr:::pushkin-team
-        accept_changesets_pr --> changesets_action2
-        changesets_action2 --> docs_affected
-        docs_affected -- Yes --> docs_deploy:::pushkin-team
-        docs_affected -- No --> END
-        docs_deploy --> END
-
-        classDef contributor fill:lightblue
-        classDef pushkin-team fill:lightgreen
+    flowchart LR
+        contributor(Contributor responsibilities)
+        pushkin-team(Pushkin team responsibilities)
+        contributor:::contributor ~~~~ pushkin-team:::pushkin-team
+        classDef contributor stroke:#009485,stroke-width:3px,stroke-opacity:1,fill:#009485,fill-opacity:0.25
+        classDef pushkin-team stroke:#e92063,stroke-width:3px,stroke-opacity:1,stroke-dasharray:5,fill:#e92063,fill-opacity:0.25
 ```
+
+=== "Phase I: Development"
+    ```mermaid
+        flowchart TB
+            START{START}
+            changes(Contributor makes changes in development fork)
+            what_changed(Do changes affect anything published to npm?)
+            changeset_needed(Contributor adds changeset)
+            commit(Contributor commits changes)
+            more_changes(Does contributor want to make additional changes?)
+            pull_request(Contributor makes pull request on main)
+            review(Pushkin team reviews pull request)
+            review_changes(Are additional changes needed?)
+            update_pr(Contributor commits requested changes)
+            accept_pr(Pushkin team accepts pull request)
+
+            START:::terminal --> changes:::contributor
+            changes --> what_changed:::non-action
+            what_changed -- Yes --> changeset_needed:::contributor
+            what_changed -- No --> commit:::contributor
+            changeset_needed --> commit
+            commit --> more_changes:::non-action
+            more_changes -- Yes --> changes:::contributor
+            more_changes -- No --> pull_request:::contributor
+            pull_request --> review:::pushkin-team
+            review --> review_changes:::non-action
+            review_changes -- Yes --> update_pr:::contributor
+            update_pr --> review_changes
+            review_changes -- No --> accept_pr:::pushkin-team
+
+            classDef terminal font-weight:bolder,fill:transparent
+            classDef non-action fill:transparent
+            classDef contributor stroke:#009485,stroke-width:3px,stroke-opacity:1,fill:#009485,fill-opacity:0.25
+            classDef pushkin-team stroke:#e92063,stroke-width:3px,stroke-opacity:1,stroke-dasharray:5,fill:#e92063,fill-opacity:0.25
+    ```
+=== "Phase II: Deployment"
+    ```mermaid
+        flowchart TB
+            accept_pr(Pushkin team merges contributor's changes)
+            what_changed(Do changes affect anything published to npm?)
+            docs_affected(Do changes affect docs?)
+            changesets_action(
+                Changesets workflow is triggered;
+                changesets are digested into changelogs;
+                version numbers are incremented;
+                workflow makes another pull request on main
+            )
+            accept_pr2(Pushkin team merges changes again)
+            changesets_action2(
+                Changesets workflow is triggered again;
+                updated packages are published to npm
+            )
+            docs_deploy(Pushkin team publishes updated docs)
+            END{END}
+
+            accept_pr:::pushkin-team --> what_changed:::non-action
+            what_changed -- Yes --> changesets_action:::non-action
+            what_changed -- No --> docs_affected:::non-action
+            changesets_action --> accept_pr2:::pushkin-team
+            accept_pr2 --> changesets_action2:::non-action
+            changesets_action2 --> docs_affected
+            docs_affected -- Yes --> docs_deploy:::pushkin-team
+            docs_affected -- No --> END:::terminal
+            docs_deploy --> END
+
+            classDef terminal font-weight:bolder,fill:transparent
+            classDef non-action fill:transparent
+            classDef contributor stroke:#009485,stroke-width:3px,stroke-opacity:1,fill:#009485,fill-opacity:0.25
+            classDef pushkin-team stroke:#e92063,stroke-width:3px,stroke-opacity:1,stroke-dasharray:5,fill:#e92063,fill-opacity:0.25
+    ```
