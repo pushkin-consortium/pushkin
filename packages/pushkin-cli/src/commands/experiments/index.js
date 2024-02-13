@@ -69,19 +69,23 @@ export const setupPushkinExp = async (longName, shortName, expDir, rootDir, verb
     }
   });
   shell.rm('-rf', path.join(expDir, '__MACOSX'));
-  // Rename migrations files (come back to this section)
+  // Rename migrations files replacing 'pushkintemplate' with the experiment's short name
   if (verbose) console.log(`Renaming migrations files`);
-  const migrationsFiles = fs.readdirSync(path.join(expDir, 'migrations'));
-  const oldMigrations = migrationsFiles.filter((f) => f.match('_create'))[0]; // Assumes only one file matches
-  const newMigrations = oldMigrations.split('_create')[1]
-  let renamedMigrations
+  const oldMigrations = fs.readdirSync(path.join(expDir, 'migrations'));
+  const renamedMigrations = [];
   try {
-    renamedMigrations = fs.promises.rename(
-      path.join(expDir, 'migrations', oldMigrations),
-      path.join(expDir, 'migrations', `${shortName}_create${newMigrations}`)
-    );
+    oldMigrations.forEach((file) => {
+      if (file.match('pushkintemplate')) {
+        const oldPath = path.join(expDir, 'migrations', file);
+        let newFile = file.replace(/pushkintemplate/, shortName);
+        // Remove the timestamp from the beginning of the file name
+        //newFile = newFile.slice(newFile.indexOf('_') + 1); // Not sure why the knex timestamps were being removed before, but it doesn't seem necessary
+        const newPath = path.join(expDir, 'migrations', newFile);
+        renamedMigrations.push(fs.promises.rename(oldPath, newPath));
+      }
+    });
   } catch (e) {
-    console.error(`Failed to rename migrations file`)
+    console.error("Failed to rename migrations files")
     throw e
   }
   // Replace 'pushkintemplate' in template files
@@ -168,7 +172,7 @@ export const setupPushkinExp = async (longName, shortName, expDir, rootDir, verb
     throw e
   }
 
-  return await Promise.all([ webPromise, renamedMigrations])
+  return await Promise.all(renamedMigrations.concat(webPromise))
 }
 
 /**
