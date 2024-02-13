@@ -64,42 +64,49 @@ We look forward to your contributions and are excited to see how you will help i
 
 ### Contributing Workflow
 ```mermaid
-    flowchart TD
-        A["The contributor makes a change to any package in their development branch or (fork) of the monorepo."] --> B["The contributor calls `yarn changeset` and follows the prompts from the changesets CLI,
-    categorizing the change as major, minor, or patch and describing the changes."]
-        B --> C["The contributor commits their change and corresponding changeset."]
-        C -->|"For substantial changes, 
-        break the contribution into multiple commits. 
-        They don’t need to add a changeset to every single commit; 
-        however, if their contribution can be broken down into two patches and a minor update, 
-        it makes sense to add a changeset for each one as they make their changes.
+    flowchart TB
+        START(["`**START**`"])
+        changes["`Contributor makes changes in development fork`"]
+        what_changed(["`Do changes affect anything published to npm?`"])
+        changeset_needed["`Contributor adds changeset`"]
+        commit["`Contributor commits changes`"]
+        more_changes(["`Does contributor want to make additional changes?`"])
+        pull_request["`Contributor makes pull request on main`"]
+        review["`Pushkin team reviews pull request`"]
+        review_changes(["`Are additional changes needed?`"])
+        update_pr["`Contributor commits requested changes`"]
+        accept_pr["`Pushkin team merges changes`"]
+        what_changed2(["`Do changes affect anything published to npm?`"])
+        docs_affected(["`Do changes affect docs?`"])
+        changesets_action["`Changesets workflow is triggered; changesets are digested into changelogs, version numbers are incremented, workflow makes another pull request on main`"]
+        accept_changesets_pr["`Pushkin team merges changes`"]
+        changesets_action2["`Changesets workflow is triggered; updated packages are published to npm`"]
+        docs_deploy["`Pushkin team publishes updated docs`"]
+        END(["`**END**`"])
 
-    Likewise, 
-    if the contributor is making unrelated changes to two different packages, 
-        adding a changeset for each package will 
-        produce more streamlined changelogs 
-        (i.e. the changelog in one package won’t contain information about changes to other packages).
+        START --> changes:::contributor
+        changes --> what_changed
+        what_changed -- Yes --> changeset_needed:::contributor
+        what_changed -- No --> commit:::contributor
+        changeset_needed --> commit
+        commit --> more_changes
+        more_changes -- Yes --> changes:::contributor
+        more_changes -- No --> pull_request:::contributor
+        pull_request --> review:::pushkin-team
+        review --> review_changes
+        review_changes -- Yes --> update_pr:::contributor
+        update_pr --> review_changes
+        review_changes -- No --> accept_pr:::pushkin-team
+        accept_pr --> what_changed2
+        what_changed2 -- Yes --> changesets_action
+        what_changed2 -- No --> docs_affected
+        changesets_action --> accept_changesets_pr:::pushkin-team
+        accept_changesets_pr --> changesets_action2
+        changesets_action2 --> docs_affected
+        docs_affected -- Yes --> docs_deploy:::pushkin-team
+        docs_affected -- No --> END
+        docs_deploy --> END
 
-
-    In other words, 
-    keep changesets in mind as you’re coding; 
-        don’t wait until you’ve written 10 patches and 4 new features to document what you’ve done."| D["The contributor submits a pull request."]
-        D --> E["The changesets bot looks at the PR and makes sure it contains at least one changeset.
-    If there’s no changeset, the bot asks them to submit one."]
-        E --> F[""A Pushkin team-member accepts and merges the pull request.]
-        F --> G["Merging will trigger the changesets GitHub action, which runs `changeset version`. 
-        This command turns the changeset(s) into changelogs for all affected packages 
-        and increments version numbers in package.json files as needed. 
-        It then commits these changes to a dedicated branch and makes another pull request on the main branch."]
-        G --> H["A Pushkin team-member accepts and merges the second pull request."]
-        H --> I["Merging the second pull request into main again triggers the changesets GitHub action, 
-        which runs `changeset publish`. Any packages with updates are published to npm.
-    "]
-        I --> J["At this point, we would need a mechanism, to publish updates to the docs will be needed."]
-        J --> |"There are a few steps to this action. It starts by setting up the python and Node environments 
-        and retrieving the major/minor version number from the primary package (@jspsych in jspsych's case, @pushkin-cli in ours). 
-        Then it calls a package script which builds the docs using the version number and commits the new documentation to the gh-pages branch. 
-        The final step is to push the gh-pages branch to remote, which will update the docs website.
-    "| K[That's it!]
-        style J stroke:#f66,stroke-width:2px,color:#fff,stroke-dasharray: 5 5
+        classDef contributor fill:lightblue
+        classDef pushkin-team fill:lightgreen
 ```
