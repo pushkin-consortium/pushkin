@@ -95,7 +95,7 @@ nav:
   - pushkin-client: 'packages/pushkin-client.md'
   - pushkin-worker: 'packages/pushkin-worker.md'
 - Developers: 
-  - Contributor guidelines: 'developers/contributor-guidelines.md'
+  - Contributions: 'developers/contributions.md'
   - Documentation: 'developers/documentation.md'
   - Developing with Pushkin: 'developers/developing-with-pushkin.md'
   - Getting Started on Development: 'developers/getting-started-on-development.md'
