@@ -38,6 +38,7 @@ site_description: 'Pushkin provides a customizable, scalable ecosystem for massi
 markdown_extensions:
   - admonition
   - attr_list
+  - footnotes
   - md_in_html
   - pymdownx.details
   - pymdownx.highlight:
@@ -95,10 +96,9 @@ nav:
   - pushkin-client: 'packages/pushkin-client.md'
   - pushkin-worker: 'packages/pushkin-worker.md'
 - Developers: 
+  - Getting started on development: 'developers/getting-started-on-development.md'
   - Contributions: 'developers/contributions.md'
   - Documentation: 'developers/documentation.md'
-  - Developing with Pushkin: 'developers/developing-with-pushkin.md'
-  - Getting Started on Development: 'developers/getting-started-on-development.md'
   - Overview of Technologies: 'developers/overview-of-tech.md'
   - Working with Templates: 'developers/working-with-templates.md'
 - Support:
