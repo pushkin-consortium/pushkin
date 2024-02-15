@@ -43,7 +43,7 @@ The `install site` command uses a website template to set up the file structure 
 
 The behavior of `install site` initially depends on which type of template you select. 
 
-1. Pre-built templates: If you select one of the [pre-built templates](link to relevant spot in the docs) included in the Pushkin distribution (currently only `basic`, but additional site templates will be added in the future), the command will look for the versions of that template released on GitHub and ask you to pick one. 
+1. Pre-built templates: If you select one of the pre-built templates included in the Pushkin distribution (currently only `basic`, but additional site templates will be added in the future), the command will look for the versions of that template released on GitHub and ask you to pick one. 
 
 2. URL option: Selecting the `url` option does essentially the same thing but looks at the repo of your choosing instead of one of the official Pushkin ones. Once you select the version that you want, the command downloads the template from GitHub and installs it in your current working directory. 
 Path option: The process is similar to choosing a template from a url when you choose `path`, but the template contents are copied from the specified path instead of downloaded.
@@ -89,7 +89,7 @@ Selecting the basic template (v5+) will give you the option to import an existin
 
 **plugin identification**
 
-- Only jsPsych plugins available via npm can be added automatically (any package scoped under [@jspsych](https://www.npmjs.com/org/jspsych), [@jspsych-contrib](https://www.npmjs.com/org/jspsych-contrib), or [@jspsych-timelines](https://www.npmjs.com/org/jspsych-timelines)). Custom plugins can still be used in your experiment, but you'll need to add them manually, as described [here](../advanced/customizing-experiments.md)
+- Only jsPsych plugins available via npm can be added automatically (any package scoped under [@jspsych](https://www.npmjs.com/org/jspsych), [@jspsych-contrib](https://www.npmjs.com/org/jspsych-contrib), or [@jspsych-timelines](https://www.npmjs.com/org/jspsych-timelines)). Custom plugins can still be used in your experiment, but you'll need to add them manually, as described in the [overview of experiment templates](../exp-templates/exp-templates-overview.md#adding-custom-jspsych-plugins).
 - Your experiment.html must use CDN-hosted plugins or import the plugins from npm. Plugins which you've downloaded and are hosting yourself will not be added automatically. See [jsPsych's documentation](https://www.jspsych.org/7.3/tutorials/hello-world/) for details.
 - If your experiment.html specifies a specific version of a plugin, `pushkin install experiment` records the version number or tag in a comment after the import statement in experiment.js. This comment, if present, is later read by `pushkin prep` in order to add that particular version to your experiment. Before running `prep`, you may edit the version number in order to change the version in your experiment, but be careful not to change the format of the comment.
 - If you you've forgetten to import a plugin in experiment.html, it won't be added to your Pushkin experiment. In this case, your experiment.html wouldn't be running, so you should hopefully be aware of the problem before trying to import the experiment into Pushkin.
@@ -100,7 +100,7 @@ Selecting the basic template (v5+) will give you the option to import an existin
 - This feature works simply by looking for the argument you provide to `jsPsych.run()` and copying everything from where that variable is declared until before `jsPsych.run()` is called. Consequently, the argument of `jsPsych.run()` must be the _name_ of an array of timeline objects, not the array itself.
 - Likewise, whatever you name the argument of `jsPsych.run()`, it must be declared before any of its component timeline objects are created. This is fairly standard practice, as something like `const timeline = [];` is usually near the top of most jsPsych experiments.
 - Your experiment's equivalent to `const timeline = [];` can't come before initializing jsPsych (i.e. `const jsPsych = initJsPsych();`). You don't want to call `initJsPsych()` in a Pushkin experiment.js (rather, it's called in index.js).
-- Any specifications for your stimuli must be created inside your experiment.html between the two lines of the script mentioned above. If your stimuli rely on other files, you'll need to add them manually as described [here](../advanced/customizing-experiments.md). This includes non-inline CSS styling (see the [lexical decision template](../exp-templates/exp-lexical-decision.md) for how to include custom CSS in the experiment.css file).
+- Any specifications for your stimuli must be created inside your experiment.html between the two lines of the script mentioned above. If your stimuli rely on other files, you'll need to add them manually as described in the [overview of experiment templates](../exp-templates/exp-templates-overview.md#adding-static-assets). This includes non-inline CSS styling (see the [lexical decision template](../exp-templates/exp-lexical-decision.md) for how to include custom CSS in the experiment.css file).
 
 ### updateDB
 

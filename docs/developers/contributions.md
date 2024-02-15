@@ -8,8 +8,6 @@ The project is managed entirely through Pushkin's [GitHub repository](https://gi
 - Use [issues](https://github.com/pushkin-consortium/pushkin/issues) to track actionable next steps for contributions, like a page in the documentation that needs to be fixed, a bug in the code, or a specific feature with a clear scope.
 - Submit a [pull request](https://github.com/pushkin-consortium/pushkin/pulls) with updates to the code. Pull requests will be reviewed by one or more members of the core team.
 
-We understand that many users of Pushkin might not have a background in coding or software development. To make your journey with Pushkin more accessible and enjoyable, we reccomend familiarizing yourself with essential tools like [Git](https://www.git-tower.com/learn/git/ebook/en/desktop-gui/basics/what-is-version-control), [Github](https://docs.github.com/en/get-started/quickstart), and the process of making [Pull Requests](https://opensource.com/article/19/7/create-pull-request-github) (PRs)
-
 ## Guidelines for contributing
 
 ### Contributing to the codebase

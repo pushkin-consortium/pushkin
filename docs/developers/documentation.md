@@ -43,7 +43,7 @@ or
 poetry run mike deploy -u <docs_version>
 ```
 !!! note
-    The former command is simply shorthand for the latter, but the former may not work if you haven't first run `yarn install` in the process of making your changes. This is not necessarily true if you're just fixing a small issue in the docs themselves.
+    The former command is simply shorthand for the latter, but the former may not work if you haven't first run `yarn install` in the process of making your changes. This is not necessarily true if you're just fixing an issue in the docs themselves.
 
 Getting the version number right isn't particularly important if all you're doing is local testing. It will simply change whether you overwrite an existing version of the docs or create a new one in your local `gh-pages` branch. In either case, you'll be able to select the version to which you made changes when you view the docs in the next step.
 

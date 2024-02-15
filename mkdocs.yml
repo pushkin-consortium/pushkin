@@ -38,7 +38,6 @@ site_description: 'Pushkin provides a customizable, scalable ecosystem for massi
 markdown_extensions:
   - admonition
   - attr_list
-  - footnotes
   - md_in_html
   - pymdownx.details
   - pymdownx.highlight:
@@ -75,11 +74,11 @@ repo_url: https://github.com/pushkin-consortium/pushkin
 repo_name: pushkin-consortium/pushkin
 nav:
 - Home: 'index.md'
-- Getting Started:
+- Getting started:
   - Installation: 'getting-started/installation.md'
   - Quickstart tutorial: 'getting-started/quickstart.md'
   - Deploying to AWS: 'getting-started/deploying-to-aws.md'
-  - Simple Experiment Tutorial: 'getting-started/simple-experiment-tutorial.md'
+  - Simple experiment tutorial: 'getting-started/simple-experiment-tutorial.md'
 - Site templates:
   - Overview of site templates: 'site-templates/site-templates-overview.md'
   - site-basic: 'site-templates/site-basic.md'
@@ -97,11 +96,9 @@ nav:
   - pushkin-worker: 'packages/pushkin-worker.md'
 - Developers: 
   - Getting started on development: 'developers/getting-started-on-development.md'
-  - Contributions: 'developers/contributions.md'
   - Documentation: 'developers/documentation.md'
-  - Working with Templates: 'developers/working-with-templates.md'
+  - Contributions: 'developers/contributions.md'
 - Support:
-  - FAQs: 'support/faqs.md'
   - Troubleshooting: 'support/troubleshooting.md'
   - GitHub Discussions: 'support/github-discussions.md'
   - Security: 'support/security.md'

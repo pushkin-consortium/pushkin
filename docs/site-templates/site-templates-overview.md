@@ -29,7 +29,7 @@ pushkin i site
 Follow the CLI's prompts to select the template you want to install. In addition to templates from the main distribution, the CLI also offers you the ability to install templates from:
 
  - **path:** This option allows you to install a site template from a local path. In this case, the template must still be implemented as a package and will automatically be locally published using [`yalc`](https://github.com/wclr/yalc). Use this option if you are developing a new site template or testing a development version of an existing one.
- - **npm:** The CLI can attempt to install a site template from an arbitrary npm package, although obviously this will fail if the package isn't properly set up as a Pushkin site template. This option might be appropriate for you if you need to distribute a template you've developed (perhaps as private package) but don't wish to add it to the main Pushkin distribution. Generally, however, we encourage contributions of new templates that might be of use to the the broader Pushkin community (see our [contributor guidelines](../developers/contributor-guidelines.md) and [below](#contributing-site-templates) for specific notes on contributing site templates).
+ - **npm:** The CLI can attempt to install a site template from an arbitrary npm package, although obviously this will fail if the package isn't properly set up as a Pushkin site template. This option might be appropriate for you if you need to distribute a template you've developed (perhaps as private package) but don't wish to add it to the main Pushkin distribution. Generally, however, we encourage contributions of new templates that might be of use to the the broader Pushkin community (see our [contributor guidelines](../developers/contributions.md) and [below](#contributing-site-templates) for specific notes on contributing site templates).
 
 ## Customizing sites
 
@@ -186,7 +186,7 @@ The footer is wrapped in `<Row>` component. You can change the background color 
 
 #### Add a Quiz
 
-To add a quiz, run `pushkin install experiment`. Select the experiment template of choice \([see this list for the options](../advanced/customizing-experiments.md)\). This will create a pushkin experiment template in the `experiments/` folder.
+To add a quiz, run `pushkin install experiment`. Select the experiment template of your choice. This will create a pushkin experiment in the `experiments/` folder.
 
 Open the `config.js` located in your experiment folder, and modify the experiment name, shortName, logo, text, etc.
 
@@ -468,4 +468,4 @@ It means margins of all sides \(left, right, top, bottom\) are 4.
 
 There is currently no way of automatically packaging up an existing custom site into a new site template. How complicated the process will be of turning your site into a template depends on how much customization you've done (presumably based on the basic template). Complex customizations may present unexpected challenges for creation of a template. We encourage potential template contributors to reach out to the Pushkin team if they encounter any such issues.
 
-In general, we encourage you to follow to the [contributor guidelines](../developers/contributor-guidelines.md). Additionally, if you'd like to contribute a template, please consider how you can make it maximally general by parameterizing as many of your customizations as you can. Try to imagine what variations on your site would be relevant for other researchers and make it easy to implement those variations via changing configuration settings.
+In general, we encourage you to follow to the [contributor guidelines](../developers/contributions.md). Additionally, if you'd like to contribute a template, please consider how you can make it maximally general by parameterizing as many of your customizations as you can. Try to imagine what variations on your site would be relevant for other researchers and make it easy to implement those variations via changing configuration settings.
