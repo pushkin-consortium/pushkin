@@ -1,83 +1,140 @@
 # Getting Started on Development
 
-## Helpful/prerequisite knowledge
+## Overview of Technologies
+
+Below is a non-exhaustive list of technologies in the Pushkin stack. Depending on what you're trying to develop some of these may be absolutely essential or less important. In some cases, we suggest learning resources. If you find other resources that are particularly helpful, please make a pull request to update this page!
 
 ### Front-end
 
-1. Basics. You’ll want a reasonably thorough grounding in Javascript and React. The tutorials in Code Academy are pretty good, though not free.
-2. Pushkin is a Single Page Application \(SPA\) based on React. For a gentle introduction to this stack, read this [tutorial](https://auth0.com/blog/beyond-create-react-app-react-router-redux-saga-and-more/#Securing-Your-React-Application), which also describes incorporating authentication with auth0. Note that this tutorial is slightly out of date in that auth0 now uses auth0-spa-js for SPAs, and create-react-app suggests using function components rather than class components.
-3. To fill in your understanding of React, we recommend the two-part Codecademy.com [Learn ReactJS](https://www.codecademy.com/learn/react-101) course.
-4. Next, you probably want to learn more about routing using React-Router. We use [v5](https://reacttraining.com/blog/react-router-v5/), which is nearly identical to v4. If you read up on React Router, you’ll see a lot of [discussion of dynamic routing](https://github.com/ReactTraining/react-router/blob/master/packages/react-router/docs/guides/philosophy.md), though you can probably safely ignore this. One of the better tutorials available is [here](https://auth0.com/blog/react-router-4-practical-tutorial/), though it’s a bit short.
-5. You’ll also want to understand Redux better. Redux is used to keep track of application-level state variables. For Pushkin, a primary use case is keeping track of subject IDs. The best tutorial we’ve found for React-Redux is [the official one](https://redux.js.org/basics/basic-tutorial). Note that it’s a little out-of-date with regards to the use of object spread syntax \(which is now supported by Node\) and with how to handle asynchronous requests: we’ll be using [redux sagas](https://redux-saga.js.org/docs/introduction/) for that, so read up on that as well. A good place to start on why redux sagas are worth using is [here](https://engineering.universe.com/what-is-redux-saga-c1252fc2f4d1).
-6. At this point, we recommend going back through the tutorial in \#2 above.
+- **HTML:** A basic building block of websites, most HTML in the Pushkin site lives in conjunction with React tags.
+- **CSS:** How stylings for websites are often declared. Pushkin currently uses a combination of CSS and JS to set the stylings.
+- **React:** A JavaScript library for building interactive user interfaces and single-page applications (SPAs). Pushkin creates your site as an SPA using React.
+    - You’ll want a reasonably thorough grounding in Javascript and React (especially important for working with site templates). We recommend the Codecademy.com [Learn React](https://www.codecademy.com/learn/react-101) course.
+    - For a gentle introduction to SPAs, read this [tutorial](https://auth0.com/blog/beyond-create-react-app-react-router-redux-saga-and-more/), which also describes incorporating authentication with Auth0. Note that this tutorial is slightly out of date in that Auth0 now uses auth0-spa-js for SPAs, and create-react-app suggests using function components rather than class components.
+- **React-Router:** Handles navigation components for setting your page URLs in your SPA.
+    - To work with site templates, you probably want to learn more about routing using React-Router. We use [v5](https://reacttraining.com/blog/react-router-v5/), which is nearly identical to v4. If you read up on React Router, you’ll see a lot of [discussion of dynamic routing](https://github.com/ReactTraining/react-router/blob/master/packages/react-router/docs/guides/philosophy.md), though you can probably safely ignore this. One of the better tutorials available is [here](https://auth0.com/blog/react-router-4-practical-tutorial/), though it’s a bit short.
+- **Redux:** Redux is used to keep track of application-level state variables. In the case of Pushkin, we use React-Redux. A primary use case is keeping track of subject IDs.
+    - The best tutorial we’ve found for React-Redux is [the official one](https://redux.js.org/basics/basic-tutorial). Note that it’s a little out-of-date with regards to the use of object spread syntax (which is now supported by Node) and with how to handle asynchronous requests, for which we use [redux sagas](https://redux-saga.js.org/docs/introduction/). A good place to start on why redux sagas are worth using is [here](https://engineering.universe.com/what-is-redux-saga-c1252fc2f4d1).
+- **jsPsych:** The experiment engine in Pushkin site. jsPsych creates experiments and collects participants' data.
+    - A solid grasp of jsPsych is essential for developing experiment templates. We recommend consulting their [documentation](https://www.jspsych.org).
+- **Bootstrap:** A framework for building responsive websites that adapt across devices. This includes features like navigation bars and buttons that easily adapt to different window dimensions. In the case of Pushkin, we use React-Bootstrap, which integrates Bootstrap styling into the React SPA.
+- **Aphrodite:** Adds JavaScript-based styling (to update CSS) for React components. Currently, this is used to customize hover styling for the QuizTile icons and buttons but can be imported into other components to add more control over the styling via JavaScript.
 
-## Understanding Docker
+### Back-end and Database
 
-There are a number of tutorials on Docker. For ongoing use, this [cheatsheet](https://www.digitalocean.com/community/tutorials/how-to-remove-docker-images-containers-and-volumes) is pretty useful.
+- **Node:** The language of the back end. This is used to set up the APIs, set up the server for the site, and more.
+    - You’ll need a decent understanding of Javascript and Node for doing development on the Pushkin CLI.
+- **SQL:** Used to manage the site databases, such as user information and experiment data. Pushkin is designed to use PostgreSQL.
+- **Knex:** A SQL query builder for building, updating, and interacting with Pushkin databases.
+- **RabbitMQ:** A message broker for validation and routing. Routes messages from the API controller for the worker to receive.
 
-## Testing Pushkin Modules Locally
+### Other
+- **Docker:** A platform for developing, shipping, and running applications. Used for testing your Pushkin site locally and deploying it.
+    - There are a number of tutorials out there on Docker. For ongoing use, this [cheatsheet](https://www.digitalocean.com/community/tutorials/how-to-remove-docker-images-containers-and-volumes) is pretty useful.
+- **Babel:** Compiles the JavaScript used in the Pushkin project to ensure browser compatibility. This means having the ability to use modern JavaScript without losing accessibility for visitors on older browsers.
+- **Auth0:** The service used for authorization to enable logins for site visitors.
+- **Jest:** A JavaScript testing framework. The Pushkin team uses Jest in development of Pushkin packages and templates, but users can also add it to their Pushkin sites and develop their own tests.
 
-### Using Jest tests
+## Testing development versions of Pushkin packages and templates
 
-For information on running tests with Jest, see [Testing Pushkin with Jest](https://languagelearninglab.gitbook.io/pushkin/advanced/testing-pushkin-with-jest)
+All development tasks are going to start by cloning the `pushkin` repo and running `yarn install` from the root. The repo uses [Yarn workspaces](https://classic.yarnpkg.com/lang/en/docs/workspaces/), so `yarn install` will install the dependencies for all Pushkin packages and templates. At this point, you can either run `yarn workspaces run build` to execute the build scripts for all packages and templates or build only the particular workspace you're working on by running `yarn workspace <package-name> build` (equivalent to running `yarn build` from the root of the package itself).
 
-The content on this page may be out of date - stay tuned for edits!
+### Site and experiment templates
 
-Currently, the most convenient way to test new versions of Pushkin modules locally is to get the tarball of the pushkin modules you modified and put it into the node test project folder.
+Site and experiment templates are the easiest Pushkin components to test, since the CLI includes an option to install templates from a local path. Simply follow the CLI's instructions and provide the local path to your development template. Before you test your updates, make sure you run the template's `build` script so `build/template.zip` will reflect your changes. You can do this by running `yarn workspace <name-of-template> build` from the root of the `pushkin` repo (or just `yarn build` from the root of the template itself).
 
-1. If you have a node project for testing the new version of Pushkin modules \(pushkin-api, pushkin-client, pushkin-worker, etc.\), create a folder in the project dir named “testPackages”.
-2. Get the tarball of the pushkin modules to be tested, like “pushkin-api-1.2.0.tgz”. Put this tarball into the testPackages folder.
-3. Modify the package.json file in the project dir like this:
+### pushkin-cli
 
-```javascript
-"dependencies": {
-    "pushkin-api": "file:testPackages/pushkin-api-1.2.0.tgz",
-    ... ...
-    }
+Building `pushkin-cli` will create a `/build` directory in your local copy of the package. You can call development versions of all the normal `pushkin` commands by calling `node` on `build/index.js` and specifying which command you want. For example:
+
+```
+node <path-to-repo>/pushkin/packages/pushkin-cli/build/index.js install site
 ```
 
-That is, modify the path of the Pushkin module to the local test version so that Yarn will find it locally rather than in the npm repository.
+For ease, you might want to create your test site directory in same parent directory where you cloned the repo, so you can specify the path to the main build file like so:
 
-After you `yarn add` all of the dependencies, you can write the test codes.
-
-### yalc for pushkin-worker, pushkin-api, and pushkin-client
-
-If you are working on any of the utility packages ([pushkin-worker](https://github.com/pushkin-consortium/pushkin-worker), [pushkin-api](https://github.com/pushkin-consortium/pushkin-api), or [pushkin-client](https://github.com/pushkin-consortium/pushkin-client)), trying out your new code is not straightforward. These packages are included in the experiments and sites via npm. Normally, that means you can only include published versions. We can get around this using [`yalc`](https://github.com/wclr/yalc). You've probably already installed yalc if you've followed the Pushkin [installation instructions](../getting-started/installation.md). If not, install yalc:
-
-```bash
-yarn global add yalc
+```
+node ../pushkin/packages/pushkin-cli/build/index.js prep
 ```
 
-(Note that for those familiar with using [`npm link`](https://docs.npmjs.com/cli/v9/commands/npm-link?v=true#description), that won't work here because we use a Docker environment to test sites. Supposedly there is a way to hack Docker compatibility into your usage of npm link, but it seems too complex relative to the solution here.)
+Don't forget to run `yarn workspace pushkin-cli build` prior to testing changes in order to update the build files. Note that you should run this command in the root of the `pushkin` repo, not your test site.
 
-#### yalc for pushkin-worker
+### Using yalc for pushkin-api, pushkin-client, and pushkin-worker
 
-If you're testing out a new version of pushkin-worker, you should have a directory with the dev version of pushkin-worker, a directory with a pushkin site you are working on, and an experiment in your site's experiments directory for which you want to try out the dev version of pushkin-worker.
+Testing development versions of the API, client, and worker packages is not as straightforward as with templates or the CLI. These packages typically get installed in various locations in the user's site via npm (through commands executed by the CLI). Normally, that means you can only include published versions. We can get around this using [`yalc`](https://github.com/wclr/yalc), which you've already installed if you followed the Pushkin [installation instructions](../getting-started/installation.md#installing-yalc).
 
-1. Go to the root directory of your dev version of pushkin-worker.
-2. Assuming you've cloned pushkin-worker from GitHub, it won't have any dependencies installed, so you'll need to run `yarn install; yarn build`.
-3. Run `yalc publish` to create a locally published version of pushkin-worker.
-4. Go to the `worker` directory within the experiment folder. Typically this will be [project root]/experiments/[experiment name]/worker.
-5. Run `yalc add pushkin-worker` to add your locally published version of pushkin-worker as a dependency.
-6. Open the package.json file in that same directory and add a property `"files"` with a value `["build/*", ".yalc"]` like such:
+For testing development versions of these utility packages, we'll assume that you already have a Pushkin site installed with at least one experiment in it.
 
-```JSON
+#### pushkin-api
+
+1. In your local copy of the `pushkin` repo (where presumably you have made changes to `pushkin-api`), go to `/packages/pushkin-api`. Be sure you've rebuilt the package to reflect your changes by running `yarn build`.
+2. Run `yalc publish` to create a locally published version of `pushkin-api`.
+3. Go to the `/pushkin/api` directory of your test site.
+4. Run `yalc add pushkin-api` to add your locally published version as a dependency.
+5. Go to the `/experiments/<experiment-name>/api controllers` directory of your test site.
+6. Again run `yalc add pushkin-api`.
+7. Open `package.json` in that same directory.
+8. You should see it has a property `"files"` with a value `["build/*"]`. Add `".yalc"` to the list of files like such:
+
+```json
     "files": [
         "build/*",
         ".yalc"
     ],
 ```
 
-(Note this has not been tested yet, so the array of files might need to be modified, e.g. `[".yalc"]`)
+9. Repeat steps 5-8 for each additional experiment in your site's `experiments` directory.
 
-7. Open the Dockerfile in that same directory and edit it to copy yalc files:
+Now you should be able to run `pushkin prep` and `pushkin start`. If you make subsequent changes to `pushkin-api`, you'll need to:
+
+1. Re-run `yarn build` in `pushkin/packages/pushkin-api`.
+2. In the same directory, run `yalc push`. `yalc push` will update your locally published version of `pushkin-api` and push the changes wherever the package is being used. This saves you the hassle of running `yalc update` in all the places you previously ran `yalc add`.
+
+#### yalc for pushkin-client
+
+1. In your local copy of the `pushkin` repo (where presumably you have made changes to `pushkin-client`), go to `/packages/pushkin-client`. Be sure you've rebuilt the package to reflect your changes by running `yarn build`.
+2. Run `yalc publish` to create a locally published version of `pushkin-client`.
+3. Go to the `/pushkin/front-end` directory of your test site.
+4. Run `yalc add pushkin-client` to add your locally published version as a dependency.
+5. Go to the `/experiments/<experiment-name>/web page` directory of your test site.
+6. Again run `yalc add pushkin-client`.
+7. Open `package.json` in that same directory.
+8. You should see it has a property `"files"` with a value `["build/*"]`. Add `".yalc"` to the list of files like such:
+
+```json
+    "files": [
+        "build/*",
+        ".yalc"
+    ],
+```
+
+9. Repeat steps 5-8 for each additional experiment in your site's `experiments` directory.
+
+Now you should be able to run `pushkin prep` and `pushkin start`. If you make subsequent changes to `pushkin-client`, you'll need to:
+
+1. Re-run `yarn build` in `pushkin/packages/pushkin-client`.
+2. In the same directory, run `yalc push`. `yalc push` will update your locally published version of `pushkin-client` and push the changes wherever the package is being used. This saves you the hassle of running `yalc update` in all the places you previously ran `yalc add`.
+
+#### pushkin-worker
+
+1. In your local copy of the `pushkin` repo (where presumably you have made changes to `pushkin-worker`), go to `/packages/pushkin-worker`. Be sure you've rebuilt the package to reflect your changes by running `yarn build`.
+2. Run `yalc publish` to create a locally published version of `pushkin-worker`.
+3. Go to the `/experiments/<experiment-name>/worker` directory of your test site corresponding to the experiment for which you'd like to use the modified worker.
+4. Run `yalc add pushkin-worker` to add your locally published version as a dependency.
+5. Open `package.json` in that same directory and add the property `"files"` with a value `[".yalc"]` like such:
+
+```JSON
+    "files": [".yalc"],
+```
+
+6. Open `Dockerfile` in that same directory and edit it to copy yalc files:
 
 ```dockerfile
 COPY .yalc /usr/src/app/.yalc/
 COPY ./yalc.lock /usr/src/app/
 ```
 
-These lines need to come **before** the WORKDIR is changed. So for example:
+These lines need to come **before** `WORKDIR` is changed. So for example:
 
 ```dockerfile
 FROM node:20.2
@@ -91,65 +148,7 @@ EXPOSE 8000
 CMD ["bash","start.sh"]
 ```
 
-(This final step is pretty well explained in the yalc README)
+Now you should be able to run `pushkin prep` and `pushkin start`. If you make subsequent changes to `pushkin-worker`, you'll need to:
 
-Now you should be able to run `pushkin prep` and `pushkin start`. When you make changes to pushkin-worker, you'll need to:
-
-1. Go to the root directory of your dev version of pushkin-worker.
-2. Run `yarn build; yalc push`. `yalc push` will update your locally published version of pushkin-worker and push the changes wherever the package is being used.
-
-#### yalc for pushkin-api
-
-If you're testing out a new version of pushkin-api, you should have a directory with the dev version of pushkin-api, a directory with a pushkin site you are working on, and at least one experiment in your site's experiments directory.
-
-1. Go to the root directory of your dev version of pushkin-api.
-2. Assuming you've cloned pushkin-api from GitHub, it won't have any dependencies installed, so you'll need to run `yarn install; yarn build`.
-3. Run `yalc publish` to create a locally published version of pushkin-api.
-4. Go to the pushkin/api directory of your site.
-5. Run `yalc add pushkin-api` to add your locally published version of pushkin-api as a dependency.
-6. Go to the 'experiments/[experiment name]/api controllers' directory.
-7. Again run `yalc add pushkin-api`.
-8. Open the package.json file in that same directory.
-9. You should see it has a property `"files"` with a value `["build/*"]`. Add `".yalc"` to the list of files like such:
-
-```JSON
-    "files": [
-        "build/*",
-        ".yalc"
-    ],
-```
-
-10. You'll need to repeat steps 6 through 9 for each experiment in your site's experiments directory.
-
-Now you should be able to run `pushkin prep` and `pushkin start`. When you make changes to pushkin-api, you'll need to:
-
-1. Go to the root directory of your dev version of pushkin-api.
-2. Run `yarn build; yalc push`. `yalc push` will update your locally published version of pushkin-api and push the changes wherever the package is being used. This saves you the hassle of running `yalc update` in the multiple directories in which you ran `yalc add`.
-
-#### yalc for pushkin-client
-
-If you're testing out a new version of pushkin-client, you should have a directory with the dev version of pushkin-client, a directory with a pushkin site you are working on, and at least one experiment in your site's experiments directory.
-
-1. Go to the root directory of your dev version of pushkin-client.
-2. Assuming you've cloned pushkin-client from GitHub, it won't have any dependencies installed, so you'll need to run `yarn install; yarn build`.
-3. Run `yalc publish` to create a locally published version of pushkin-client.
-4. Go to the pushkin/front-end directory of your site.
-5. Run `yalc add pushkin-client` to add your locally published version of pushkin-client as a dependency.
-6. Go to the 'experiments/[experiment name]/web page' directory.
-7. Again run `yalc add pushkin-client`.
-8. Open the package.json file in that same directory.
-9. You should see it has a property `"files"` with a value `["build/*"]`. Add `".yalc"` to the list of files like such:
-
-```JSON
-    "files": [
-        "build/*",
-        ".yalc"
-    ],
-```
-
-10. You'll need to repeat steps 6 through 9 for each experiment in your site's experiments directory.
-
-Now you should be able to run `pushkin prep` and `pushkin start`. When you make changes to pushkin-client, you'll need to:
-
-1. Go to the root directory of your dev version of pushkin-client.
-2. Run `yarn build; yalc push`. `yalc push` will update your locally published version of pushkin-client and push the changes wherever the package is being used. This saves you the hassle of running `yalc update` in the multiple directories in which you ran `yalc add`.
+1. Re-run `yarn build` in `pushkin/packages/pushkin-worker`.
+2. In the same directory, run `yalc push`. `yalc push` will update your locally published version of `pushkin-worker` and push the changes wherever the package is being used. This saves you the hassle of running `yalc update` where you previously ran `yalc add`.

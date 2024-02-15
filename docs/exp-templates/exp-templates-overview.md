@@ -279,9 +279,7 @@ The `assets` folder primarily contains static assets that will be imported by Re
 
 If you need to extend the client with custom API calls, etc., you should extend the defaultClient class. For instance, rather than loading the pushkin client directly:
 
-You would first extend it, adding any additional methods you need:
-
-
+You would first extend it, adding any additional methods you need.
 
 ## Contributing experiment templates
 

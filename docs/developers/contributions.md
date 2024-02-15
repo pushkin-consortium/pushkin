@@ -29,7 +29,7 @@ We welcome contributions of any scope. To facilitate a smooth integration into t
 
 - **Code style and quality:** Contributions should follow the established coding standards and practices of the project. This includes writing clean, readable, and well-documented code. Please ensure that new code passes all existing tests and, where applicable, add new tests to cover your updates.
 
-!!! warning
+!!! warning "Security vulnerabilities"
     If your potential contribution relates to a security vulnerability, please refer to our [security policy](../support/security.md) for guidance on reporting it privately.
 
 ### Contributing to the documentation
