@@ -53,7 +53,7 @@ This sets up a skeleton website in the current folder and a development database
     └── migrations
 ```
 
-### Update site configs
+### Updating site config options
 
 Open `pushkin.yaml` in your project root directory. It should look something like:
 

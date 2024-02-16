@@ -98,10 +98,10 @@ nav:
   - Getting started on development: 'developers/getting-started-on-development.md'
   - Documentation: 'developers/documentation.md'
   - Contributions: 'developers/contributions.md'
+  - Security: 'developers/security.md'
 - Support:
   - Troubleshooting: 'support/troubleshooting.md'
   - GitHub Discussions: 'support/github-discussions.md'
-  - Security: 'support/security.md'
 - About:
   - About Pushkin: 'about/about-pushkin.md'
   - License: 'about/pushkin-license.md'

@@ -1,10 +1,10 @@
-# Reporting Security Vulnerabilities
+# Reporting security vulnerabilities
 
 ## Introduction
 
 We take the security of our software seriously. If you have discovered a security vulnerability in our project, we appreciate your help in disclosing it to us in a responsible manner. This document provides guidelines on how to privately report a security vulnerability using GitHub's security features.
 
-## Finding the Security Tab
+## Finding the Security tab
 
 1. **Navigate to the Repository:** Go to the GitHub repository where the project is hosted.
 2. **Locate the Security Tab:** In the repository, you will find a tab labeled “Security” along the top menu. Click on this tab. This section of the GitHub repository is dedicated to security policies and vulnerability reporting.
