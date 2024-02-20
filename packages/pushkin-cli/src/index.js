@@ -8,8 +8,8 @@ import 'core-js/stable';
 import 'regenerator-runtime/runtime';
 import { execSync, exec } from 'child_process'; // eslint-disable-line
 // subcommands
-import { listExpTemplates, getExpTemplate, copyExpTemplate, getJsPsychTimeline, getJsPsychPlugins, getJsPsychImports, setupPushkinExp } from './commands/experiments/index.js';
-import { initSite, setupPushkinSite, listSiteTemplates, getPushkinSite, copyPushkinSite } from './commands/sites/index.js';
+import { setupPushkinExp, getJsPsychTimeline, getJsPsychPlugins, getJsPsychImports } from './commands/experiments/index.js';
+import { initSite, setupPushkinSite } from './commands/sites/index.js';
 import { awsInit, nameProject, addIAM, awsArmageddon, awsList, createAutoScale } from './commands/aws/index.js'
 //import prep from './commands/prep/index.js'; //has to be separate from other imports from prep/index.js; this is the default export
 import {prep, setEnv} from './commands/prep/index.js';
