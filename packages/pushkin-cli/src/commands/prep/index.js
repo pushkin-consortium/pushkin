@@ -20,10 +20,10 @@ const publishLocalPackage = async (modDir, modName, verbose) => {
     }
     let buildCmd
     if (packageJson.dependencies['build-if-changed'] == null) {
-      if (verbose) console.log(modName, " does not have build-if-changed installed. Recommend installation for faster runs of prep.");
+      if (verbose) console.log(modName, "does not have build-if-changed installed. Recommend installation for faster runs of prep.");
       buildCmd = pacMan.concat(' --mutex network run build');
     } else {
-      if (verbose) console.log("Using build-if-changed for ",modName);
+      if (verbose) console.log("Using build-if-changed for", modName);
       const pacRunner = (pacMan == 'yarn') ? 'yarn' : 'npx';
       buildCmd = pacRunner.concat(' build-if-changed');
     }

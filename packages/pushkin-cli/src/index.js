@@ -651,11 +651,26 @@ const handleInstall = async (templateType, verbose) => {
 
     // Add and install the package (this should work even for repeat installs of the same exp template)
     if (verbose) console.log(`Installing the ${templateType} template package`);
-    execSync(`${ templateSource === 'path' ? 'yalc' : pacMan } add ${templateName}@${templateVersion} --dev; ${pacMan} install`);
+    try {
+      execSync(`${ templateSource === 'path' ? 'yalc' : pacMan } add ${templateName}@${templateVersion} --dev && ${pacMan} install`);
+    } catch (e) {
+      console.error(`Problem installing the ${templateType} template package`);
+      throw e;
+    }
     // Unzip the template files into the appropriate directory
     if (verbose) console.log(`Unzipping template files into ${templateType} directory`);
     try {
-      execSync(`unzip node_modules/${templateName}/build/template.zip ${ templateType === 'experiment' ? `-d ${path.join(config.experimentsDir, shortName)}` : '' }`);
+      // On some systems, we noticed the unzip command seemingly trying to execute before the install command was finished.
+      // The attempted fix is the following:
+      // Check if the path to the zip archive in node_modules exists
+      if (fs.existsSync(`node_modules/${templateName}/build/template.zip`)) {
+        // If so, unzip it
+        execSync(`unzip node_modules/${templateName}/build/template.zip ${ templateType === 'experiment' ? `-d ${path.join(config.experimentsDir, shortName)}` : '' }`);
+      } else {
+        // Otherwise, wait 5 seconds and try to unzip it
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        execSync(`unzip node_modules/${templateName}/build/template.zip ${ templateType === 'experiment' ? `-d ${path.join(config.experimentsDir, shortName)}` : '' }`);
+      }
     } catch (e) {
       console.error(`Problem unzipping ${templateType} template files`);
       throw e;
