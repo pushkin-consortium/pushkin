@@ -17,13 +17,17 @@ theme:
     - toc.follow
   language: en
   palette:
-    - scheme: default
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
       toggle:
-        icon: material/toggle-switch-off-outline 
+        icon: material/weather-night
         name: Switch to dark mode
-      primary: deep orange
-      accent: deep purple
-    - scheme: slate 
+      primary: teal
+      accent: pink
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate 
       toggle:
         icon: material/weather-sunny
         name: Switch to light mode
@@ -67,7 +71,7 @@ plugins:
   - open-in-new-tab
   - table-reader
 repo_url: https://github.com/pushkin-consortium/pushkin
-repo_name: pushkin-constortium/pushkin
+repo_name: pushkin-consortium/pushkin
 nav:
 - Home: 'index.md'
 - Getting started:
