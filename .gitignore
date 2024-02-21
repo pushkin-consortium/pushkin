@@ -66,8 +66,9 @@ typings/
 # Yarn Integrity file
 .yarn-integrity
 
-# dotenv environment variables file
+# the following two have passwords
 .env
+docker-compose.production.noEnvDependency.yml
 
 # next.js build output
 .next
