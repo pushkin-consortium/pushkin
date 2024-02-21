@@ -113,11 +113,11 @@ export function setEnv(debug, verbose) {
     console.log('running setEnv()');
   }
   try {
-    fs.writeFileSync(path.join(process.cwd(), 'pushkin/front-end/src', '.env.js'), `export const debug = ${debug}`)
+    fs.writeFileSync(path.join(process.cwd(), 'pushkin/front-end/src', '.env.js'), `export const debug = ${debug};`)
   } catch (e) {
     console.error(`Unable to create .env.js`)
   }
-  if (verbose) console.log(`Successfully set front-end 'environment variable'`);
+  if (verbose) console.log(`Successfully set front-end environment variable debug=${debug}`);
 }
 
 export function updatePushkinJs(verbose) {

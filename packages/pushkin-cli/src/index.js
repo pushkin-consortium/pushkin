@@ -861,7 +861,7 @@ async function main() {
       switch (cmd){
         case 'init':
           try {
-            setEnv(false, options.verbose) //asynchronous
+            setEnv(false, options.verbose) // synchronous
             await handleAWSInit(options.force);
           } catch(e) {
             console.error(e)
@@ -938,21 +938,32 @@ async function main() {
     .command('prep')
     .description('Prepares local copy for local testing. This step includes running migrations, so be sure you have read the documentation on how that works.')
     .option('-nm, --nomigrations', 'Do not run migrations. Be sure database structure has not changed!')
+    .option('-p, --production', 'Run with front-end env var `debug`=false. Do this before deploying to AWS.')
     .option('-v, --verbose', 'output extra debugging info')
     .action(async (options) => {
       let awaits;
       removeDS(options.verbose);
       try {
+        if (options.production) {
+          setEnv(false, options.verbose);
+        } else {
+          setEnv(true, options.verbose);
+        }
+      } catch (e) {
+        console.error("Problem setting front-end environment variable:", e);
+        process.exit(1);
+      }
+      try {
         if (options.nomigrations) {
           //only running prep
           awaits = [handlePrep(options.verbose)];
         } else {
-          //running prep and updated DB
+          //running prep and updating DB
           awaits = [handlePrep(options.verbose), handleUpdateDB(options.verbose)];
         }
       } catch (e) {
         console.error(e);
-        process.exit();
+        process.exit(1);
       }
       return await Promise.all(awaits);
     })
@@ -965,12 +976,6 @@ async function main() {
     .action(async (options) => {
       if (options.verbose) console.log("starting start...");
       moveToProjectRoot();
-      if (options.verbose) console.log(`Setting front-end 'environment variable'`);
-      try {
-        setEnv(true, options.verbose) //this is synchronous
-      } catch (e) {
-        console.error(`Unable to update .env.js`)
-      }
       if (options.verbose) console.log(`Copying experiments.js to front-end.`);
       try {
         fs.copyFileSync('pushkin/front-end/src/experiments.js', 'pushkin/front-end/experiments.js');
