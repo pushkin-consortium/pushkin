@@ -1,14 +1,9 @@
+**/*.sublime-project
+**/*.sublime-workspace
 **/*.DS_Store
-**/*.sublime*
 
 # Build files
 build/
-
-# Test files
-testing/
-
-# Swap files
-*.swp
 
 # Logs
 logs
@@ -71,10 +66,3 @@ typings/
 
 # next.js build output
 .next
-
-# Docs build
-site/
-venv/
-
-# VS Code files
-.vscode/

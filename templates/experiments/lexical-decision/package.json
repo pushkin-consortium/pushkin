@@ -1,0 +1,16 @@
+{
+  "private": true,
+  "name": "@pushkin-templates/exp-grammaticality-judgment",
+  "version": "5.0.2",
+  "description": "A Pushkin experiment template containing a jsPsych grammaticality-judgment timeline.",
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.23.6",
+    "@babel/preset-env": "^7.23.6",
+    "@jspsych/plugin-html-keyboard-response": "^1.1.2",
+    "@jspsych/test-utils": "^1.1.2",
+    "jspsych": "^7.3.4"
+  }
+}

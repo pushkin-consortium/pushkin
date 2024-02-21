@@ -71,10 +71,3 @@ typings/
 
 # next.js build output
 .next
-
-# Docs build
-site/
-venv/
-
-# VS Code files
-.vscode/

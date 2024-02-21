@@ -34,7 +34,6 @@
         "babel-eslint": "^10.1.0",
         "babel-jest": "^29.6.3",
         "eslint": "^8.47.0",
-        "jest": "^29.6.3",
         "supertest": "^4.0.2"
     },
     "dependencies": {

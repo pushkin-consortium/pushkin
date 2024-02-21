@@ -94,11 +94,9 @@ Default output format [None]: json
 
 ![](../assets/getting-started/deploying-to-aws/aws_24.gif)
 
-
 ### ECS CLI
 
 There's no need follow the steps on the ECS CLI 'configuration' page. The Pushkin CLI will handle this for you.
-
 
 **Note**: In configuring the ECS CLI, you'll need the AWS profile name you are using, as well as the related Access Key ID and Secret Access Key. If you can't remember the name of your profile, you can get a list of active profiles on your computer using:
 
@@ -112,7 +110,6 @@ To see the Access Key ID and Secret Access Key for a given profile, run the foll
  aws configure get aws_access_key_id --profile [profile]
  aws configure get aws_secret_access_key --profile [profile]
 ```
-
 
 ![](../assets/getting-started/deploying-to-aws/aws_25.gif)
 
