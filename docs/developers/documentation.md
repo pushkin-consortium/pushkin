@@ -20,26 +20,18 @@ pipx install poetry
 
 For details, see Poetry's [installation instructions](https://python-poetry.org/docs/#installation).
 
-### Install dependencies
-
-In the root of the repo, run:
-
-```
-poetry install --no-root
-```
-
-This will install Material for MkDocs and the handful of other dependencies the docs use.
-
-### Build the docs locally
+### Install dependencies and build the docs
 
 In the root of the repo, run either:
 
 ```
 yarn docs:deploy <docs_version>
 ```
+
 or
 
 ```
+poetry install --no-root
 poetry run mike deploy -u <docs_version>
 ```
 !!! note
