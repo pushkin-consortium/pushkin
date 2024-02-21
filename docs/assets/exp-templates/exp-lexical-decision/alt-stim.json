@@ -1,0 +1,21 @@
+[
+    { "word_1": "FLOWER", "word_2": "PETAL", "both_words": true, "related": true },
+    { "word_1": "BALL", "word_2": "NET", "both_words": true, "related": true },
+    { "word_1": "DOG", "word_2": "LEASH", "both_words": true, "related": true },
+    { "word_1": "COMB", "word_2": "BRUSH", "both_words": true, "related": true },
+    
+    { "word_1": "BABY", "word_2": "BEAN", "both_words": true, "related": false },
+    { "word_1": "CAGE", "word_2": "FERN", "both_words": true, "related": false },
+    { "word_1": "DOG", "word_2": "FLOUR", "both_words": true, "related": false },
+    { "word_1": "GOAT", "word_2": "SAND", "both_words": true, "related": false },
+    
+    { "word_1": "VASE", "word_2": "VATE", "both_words": false, "related": false },
+    { "word_1": "ARM", "word_2": "ARL", "both_words": false, "related": false },
+    { "word_1": "COAT", "word_2": "COET", "both_words": false, "related": false },
+    { "word_1": "HAIR", "word_2": "HAIP", "both_words": false, "related": false },
+    
+    { "word_1": "HAME", "word_2": "HAMA", "both_words": false, "related": false },
+    { "word_1": "DAKE", "word_2": "GRAKE", "both_words": false, "related": false },
+    { "word_1": "CLEB", "word_2": "CLED", "both_words": false, "related": false },
+    { "word_1": "AFTY", "word_2": "AFLY", "both_words": false, "related": false }
+]  
