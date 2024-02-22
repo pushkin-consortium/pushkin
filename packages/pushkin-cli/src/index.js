@@ -1094,6 +1094,38 @@ async function main() {
           break;
         default: 
           console.error("Command not recognized. For help, run 'pushkin help utils'.")
+        }
+    })
+
+    program
+      .command('remove')
+      .alias('r')
+      .description('Delete or archive a pushkin experiment. Deletion completely removes an experiments files, worker, and docker image.')
+      .option('-d, --delete', 'delete an experiment')
+      .option('-a, --archive', 'archive an experiment')
+      .option('-v, --verbose', 'output extra debugging info')
+      .action((options) => {
+      if (options.delete && options.archive) {
+        console.error('You can either delete or archive, not both. Please choose one option.');
+        process.exit();
+      }
+  
+      if (options.delete) {
+        try {
+          deleteExperiment(options.verbose);
+        } catch(e) {
+          console.error(e);
+          process.exit();
+        }
+      } else if (options.archive) {
+        try {
+          archiveExperiment(options.verbose);
+        } catch(e) {
+          console.error(e);
+          process.exit();
+        }
+      } else {
+        console.error('No option selected. Please specify --delete or --archive.');
       }
     });
 

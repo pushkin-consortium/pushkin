@@ -285,3 +285,70 @@ export function getJsPsychImports(plugins, verbose) {
     return; // If no plugins were found, return undefined
   }
 }
+/**
+ * Displays a list of experiments and lets the user choose what to delete 
+ * @returns {string} The name of the experiment to be deleted 
+ */
+const getExperiments = async () => {
+  moveToProjectRoot();
+
+  const experimentsPath = path.join(process.cwd(), 'experiments');
+  if (!fs.existsSync(experimentsPath)) {
+    console.error('Experiments folder not found.');
+    process.exit();
+  }
+
+  const experiments = fs.readdirSync(experimentsPath).filter(file => {
+    return fs.statSync(path.join(experimentsPath, file)).isDirectory();
+  });
+
+  if (experiments.length === 0) {
+    console.error('No experiments found.');
+    process.exit();
+  }
+
+  const choices = experiments.map(exp => ({ name: exp }));
+  const question = {
+    type: 'list',
+    name: 'selectedExperiment',
+    message: 'Select an experiment to delete:',
+    choices
+  };
+
+  const answer = await inquirer.prompt(question);
+  return path.join(experimentsPath, answer.selectedExperiment); // Return the full path
+};
+
+/**
+ * 
+ * @param {*} verbose 
+ */
+export async function deleteExperiment(verbose) {
+  try {
+    const experimentPath = await getExperiments();
+
+    if (verbose) {
+      console.log(`Deleting experiment at ${experimentPath}`);
+    }
+
+    // Delete the experiment directory
+    shell.rm('-rf', experimentPath);
+
+    if (verbose) {
+      console.log('Experiment deleted successfully.');
+    }
+  } catch (e) {
+    console.error('Error deleting experiment:', e.message);
+    process.exit();
+  }
+}
+
+/**
+ * 
+ * @param {*} verbose 
+ */
+export function archiveExperiment(verbose) {
+
+  console.log('Archive feature has not been implemented yet.');
+
+}
