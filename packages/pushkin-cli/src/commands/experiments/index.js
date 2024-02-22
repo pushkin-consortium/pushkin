@@ -362,6 +362,7 @@ const removeExperimentFromDockerCompose = async (experimentName, verbose) => {
     // Assuming 'services' is where your experiment is defined
     if (dockerCompose.services && dockerCompose.services[`${experimentName}_worker`]) {
       delete dockerCompose.services[`${experimentName}_worker`];
+    } else {
       throw new Error(`No service found for ${experimentName}_worker`);
     }
 
