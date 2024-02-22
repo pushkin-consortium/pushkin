@@ -288,19 +288,31 @@ export function getJsPsychImports(plugins, verbose) {
 }
 /**
  * Displays a list of experiments and lets the user choose what to delete 
- * @returns {string} The name of the experiment to be deleted 
+ * @returns {path} The path of the experiment to be deleted 
  */
-const getExperiments = async () => {
-  // move to the project root 
+const getExperiments = async (verbose) => {
+  if (verbose) {
+    console.log('Locating the project root...');
+  }
+
   while (process.cwd() != path.parse(process.cwd()).root) {
-  if (fs.existsSync(path.join(process.cwd(), 'pushkin.yaml'))) return;
-      process.chdir('..');
+    if (fs.existsSync(path.join(process.cwd(), 'pushkin.yaml'))) {
+      if (verbose) {
+        console.log('Project root found.');
+      }
+      break; 
+    }
+    process.chdir('..');
   }
 
   const experimentsPath = path.join(process.cwd(), 'experiments');
   if (!fs.existsSync(experimentsPath)) {
     console.error('Experiments folder not found.');
     process.exit();
+  }
+
+  if (verbose) {
+    console.log('Retrieving experiments...');
   }
 
   const experiments = fs.readdirSync(experimentsPath).filter(file => {
@@ -312,6 +324,10 @@ const getExperiments = async () => {
     process.exit();
   }
 
+  if (verbose) {
+    console.log('Experiments retrieved. Prompting for selection...');
+  }
+
   const choices = experiments.map(exp => ({ name: exp }));
   const question = {
     type: 'list',
@@ -321,8 +337,12 @@ const getExperiments = async () => {
   };
 
   const answer = await inquirer.prompt(question);
-  return path.join(experimentsPath, answer.selectedExperiment); // Return the full path
+  if (verbose) {
+    console.log(`Experiment selected: ${answer.selectedExperiment}`);
+  }
+  return path.join(experimentsPath, answer.selectedExperiment); 
 };
+
 
 /**
  * 
@@ -330,19 +350,24 @@ const getExperiments = async () => {
  */
 export async function deleteExperiment(verbose) {
   try {
-    const experimentPath = await getExperiments();
+    if (verbose) {
+      console.log('Starting experiment deletion process...');
+    }
+
+    const experimentPath = await getExperiments(verbose);
     if (!experimentPath) {
       throw new Error('Experiment path is undefined or empty');
     }
 
     if (verbose) {
-      console.log(`Deleting experiment at ${experimentPath}`);
+      console.log(`Experiment selected for deletion: ${experimentPath}`);
+      console.log('Deleting experiment directory...');
     }
 
-    // Delete the experiment directory
     shell.rm('-rf', experimentPath);
 
     if (verbose) {
+      console.log('Experiment directory deleted.');
       console.log('Experiment deleted successfully.');
     }
   } catch (e) {
