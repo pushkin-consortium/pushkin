@@ -8,7 +8,7 @@ import 'core-js/stable';
 import 'regenerator-runtime/runtime';
 import { execSync, exec } from 'child_process'; // eslint-disable-line
 // subcommands
-import { setupPushkinExp, getJsPsychTimeline, getJsPsychPlugins, getJsPsychImports } from './commands/experiments/index.js';
+import { setupPushkinExp, getJsPsychTimeline, getJsPsychPlugins, getJsPsychImports, deleteExperiment, archiveExperiment } from './commands/experiments/index.js';
 import { initSite, setupPushkinSite } from './commands/sites/index.js';
 import { awsInit, nameProject, addIAM, awsArmageddon, awsList, createAutoScale } from './commands/aws/index.js'
 //import prep from './commands/prep/index.js'; //has to be separate from other imports from prep/index.js; this is the default export
@@ -1098,13 +1098,13 @@ async function main() {
     })
 
     program
-      .command('remove')
-      .alias('r')
-      .description('Delete or archive a pushkin experiment. Deletion completely removes an experiments files, worker, and docker image.')
-      .option('-d, --delete', 'delete an experiment')
-      .option('-a, --archive', 'archive an experiment')
-      .option('-v, --verbose', 'output extra debugging info')
-      .action((options) => {
+    .command('remove')
+    .alias('r')
+    .description('Delete or archive a pushkin experiment. Deletion completely removes an experiments files, worker, and docker image.')
+    .option('-d, --delete', 'delete an experiment')
+    .option('-a, --archive', 'archive an experiment')
+    .option('-v, --verbose', 'output extra debugging info')
+    .action(async (options) => { 
       if (options.delete && options.archive) {
         console.error('You can either delete or archive, not both. Please choose one option.');
         process.exit();
@@ -1112,14 +1112,14 @@ async function main() {
   
       if (options.delete) {
         try {
-          deleteExperiment(options.verbose);
+          await deleteExperiment(options.verbose); 
         } catch(e) {
           console.error(e);
           process.exit();
         }
       } else if (options.archive) {
         try {
-          archiveExperiment(options.verbose);
+          await archiveExperiment(options.verbose); 
         } catch(e) {
           console.error(e);
           process.exit();

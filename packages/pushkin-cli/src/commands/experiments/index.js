@@ -7,6 +7,7 @@ import jsYaml from 'js-yaml';
 import util from 'util';
 const exec = util.promisify(require('child_process').exec);
 const shell = require('shelljs');
+import inquirer from 'inquirer'
 import pacMan from '../../pMan.js'; //which package manager is available?
 
 /**
@@ -290,7 +291,11 @@ export function getJsPsychImports(plugins, verbose) {
  * @returns {string} The name of the experiment to be deleted 
  */
 const getExperiments = async () => {
-  moveToProjectRoot();
+  // move to the project root 
+  while (process.cwd() != path.parse(process.cwd()).root) {
+  if (fs.existsSync(path.join(process.cwd(), 'pushkin.yaml'))) return;
+      process.chdir('..');
+  }
 
   const experimentsPath = path.join(process.cwd(), 'experiments');
   if (!fs.existsSync(experimentsPath)) {
@@ -326,6 +331,9 @@ const getExperiments = async () => {
 export async function deleteExperiment(verbose) {
   try {
     const experimentPath = await getExperiments();
+    if (!experimentPath) {
+      throw new Error('Experiment path is undefined or empty');
+    }
 
     if (verbose) {
       console.log(`Deleting experiment at ${experimentPath}`);
@@ -339,7 +347,7 @@ export async function deleteExperiment(verbose) {
     }
   } catch (e) {
     console.error('Error deleting experiment:', e.message);
-    process.exit();
+    process.exit(1);
   }
 }
 
