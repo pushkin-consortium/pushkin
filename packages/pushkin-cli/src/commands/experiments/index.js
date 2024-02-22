@@ -342,7 +342,76 @@ const getExperiments = async (verbose) => {
   }
   return path.join(experimentsPath, answer.selectedExperiment); 
 };
+/**
+ * Remove an experiment from the docker file 
+ * @param {*} experimentName 
+ * @param {*} verbose 
+ */
+const removeExperimentFromDockerCompose = async (experimentName, verbose) => {
+  const dockerComposePath = path.join(process.cwd(), 'pushkin', 'docker-compose.dev.yml');
+  
+  if (verbose) {
+    console.log(`Updating docker-compose file at ${dockerComposePath}`);
+  }
 
+  try {
+    // Read the docker-compose file
+    const fileContents = fs.readFileSync(dockerComposePath, 'utf8');
+    const dockerCompose = jsYaml.load(fileContents);
+
+    // Assuming 'services' is where your experiment is defined
+    if (dockerCompose.services && dockerCompose.services[`${experimentName}_worker`]) {
+      delete dockerCompose.services[`${experimentName}_worker`];
+      throw new Error(`No service found for ${experimentName}_worker`);
+    }
+
+    // Convert the object back to YAML
+    const newYaml = jsYaml.dump(dockerCompose);
+
+    // Write the modified content back to the file
+    fs.writeFileSync(dockerComposePath, newYaml, 'utf8');
+
+    if (verbose) {
+      console.log(`docker-compose file updated successfully.`);
+    }
+  } catch (err) {
+    console.error(`Error updating docker-compose file: ${err}`);
+    process.exit(1);
+  }
+};
+/**
+ * 
+ * @param {*} experimentName 
+ * @param {*} verbose 
+ */
+const killExperiment = async (experimentName, verbose) => {
+  if (verbose) {
+    console.log(`Removing Docker components for experiment: ${experimentName}`);
+  }
+  
+  while (process.cwd() != path.parse(process.cwd()).root) {
+    if (fs.existsSync(path.join(process.cwd(), 'pushkin.yaml'))) {
+      if (verbose) {
+        console.log('Project root found.');
+      }
+      break; 
+    }
+    process.chdir('..');
+  }
+
+  // Assuming the naming convention of your docker components includes the experiment name
+  try {
+    // Remove Docker images associated with the experiment
+    await exec(`docker images -a | grep "${experimentName}_worker" | awk '{print $3}' | xargs docker rmi -f`);
+
+    if (verbose) {
+      console.log(`Docker components for ${experimentName} removed.`);
+    }
+  } catch (err) {
+    console.error(`Problem with removing Docker components for ${experimentName}:`, err);
+    process.exit();
+  }
+};
 
 /**
  * 
@@ -358,6 +427,14 @@ export async function deleteExperiment(verbose) {
     if (!experimentPath) {
       throw new Error('Experiment path is undefined or empty');
     }
+
+    const experimentName = path.basename(experimentPath);
+
+    // Update docker-compose.yaml
+    await removeExperimentFromDockerCompose(experimentName, verbose);
+
+    // Remove Docker components
+    await killExperiment(experimentName, verbose);
 
     if (verbose) {
       console.log(`Experiment selected for deletion: ${experimentPath}`);
