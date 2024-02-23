@@ -7,7 +7,6 @@ import jsYaml from 'js-yaml';
 import util from 'util';
 const exec = util.promisify(require('child_process').exec);
 const shell = require('shelljs');
-import inquirer from 'inquirer'
 import pacMan from '../../pMan.js'; //which package manager is available?
 
 /**
@@ -286,15 +285,13 @@ export function getJsPsychImports(plugins, verbose) {
     return; // If no plugins were found, return undefined
   }
 }
-/**
- * Displays a list of experiments and lets the user choose what to delete 
- * @returns {path} The path of the experiment to be deleted 
- */
-const getExperiments = async (verbose) => {
-  if (verbose) {
-    console.log('Locating the project root...');
-  }
 
+/**
+ * Remove an experiment from the docker file 
+ * @param {*} experimentName 
+ * @param {*} verbose 
+ */
+const removeExperimentFromDockerCompose = async (experimentName, verbose) => {
   while (process.cwd() != path.parse(process.cwd()).root) {
     if (fs.existsSync(path.join(process.cwd(), 'pushkin.yaml'))) {
       if (verbose) {
@@ -304,50 +301,7 @@ const getExperiments = async (verbose) => {
     }
     process.chdir('..');
   }
-
-  const experimentsPath = path.join(process.cwd(), 'experiments');
-  if (!fs.existsSync(experimentsPath)) {
-    console.error('Experiments folder not found.');
-    process.exit();
-  }
-
-  if (verbose) {
-    console.log('Retrieving experiments...');
-  }
-
-  const experiments = fs.readdirSync(experimentsPath).filter(file => {
-    return fs.statSync(path.join(experimentsPath, file)).isDirectory();
-  });
-
-  if (experiments.length === 0) {
-    console.error('No experiments found.');
-    process.exit();
-  }
-
-  if (verbose) {
-    console.log('Experiments retrieved. Prompting for selection...');
-  }
-
-  const choices = experiments.map(exp => ({ name: exp }));
-  const question = {
-    type: 'list',
-    name: 'selectedExperiment',
-    message: 'Select an experiment to delete:',
-    choices
-  };
-
-  const answer = await inquirer.prompt(question);
-  if (verbose) {
-    console.log(`Experiment selected: ${answer.selectedExperiment}`);
-  }
-  return path.join(experimentsPath, answer.selectedExperiment); 
-};
-/**
- * Remove an experiment from the docker file 
- * @param {*} experimentName 
- * @param {*} verbose 
- */
-const removeExperimentFromDockerCompose = async (experimentName, verbose) => {
+  
   const dockerComposePath = path.join(process.cwd(), 'pushkin', 'docker-compose.dev.yml');
   
   if (verbose) {
@@ -414,22 +368,61 @@ const killExperiment = async (experimentName, verbose) => {
   }
 };
 
+const deleteTimelineAssets = async (experimentName, verbose) => {
+  while (process.cwd() != path.parse(process.cwd()).root) {
+    if (fs.existsSync(path.join(process.cwd(), 'pushkin.yaml'))) {
+      if (verbose) {
+        console.log('Project root found.');
+      }
+
+      // Once project root is found, navigate to the specific directory
+      const targetDir = path.join(process.cwd(), 'pushkin/front-end/src/assets');
+      if (fs.existsSync(targetDir)) {
+        process.chdir(targetDir);
+
+        if (verbose) {
+          console.log('Navigated to /pushkin/front-end/src/assets');
+        }
+
+        // Check for the existence of the 'timeline' directory with the experimentName
+        const experimentDir = path.join(targetDir, 'timeline', experimentName);
+        if (fs.existsSync(experimentDir)) {
+          // Delete the directory if it exists
+          fs.rmSync(experimentDir, { recursive: true, force: true });
+          if (verbose) {
+            console.log(`Deleted timeline assets for experiment: ${experimentName}`);
+          }
+        } else {
+          if (verbose) {
+            console.log(`No timeline assets to delete for experiment: ${experimentName}`);
+          }
+        }
+      } else {
+        console.error('Target directory /pushkin/front-end/src/assets does not exist.');
+      }
+      break;
+    }
+    process.chdir('..');
+  }
+}
+
 /**
  * 
  * @param {*} verbose 
  */
-export async function deleteExperiment(verbose) {
+export async function deleteExperiment(experimentPath, verbose) {
   try {
     if (verbose) {
       console.log('Starting experiment deletion process...');
     }
 
-    const experimentPath = await getExperiments(verbose);
-    if (!experimentPath) {
-      throw new Error('Experiment path is undefined or empty');
-    }
-
     const experimentName = path.basename(experimentPath);
+
+    // Delete the experiment files 
+    shell.rm('-rf', experimentPath);
+
+    // Delete the timeline assets (if they exist)
+    await deleteTimelineAssets(experimentName, verbose)
 
     // Update docker-compose.yaml
     await removeExperimentFromDockerCompose(experimentName, verbose);
@@ -442,7 +435,6 @@ export async function deleteExperiment(verbose) {
       console.log('Deleting experiment directory...');
     }
 
-    shell.rm('-rf', experimentPath);
 
     if (verbose) {
       console.log('Experiment directory deleted.');
@@ -458,7 +450,7 @@ export async function deleteExperiment(verbose) {
  * 
  * @param {*} verbose 
  */
-export function archiveExperiment(verbose) {
+export function archiveExperiment(experimentPath, verbose) {
 
   console.log('Archive feature has not been implemented yet.');
 

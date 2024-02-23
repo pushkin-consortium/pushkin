@@ -820,6 +820,60 @@ const killLocal = async () => {
   return;  
 }
 
+const handleRemove = async (verbose) => {
+  if (verbose) {
+    console.log('Locating the project root...');
+  }
+
+  while (process.cwd() != path.parse(process.cwd()).root) {
+    if (fs.existsSync(path.join(process.cwd(), 'pushkin.yaml'))) {
+      if (verbose) {
+        console.log('Project root found.');
+      }
+      break; 
+    }
+    process.chdir('..');
+  }
+
+  const experimentsPath = path.join(process.cwd(), 'experiments');
+
+  if (!fs.existsSync(experimentsPath)) {
+    console.error('Experiments folder not found.');
+    process.exit();
+  }
+
+  if (verbose) {
+    console.log('Retrieving experiments...');
+  }
+
+  const experiments = fs.readdirSync(experimentsPath).filter(file => {
+    return fs.statSync(path.join(experimentsPath, file)).isDirectory();
+  });
+
+  if (experiments.length === 0) {
+    console.error('No experiments found.');
+    process.exit();
+  }
+
+  if (verbose) {
+    console.log('Experiments retrieved. Prompting for selection...');
+  }
+
+  const choices = experiments.map(exp => ({ name: exp }));
+  const question = {
+    type: 'list',
+    name: 'selectedExperiment',
+    message: 'Select an experiment to remove:',
+    choices
+  };
+
+  const answer = await inquirer.prompt(question);
+  if (verbose) {
+    console.log(`Experiment selected: ${answer.selectedExperiment}`);
+  }
+  return path.join(experimentsPath, answer.selectedExperiment); 
+};
+
 async function main() {
 
   program
@@ -1097,37 +1151,41 @@ async function main() {
         }
     })
 
-    program
+  program
     .command('remove')
     .alias('r')
     .description('Delete or archive a pushkin experiment. Deletion completely removes an experiments files, worker, and docker image.')
-    .option('-d, --delete', 'delete an experiment')
-    .option('-a, --archive', 'archive an experiment')
     .option('-v, --verbose', 'output extra debugging info')
-    .action(async (options) => { 
-      if (options.delete && options.archive) {
-        console.error('You can either delete or archive, not both. Please choose one option.');
-        process.exit();
-      }
-  
-      if (options.delete) {
+    .action(async (options) => {
+      // Inquirer prompt to ask if the user wants to delete or archive
+      const answers = await inquirer.prompt([
+        {
+          type: 'list',
+          name: 'action',
+          message: 'Would you like to delete or archive the experiment?',
+          choices: ['Delete', 'Archive'],
+        }
+      ]);
+
+      const experimentPath = await handleRemove(options.verbose);
+
+      if (answers.action === 'Delete') {
         try {
-          await deleteExperiment(options.verbose); 
+          await deleteExperiment(experimentPath, options.verbose); 
         } catch(e) {
           console.error(e);
           process.exit();
         }
-      } else if (options.archive) {
+      } else if (answers.action === 'Archive') {
         try {
-          await archiveExperiment(options.verbose); 
+          await archiveExperiment(experimentPath, options.verbose); 
         } catch(e) {
           console.error(e);
           process.exit();
         }
-      } else {
-        console.error('No option selected. Please specify --delete or --archive.');
       }
     });
+
 
    program.parseAsync(process.argv);
 }
