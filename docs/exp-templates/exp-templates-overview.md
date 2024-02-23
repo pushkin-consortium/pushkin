@@ -4,10 +4,10 @@ Experiments are added to a Pushkin site via templates. Experiment templates are 
 
 ## Currently available experiment templates
 
- - [**exp-basic:**](exp-basic.md) The basic template generates a simple "Hello, world!" experiment. Use this template if you want to create your own custom Pushkin experiment from scratch.
- - [**exp-grammaticality-judgment:**](exp-grammaticality-judgment.md) The grammaticality-judgment template includes an experiment in which participants rate the acceptability of target sentences.
- - [**exp-lexical-decision:**](exp-lexical-decision.md) The lexical-decision template includes an experiment in which participants must choose as quickly as possible whether two strings are true words of English.
- - [**exp-self-paced-reading:**](exp-self-paced-reading.md) The self-paced-reading template includes an experiment in which participants read sentences presented in word-by-word fashion.
+ - [**exp-basic:**](./exp-basic.md) The basic template generates a simple "Hello, world!" experiment. Use this template if you want to create your own custom Pushkin experiment from scratch.
+ - [**exp-grammaticality-judgment:**](./exp-grammaticality-judgment.md) The grammaticality-judgment template includes an experiment in which participants rate the acceptability of target sentences.
+ - [**exp-lexical-decision:**](./exp-lexical-decision.md) The lexical-decision template includes an experiment in which participants must choose as quickly as possible whether two strings are true words of English.
+ - [**exp-self-paced-reading:**](./exp-self-paced-reading.md) The self-paced-reading template includes an experiment in which participants read sentences presented in word-by-word fashion.
 
 ## How to install an experiment template
 
@@ -26,13 +26,24 @@ pushkin i exp
 The other permutations `pushkin i experiment` and `pushkin install exp` will likewise work. Follow the CLI's prompts to select the template you want to install. In addition to templates from the main distribution, the CLI also offers you the ability to install templates from:
 
  - **path:** This option allows you to install an experiment template from a local path. In this case, the template must still be implemented as a package and will automatically be locally published using [`yalc`](https://github.com/wclr/yalc). Use this option if you are developing a new experiment template or testing a development version of an existing one.
- - **npm:** The CLI can attempt to install an experiment template from an arbitrary npm package, although obviously this will fail if the package isn't properly set up as a Pushkin experiment template. This option might be appropriate for you if you need to distribute a template you've developed (perhaps as private package) but don't wish to add it to the main Pushkin distribution. Generally, however, we encourage contributions of new templates that might be of use to the the broader Pushkin community (see our [contributor guidelines](../developers/contributions.md) and [below](#contributing-experiment-templates) for specific notes on contributing experiment templates).
+ - **npm:** The CLI can attempt to install an experiment template from an arbitrary npm package, although obviously this will fail if the package isn't properly set up as a Pushkin experiment template. This option might be appropriate for you if you need to distribute a template you've developed (perhaps as private package) but don't wish to add it to the main Pushkin distribution. Generally, however, we encourage contributions of new templates that might be useful to the the broader Pushkin community (see our [contributor guidelines](../developers/contributions.md) and [below](#contributing-experiment-templates) for specific notes on contributing experiment templates).
 
 ## Customizing Experiments
 
 ## Adding additional jsPsych plugins
 
-The current experiment templates use only a few of [jsPsych's official included plugins](https://www.jspsych.org/7.3/plugins/list-of-plugins/). Of course, for many experiments, you may want to use additional jsPsych plugins. After installing an experiment template, import the additional plugins at the top of your `experiment.js` file in the same way as the plugins already included in the template. For example, if your experiment also uses the survey-text and html-button-response plugins, you would add:
+!!! warning
+    As of v1.7 of `pushkin-client`, every jsPsych trial in a Pushkin experiment needs to have a `stimulus` parameter in its data object (see this [issue](https://github.com/pushkin-consortium/pushkin/issues/267)). Many jsPsych plugins do this by default, but some do not. Consult jsPsych's [plugin documentation](https://www.jspsych.org/7.3/plugins/list-of-plugins/) for all plugins that you wish to use in your experiment and check that their data object includes a `stimulus` parameter. If it does not, you can insert one when you define the trial in `experiment.js`:
+
+    ```js
+    data: {stimulus: jsPsych.timelineVariable('<something_from_my_stimuli>')}, // something meaningful
+    // or
+    data: {stimulus: ''}, // a placeholder
+    ```
+
+    **If your trial doesn't output a `stimulus` parameter, its data will not be sent to the Pushkin database.** Future updates to the Pushkin Client may address this issue.
+
+The current experiment templates use only a few of [jsPsych's official included plugins](https://www.jspsych.org/7.3/plugins/list-of-plugins/). Of course, for many experiments, you may want to use additional jsPsych plugins. After installing an experiment template, import the additional plugins at the top of your `experiment.js` (found in the experiment's `/web page/src` directory) in the same way as the plugins already included in the template. For example, if your experiment also uses the `survey-text` and `html-button-response` plugins, you would add:
 
 ```javascript
 import jsPsychSurveyText from "@jspsych/plugin-survey-text";
@@ -42,16 +53,16 @@ import jsPsychHtmlButtonResponse from "@jspsych/plugin-html-button-response";
 The next time you run `pushkin prep`, any additional jsPsych plugins you want to import will be automatically added as dependencies to your experiment's web page component (provided they are available via npm -- this does not apply to custom plugins). If, for some reason, you wish to add these dependencies yourself prior to running `prep`, navigate to the `web page` directory of the experiment using `cd` and run `yarn add` for each particular plugin:
 
 ```bash
- cd 'experiments/[experiment_name]/web page'
+ cd 'experiments/<experiment_name>/web page'
  yarn add @jspsych/plugin-survey-text
  yarn add @jspsych/plugin-html-button-response
 ```
 
 See [Yarn's documentation](https://classic.yarnpkg.com/lang/en/docs/cli/add/) for instructions regarding adding specific versions of a particular package.
 
-This same procedure will work with community-developed plugins available through npm via the [jspsych-contrib repository](https://github.com/jspsych/jspsych-contrib). Just replace `@jspsych` with `@jspsych-contrib`. The [self-paced reading template](./exp-self-paced-reading.md) uses a [plugin](https://github.com/jspsych/jspsych-contrib/blob/main/packages/plugin-self-paced-reading/docs/jspsych-self-paced-reading.md) from `jspsych-contrib`.
+This same procedure will work with community-developed plugins available through npm via the [jspsych-contrib](https://github.com/jspsych/jspsych-contrib) repository. Just replace `@jspsych` with `@jspsych-contrib`. The [self-paced-reading template](./exp-self-paced-reading.md) uses a [plugin](https://github.com/jspsych/jspsych-contrib/blob/main/packages/plugin-self-paced-reading/docs/jspsych-self-paced-reading.md) from `jspsych-contrib`.
 
-## Adding custom jsPsych plugins
+### Adding custom jsPsych plugins
 
 The procedure above only works for jsPsych plugins available through npm. If your experiment makes use of a custom plugin, follow the steps below:
 
@@ -60,7 +71,7 @@ The procedure above only works for jsPsych plugins available through npm. If you
 
 ## Adding static assets
 
-The current experiment templates do not use any image, audio, or video stimuli. In order to reference static assets such as these in your jsPsych timeline, put them in the experiment's `web page/src/assets/timeline` folder. You can use whatever directory structure inside that folder you please, if, for instance, you want to keep audio files separate from images or divide assets from different experimental lists. When you run `pushkin prep`, the contents of the timeline assets folder will be copied to `pushkin/front-end/public/experiments/[experiment_name]`, where `[experiment_name]` is replaced with the same name as the folder within your site's experiments directory. The folder `pushkin/front-end/public` can be referenced at runtime using the environment variable `process.env.PUBLIC_URL`. Thus, when you refer to static assets in your jsPsych timeline, the reference should be as follows.
+The current experiment templates do not use any image, audio, or video stimuli. In order to reference static assets such as these in your jsPsych timeline, put them in the experiment's `web page/src/assets/timeline` folder. You can use whatever directory structure inside that folder you please, if, for instance, you want to keep audio files separate from images or divide assets from different experimental lists. When you run `pushkin prep`, the contents of the timeline assets folder will be copied to `pushkin/front-end/public/experiments/<experiment_name>`, where `<experiment_name>` is replaced with the same name as the folder within your site's experiments directory. The folder `pushkin/front-end/public` can be referenced at runtime using the environment variable `process.env.PUBLIC_URL`. Thus, when you refer to static assets in your jsPsych timeline, the reference should be as follows.
 
 Assume your experiment's `web page/src/assets/timeline` directory looks like this:
 
@@ -80,9 +91,9 @@ Then references to these files in your experiment would look like:
 
 ```javascript
 var block_1_stimuli = [
-  { stimulus: process.env.PUBLIC_URL + "/[experiment_name]/colors/blue.png" },
-  { stimulus: process.env.PUBLIC_URL + "/[experiment_name]/shapes/square.jpg" },
-  { stimulus: process.env.PUBLIC_URL + "/[experiment_name]/cat.mp4" },
+  { stimulus: process.env.PUBLIC_URL + "/<experiment_name>/colors/blue.png" },
+  { stimulus: process.env.PUBLIC_URL + "/<experiment_name>/shapes/square.jpg" },
+  { stimulus: process.env.PUBLIC_URL + "/<experiment_name>/cat.mp4" },
 ];
 
 var block_2_stimuli = [
@@ -92,51 +103,28 @@ var block_2_stimuli = [
 ];
 ```
 
-The other contents of `web page/src/assets` should be static assets that will be imported by React. The reason for this process of copying to the site's public folder is that jsPsych timelines are not compiled by React. By the time jsPsych runs, the files here are no longer accessible. While you could store timeline assets from the beginning in the site's public folder, keeping them in the experiment's timeline assets folder allows you to store all of a particular experiment's resources in the same place. Additionally, your experiment &mdash; along with all its multimedia stimuli &mdash; can now be distributed as a template.
+The other contents of `web page/src/assets` should be static assets that will be imported by React. The reason for this process of copying to the site's public folder is that jsPsych timelines are not compiled by React. By the time jsPsych runs, the files here are no longer accessible. While you could store timeline assets from the beginning in the site's public folder, keeping them in the experiment's timeline assets folder allows you to store all of a particular experiment's resources in the same place and avoids file name collisions across different experiments. Additionally, your experiment &mdash; along with all its multimedia stimuli &mdash; can now be distributed as a template.
 
 Note that `process.env.PUBLIC_URL` works for local development. Depending on how you deploy to the web, this environment variable may not be available.
 
-### Experiment Component Structure
+## Contributing experiment templates
 
-From the perspective of the web server, a Pushkin experiment involves a number of distinct elements. There is the HTML/Javascript for the stimulus display and response recording \(the “front end”\). There is the database, where data are stored. There is the worker, which handles reading and writing from the database \(plus potentially many other behind-the-scenes work!\). Finally, there is the API, which communicates between the front end and the worker.
+There is currently no way of automatically packaging up an existing custom experiment into a new experiment template. How complicated the process will be of turning your experiment into a template depends on how much customization you've done (presumably based on the basic template). If all you've done is edit `experiment.js` and add a few jsPsych plugins, it should be easy to make those same changes to the basic template itself; on the other hand, more complex customizations may present unexpected challenges for creation of a template. We encourage potential template contributors to reach out to the Pushkin team if they encounter any such issues.
 
-For convenience, all the code is kept in the experiments folder as defined in `pushkin.yaml`. The CLI command [prep](../packages/pushkin-cli.md###prep) automagically redistributes this code where it needs to go.
+In general, we encourage you to follow to the [contributor guidelines](../developers/contributions.md). Additionally, if you'd like to contribute a template, please consider how you can make it maximally general by parameterizing as many of your customizations as you can. Try to imagine what variations on your experiment would be relevant for other researchers and make it easy to implement those variations via changing configuration settings.
+
+## Experiment Component Structure
+
+From the perspective of the web server, a Pushkin experiment involves a number of distinct elements. There is the HTML/JavaScript for the stimulus display and response recording (i.e. the “front end”); there is the database, where data are stored; there is the worker, which handles reading from and writing to the database (plus potentially many other behind-the-scenes tasks!). Finally, there is the API, which communicates between the front end and the worker.
+
+For convenience, all the code is kept in the experiments folder as defined in `pushkin.yaml`. The CLI command [`prep`](../packages/pushkin-cli.md#prep) automagically redistributes this code where it needs to go.
 
 ### Experiment Config.yaml Files
 
-The config.yaml file provides information to the rest of Pushkin about the experiment. Below is a sample of what one might look like.
+The config.yaml file provides information to the rest of Pushkin about the experiment. Below is a sample of what one might look like (after being installed into your site).
 
-```javascript
-experimentName: &fullName 'pushkintemplate Experiment'
-shortName: &shortName 'pushkintemplate'
-apiControllers:
-  - mountPath: *shortName
-    location: 'api controllers'
-    name: 'mycontroller'
-worker:
-  location: 'worker'
-  service:
-    image: *shortName
-    links:
-      - message-queue
-      - test_db
-    environment:
-      - "AMQP_ADDRESS=amqp://message-queue:5672"
-      - "DB_USER=postgres"
-      - "DB_PASS="
-      - "DB_URL=test_db"
-      - "DB_NAME=test_db"
-webPage:
-  location: 'web page'
-migrations:
-  location: 'migrations'
-seeds:
-  location: 'seeds'
-database: 'localtestdb'
-logo: 'logo512.png'
-text: 'Enter your experiment description here.'
-tagline: 'Be a citizen scientist! Try this quiz.'
-duration: ''
+```yaml
+--8<-- "docs/assets/exp-templates/exp-templates-overview/config.yaml"
 ```
 
 Each of the above fields is explained in detail below.
@@ -155,11 +143,11 @@ Note that this is an array. As many API controllers can be used as needed.
 
 ##### mountPath
 
-URL this controller’s endpoint will be available at. The full path is /api/\[mountPath\].
+URL this controller’s endpoint will be available at. The full path is `/api/<mountPath>`.
 
 ##### location
 
-Path relative to config file the CLI will look for this module in.
+Path relative to the config file where the CLI will look for this module.
 
 #### name
 
@@ -169,29 +157,29 @@ Used in logs.
 
 #### location
 
-Path relative to config file the CLI will look for this module in.
+Path relative to the config file where the CLI will look for this module.
 
 #### service
 
-This section is appended to Pushkin’s core Docker Compose file. Note that message-queue is a requirement. If you’re not using the local test database, test\_db is not necessary. Database connections credentials should be unique to every user. The defaults are shown here for the testing database.
+This section is appended to Pushkin’s core Docker Compose file. Note that message-queue is a requirement. If you’re not using the local test database, `test_db` is not necessary. Database connection credentials should be unique to every user. The defaults are shown here for the testing database.
 
 ### webPage
 
 #### location
 
-Path relative to config file the CLI will look for this module in.
+Path relative to the config file where the CLI will look for this module.
 
 ### migrations
 
 #### location
 
-Path relative to config file the CLI will look for these files.
+Path relative to the config file where the CLI will look for these files.
 
 ### seeds
 
 #### location
 
-Path relative to config file the CLI will look for these files. If you aren’t seeding a database table, set this to `''`. Otherwise, if the folder pointed to by `location` is empty, database setup will fail.
+Path relative to the config file the CLI will look for these files. If you aren’t seeding a database table, set this to `''`. Otherwise, if the folder pointed to by `location` is empty, database setup will fail.
 
 ### database
 
@@ -206,21 +194,19 @@ You may find it useful to include information about your experiment here that ca
 * `tagline`: This is the description that shows when a quiz is shared via social media/email.
 * `duration`: The average length of the experiment to give users an idea of the time commitment.
 
-Note that no path is given for the logo because the default pushkin site template assumes this is in `front-end/src/img`.
-
-### Worker Component, Migration, and Seed
+### Worker Component, Migrations, and Seeds
 
 #### Experiment Worker Component
 
-Workers handle the most complex aspect of a Pushkin experiment and different types of experiments could need workers with very different functionalities. Pushkin provides a simple template written in Javascript to start with.
+Workers handle the most complex aspect of a Pushkin experiment and different types of experiments could need workers with very different functionalities. Pushkin provides a simple template to start with.
 
-The job of a worker is to receive messages via RabbitMQ that \(usually\) come from an API controller. It looks up the appropriate information in the database and returns it to the requester. Workers are also the component that is responsible for implementing machine learning, as having direct access to this data allows it to make live, dynamic decisions during an experiment like what stimuli to serve next or predictions about a subject’s next answers.
+The job of a worker is to receive messages via RabbitMQ that (usually) come from an API controller. It looks up the appropriate information in the database and returns it to the requester. Workers are also the component that is responsible for implementing machine learning, as having direct access to this data allows it to make live, dynamic decisions during an experiment like what stimuli to serve next or predictions about a subject’s next answers.
 
 #### Experiment Migrations
 
-Pushkin uses [knex](https://knexjs.org/) to manage database tables. Files inside the migrations directory are migration files that describe how to set up and take down the tables needed for an experiment. The CLI handles the details of connecting to and executing the appropriate order of commands required to set up all experiment’s tables. Once the table structure has been created, [seeding](https://pushkin-social-science-at-scale.readthedocs.io/en/latest/experiments/exp_seeds.html#exp-seeds) is used to populate the database with experiment data, such as stimuli.
+Pushkin uses [knex](https://knexjs.org/) to manage database tables. Files inside the migrations directory are migration files that describe how to set up and take down the tables needed for an experiment. The CLI handles the details of connecting to and executing the appropriate order of commands required to set up all experiments' tables. Once the table structure has been created, seeding is used to populate the database with experiment data, such as stimuli.
 
-When making a new experiment with new migrations, it is helpful to prefix the filenames with numbers in order to get the order right \(you want tables that are going to be referenced by other tables to be created first, so giving them an alphabetically earlier filename is helpful\).
+When making a new experiment with new migrations, it is helpful to prefix the filenames with numbers in order to get the order right (you want tables that are going to be referenced by other tables to be created first, so giving them an alphabetically earlier filename is helpful).
 
 #### Experiment Seeds
 
@@ -228,13 +214,13 @@ Pushkin uses [knex](https://knexjs.org/) to facilitate moving data into an exper
 
 ### Experiment Web Page Component
 
-This houses the front-end component of an experiment. Dependencies are listed in the package.json file, which are packaged by the CLI and attached to the core website using the shortName defined by the experiment’s config.yaml file. Pushkin uses React for the front end. Experiment web pages are mounted as React components and given the full size of the window under the header and navigation bar.
+This houses the front-end component of an experiment. Each experiment's web page package (as defined in its `package.json` file) is locally published by the CLI and attached to the core website. Web page components are named using the experiment's `shortName` (defined in the experiment’s `config.yaml` file), plus `_web`. Pushkin uses React for the front end. Experiment web pages are mounted as React components and given the full size of the window under the header and navigation bar.
 
 ### Recommended Structure
 
 At a minimum, the `web page/src` folder needs to contain an `index.js` file that includes all your experiment code. Technically, you don't even have to use jsPsych to implement your experiment. However, we recommend building on top of an [experiment template](../exp-templates/exp-templates-overview.md). The `src` folder in experiment templates contains both `index.js` and `experiment.js` files. `experiment.js`, contains a function `createTimeline()`, within which you construct a jsPsych timeline just as you would for a standard jsPsych experiment; `createTimeline()` is then exported to `index.js`. The core functionality of interest is here:
 
-```javascript
+```js
   async startExperiment() {
     this.setState({ experimentStarted: true });
 
@@ -264,25 +250,17 @@ At a minimum, the `web page/src` folder needs to contain an `index.js` file that
   }
 ```
 
-A line of code worth noting is `on_data_update: (data) => pushkin.saveStimulusResponse(data)`. This uses a helper function from pushkin-client to save data each time the jsPsych [on_data_update callback](https://www.jspsych.org/7.3/overview/events/#on_data_update) is triggered (i.e. at the end of each trial). Saving data after each trial is generally good practice, as opposed to sending all the data at the end of the experiment. You could write this behavior into the timeline itself, but this helper function saves some typing.
+A line of code worth noting is `on_data_update: (data) => pushkin.saveStimulusResponse(data)`. This uses a helper function from `pushkin-client` to save data each time the jsPsych [on_data_update callback](https://www.jspsych.org/7.3/overview/events/#on_data_update) is triggered (i.e. at the end of each trial). Saving data after each trial is generally good practice, as opposed to sending all the data at the end of the experiment. You could write this behavior into the timeline itself, but this helper function saves some typing.
 
-Finally, when the timeline finishes, `endExperiment()` will be called. In the current experiment templates, this simply adds a "Thank you for participating" message. [Current templates](../exp-templates/exp-templates-overview.md) besides the basic template include some simple feedback which is specified _inside_ the jsPsych timeline; however, one might have reasons for integrating more complex feedback into `endExperiment()`.
+Finally, when the timeline finishes, `endExperiment()` will be called. In the current experiment templates, this simply adds a "Thank you for participating" message. [Current templates](#currently-available-experiment-templates) besides the basic template include some simple feedback which is specified _inside_ the jsPsych timeline; however, one might have reasons for integrating more complex feedback into `endExperiment()`.
 
 #### Assets
 
-The `assets` folder primarily contains static assets that will be imported by React. It also contains a folder called `timeline`, which holds assets which are needed inside the jsPsych timeline (e.g. audiovisual stimuli). The contents of the timeline assets folder get copied to the site's `pushkin/front-end/public/experiments/[experiment_name]` folder during `pushkin prep`. The reason this is necessary is that jsPsych timelines are not compiled by React, so the contents of the `assets` directory will not be accessible when jsPsych runs. However, create-react-app provides a nifty workaround: `process.env.PUBLIC_URL` will point to the folder `pushkin/front-end/public` during runtime.
-
+The `assets` folder primarily contains static assets that will be imported by React. It also contains a folder called `timeline`, which holds assets which are needed inside the jsPsych timeline (e.g. audiovisual stimuli). The contents of the timeline assets folder get copied to the site's `pushkin/front-end/public/experiments/[experiment_name]` folder during `pushkin prep` (see [above](#adding-static-assets)). The reason this is necessary is that jsPsych timelines are not compiled by React, so the contents of the `assets` directory will not be accessible when jsPsych runs. However, create-react-app provides a nifty workaround: `process.env.PUBLIC_URL` will point to the folder `pushkin/front-end/public` during runtime.
 
 ### Customizing the client
 
-{ This section is a work in progress! }
+!!! note
+    This section is a work in progress!
 
-If you need to extend the client with custom API calls, etc., you should extend the defaultClient class. For instance, rather than loading the pushkin client directly:
-
-You would first extend it, adding any additional methods you need.
-
-## Contributing experiment templates
-
-There is currently no way of automatically packaging up an existing custom experiment into a new experiment template. How complicated the process will be of turning your experiment into a template depends on how much customization you've done (presumably based on the basic template). If all you've done is edit `experiment.js` and add a few jsPsych plugins, it should be easy to make those same changes to the basic template itself; on the other hand, more complex customizations may present unexpected challenges for creation of a template. We encourage potential template contributors to reach out to the Pushkin team if they encounter any such issues.
-
-In general, we encourage you to follow to the [contributor guidelines](../developers/contributions.md). Additionally, if you'd like to contribute a template, please consider how you can make it maximally general by parameterizing as many of your customizations as you can. Try to imagine what variations on your experiment would be relevant for other researchers and make it easy to implement those variations via changing configuration settings.
+If you need to extend the client with custom API calls, etc., you should extend the `defaultClient` class.

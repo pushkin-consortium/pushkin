@@ -1,29 +1,38 @@
-# Lexical decision template
-{{ read_json('docs/assets/exp-templates/exp-lexical-decision/stim.json') }}
+# @pushkin-templates/exp-lexical-decision
 
-```json
---8<-- "docs/assets/exp-templates/exp-lexical-decision/stim.json"
+The lexical-decision template includes an experiment in which participants must choose as quickly as possible whether two strings are true words of English.
+
+## Installing the exp-lexical-decision template
+
+In your Pushkin site directory, run:
+
+```
+pushkin i exp
 ```
 
+Name the experiment and select the main Pushkin distribution. Select `@pushkin-templates/exp-lexical-decision` from the list of available templates and choose which version you want (the latest is typically recommended).
 
-To install this experiment template, use the command `pushkin install experiment`, then select **lexical**.
+## Config options
 
+In the experiment's `/web page/src` direrectory, you'll find the config file `config.js` (note that this is different from the `config.yaml` file in the root of the experiment). Here you'll find some options which change the behavior of the experiment:
 
-## config.js
+- **`fontColor`:** the color for experiment text
+- **`fontSize`:** the size for experiment text
+- **`fontFamily`:** the font for experiment text (note that multiple backups are specified, in case specific fonts are not available for particular participants)
+- **`correctiveFeedback`:** when to `true`, the bounding box will change color based on the participant's response (green for correct, red for incorrect); when set to `false`, the box remains black
 
-When **correctiveFeedback** is set to `true`, the bounding box will change color based on the participant's response - green meaning correct, red meaning incorrect. If set to `false`, the box remains black.
+## Stimuli
 
-## stim.js
+{{ read_json('docs/assets/exp-templates/exp-lexical-decision/stim.json') }}
 
-**word_1**: Word displayed in the top of the fixation box
+The stimuli for this experiment have four parameters:
 
-**word_2**: Word displayed in the bottom of the fixation box
+- **word_1:** the word displayed in the top of the fixation box
+- **word_2:** the word displayed in the bottom of the fixation box
+- **both_words:** if `true`, "Y" is the correct answer (both `word_1` and `word_2` are real words); if false, "N" is the correct answer (at least one of `word_1` and `word_2` is not a real word)
+- **related:** if `true`, the words are semantically related to each other (e.g. "leaf" and "tree"). If `false`, the words are unrelated (e.g. sock and tree)
 
-**both_words**: If true, 'Y' is the correct answer \(both word_1 and word_2 are real words\). If false, 'N' is the correct answer \(one or both of word_1 and word_2 are not real words\)
-
-**related**: If true, the words are semantically related to each other \(e.g. leaf and tree\). If false, the words are unrelated \(e.g. sock and tree\).
-
-## Example: Customizing a lexical decision experiment
+## Customizing a lexical-decision experiment
 
 ### Finding experiment files to modify
 
@@ -53,9 +62,7 @@ src
 └── stim.js
 ```
 
-### Modifying the experiment configuration and stimuli files
-
-#### Modifying `config.js`
+### Modifying `config.js`
 
 This file controls the aesthetics of your experiment, including font color, font size, and font family. If you wanted to set the font color to `red`, set the font size to `22px`, and set the font family to a monospace font such as Courier New, you would modify `config.js` as follows:
 
@@ -76,58 +83,14 @@ You'll notice that `'Courier New'` is not `fontFamily`'s only specification. Thi
 
 After making any desired changes, run `pushkin prep` and `pushkin start` to see the updates.
 
-#### Modifying `stim.js`
+### Modifying `stim.js`
 
 This file controls the stimuli presented to participants. It specifies (1) the two words presented on the screen (`word_1` and `word_2`), (2) whether both words are true words (`both_words`), and (3) whether the two words are related to each other (`related`).
 
-Say you have created the following table of stimuli for your experiment.
+Say you have created the following table of stimuli for your experiment:
 
-| word_1 | word_2 | both_words | related |
-| ------ | ------ | ---------- | ------- |
-| FLOWER | PETAL  | true       | true    |
-| BALL   | NET    | true       | true    |
-| DOG    | LEASH  | true       | true    |
-| COMB   | BRUSH  | true       | true    |
-| BABY   | BEAN   | true       | false   |
-| CAGE   | FERN   | true       | false   |
-| DOG    | FLOUR  | true       | false   |
-| GOAT   | SAND   | true       | false   |
-| VASE   | VATE   | false      | false   |
-| ARM    | ARL    | false      | false   |
-| COAT   | COET   | false      | false   |
-| HAIR   | HAIP   | false      | false   |
-| HAME   | HAMA   | false      | false   |
-| DAKE   | GRAKE  | false      | false   |
-| CLEB   | CLED   | false      | false   |
-| AFTY   | AFLY   | false      | false   |
+{{ read_json('docs/assets/exp-templates/exp-lexical-decision/alt-stim.json') }}
 
-In order to use these stimuli in the lexical decision experiment, you must use a table-to-JSON converter such as [this one](https://tableconvert.com/) to format it correctly for jsPsych.
-
-Once it has been converted, paste the JSON into the `stim.js` file, which should now look like this:
-
-```javascript
-// Example stimuli
-
-const stimArray = [
-  { word_1: "FLOWER", word_2: "PETAL", both_words: true, related: true },
-  { word_1: "BALL", word_2: "NET", both_words: true, related: true },
-  { word_1: "DOG", word_2: "LEASH", both_words: true, related: true },
-  { word_1: "COMB", word_2: "BRUSH", both_words: true, related: true },
-  { word_1: "BABY", word_2: "BEAN", both_words: true, related: false },
-  { word_1: "CAGE", word_2: "FERN", both_words: true, related: false },
-  { word_1: "DOG", word_2: "FLOUR", both_words: true, related: false },
-  { word_1: "GOAT", word_2: "SAND", both_words: true, related: false },
-  { word_1: "VASE", word_2: "VATE", both_words: false, related: false },
-  { word_1: "ARM", word_2: "ARL", both_words: false, related: false },
-  { word_1: "COAT", word_2: "COET", both_words: false, related: false },
-  { word_1: "HAIR", word_2: "HAIP", both_words: false, related: false },
-  { word_1: "HAME", word_2: "HAMA", both_words: false, related: false },
-  { word_1: "DAKE", word_2: "GRAKE", both_words: false, related: false },
-  { word_1: "CLEB", word_2: "CLED", both_words: false, related: false },
-  { word_1: "AFTY", word_2: "AFLY", both_words: false, related: false },
-];
-
-export default stimArray;
-```
+In order to use these stimuli in the lexical-decision experiment, you must use a table-to-JSON converter such as [this one](https://tableconvert.com/) to format it correctly for jsPsych. Once it has been converted, paste the JSON into the `stim.js` file so that the new object of stimuli is assigned to the `stimArray` variable.
 
 Run `pushkin prep` and `pushkin start` again, and your experiment should be ready to go!

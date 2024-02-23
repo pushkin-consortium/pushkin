@@ -1,20 +1,40 @@
-# Self-paced reading template
+# @pushkin-templates/exp-self-paced-reading
 
-To install this experiment template, use the command `pushkin install experiment`, then select **reading**.
+The self-paced-reading template includes an experiment in which participants read sentences presented in word-by-word fashion.
 
-## config.js
+## Installing the exp-self-paced-reading template
 
-**comprehension**: If `true`, each self-paced reading trial will be followed by a two-alternative forced-choice comprehension question. If `false`, the experiment goes right to the next self-paced reading trial.
+In your Pushkin site directory, run:
 
-**correctiveFeedback**: If `true`, participants will get feedback after answering each comprehension question which indicates whether their response was correct or incorrect. If `false`, no feedback will follow the comprehension questions. This parameter has no effect if comprehension questions are not being displayed.
+```
+pushkin i exp
+```
 
-## stim.js
+Name the experiment and select the main Pushkin distribution. Select `@pushkin-templates/exp-self-paced-reading` from the list of available templates and choose which version you want (the latest is typically recommended).
 
-**sentence**: The sentence or text to be read. See above for details on how to note what chunks of words should be displayed together for a self-paced reading display rate.
+## Config options
 
-**comprehension**: An array containing the specifications for the comprehension questions. The first element is the question itself, the second is the correct answer, and the third is the incorrect answer. The correct and incorrect answers are randomly assigned to the 'F' and 'J' keys in experiment.js.
+In the experiment's `/web page/src` direrectory, you'll find the config file `config.js` (note that this is different from the `config.yaml` file in the root of the experiment). Here you'll find some options which change the behavior of the experiment:
 
-## Example: Customizing a self-paced reading experiment
+- **`fontColor`:** the color for experiment text (see note below for details)
+- **`fontSize`:** the size for experiment text (see note below for details)
+- **`fontFamily`:** the font for experiment text (note that multiple backups are specified, in case specific fonts are not available for particular participants; see note below for details)
+- **`comprehension`:** when `true`, each self-paced reading trial will be followed by a two-alternative forced-choice comprehension question; when `false`, the experiment goes right to the next self-paced reading trial
+- **`correctiveFeedback`:** if `true`, participants will get feedback after answering each comprehension question which indicates whether their response was correct or incorrect; if `false`, no feedback will follow the comprehension questions; note that this parameter has no effect if comprehension questions are not being displayed
+
+!!! note
+    The `fontColor`, `fontSize`, and `fontFamily` config options do not apply to the actual self-paced-reading stimuli (i.e. the text rendered by the jsPsych self-paced-reading plugin). To alter the aesthetics of these sentences, modify the plugin's parameters in `experiment.js` (see the plugin's [documentation](https://github.com/jspsych/jspsych-contrib/blob/main/packages/plugin-self-paced-reading/docs/jspsych-self-paced-reading.md) for details)
+
+## Stimuli
+
+{{ read_json('docs/assets/exp-templates/exp-self-paced-reading/stim.json') }}
+
+The stimuli for this experiment have two parameters:
+
+- **`sentence`:** the sentence or text to be read
+- **`comprehension`:** an array containing the specifications for the comprehension questions; the first element is the question itself, the second is the correct answer, and the third is the incorrect answer. The correct and incorrect answers are randomly assigned to the 'F' and 'J' keys in `experiment.js`.
+
+## Customizing a self-paced-reading experiment
 
 ### Finding experiment files to modify
 
@@ -44,7 +64,7 @@ src
 └── stim.js
 ```
 
-#### Modifying `config.js`
+### Modifying `config.js`
 
 This file controls the aesthetics of your experiment, including font color, font size, and font family. If you wanted to set the font color to `blue`, set the font size to `36px`, and set the font family to a serif font such as Palatino Linotype, you would modify `config.js` as follows:
 
@@ -66,6 +86,8 @@ Note that any font-related changes you make to `config.js` will not affect the f
 
 You can run `pushkin prep` and `pushkin start` to see your changes.
 
-#### Modifying `stim.js`
+### Modifying `stim.js`
 
-This file controls the self-paced reading sentences and comprehension questions (if relevant) presented to participants. Create a new table of sentences and comprehension questions for your experiment, with your comprehension questions in a three-element array (i.e. ['question' , 'correct answer', 'incorrect answer']). Then use a table-to-JSON converter such as [this one](https://tableconvert.com/) to format it correctly for jsPsych and paste the array into the `stim.js` file. Run `pushkin prep` and `pushkin start` again, and your experiment should be ready to go!
+This file controls the self-paced reading sentences and comprehension questions (if relevant) presented to participants. Create a new table of sentences and comprehension questions for your experiment, with your comprehension questions in a three-element array (i.e. `['<question>', '<correct answer>', '<incorrect answer>']`). Then use a table-to-JSON converter such as [this one](https://tableconvert.com/) to format it correctly for jsPsych and paste the array into the `stim.js` file.
+
+Run `pushkin prep` and `pushkin start` again, and your experiment should be ready to go!

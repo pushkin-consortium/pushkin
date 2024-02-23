@@ -1,20 +1,37 @@
-# Grammaticality judgment template
+# @pushkin-templates/exp-grammaticality-judgment
 
-To install this experiment template, use the command `pushkin install experiment`, then select **grammaticality**.
+The grammaticality-judgment template includes an experiment in which participants rate the acceptability of target sentences.
 
-### config.js
+## Installing the exp-grammaticality-judgment template
 
-When **correctiveFeedback** is set to `true`: the two-alternative forced choice question will indicate if the participant's response was correct \(in green font\) or not \(in red font\). For the likert scale or slider, text indicating if the sentence was grammatical or ungrammatical will show. For all response types, when this is set to false, a fixation cross appears instead of corrective feedback.
+In your Pushkin site directory, run:
 
-**responseType**: Set whether the response type is two-alternative forced choice \(set to "2afc"\), five-point likert scale \(set to "likert"\), or a slider from 0-100 \(set to "slider"\).
+```
+pushkin i exp
+```
 
-### stim.js
+Name the experiment and select the main Pushkin distribution. Select `@pushkin-templates/exp-grammaticality-judgment` from the list of available templates and choose which version you want (the latest is typically recommended).
 
-**sentence_grammatical**: The grammatically correct sentence.
+## Config options
 
-**sentence_ungrammatical**: The grammatically incorrect sentence.
+In the experiment's `/web page/src` direrectory, you'll find the config file `config.js` (note that this is different from the `config.yaml` file in the root of the experiment). Here you'll find some options which change the behavior of the experiment:
 
-## Example: Customizing a grammaticality judgment experiment
+- **`fontColor`:** the color for experiment text
+- **`fontSize`:** the size for experiment text
+- **`fontFamily`:** the font for experiment text (note that multiple backups are specified, in case specific fonts are not available for particular participants)
+- **`correctiveFeedback`:** when set to `true`, two-alternative forced choice questions will indicate if the participant's response was correct (in green font) or not (in red font). For the likert scale or slider, text indicating if the sentence was grammatical or ungrammatical will show. For all response types, when this is set to `false`, a fixation cross appears instead of corrective feedback
+- **`responseType`:** controls whether the response type is two-alternative forced choice ("2afc"), five-point likert scale ("likert"), or a slider from 0-100 ("slider")
+
+## Stimuli
+
+{{ read_json('docs/assets/exp-templates/exp-grammaticality-judgment/stim.json') }}
+
+The stimuli for this experiment have two parameters:
+
+- **`sentence_grammatical`:** the grammatically correct version of the sentence
+- **`sentence_ungrammatical`:** the grammatically incorrect version of the sentence
+
+## Customizing a grammaticality-judgment experiment
 
 ### Finding experiment files to modify
 
@@ -44,9 +61,7 @@ src
 └── stim.js
 ```
 
-### Modifying the experiment configuration and stimuli files
-
-#### Modifying `config.js`
+### Modifying `config.js`
 
 This file controls the aesthetics of your experiment, including font color, font size, and font family. If you wanted to set the font color to `green`, set the font size to `24px`, and set the font family to a monospace font such as Courier New, you would modify `config.js` as follows:
 
@@ -58,7 +73,7 @@ var experimentConfig = {
     fontSize: "24px",
     fontFamily: "'Courier New', Courier, monospace",
     correctiveFeedback: true
-    responseType: “2afc”
+    responseType: "2afc"
 }
 
 export default experimentConfig;
@@ -76,7 +91,7 @@ var experimentConfig = {
     fontSize: "24px",
     fontFamily: "'Courier New', Courier, monospace",
     correctiveFeedback: false
-    responseType: “2afc”
+    responseType: "2afc"
 }
 
 export default experimentConfig;
@@ -92,7 +107,7 @@ var experimentConfig = {
     fontSize: "24px",
     fontFamily: "'Courier New', Courier, monospace",
     correctiveFeedback: false
-    responseType: “likert”
+    responseType: "likert"
 }
 
 export default experimentConfig;
@@ -100,46 +115,14 @@ export default experimentConfig;
 
 You can run `pushkin prep` and `pushkin start` to see your changes.
 
-#### Modifying `stim.js`
+### Modifying `stim.js`
 
 This file controls the stimuli presented to participants. It specifies the sentences for each trial and denotes which is grammatical (sentence_grammatical) and which is not (sentence_ungrammatical).
 
-Say you have created the following table of stimuli for your experiment.
+Say you have created the following table of stimuli for your experiment:
 
-| sentence_grammatical  | sentence_ungrammatical |
-| --------------------- | ---------------------- |
-| The frog is jumping\. | The frog are jumping\. |
-| Where did she go?     | Where she did go?      |
-| He went for a walk\.  | He went a walk\.       |
-| This is an example\.  | This an example\.      |
+{{ read_json('docs/assets/exp-templates/exp-grammaticality-judgment/alt-stim.json') }}
 
-In order to be able to use these stimuli in the grammaticality judgment experiment, you must use a table-to-JSON converter such as [this one](https://tableconvert.com/) to format it correctly for jsPsych.
-
-Once it has been converted, paste the JSON into the `stim.js` file. You may need to manually add spaces, as the file should now look like this:
-
-```javascript
-// Example stimuli
-
-const stimArray = [
-  {
-    sentence_grammatical: "The frog is jumping.",
-    sentence_ungrammatical: "The frog are jumping.",
-  },
-  {
-    sentence_grammatical: "Where did she go?",
-    sentence_ungrammatical: "Where she did go?",
-  },
-  {
-    sentence_grammatical: "He went for a walk.",
-    sentence_ungrammatical: "He went a walk.",
-  },
-  {
-    sentence_grammatical: "This is an example.",
-    sentence_ungrammatical: "This an example.",
-  },
-];
-
-export default stimArray;
-```
+In order to be able to use these stimuli in the grammaticality judgment experiment, you must use a table-to-JSON converter such as [this one](https://tableconvert.com/) to format it correctly for jsPsych. Once it has been converted, paste the JSON into the `stim.js` file so that the new object of stimuli is assigned to the `stimArray` variable.
 
 Run `pushkin prep` and `pushkin start` again, and your experiment should be ready to go!
