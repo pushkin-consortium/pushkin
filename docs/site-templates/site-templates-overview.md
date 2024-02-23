@@ -31,6 +31,12 @@ Follow the CLI's prompts to select the template you want to install. In addition
  - **path:** This option allows you to install a site template from a local path. In this case, the template must still be implemented as a package and will automatically be locally published using [`yalc`](https://github.com/wclr/yalc). Use this option if you are developing a new site template or testing a development version of an existing one.
  - **npm:** The CLI can attempt to install a site template from an arbitrary npm package, although obviously this will fail if the package isn't properly set up as a Pushkin site template. This option might be appropriate for you if you need to distribute a template you've developed (perhaps as private package) but don't wish to add it to the main Pushkin distribution. Generally, however, we encourage contributions of new templates that might be of use to the the broader Pushkin community (see our [contributor guidelines](../developers/contributions.md) and [below](#contributing-site-templates) for specific notes on contributing site templates).
 
+## Contributing site templates
+
+There is currently no way of automatically packaging up an existing custom site into a new site template. How complicated the process will be of turning your site into a template depends on how much customization you've done (presumably based on the basic template). Complex customizations may present unexpected challenges for creation of a template. We encourage potential template contributors to reach out to the Pushkin team if they encounter any such issues.
+
+In general, we encourage you to follow to the [contributor guidelines](../developers/contributions.md). Additionally, if you'd like to contribute a template, please consider how you can make it maximally general by parameterizing as many of your customizations as you can. Try to imagine what variations on your site would be relevant for other researchers and make it easy to implement those variations via changing configuration settings.
+
 ## Customizing sites
 
 ### About Page
@@ -461,11 +467,3 @@ It means margins of all sides \(left, right, top, bottom\) are 4.
 ### LinkContainer
 
 `<LinkContainer>` is a component of [react-router-bootstrap](https://github.com/react-bootstrap/react-router-bootstrap). Wrap your React Bootstrap element in a `<LinkContainer>` to make it behave like a React Router `<Link>` `<LinkContainer>` accepts same parameters as React Router’s `<NavLink>`
-
-
-
-## Contributing site templates
-
-There is currently no way of automatically packaging up an existing custom site into a new site template. How complicated the process will be of turning your site into a template depends on how much customization you've done (presumably based on the basic template). Complex customizations may present unexpected challenges for creation of a template. We encourage potential template contributors to reach out to the Pushkin team if they encounter any such issues.
-
-In general, we encourage you to follow to the [contributor guidelines](../developers/contributions.md). Additionally, if you'd like to contribute a template, please consider how you can make it maximally general by parameterizing as many of your customizations as you can. Try to imagine what variations on your site would be relevant for other researchers and make it easy to implement those variations via changing configuration settings.

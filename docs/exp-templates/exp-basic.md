@@ -16,7 +16,6 @@ pushkin i exp
 
 Name the experiment and select the main Pushkin distribution. Select `@pushkin-templates/exp-basic` from the list of available templates and choose which version you want (the latest is typically recommended). At this point, you will be asked if you'd like to import a jsPsych experiment. Note this feature only exists for the basic template, as it will overwrite the `experiment.js` file that comes with the template. See the section below on [importing a jsPsych experiment](#importing-a-jspsych-experiment) for details.
 
-
 ## Importing a jsPsych experiment
 
 Selecting the basic template will give you the option to import an existing jsPsych experiment. This feature assumes a workflow where you first implement the basics of your experiment design as a standalone jsPsych experiment, which is faster to test, before turning it into a Pushkin experiment. This feature executes two tasks:
