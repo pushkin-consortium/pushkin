@@ -5,6 +5,7 @@ import { readConfig } from '../prep/index.js'; //useful utility function
 import replace from 'replace-in-file';
 import jsYaml from 'js-yaml';
 import util from 'util';
+import knex from 'knex';
 const exec = util.promisify(require('child_process').exec);
 const shell = require('shelljs');
 import pacMan from '../../pMan.js'; //which package manager is available?
@@ -341,30 +342,66 @@ const removeExperimentFromDockerCompose = async (experimentName, verbose) => {
  */
 const killExperiment = async (experimentName, verbose) => {
   if (verbose) {
-    console.log(`Removing Docker components for experiment: ${experimentName}`);
+      console.log(`Removing Docker components and database tables for experiment: ${experimentName}`);
   }
-  
+
   while (process.cwd() != path.parse(process.cwd()).root) {
-    if (fs.existsSync(path.join(process.cwd(), 'pushkin.yaml'))) {
-      if (verbose) {
-        console.log('Project root found.');
+      if (fs.existsSync(path.join(process.cwd(), 'pushkin.yaml'))) {
+          if (verbose) {
+              console.log('Project root found.');
+          }
+          break;
       }
-      break; 
-    }
-    process.chdir('..');
+      process.chdir('..');
   }
 
-  // Assuming the naming convention of your docker components includes the experiment name
+  // Remove Docker images associated with the experiment
   try {
-    // Remove Docker images associated with the experiment
-    await exec(`docker images -a | grep "${experimentName}_worker" | awk '{print $3}' | xargs docker rmi -f`);
-
-    if (verbose) {
-      console.log(`Docker components for ${experimentName} removed.`);
-    }
+      await exec(`docker images -a | grep "${experimentName}_worker" | awk '{print $3}' | xargs docker rmi -f`);
+      if (verbose) {
+          console.log(`Docker components for ${experimentName} removed.`);
+      }
   } catch (err) {
-    console.error(`Problem with removing Docker components for ${experimentName}:`, err);
-    process.exit();
+      console.error(`Problem with removing Docker components for ${experimentName}:`, err);
+      process.exit();
+  }
+
+  // Load database configuration
+  let pushkinConfig;
+  try {
+      pushkinConfig = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'pushkin.yaml'), 'utf8'));
+  } catch (e) {
+      console.error('Failed to read pushkin.yaml', e);
+      process.exit();
+  }
+
+  // Assuming the database configuration for localtestdb is to be used
+  const dbConfig = pushkinConfig.databases.localtestdb;
+  const knexConfig = {
+      client: 'pg',
+      connection: {
+          host: dbConfig.url,
+          user: dbConfig.user,
+          password: dbConfig.pass,
+          database: dbConfig.name,
+          port: dbConfig.port
+      }
+  };
+
+  // Connect to the database
+  const db = knex(knexConfig);
+  try {
+      // Drop experiment-specific tables
+      // Adjust this query to match your table naming convention
+      await db.raw(`DROP TABLE IF EXISTS ${experimentName}_your_table_name`);
+      if (verbose) {
+          console.log(`Database tables for ${experimentName} removed.`);
+      }
+  } catch (err) {
+      console.error(`Problem with removing database tables for ${experimentName}:`, err);
+  } finally {
+      // Destroy the database connection
+      db.destroy();
   }
 };
 
