@@ -40,7 +40,7 @@ jobs:
 
       - name: Deploy docs
         run: |
-          yarn docs:deploy ${{ env.version_major_minor }}
+          yarn docs:deploy ${{ env.version_major_minor }} latest
 
       - name: Switch to gh-pages branch
         run: git checkout gh-pages
