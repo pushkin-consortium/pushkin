@@ -25,19 +25,21 @@ For details, see Poetry's [installation instructions](https://python-poetry.org/
 In the root of the repo, run either:
 
 ```
-yarn docs:deploy <docs_version>
+yarn docs:deploy <docs_version> latest
 ```
 
 or
 
 ```
 poetry install --no-root
-poetry run mike deploy -u <docs_version>
+poetry run mike deploy <docs_version> latest -u --alias-type=redirect
 ```
 !!! note
     The former command is simply shorthand for the latter, but the former may not work if you haven't first run `yarn install` in the process of making your changes. This is not necessarily true if you're just fixing an issue in the docs themselves.
 
-Getting the version number right isn't particularly important if all you're doing is local testing. It will simply change whether you overwrite an existing version of the docs or create a new one in your local `gh-pages` branch. In either case, you'll be able to select the version to which you made changes when you view the docs in the next step.
+For the most faithful representation of what the docs site would look like with your changes, you should substitute `<docs_version>` with the major/minor version number (i.e. X.X) of pushkin-cli; however, getting the version number right isn't particularly important if all you're doing is local testing. It will simply change whether you overwrite an existing version of the docs or create a new one in your local `gh-pages` branch. It will **not** affect the public deployment of the docs.
+
+Including the `latest` alias in your command is helpful, since the docs website defaults to the version tagged `latest`. This way, when you preview your edits, the version you deployed will pop right up when you visit `http://localhost:8000/` (see [below](#preview-the-docs)).
 
 This command builds the docs and commits the new or updated version to your local `gh-pages` branch. Note that you will not be able to push any of these commits to remote unless you are a core Pushkin maintainer, as doing so would affect the public deployment of the docs site. Of course, you can still push your commits editing the source files to whatever development branch/fork you like before making a pull request.
 
@@ -58,7 +60,7 @@ or (1)
 poetry run mike serve
 ```
 
-You should now be able to view the docs at http://localhost:8000.
+You should now be able to view the docs at `http://localhost:8000`.
 
 !!! tip
     Each time you build the docs, `mike` automatically commits to your local `gh-pages` branch. If you're doing local testing as you compose updates to the docs, you will be left with a bunch of junk commits that you might want to delete. To delete them, run:
@@ -68,7 +70,7 @@ You should now be able to view the docs at http://localhost:8000.
     git reset --hard origin/gh-pages
     ```
     
-    This will reset your local `gh-pages` branch to the remote state (i.e. whatever is currently deployed on the live site).
+    This will reset your local `gh-pages` branch to the remote state (i.e. whatever is currently deployed on the live site). Make **certain** you've checked out `gh-pages` before running the reset command, as you don't want to accidentally reset your actual development branch.
 
 ## Public deployment
 
