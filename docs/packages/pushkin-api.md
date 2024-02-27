@@ -30,19 +30,19 @@ For example, developers can use the `setPass()` method to assign HTTP requests t
 
 **Arguments:**
 
-* **route** : string
+* **route:** string
 
   The API endpoint that this pass applies to.
 
-* **rpcMethod** : string
+* **rpcMethod:** string
 
   What method to request the worker to perform.
 
-* **queue** : string
+* **queue:** string
 
   The RabbitMQ queue via which to send this pass.
 
-* **httpMethod** : string
+* **httpMethod:** string
 
   The http method this endpoint will listen on.
 
@@ -54,15 +54,15 @@ When an `httpmethod` is sent to `/api/myexp/controllermountpath/route`, send an 
 
 **Arguments:**
 
-* **read queue** : string
+* **read queue:** string
 
   Name of RabbitMQ read queue to use. Not persistent.
 
-* **write queue** : string
+* **write queue:** string
 
   Name of RabbitMQ write queue to use. Persistent.
 
-* **task queue** : string
+* **task queue:** string
 
   Name of RabbitMQ task queue to use. Not persistent.
 
@@ -80,15 +80,15 @@ Enable the default endpoints that a simple experiment would use. This makes it p
 
 **Arguments:**
 
-* **route** : string
+* **route:** string
 
   The API endpoint that this use applies to.
 
-* **handler** : function
+* **handler:** function
 
   Function to call when this endpoint is hit.
 
-* **httpMethod** : string
+* **httpMethod:** string
 
   The http method this endpoint will listen on.
 
@@ -145,11 +145,11 @@ The core API's main jobs are taking the controllers built by the developer, usin
 
 **Arguments:**
 
-* **route** : string
+* **route:** string
 
   The API endpoint that this use applies to.
 
-* **controller** : express.router
+* **controller:** express.router
 
   The middleware function that can be used by Express App to handle the HTTP request.
 
@@ -161,11 +161,11 @@ An encapsulated method of Express `app.use(route, controller)`. Use it to add a 
 
 **Arguments:**
 
-* **route** : string
+* **route:** string
 
   The API endpoint that this use applies to.
 
-* **pushkinController** : ControllerBuilder
+* **pushkinController:** ControllerBuilder
 
   The controller created by users using Controller Builder. After users build their custom controllers in their experiments, pushkin-cli will package them up during the `pushkin prep` command.
 
