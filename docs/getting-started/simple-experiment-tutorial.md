@@ -2,7 +2,7 @@
 
 The tutorial below starts with a simple lexical-decision task written in plain jsPsych 7 and explains how to modify this code to run in Pushkin. **This is a recommended tutorial for learning the ropes, but a more complete [lexical-decision experiment template](../exp-templates/exp-lexical-decision.md) is available to install through the Pushkin CLI.**
 
-If you are not familiar with jsPsych, please consult their [documentation](https://www.jspsych.org/). At a minimum, you should understand the basics of [timelines](https://www.jspsych.org/7.3/overview/timeline/) and [plugins](https://www.jspsych.org/7.3/overview/plugins/) in jsPsych.
+If you are not familiar with jsPsych, please consult their [documentation](https://www.jspsych.org/). At a minimum, you should understand the basics of [timelines](https://www.jspsych.org/latest/overview/timeline/) and [plugins](https://www.jspsych.org/latest/overview/plugins/) in jsPsych.
 
 !!! note
     As of v3.6 of `pushkin-cli`, the procedures described here for [moving the timeline](#moving-the-timeline) and [importing plugins](#importing-plugins) can be automated if you choose to import a jsPsych experiment during `pushkin install experiment` and select the basic template (v5+). You can still do these tasks manually if you choose. You may also need to do parts of these procedures in the course of modifying one of the other experiment templates.

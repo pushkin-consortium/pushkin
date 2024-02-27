@@ -33,7 +33,7 @@ The other permutations `pushkin i experiment` and `pushkin install exp` will lik
 ## Adding additional jsPsych plugins
 
 !!! warning
-    As of v1.7 of `pushkin-client`, every jsPsych trial in a Pushkin experiment needs to have a `stimulus` parameter in its data object (see this [issue](https://github.com/pushkin-consortium/pushkin/issues/267)). Many jsPsych plugins do this by default, but some do not. Consult jsPsych's [plugin documentation](https://www.jspsych.org/7.3/plugins/list-of-plugins/) for all plugins that you wish to use in your experiment and check that their data object includes a `stimulus` parameter. If it does not, you can insert one when you define the trial in `experiment.js`:
+    As of v1.7 of `pushkin-client`, every jsPsych trial in a Pushkin experiment needs to have a `stimulus` parameter in its data object (see this [issue](https://github.com/pushkin-consortium/pushkin/issues/267)). Many jsPsych plugins do this by default, but some do not. Consult jsPsych's [plugin documentation](https://www.jspsych.org/latest/plugins/list-of-plugins/) for all plugins that you wish to use in your experiment and check that their data object includes a `stimulus` parameter. If it does not, you can insert one when you define the trial in `experiment.js`:
 
     ```js
     data: {stimulus: jsPsych.timelineVariable('<something_from_my_stimuli>')}, // something meaningful
@@ -43,7 +43,7 @@ The other permutations `pushkin i experiment` and `pushkin install exp` will lik
 
     **If your trial doesn't output a `stimulus` parameter, its data will not be sent to the Pushkin database.** Future updates to the Pushkin Client may address this issue.
 
-The current experiment templates use only a few of [jsPsych's official included plugins](https://www.jspsych.org/7.3/plugins/list-of-plugins/). Of course, for many experiments, you may want to use additional jsPsych plugins. After installing an experiment template, import the additional plugins at the top of your `experiment.js` (found in the experiment's `/web page/src` directory) in the same way as the plugins already included in the template. For example, if your experiment also uses the `survey-text` and `html-button-response` plugins, you would add:
+The current experiment templates use only a few of jsPsych's [available plugins](https://www.jspsych.org/latest/plugins/list-of-plugins/). Of course, for many experiments, you may want to use additional jsPsych plugins. After installing an experiment template, import the additional plugins at the top of your `experiment.js` (found in the experiment's `/web page/src` directory) in the same way as the plugins already included in the template. For example, if your experiment also uses the `survey-text` and `html-button-response` plugins, you would add:
 
 ```javascript
 import jsPsychSurveyText from "@jspsych/plugin-survey-text";
