@@ -66,8 +66,7 @@ extra_javascript:
 plugins:
   - search
   - mike:
-      # Set to true for subsequent releases
-      version_selector: false
+      version_selector: true
   - open-in-new-tab
   - table-reader
 repo_url: https://github.com/pushkin-consortium/pushkin
