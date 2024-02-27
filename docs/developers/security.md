@@ -11,26 +11,26 @@ We take the security of our software seriously. If you have discovered a securit
 
 ![](../assets/developers/security/report-vulnerability.gif)
 
-## Using GitHub's Security Advisory
+## Using GitHub's security advisory feature
 
-1. **Create a New Advisory:** In the Security tab, look for a button or link to “Create a new advisory”. Click on this to start the process.
-2. **Fill in the Advisory Details:** You will be prompted to fill in the details of the security vulnerability. Provide a clear, concise description of the issue. Include steps to reproduce the vulnerability and any potential impact it could have. Be as detailed as possible while avoiding public disclosure of sensitive information that could lead to exploitation.
+1. **Create a new advisory:** In the Security tab, look for a button or link to “Create a new advisory”. Click on this to start the process.
+2. **Fill in the advisory details:** You will be prompted to fill in the details of the security vulnerability. Provide a clear, concise description of the issue. Include steps to reproduce the vulnerability and any potential impact it could have. Be as detailed as possible while avoiding public disclosure of sensitive information that could lead to exploitation.
 
-## Advisories and Vulnerability Reporting
+## Advisories and vulnerability reporting
 
-1. **Temporary Private Fork:** GitHub may create a temporary private fork of the repository for you to work on a fix. This private fork is only visible to repository maintainers and those invited.
-2. **Collaborating on a Fix:** Use the temporary private fork to collaborate with project maintainers on developing a fix. Communicate through GitHub's issue tracking and pull request features, keeping all discussion private until the issue is resolved.
+1. **Temporary private fork:** GitHub may create a temporary private fork of the repository for you to work on a fix. This private fork is only visible to repository maintainers and those invited.
+2. **Collaborating on a fix:** Use the temporary private fork to collaborate with project maintainers on developing a fix. Communicate through GitHub's issue tracking and pull request features, keeping all discussion private until the issue is resolved.
 
-## Finalizing the Report
+## Finalizing the report
 
-1. **Publishing the Advisory:** Once a fix is ready and the maintainers are prepared to disclose the vulnerability, the advisory can be published. This makes the details of the vulnerability and the fix publicly visible.
+1. **Publishing the advisory:** Once a fix is ready and the maintainers are prepared to disclose the vulnerability, the advisory can be published. This makes the details of the vulnerability and the fix publicly visible.
 2. **CVE Assignment:** GitHub can assign a CVE (Common Vulnerabilities and Exposures) identifier to the vulnerability, providing a standard reference for identifying the security issue.
 
-## Best Practices
+## Best practices
 
-- **Do Not Disclose Publicly:** Avoid publicly disclosing the vulnerability before it is resolved. Doing so can put users at risk.
-- **Provide Detailed Information:** The more information you can provide about the vulnerability, the better. This includes how it can be exploited, potential impact, and any suggestions for mitigation or resolution.
-- **Stay Engaged:** Be prepared to answer further questions or provide additional information if the project maintainers require it.
+- **Do not disclose publicly:** Avoid publicly disclosing the vulnerability before it is resolved. Doing so can put users at risk.
+- **Provide detailed information:** The more information you can provide about the vulnerability, the better. This includes how it can be exploited, potential impact, and any suggestions for mitigation or resolution.
+- **Stay engaged:** Be prepared to answer further questions or provide additional information if the project maintainers require it.
 
 ## Conclusion
 

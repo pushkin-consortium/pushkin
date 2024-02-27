@@ -40,6 +40,9 @@ This command uses a template to set up the file structure of your site in the cu
 
 1. Of course, this will only work if the package is properly set up to function as a Pushkin site template.
 
+??? question "How can I work on multiple Pushkin sites simultaneously?"
+    When running Pushkin on your local system, you can only work on a single Pushkin site at a time. For most users, this shouldn't present a problem, since additional experiments can always be added to a site; however, if you do need to work on multiple sites simultaneously, using [GitHub Codespaces](../getting-started/installation.md#github-codespaces) will allow you to keep your sites in separate virtual environments.
+
 **Syntax:**
 
 ```

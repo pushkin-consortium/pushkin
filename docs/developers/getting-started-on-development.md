@@ -1,6 +1,6 @@
-# Getting Started on Development
+# Getting started on development
 
-## Overview of Technologies
+## Overview of technologies
 
 Below is a non-exhaustive list of technologies in the Pushkin stack. Depending on what you're trying to develop some of these may be absolutely essential or less important. In some cases, we suggest learning resources. If you find other resources that are particularly helpful, please make a pull request to update this page!
 
@@ -20,7 +20,7 @@ Below is a non-exhaustive list of technologies in the Pushkin stack. Depending o
 - **Bootstrap:** A framework for building responsive websites that adapt across devices. This includes features like navigation bars and buttons that easily adapt to different window dimensions. In the case of Pushkin, we use React-Bootstrap, which integrates Bootstrap styling into the React SPA.
 - **Aphrodite:** Adds JavaScript-based styling (to update CSS) for React components. Currently, this is used to customize hover styling for the QuizTile icons and buttons but can be imported into other components to add more control over the styling via JavaScript.
 
-### Back-end and Database
+### Back-end and database
 
 - **Node:** The language of the back end. This is used to set up the APIs, set up the server for the site, and more.
     - You’ll need a decent understanding of Javascript and Node for doing development on the Pushkin CLI.

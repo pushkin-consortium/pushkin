@@ -210,49 +210,49 @@ Imagine now you want to add another experiment or edit an existing one. Every ti
 
 At this point, you should have generated some data by testing at least one of your experiments. In order to view it, you can use whatever Postgres manager you installed based on the Pushkin [installation instructions](installation.md#installing-a-postgres-manager). Here, we'll go over how to view the data using either pgAdmin or SQLTools.
 
-### Using pgAdmin
+=== "pgAdmin"
 
-When you start pgAdmin, it will take a moment to load and then will appear as a new tab in your web browser. When you install it the first time, it will ask you to set a master password. This can be whatever you'd like, but make sure you keep it in a secure place.
+    When you start pgAdmin, it will take a moment to load and then will appear as a new tab in your web browser. When you install it the first time, it will ask you to set a master password. This can be whatever you'd like, but make sure you keep it in a secure place.
 
-![](../assets/getting-started/quickstart/pgadmin_1.png)
+    ![](../assets/getting-started/quickstart/pgadmin_1.png)
 
-Under _Quick Links_, click **Add New Server**. Make sure you have run `pushkin start` and that your site is running in `localhost`. Then follow these steps:
+    Under _Quick Links_, click **Add New Server**. Make sure you have run `pushkin start` and that your site is running in `localhost`. Then follow these steps:
 
-1. You can set the name of the server to anything, e.g. `Pushkin Testing`.
-2. Then move to the _Connection_ tab and set **Host name/address** to `localhost`.
-3. Set the password to the default password, `example`, which you can find in `pushkin.yaml`.
-4. Click **Save** and your _Pushkin Testing_ server should appear in the left sidebar.
+    1. You can set the name of the server to anything, e.g. `Pushkin Testing`.
+    2. Then move to the _Connection_ tab and set **Host name/address** to `localhost`.
+    3. Set the password to the default password, `example`, which you can find in `pushkin.yaml`.
+    4. Click **Save** and your _Pushkin Testing_ server should appear in the left sidebar.
 
-![](../assets/getting-started/quickstart/pgadmin_2.gif)
+    ![](../assets/getting-started/quickstart/pgadmin_2.gif)
 
-To view your data tables, navigate to the left sidebar:
+    To view your data tables, navigate to the left sidebar:
 
-1. Click to expand your _Pushkin Testing_ server.
-2. Select **test_db** under _Databases_.
-3. Select **Schemas**, which will also open its subitem **public**.
-4. Under **public**, choose **Tables**. 
+    1. Click to expand your _Pushkin Testing_ server.
+    2. Select **test_db** under _Databases_.
+    3. Select **Schemas**, which will also open its subitem **public**.
+    4. Under **public**, choose **Tables**. 
 
-![](../assets/getting-started/quickstart/pgadmin_3.gif)
+    ![](../assets/getting-started/quickstart/pgadmin_3.gif)
 
-You should see a list of tables including some that end in `_stimulusResponses` corresponding to each of your experiments. Right click any one of those, hover over _View/Edit Data_, and click on **All Rows**, which will open a new pgAdmin tab displaying the records in that table.
+    You should see a list of tables including some that end in `_stimulusResponses` corresponding to each of your experiments. Right click any one of those, hover over _View/Edit Data_, and click on **All Rows**, which will open a new pgAdmin tab displaying the records in that table.
 
-![](../assets/getting-started/quickstart/pgadmin_4.gif)
+    ![](../assets/getting-started/quickstart/pgadmin_4.gif)
 
-For more information on how to use pgAdmin, you can read their documentation [here](https://www.pgadmin.org/docs/).
+    For more information on how to use pgAdmin, you can read their documentation [here](https://www.pgadmin.org/docs/).
 
-### Using SQLTools
+=== "SQLTools"
 
-The following instructions should work whether you're using the desktop VS Code application or browser-based VS Code via GitHub Codespaces. Assuming you have installed SQLTools and the necessary Postgres driver, click on the SQLTools tab on the left side of the window. Click **Add New Connection** and you'll see some fields you need to fill out:
+    The following instructions should work whether you're using the desktop VS Code application or browser-based VS Code via GitHub Codespaces. Assuming you have installed SQLTools and the necessary Postgres driver, click on the SQLTools tab on the left side of the window. Click **Add New Connection** and you'll see some fields you need to fill out:
 
-![](../assets/getting-started/quickstart/sqltools1.png)
+    ![](../assets/getting-started/quickstart/sqltools1.png)
 
-Name the connection whatever you want. We'll call it `Pushkin Test` here. For the database and username, fill in `test_db` and `postgres` respectively. These are Pushkin's default database configurations. For the _Use password_ field, select **Ask on connect**. Click **SAVE CONNECTION** at the bottom of that screen. You should now be prompted to fill in the password (`example`, unless you changed it earlier in you site's config file).
+    Name the connection whatever you want. We'll call it `Pushkin Test` here. For the database and username, fill in `test_db` and `postgres` respectively. These are Pushkin's default database configurations. For the _Use password_ field, select **Ask on connect**. Click **SAVE CONNECTION** at the bottom of that screen. You should now be prompted to fill in the password (`example`, unless you changed it earlier in you site's config file).
 
-You should see your connection in the left-hand window of the screen. Now select _Pushkin Test_ > *test_db* > _Schemas_ > _public_ > _Tables_.
+    You should see your connection in the left-hand window of the screen. Now select _Pushkin Test_ > *test_db* > _Schemas_ > _public_ > _Tables_.
 
-![](../assets/getting-started/quickstart/sqltools2.png)
+    ![](../assets/getting-started/quickstart/sqltools2.png)
 
-You should see a list of tables including some that end in `_stimulusResponses` corresponding to each of your experiments. Right click any of those and select **Show Table Records**. You should now see any data you created for that experiment.
+    You should see a list of tables including some that end in `_stimulusResponses` corresponding to each of your experiments. Right click any of those and select **Show Table Records**. You should now see any data you created for that experiment.
 
 ## Starting over
 
