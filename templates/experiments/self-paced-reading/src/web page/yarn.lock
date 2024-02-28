@@ -1063,6 +1063,11 @@
   resolved "https://registry.yarnpkg.com/@jspsych/plugin-html-keyboard-response/-/plugin-html-keyboard-response-1.1.2.tgz#36b4ccdd158cf9980de57af07202185fc156a815"
   integrity sha512-2qxXK7IgbAPCqDq+WNu4QK0aRZwcmm0mutWGyIB0a9D0eSsg/WK1Sg4aRoZQDYrEI0QB4hCdLnShqtcJ+mF8Ag==
 
+"@jspsych/test-utils@^1.1.2":
+  version "1.1.2"
+  resolved "https://registry.yarnpkg.com/@jspsych/test-utils/-/test-utils-1.1.2.tgz#e7ec6bbc111d0f271abe410d63216b6b48e2704d"
+  integrity sha512-d+GI3klMLrWcTUWP27fJ5taW6uoGHOrthnmVwkal0t2o636ydRKTJrpA5X7b+uvJXaFLYdSoYOtaVJhHjF7NFA==
+
 "@nicolo-ribaudo/chokidar-2@2.1.8-no-fsevents.3":
   version "2.1.8-no-fsevents.3"
   resolved "https://registry.yarnpkg.com/@nicolo-ribaudo/chokidar-2/-/chokidar-2-2.1.8-no-fsevents.3.tgz#323d72dd25103d0c4fbdce89dadf574a787b1f9b"

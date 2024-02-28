@@ -25,9 +25,12 @@
     "build": "mkdir -p build && cd src && zip -FS -r -q ../build/template.zip .",
     "prepack": "cp ../../../LICENSE ."
   },
-  "devDependencies": {
+  "dependencies": {
     "@babel/core": "^7.23.6",
     "@babel/preset-env": "^7.23.6",
+    "jest-environment-jsdom": "^29.7.0"
+  },
+  "devDependencies": {
     "@jspsych/plugin-html-keyboard-response": "^1.1.3",
     "@jspsych/test-utils": "^1.1.2",
     "jspsych": "^7.3.4"

@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "test": "jest",
-    "build": "babel src -d build; cp -r src/assets build/"
+    "build": "babel src -d build && cp -r src/assets build/"
   },
   "author": "",
   "license": "MIT",
@@ -18,7 +18,7 @@
     "@jspsych/plugin-survey-likert": "^1.1.2",
     "build-if-changed": "^1.5.5",
     "js-yaml": "^4.1.0",
-    "jspsych": "^7.3.3",
+    "jspsych": "^7.3.4",
     "pushkin-client": "^1.7.1",
     "react": "^18.2.0",
     "react-router-dom": "^5.2.0"
