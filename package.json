@@ -5,9 +5,10 @@
     "templates/*/*"
   ],
   "scripts": {
-    "test": "jest",
     "docs:deploy": "poetry install --no-root && poetry run mike deploy -u --alias-type=redirect",
-    "docs:serve": "poetry run mike serve"
+    "docs:serve": "poetry run mike serve",
+    "release": "yarn workspaces run build && yarn changeset publish",
+    "test": "jest"
   },
   "devDependencies": {
     "@changesets/changelog-github": "^0.5.0",
