@@ -169,3 +169,29 @@ Now you should be able to run `pushkin prep` and `pushkin start`. If you make su
 
 1. Re-run `yarn build` in `pushkin/packages/pushkin-worker`.
 2. In the same directory, run `yalc push`. `yalc push` will update your locally published version of `pushkin-worker` and push the changes wherever the package is being used. This saves you the hassle of running `yalc update` where you previously ran `yalc add`.
+
+## Testing with Jest
+
+The pushkin repo is set up to run tests using [Jest](https://jestjs.io/), a popular JavaScript testing library. In addition to testing contributions to the Pushkin codebase, Jest is also configured for Pushkin users to run tests on their own Pushkin sites.
+
+### Jest for pushkin repo development
+
+After cloning the `pushkin` repo and running `yarn install`, you can run tests for all Pushkin packages and templates by running:
+
+```
+yarn test
+```
+
+Alternatively, to run tests for just one particular package or template, run:
+
+```
+yarn workspace <workspace-name> test
+```
+
+Improving test coverage is a priority for Pushkin, so we will happily receive pull requests for additional tests. If you're contributing to some other aspect of the codebase, we ask that you try to add appropriate tests to cover your updates (see our guide to [contributions](./contributions.md) for more).
+
+### Jest for user site development
+
+Pushkin sites come pre-configured to run Jest tests. Currently, the only tests distributed to Pushkin users enter your site through experiment templates; however, you can expand testing for your Pushkin site as you see fit. If you develop more sophisticated testing for your site, we encourage you to consider how it could be contributed back to the project, so other users might benefit as well.
+
+After running `pushkin install exp`, run `yarn test` from the root of your site to run tests for any experiments you've installed. Note that some tests written for experiment templates may fail when you customize the experiment. 
