@@ -205,7 +205,6 @@ const handleAWSUpdate = async () => {
   return compose // this is a promise, so can be awaited
 }
 
-
 const handleCreateAutoScale = async () => {
   let projName
   try {
@@ -333,7 +332,6 @@ const handleAWSKill = async () => {
   }
   return awsArmageddon(useIAM.iam, 'kill')
 }
-
 
 const handleAWSArmageddon = async () => {
   let nukeMe
@@ -820,7 +818,7 @@ const killLocal = async () => {
   return;  
 }
 
-const handleRemove = async (verbose) => {
+const handleRemove = async (what, verbose) => {
   if (verbose) {
     console.log('Locating the project root...');
   }
@@ -846,9 +844,7 @@ const handleRemove = async (verbose) => {
     console.log('Retrieving experiments...');
   }
 
-  const experiments = fs.readdirSync(experimentsPath).filter(file => {
-    return fs.statSync(path.join(experimentsPath, file)).isDirectory();
-  });
+  const experiments = fs.readdirSync(experimentsPath).filter(file => fs.statSync(path.join(experimentsPath, file)).isDirectory());
 
   if (experiments.length === 0) {
     console.error('No experiments found.');
@@ -861,18 +857,20 @@ const handleRemove = async (verbose) => {
 
   const choices = experiments.map(exp => ({ name: exp }));
   const question = {
-    type: 'list',
-    name: 'selectedExperiment',
-    message: 'Select an experiment to remove:',
+    type: 'checkbox', // Changed from 'list' to 'checkbox' to allow multiple selections
+    name: 'selectedExperiments',
+    message: 'Select one or more experiments to remove:',
     choices
   };
 
   const answer = await inquirer.prompt(question);
   if (verbose) {
-    console.log(`Experiment selected: ${answer.selectedExperiment}`);
+    console.log(`Experiments selected: ${answer.selectedExperiments.join(', ')}`);
   }
-  return path.join(experimentsPath, answer.selectedExperiment); 
+  // Return paths for all selected experiments
+  return answer.selectedExperiments.map(exp => path.join(experimentsPath, exp)); 
 };
+
 
 async function main() {
 
@@ -1151,12 +1149,17 @@ async function main() {
         }
     })
 
-  program
-    .command('remove')
+    program
+    .command('remove <what>')
     .alias('r')
-    .description('Delete or archive a pushkin experiment. Deletion completely removes an experiments files, worker, and docker image.')
+    .description('Delete or archive a Pushkin experiment. Deletion completely removes an experiment\'s files, worker, and docker image.')
     .option('-v, --verbose', 'output extra debugging info')
-    .action(async (options) => {
+    .action(async (what, options) => {
+      if (!['experiment', 'exp'].includes(what.toLowerCase())) {
+        console.error('Invalid option. You can only remove "experiment" or "exp" for now.');
+        process.exit(1);
+      }
+  
       // Inquirer prompt to ask if the user wants to delete or archive
       const answers = await inquirer.prompt([
         {
@@ -1166,19 +1169,26 @@ async function main() {
           choices: ['Delete', 'Archive'],
         }
       ]);
-
-      const experimentPath = await handleRemove(options.verbose);
-
+  
+      const experimentsPath = await handleRemove(what, options.verbose);
+  
       if (answers.action === 'Delete') {
         try {
-          await deleteExperiment(experimentPath, options.verbose); 
+          for (const experimentPath of experimentsPath) {
+            await deleteExperiment(experimentPath, options.verbose);
+          }
+          // Call killLocal after all deletions
+          await killLocal();
         } catch(e) {
           console.error(e);
           process.exit();
         }
+        
       } else if (answers.action === 'Archive') {
         try {
-          await archiveExperiment(experimentPath, options.verbose); 
+          for (const experimentPath of experimentsPath) {
+            await archiveExperiment(experimentPath, options.verbose);
+          }
         } catch(e) {
           console.error(e);
           process.exit();

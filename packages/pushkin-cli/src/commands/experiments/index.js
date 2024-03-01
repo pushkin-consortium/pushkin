@@ -335,75 +335,6 @@ const removeExperimentFromDockerCompose = async (experimentName, verbose) => {
     process.exit(1);
   }
 };
-/**
- * 
- * @param {*} experimentName 
- * @param {*} verbose 
- */
-const killExperiment = async (experimentName, verbose) => {
-  if (verbose) {
-      console.log(`Removing Docker components and database tables for experiment: ${experimentName}`);
-  }
-
-  while (process.cwd() != path.parse(process.cwd()).root) {
-      if (fs.existsSync(path.join(process.cwd(), 'pushkin.yaml'))) {
-          if (verbose) {
-              console.log('Project root found.');
-          }
-          break;
-      }
-      process.chdir('..');
-  }
-
-  // Remove Docker images associated with the experiment
-  try {
-      await exec(`docker images -a | grep "${experimentName}_worker" | awk '{print $3}' | xargs docker rmi -f`);
-      if (verbose) {
-          console.log(`Docker components for ${experimentName} removed.`);
-      }
-  } catch (err) {
-      console.error(`Problem with removing Docker components for ${experimentName}:`, err);
-      process.exit();
-  }
-
-  // Load database configuration
-  let pushkinConfig;
-  try {
-      pushkinConfig = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'pushkin.yaml'), 'utf8'));
-  } catch (e) {
-      console.error('Failed to read pushkin.yaml', e);
-      process.exit();
-  }
-
-  // Assuming the database configuration for localtestdb is to be used
-  const dbConfig = pushkinConfig.databases.localtestdb;
-  const knexConfig = {
-      client: 'pg',
-      connection: {
-          host: dbConfig.url,
-          user: dbConfig.user,
-          password: dbConfig.pass,
-          database: dbConfig.name,
-          port: dbConfig.port
-      }
-  };
-
-  // Connect to the database
-  const db = knex(knexConfig);
-  try {
-      // Drop experiment-specific tables
-      // Adjust this query to match your table naming convention
-      await db.raw(`DROP TABLE IF EXISTS ${experimentName}_your_table_name`);
-      if (verbose) {
-          console.log(`Database tables for ${experimentName} removed.`);
-      }
-  } catch (err) {
-      console.error(`Problem with removing database tables for ${experimentName}:`, err);
-  } finally {
-      // Destroy the database connection
-      db.destroy();
-  }
-};
 
 const deleteTimelineAssets = async (experimentName, verbose) => {
   while (process.cwd() != path.parse(process.cwd()).root) {
@@ -463,9 +394,6 @@ export async function deleteExperiment(experimentPath, verbose) {
 
     // Update docker-compose.yaml
     await removeExperimentFromDockerCompose(experimentName, verbose);
-
-    // Remove Docker components
-    await killExperiment(experimentName, verbose);
 
     if (verbose) {
       console.log(`Experiment selected for deletion: ${experimentPath}`);
