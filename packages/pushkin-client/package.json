@@ -43,7 +43,6 @@
         "eslint-plugin-react": "^7.20.3",
         "eslint-plugin-react-hooks": "^4.0.8",
         "fs": "^0.0.1-security",
-        "jest": "^29.6.3",
-        "jest-environment-jsdom": "^29.6.3"
+        "jest-environment-jsdom": "^29.7.0"
     }
 }

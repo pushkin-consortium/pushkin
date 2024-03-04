@@ -2,4 +2,4 @@
 
 # pushkin-exptemplates-grammatical
 
-Basic jsPsych grammaticality judgement experiment
+Basic jsPsych grammaticality judgment experiment

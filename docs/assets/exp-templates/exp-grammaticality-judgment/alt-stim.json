@@ -1,0 +1,6 @@
+[
+    { "sentence_grammatical": "This is an example.", "sentence_ungrammatical": "This an example." },
+    { "sentence_grammatical": "He went for a walk.", "sentence_ungrammatical": "He went a walk." },
+    { "sentence_grammatical": "The frogs are jumping.", "sentence_ungrammatical": "The frogs is jumping." },
+    { "sentence_grammatical": "Where did she go?", "sentence_ungrammatical": "Where she did go?" }
+]

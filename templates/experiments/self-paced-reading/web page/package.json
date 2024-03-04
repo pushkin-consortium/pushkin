@@ -15,7 +15,6 @@
   "dependencies": {
     "@jspsych-contrib/plugin-self-paced-reading": "^2.0.0",
     "@jspsych/plugin-html-keyboard-response": "^1.1.2",
-    "@jspsych/test-utils": "^1.1.2",
     "build-if-changed": "^1.5.5",
     "js-yaml": "^4.1.0",
     "jspsych": "^7.3.3",
@@ -28,8 +27,6 @@
     "@babel/core": "^7.10.5",
     "@babel/preset-env": "^7.10.4",
     "@babel/preset-react": "^7.10.4",
-    "babel-plugin-static-fs": "^3.0.0",
-    "jest": "^29.7.0",
-    "jest-environment-jsdom": "^29.7.0"
+    "babel-plugin-static-fs": "^3.0.0"
   }
 }

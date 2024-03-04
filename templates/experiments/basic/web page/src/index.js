@@ -7,7 +7,7 @@ import jsYaml from 'js-yaml';
 const fs = require('fs');
 
 //stylin'
-import './assets/experiment.css'
+import './assets/experiment.css';
 
 const expConfig = jsYaml.load(fs.readFileSync('../config.yaml'), 'utf8');
 

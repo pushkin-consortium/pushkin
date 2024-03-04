@@ -1,0 +1,31 @@
+experimentName: My Cool Experiment
+shortName: My_Cool_Experiment
+apiControllers:
+  mountPath: My_Cool_Experiment
+  location: api controllers
+  name: mycontroller
+worker:
+  location: worker
+  service:
+    image: My_Cool_Experiment
+    links:
+      - message-queue
+      - test_db
+      - test_transaction_db
+    environment:
+      AMQP_ADDRESS: 'amqp://message-queue:5672'
+      DB_USER: postgres
+      DB_PASS: example
+      DB_URL: test_db
+      DB_NAME: test_db
+webPage:
+  location: web page
+migrations:
+  location: migrations
+seeds:
+  location: ''
+database: localtestdb
+logo: logo512.png
+text: Enter your experiment description here.
+tagline: Be a citizen scientist! Try this quiz.
+duration: ''
