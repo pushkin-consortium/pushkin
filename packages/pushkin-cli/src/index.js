@@ -823,21 +823,22 @@ const handleRemove = async (what, verbose) => {
     console.log('Locating the project root...');
   }
 
-  while (process.cwd() != path.parse(process.cwd()).root) {
-    if (fs.existsSync(path.join(process.cwd(), 'pushkin.yaml'))) {
+  let currentDir = process.cwd();
+  while (currentDir != path.parse(currentDir).root) {
+    if (fs.existsSync(path.join(currentDir, 'pushkin.yaml'))) {
       if (verbose) {
         console.log('Project root found.');
       }
       break; 
     }
-    process.chdir('..');
+    currentDir = path.resolve(currentDir, '..');
   }
 
-  const experimentsPath = path.join(process.cwd(), 'experiments');
+  const experimentsPath = path.join(currentDir, 'experiments');
 
   if (!fs.existsSync(experimentsPath)) {
     console.error('Experiments folder not found.');
-    process.exit();
+    return; 
   }
 
   if (verbose) {
@@ -857,7 +858,7 @@ const handleRemove = async (what, verbose) => {
 
   const choices = experiments.map(exp => ({ name: exp }));
   const question = {
-    type: 'checkbox', // Changed from 'list' to 'checkbox' to allow multiple selections
+    type: 'checkbox', 
     name: 'selectedExperiments',
     message: 'Select one or more experiments to remove:',
     choices
@@ -867,7 +868,7 @@ const handleRemove = async (what, verbose) => {
   if (verbose) {
     console.log(`Experiments selected: ${answer.selectedExperiments.join(', ')}`);
   }
-  // Return paths for all selected experiments
+  
   return answer.selectedExperiments.map(exp => path.join(experimentsPath, exp)); 
 };
 
@@ -1160,7 +1161,6 @@ async function main() {
         process.exit(1);
       }
   
-      // Inquirer prompt to ask if the user wants to delete or archive
       const answers = await inquirer.prompt([
         {
           type: 'list',
@@ -1177,7 +1177,6 @@ async function main() {
           for (const experimentPath of experimentsPath) {
             await deleteExperiment(experimentPath, options.verbose);
           }
-          // Call killLocal after all deletions
           await killLocal();
         } catch(e) {
           console.error(e);

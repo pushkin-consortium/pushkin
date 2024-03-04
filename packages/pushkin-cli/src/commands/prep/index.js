@@ -287,9 +287,24 @@ export const prep = async (experimentsDir, coreDir, verbose) => {
     throw e
   }
 
-  // Get an array of all experiment directories
-  // Iterate over this later to prep each experiment's api, web page, and worker 
-  const expDirs = fs.readdirSync(experimentsDir);
+  const expDirs = fs.readdirSync(experimentsDir, { withFileTypes: true })
+    .filter(dirent => dirent.isDirectory())
+    .map(dirent => dirent.name);
+
+  const notArchivedDirs = [];
+
+  expDirs.forEach(dir => {
+  const configFile = path.join(experimentsDir, dir, 'config.yaml');
+    try {
+      const configContent = fs.readFileSync(configFile, 'utf8');
+      const config = jsYaml.load(configContent);
+    if (!config.archived) {
+      notArchivedDirs.push(dir);
+    }
+    } catch (error) {
+      console.error(`Failed to read or parse config.yaml for ${dir}: ${error}`);
+    }
+  });
 
   const prepAPIWrapper = (exp, verbose) => {
     if (verbose) {
@@ -383,7 +398,7 @@ export const prep = async (experimentsDir, coreDir, verbose) => {
 
   let webPageIncludes;
   try {
-    webPageIncludes = Promise.all(expDirs.map((exp) => prepWebWrapper(exp, verbose)));
+    webPageIncludes = Promise.all(notArchivedDirs.map((exp) => prepWebWrapper(exp, verbose)));
   } catch (err) {
     console.error(err);
     process.exit();

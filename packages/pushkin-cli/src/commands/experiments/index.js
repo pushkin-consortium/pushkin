@@ -5,7 +5,6 @@ import { readConfig } from '../prep/index.js'; //useful utility function
 import replace from 'replace-in-file';
 import jsYaml from 'js-yaml';
 import util from 'util';
-import knex from 'knex';
 const exec = util.promisify(require('child_process').exec);
 const shell = require('shelljs');
 import pacMan from '../../pMan.js'; //which package manager is available?
@@ -310,21 +309,17 @@ const removeExperimentFromDockerCompose = async (experimentName, verbose) => {
   }
 
   try {
-    // Read the docker-compose file
     const fileContents = fs.readFileSync(dockerComposePath, 'utf8');
     const dockerCompose = jsYaml.load(fileContents);
 
-    // Assuming 'services' is where your experiment is defined
     if (dockerCompose.services && dockerCompose.services[`${experimentName}_worker`]) {
       delete dockerCompose.services[`${experimentName}_worker`];
     } else {
       throw new Error(`No service found for ${experimentName}_worker`);
     }
 
-    // Convert the object back to YAML
     const newYaml = jsYaml.dump(dockerCompose);
 
-    // Write the modified content back to the file
     fs.writeFileSync(dockerComposePath, newYaml, 'utf8');
 
     if (verbose) {
@@ -343,7 +338,6 @@ const deleteTimelineAssets = async (experimentName, verbose) => {
         console.log('Project root found.');
       }
 
-      // Once project root is found, navigate to the specific directory
       const targetDir = path.join(process.cwd(), 'pushkin/front-end/src/assets');
       if (fs.existsSync(targetDir)) {
         process.chdir(targetDir);
@@ -352,10 +346,8 @@ const deleteTimelineAssets = async (experimentName, verbose) => {
           console.log('Navigated to /pushkin/front-end/src/assets');
         }
 
-        // Check for the existence of the 'timeline' directory with the experimentName
         const experimentDir = path.join(targetDir, 'timeline', experimentName);
         if (fs.existsSync(experimentDir)) {
-          // Delete the directory if it exists
           fs.rmSync(experimentDir, { recursive: true, force: true });
           if (verbose) {
             console.log(`Deleted timeline assets for experiment: ${experimentName}`);
@@ -374,10 +366,6 @@ const deleteTimelineAssets = async (experimentName, verbose) => {
   }
 }
 
-/**
- * 
- * @param {*} verbose 
- */
 export async function deleteExperiment(experimentPath, verbose) {
   try {
     if (verbose) {
@@ -386,20 +374,16 @@ export async function deleteExperiment(experimentPath, verbose) {
 
     const experimentName = path.basename(experimentPath);
 
-    // Delete the experiment files 
-    shell.rm('-rf', experimentPath);
-
-    // Delete the timeline assets (if they exist)
-    await deleteTimelineAssets(experimentName, verbose)
-
-    // Update docker-compose.yaml
-    await removeExperimentFromDockerCompose(experimentName, verbose);
-
     if (verbose) {
       console.log(`Experiment selected for deletion: ${experimentPath}`);
       console.log('Deleting experiment directory...');
     }
 
+    shell.rm('-rf', experimentPath);
+
+    await deleteTimelineAssets(experimentName, verbose)
+
+    await removeExperimentFromDockerCompose(experimentName, verbose);
 
     if (verbose) {
       console.log('Experiment directory deleted.');
@@ -411,12 +395,26 @@ export async function deleteExperiment(experimentPath, verbose) {
   }
 }
 
-/**
- * 
- * @param {*} verbose 
- */
-export function archiveExperiment(experimentPath, verbose) {
 
-  console.log('Archive feature has not been implemented yet.');
-
+export async function archiveExperiment(experimentPath, verbose) {
+  const configFile = `${experimentPath}/config.yaml`;
+  
+  try {
+    const configContent = fs.readFileSync(configFile, 'utf8');
+    
+    const config = jsYaml.load(configContent);
+    
+    config.archived = true;
+    
+    const newYaml = jsYaml.dump(config);
+    
+    fs.writeFileSync(configFile, newYaml, 'utf8');
+    
+    if (verbose) {
+      console.log(`Experiment at ${experimentPath} has been successfully archived.`);
+    }
+  } catch (error) {
+    console.error(`Failed to archive experiment at ${experimentPath}: ${error}`);
+  }
 }
+
