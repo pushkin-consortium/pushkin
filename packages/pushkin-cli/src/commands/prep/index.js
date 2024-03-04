@@ -287,9 +287,7 @@ export const prep = async (experimentsDir, coreDir, verbose) => {
     throw e
   }
 
-  const expDirs = fs.readdirSync(experimentsDir, { withFileTypes: true })
-    .filter(dirent => dirent.isDirectory())
-    .map(dirent => dirent.name);
+  const expDirs = fs.readdirSync(experimentsDir);
 
   const notArchivedDirs = [];
 
