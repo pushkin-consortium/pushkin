@@ -64,7 +64,6 @@ export const promiseFolderInit = async (initDir, component, verbose) => {
     await exec(pacMan.concat(' --mutex network install'), { cwd: path.join(initDir, component) })
     if (verbose) console.log(`Building ${component}`);
     updatePushkinJs(verbose); //synchronous
-    setEnv(false, verbose); //synchronous
     if (verbose) console.log(`Building front end`);
     await exec(pacMan.concat(' --mutex network run build'), { cwd: path.join(initDir, component) })
     if (verbose) console.log(`${component} is built`);
@@ -81,7 +80,8 @@ export const promiseFolderInit = async (initDir, component, verbose) => {
 */
 export const setupPushkinSite = async (verbose) => {
   if (verbose) console.log('--verbose flag set inside setupPushkinSite()');
-  shell.rm('-rf','__MACOSX'); // fs doesn't have a stable direct removal function yet      
+  shell.rm('-rf','__MACOSX'); // fs doesn't have a stable direct removal function yet
+  setEnv(true, verbose); // synchronous; sets `debug` env var to true
   return new Promise((resolve, reject) => {
     // Move/rename pushkin.yaml and config.js in their proper locations
     const pushkinYaml = fs.promises.rename('pushkin/pushkin.yaml.bak', './pushkin.yaml').catch((e) => { console.error(e); });

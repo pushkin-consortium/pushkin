@@ -872,6 +872,45 @@ const handleRemove = async (what, verbose) => {
   return answer.selectedExperiments.map(exp => path.join(experimentsPath, exp)); 
 };
 
+const handleDirectRemove = async (experiments, verbose) => {
+  if (verbose) {
+    console.log('Processing direct removal...');
+  }
+
+  let currentDir = process.cwd();
+  const experimentsPath = path.join(findProjectRoot(currentDir), 'experiments');
+
+  if (!fs.existsSync(experimentsPath)) {
+    console.error('Experiments folder not found.');
+    process.exit();
+  }
+
+  const validExperiments = experiments.filter(exp => fs.existsSync(path.join(experimentsPath, exp)) && fs.statSync(path.join(experimentsPath, exp)).isDirectory());
+
+  if (validExperiments.length === 0) {
+    console.error('Specified experiments not found.');
+    process.exit();
+  }
+
+  if (verbose) {
+    console.log(`Directly removing: ${validExperiments.join(', ')}`);
+  }
+
+  return validExperiments.map(exp => path.join(experimentsPath, exp));
+};
+
+const findProjectRoot = (currentDir) => {
+  while (currentDir != path.parse(currentDir).root) {
+    if (fs.existsSync(path.join(currentDir, 'pushkin.yaml'))) {
+      return currentDir;
+    }
+    currentDir = path.resolve(currentDir, '..');
+  }
+  console.error('Project root not found.');
+  process.exit();
+};
+
+
 
 async function main() {
 
@@ -914,7 +953,7 @@ async function main() {
       switch (cmd){
         case 'init':
           try {
-            setEnv(false, options.verbose) //asynchronous
+            setEnv(false, options.verbose) // synchronous
             await handleAWSInit(options.force);
           } catch(e) {
             console.error(e)
@@ -991,10 +1030,21 @@ async function main() {
     .command('prep')
     .description('Prepares local copy for local testing. This step includes running migrations, so be sure you have read the documentation on how that works.')
     .option('-nm, --nomigrations', 'Do not run migrations. Be sure database structure has not changed!')
+    .option('-p, --production', 'Run with front-end env var `debug`=false. Do this before deploying to AWS.')
     .option('-v, --verbose', 'output extra debugging info')
     .action(async (options) => {
       let awaits;
       removeDS(options.verbose);
+      try {
+        if (options.production) {
+          setEnv(false, options.verbose);
+        } else {
+          setEnv(true, options.verbose);
+        }
+      } catch (e) {
+        console.error("Problem setting front-end environment variable:", e);
+        process.exit(1);
+      }
       try {
         if (options.nomigrations) {
           //only running prep
@@ -1005,7 +1055,7 @@ async function main() {
         }
       } catch (e) {
         console.error(e);
-        process.exit();
+        process.exit(1);
       }
       return await Promise.all(awaits);
     })
@@ -1018,12 +1068,6 @@ async function main() {
     .action(async (options) => {
       if (options.verbose) console.log("starting start...");
       moveToProjectRoot();
-      if (options.verbose) console.log(`Setting front-end 'environment variable'`);
-      try {
-        setEnv(true, options.verbose) //this is synchronous
-      } catch (e) {
-        console.error(`Unable to update .env.js`)
-      }
       if (options.verbose) console.log(`Copying experiments.js to front-end.`);
       try {
         fs.copyFileSync('pushkin/front-end/src/experiments.js', 'pushkin/front-end/experiments.js');
@@ -1150,34 +1194,42 @@ async function main() {
         }
     })
 
-    program
-    .command('remove <what>')
+  program
+    .command('remove <what> [experiments...]')
     .alias('r')
     .description('Delete or archive a Pushkin experiment. Deletion completely removes an experiment\'s files, worker, and docker image.')
     .option('-v, --verbose', 'output extra debugging info')
-    .action(async (what, options) => {
+    .action(async (what, experiments, options) => {
       if (!['experiment', 'exp'].includes(what.toLowerCase())) {
         console.error('Invalid option. You can only remove "experiment" or "exp" for now.');
         process.exit(1);
       }
-  
+
+      let experimentsPath;
+      if (experiments.length === 0) {
+        // If no experiments are provided, fall back to interactive prompt
+        experimentsPath = await handleRemove(what, options.verbose);
+      } else {
+        // If experiments are provided, directly use them
+        experimentsPath = await handleDirectRemove(experiments, options.verbose);
+      }
+
       const answers = await inquirer.prompt([
         {
           type: 'list',
           name: 'action',
-          message: 'Would you like to delete or archive the experiment?',
+          message: 'Would you like to delete or archive the experiment(s)?',
           choices: ['Delete', 'Archive'],
         }
       ]);
-  
-      const experimentsPath = await handleRemove(what, options.verbose);
-  
+
       if (answers.action === 'Delete') {
         try {
           for (const experimentPath of experimentsPath) {
             await deleteExperiment(experimentPath, options.verbose);
           }
           await killLocal();
+          console.log('Experiment(s) successfully deleted')
         } catch(e) {
           console.error(e);
           process.exit();
@@ -1188,13 +1240,13 @@ async function main() {
           for (const experimentPath of experimentsPath) {
             await archiveExperiment(experimentPath, options.verbose);
           }
+          console.log('Experiment(s) successfully archived')
         } catch(e) {
           console.error(e);
           process.exit();
         }
       }
     });
-
 
    program.parseAsync(process.argv);
 }
