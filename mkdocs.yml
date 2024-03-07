@@ -1,13 +1,12 @@
 site_name: Pushkin
 theme:
   name: material
-  favicon: 'img/pushkin_bw_w_text.png'
-  logo: 'img/pushkin_bw_w_text.png'
+  favicon: 'assets/pushkin_bw_no_text.png'
+  logo: 'assets/pushkin_bw_no_text.png'
   features:
     - navigation.top
     - navigation.instant
     - navigation.instant.progress
-    - navigation.sections
     - navigation.path
     - navigation.footer
     - search.suggest
@@ -18,80 +17,90 @@ theme:
     - toc.follow
   language: en
   palette:
-    - scheme: default
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
       toggle:
-        icon: material/toggle-switch-off-outline 
+        icon: material/weather-night
         name: Switch to dark mode
-      primary: deep orange
-      accent: deep purple
-    - scheme: slate 
+      primary: teal
+      accent: pink
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate 
       toggle:
-        icon: material/toggle-switch
-        name: Switch to light mode    
-      primary: deep orange
-      accent: deep purple
+        icon: material/weather-sunny
+        name: Switch to light mode
+      primary: teal
+      accent: pink
+copyright: 'Copyright &copy; 2015-2024 Joshua Hartshorne'
+site_description: 'Pushkin provides a customizable, scalable ecosystem for massive online psychological experiments.'
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+      use_pygments: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
 extra:
   version:
     provider: mike
+extra_javascript:
+  - https://unpkg.com/tablesort@5.3.0/dist/tablesort.min.js
+  - javascripts/tablesort.js
+plugins:
+  - search
+  - mike:
+      version_selector: true
+  - open-in-new-tab
+  - table-reader
 repo_url: https://github.com/pushkin-consortium/pushkin
-repo_name: pushkin-constortium/pushkin
+repo_name: pushkin-consortium/pushkin
 nav:
-- Introduction: 'README.md'
-- Getting Started:
-  - Installing Pushkin and Dependencies: 
-    - Choose Your OS: 'getting-started/installing-pushkin-and-dependencies/README.md'
-    - macOS: 'getting-started/installing-pushkin-and-dependencies/macos-install.md'
-    - Windows 10:
-      - Windows Subsystem for Linux: 'getting-started/installing-pushkin-and-dependencies/windows-install.md'
-      - AWS EC2 Instance: 'getting-started/installing-pushkin-and-dependencies/ec2-install.md'
-    - Ubuntu Linux: 'getting-started/installing-pushkin-and-dependencies/ubuntu-install.md'
-  - Quickstart: 
-    - Introduction: 'getting-started/quickstart/README.md'
-    - Quickstart - Example Outputs: 'getting-started/quickstart/sample_output.md'
-  - Deploying to AWS: 
-    - Introduction: 'getting-started/deploying-to-aws/README.md'
-    - Install Required Software: 'getting-started/deploying-to-aws/install-required-software.md'
-    - Configure the AWS and ECS CLIs: 'getting-started/deploying-to-aws/configure-aws-and-ecs-clis.md'
-    - Register a Domain: 'getting-started/deploying-to-aws/domain-registration.md'
-    - Set up Dockerhub: 'getting-started/deploying-to-aws/dockerhub.md'
-    - Initialize AWS Deploy: 'getting-started/deploying-to-aws/initializing-aws-deploy.md'
-    - View Your Data: 'getting-started/deploying-to-aws/view-your-data.md'
-  - Tutorial - Simple Experiment: 
-    - Tutorial: 'getting-started/tutorial-simple-experiment.md'
-- FAQ: 
-  - FAQ: 'faq/FAQ.md'
-- Advanced: 
-  - Pushkin CLI: 'advanced/pushkin-cli.md'
-  - Experiment Templates:
-    - Using Experiment Templates: 'advanced/modifying-experiment-templates/README.md'
-    - Lexical Decision Template: 'advanced/modifying-experiment-templates/lexical-decision-template.md'
-    - Grammaticality Judgement Template: 'advanced/modifying-experiment-templates/grammaticality-judgement-template.md'
-    - Self-Paced Reading Template: 'advanced/modifying-experiment-templates/self-paced-reading-template.md'
-  - Experiment Component Structure:
-    - Structure: 'advanced/experiment-structure/README.md'
-    - Experiment Config.yaml Files: 'advanced/experiment-structure/experiment-config-files.md'
-    - Experiment Web Page Componenent: 'advanced/experiment-structure/experiment-web-page-component.md'
-    - Worker Component, Migration, and Seed: 'advanced/experiment-structure/worker-component-migration-and-seed.md'
-  - Modifying a Site: 
-    - Details: 'advanced/modifying-site-template/README.md'
-    - React Bootstrap: 'advanced/modifying-site-template/react-bootstrap.md'
-    - Header & Footer: 'advanced/modifying-site-template/header-and-footer.md'
-    - Home Page: 'advanced/modifying-site-template/home-page.md'
-    - Findings Page: 'advanced/modifying-site-template/findings-page.md'
-    - About Page: 'advanced/modifying-site-template/about-page.md'
-    - Feedback Page: 'advanced/modifying-site-template/feedback-page.md'
-  - Troubleshooting Pushkin: 'advanced/troubleshooting-pushkin.md'
-  - Pushkin Client: 'advanced/pushkin-client.md'
-  - Pushkin API:
-    - About: 'advanced/pushkin-api/README.md'
-    - API-Controller Builder: 'advanced/pushkin-api/api-controller-builder.md'
-    - Core API: 'advanced/pushkin-api/core-api.md'
-  - Users & Authentication: 'advanced/users-and-authentication.md'
-  - Deployment:  
-    - Deleting AWS: 'advanced/deploying/awsDeletion.md'
+- Home: 'index.md'
+- Getting started:
+  - Installation: 'getting-started/installation.md'
+  - Quickstart tutorial: 'getting-started/quickstart.md'
+  - Deploying to AWS: 'getting-started/deploying-to-aws.md'
+  - Simple experiment tutorial: 'getting-started/simple-experiment-tutorial.md'
+- Site templates:
+  - Overview of site templates: 'site-templates/site-templates-overview.md'
+  - site-basic: 'site-templates/site-basic.md'
+- Experiment templates:
+  - Overview of experiment templates: 'exp-templates/exp-templates-overview.md'
+  - exp-basic: 'exp-templates/exp-basic.md'
+  - exp-lexical-decision: 'exp-templates/exp-lexical-decision.md'
+  - exp-grammaticality-judgment: 'exp-templates/exp-grammaticality-judgment.md'
+  - exp-self-paced-reading: 'exp-templates/exp-self-paced-reading.md'
+- Packages:
+  - Overview of packages: 'packages/packages-overview.md'
+  - pushkin-cli: 'packages/pushkin-cli.md'
+  - pushkin-api: 'packages/pushkin-api.md'
+  - pushkin-client: 'packages/pushkin-client.md'
+  - pushkin-worker: 'packages/pushkin-worker.md'
 - Developers: 
-  - Developing with Pushkin: 'developers/developing-with-pushkin.md'
-  - Getting Started on Development: 'developers/getting-started-on-development.md'
-  - Overview of Technologies: 'developers/overview-of-tech.md'
-  - Testing with Jest: 'advanced/testing-pushkin-with-jest.md'
-  - Working with Templates: 'developers/working-with-templates.md'
+  - Getting started on development: 'developers/getting-started-on-development.md'
+  - Documentation: 'developers/documentation.md'
+  - Contributions: 'developers/contributions.md'
+  - Security: 'developers/security.md'
+- Support:
+  - Troubleshooting: 'support/troubleshooting.md'
+  - GitHub Discussions: 'support/github-discussions.md'
+- About:
+  - About Pushkin: 'about/about-pushkin.md'
+  - License: 'about/pushkin-license.md'

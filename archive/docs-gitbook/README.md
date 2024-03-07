@@ -3,6 +3,12 @@ description: >-
   Pushkin provides a customizable, scalable ecosystem for massive online
   psychological experiments
 ---
+
+## 🏡 We've moved!
+> **Please refer to the new Pushkin documentation at https://pushkin-consortium.github.io/pushkin!**
+
+---
+
 # Welcome!
 
 “Getting Started” will get a very simple demo site up and running. The remaining pages explain how to customize your website. Instructions are geared towards someone who ideally has at least some familiarity with JavaScript and React. Sections intended for more experienced programmers who need to understand the guts of Pushkin are labeled under Developers. See the full Table of contents [here](./#table-of-contents).
