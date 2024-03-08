@@ -986,6 +986,7 @@ async function main() {
 
       if (!options.cache) { // options.cache===true by default because of --no-cache flag
         try {
+          console.log("Rebuilding Docker images");
           await compose.buildAll({
             cwd: path.join(process.cwd(), 'pushkin'),
             config: 'docker-compose.dev.yml',
@@ -993,7 +994,7 @@ async function main() {
             commandOptions: ["--no-cache"]
           });
         } catch (e) {
-          console.error("Problem rebuilding docker images:");
+          console.error("Problem rebuilding Docker images:");
           throw e;
         }
       }
