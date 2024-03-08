@@ -818,99 +818,73 @@ const killLocal = async () => {
   return;  
 }
 
-const handleRemove = async (what, verbose) => {
+const handleRemove = async (what, experiments, mode, verbose) => {
   if (verbose) {
     console.log('Locating the project root...');
   }
 
-  let currentDir = process.cwd();
-  while (currentDir != path.parse(currentDir).root) {
-    if (fs.existsSync(path.join(currentDir, 'pushkin.yaml'))) {
-      if (verbose) {
-        console.log('Project root found.');
-      }
-      break; 
-    }
-    currentDir = path.resolve(currentDir, '..');
+  moveToProjectRoot(); 
+  const rootDir = process.cwd(); 
+
+  const configPath = path.join(rootDir, 'pushkin.yaml');
+  if (!fs.existsSync(configPath)) {
+    console.error('pushkin.yaml not found in the project root.');
+    process.exit(1);
   }
 
-  const experimentsPath = path.join(currentDir, 'experiments');
+  const config = jsYaml.load(fs.readFileSync(configPath, 'utf8'));
+  const experimentsDir = config.experimentsDir || 'experiments'; 
+  const experimentsPath = path.join(rootDir, experimentsDir);
 
   if (!fs.existsSync(experimentsPath)) {
-    console.error('Experiments folder not found.');
-    return; 
+    console.error(`Experiments folder (${experimentsDir}) not found.`);
+    process.exit();
   }
-
-  if (verbose) {
-    console.log('Retrieving experiments...');
-  }
-
-  const experiments = fs.readdirSync(experimentsPath).filter(file => fs.statSync(path.join(experimentsPath, file)).isDirectory());
 
   if (experiments.length === 0) {
-    console.error('No experiments found.');
-    process.exit();
+    const experimentsList = fs.readdirSync(experimentsPath).filter(file => fs.statSync(path.join(experimentsPath, file)).isDirectory());
+    const choices = experimentsList.map(exp => ({ name: exp }));
+    const question = {
+      type: 'checkbox', 
+      name: 'selectedExperiments',
+      message: 'Select one or more experiments to remove:',
+      choices
+    };
+    const answer = await inquirer.prompt(question);
+    experiments.push(...answer.selectedExperiments);
   }
 
-  if (verbose) {
-    console.log('Experiments retrieved. Prompting for selection...');
+  if (!mode) {
+    const modeQuestion = {
+      type: 'list',
+      name: 'action',
+      message: 'Would you like to delete or archive the experiment(s)?',
+      choices: ['delete', 'archive'],
+    };
+    const modeAnswer = await inquirer.prompt([modeQuestion]);
+    mode = modeAnswer.action;
   }
 
-  const choices = experiments.map(exp => ({ name: exp }));
-  const question = {
-    type: 'checkbox', 
-    name: 'selectedExperiments',
-    message: 'Select one or more experiments to remove:',
-    choices
-  };
-
-  const answer = await inquirer.prompt(question);
-  if (verbose) {
-    console.log(`Experiments selected: ${answer.selectedExperiments.join(', ')}`);
-  }
-  
-  return answer.selectedExperiments.map(exp => path.join(experimentsPath, exp)); 
-};
-
-const handleDirectRemove = async (experiments, verbose) => {
-  if (verbose) {
-    console.log('Processing direct removal...');
-  }
-
-  let currentDir = process.cwd();
-  const experimentsPath = path.join(findProjectRoot(currentDir), 'experiments');
-
-  if (!fs.existsSync(experimentsPath)) {
-    console.error('Experiments folder not found.');
-    process.exit();
-  }
-
-  const validExperiments = experiments.filter(exp => fs.existsSync(path.join(experimentsPath, exp)) && fs.statSync(path.join(experimentsPath, exp)).isDirectory());
-
-  if (validExperiments.length === 0) {
-    console.error('Specified experiments not found.');
-    process.exit();
-  }
-
-  if (verbose) {
-    console.log(`Directly removing: ${validExperiments.join(', ')}`);
-  }
-
-  return validExperiments.map(exp => path.join(experimentsPath, exp));
-};
-
-const findProjectRoot = (currentDir) => {
-  while (currentDir != path.parse(currentDir).root) {
-    if (fs.existsSync(path.join(currentDir, 'pushkin.yaml'))) {
-      return currentDir;
+  try {
+    for (const experiment of experiments) {
+      const experimentPath = path.join(experimentsPath, experiment);
+      if (mode === 'delete') {
+        await deleteExperiment(experimentPath, verbose);
+      } else if (mode === 'archive') {
+        await archiveExperiment(experimentPath, verbose);
+      }
     }
-    currentDir = path.resolve(currentDir, '..');
+    if (mode === 'delete') {
+      await killLocal();
+      console.log('Experiment(s) successfully deleted');
+    } else {
+      console.log('Experiment(s) successfully archived');
+    }
+  } catch (e) {
+    console.error(e);
+    process.exit();
   }
-  console.error('Project root not found.');
-  process.exit();
 };
-
-
 
 async function main() {
 
@@ -1197,55 +1171,20 @@ async function main() {
   program
     .command('remove <what> [experiments...]')
     .alias('r')
-    .description('Delete or archive a Pushkin experiment. Deletion completely removes an experiment\'s files, worker, and docker image.')
+    .description('Delete or archive a Pushkin experiment. Deletion completely removes an experiment\'s files, worker, and docker image. Archiving simply removes an experiment from the front end')
     .option('-v, --verbose', 'output extra debugging info')
     .action(async (what, experiments, options) => {
       if (!['experiment', 'exp'].includes(what.toLowerCase())) {
         console.error('Invalid option. You can only remove "experiment" or "exp" for now.');
         process.exit(1);
       }
-
-      let experimentsPath;
-      if (experiments.length === 0) {
-        // If no experiments are provided, fall back to interactive prompt
-        experimentsPath = await handleRemove(what, options.verbose);
-      } else {
-        // If experiments are provided, directly use them
-        experimentsPath = await handleDirectRemove(experiments, options.verbose);
+  
+      let mode;
+      if (experiments.length > 0 && ['delete', 'archive'].includes(experiments[experiments.length - 1])) {
+        mode = experiments.pop(); 
       }
-
-      const answers = await inquirer.prompt([
-        {
-          type: 'list',
-          name: 'action',
-          message: 'Would you like to delete or archive the experiment(s)?',
-          choices: ['Delete', 'Archive'],
-        }
-      ]);
-
-      if (answers.action === 'Delete') {
-        try {
-          for (const experimentPath of experimentsPath) {
-            await deleteExperiment(experimentPath, options.verbose);
-          }
-          await killLocal();
-          console.log('Experiment(s) successfully deleted')
-        } catch(e) {
-          console.error(e);
-          process.exit();
-        }
-        
-      } else if (answers.action === 'Archive') {
-        try {
-          for (const experimentPath of experimentsPath) {
-            await archiveExperiment(experimentPath, options.verbose);
-          }
-          console.log('Experiment(s) successfully archived')
-        } catch(e) {
-          console.error(e);
-          process.exit();
-        }
-      }
+  
+      await handleRemove(what, experiments, mode, options.verbose);
     });
 
    program.parseAsync(process.argv);
