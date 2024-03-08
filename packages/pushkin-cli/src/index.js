@@ -937,7 +937,7 @@ async function main() {
   program
     .command('prep')
     .description('Prepares local copy for local testing. This step includes running migrations, so be sure you have read the documentation on how that works.')
-    .option('-nm, --nomigrations', 'Do not run migrations. Be sure database structure has not changed!')
+    .option('--no-migrations', 'Do not run migrations. Be sure database structure has not changed!')
     .option('-p, --production', 'Run with front-end env var `debug`=false. Do this before deploying to AWS.')
     .option('-v, --verbose', 'output extra debugging info')
     .action(async (options) => {
@@ -954,12 +954,12 @@ async function main() {
         process.exit(1);
       }
       try {
-        if (options.nomigrations) {
+        if (options.migrations) { // options.migrations===true by default because of --no-migrations flag
+          //running prep and updating DB
+          awaits = [handlePrep(options.verbose), handleUpdateDB(options.verbose)];          
+        } else {
           //only running prep
           awaits = [handlePrep(options.verbose)];
-        } else {
-          //running prep and updating DB
-          awaits = [handlePrep(options.verbose), handleUpdateDB(options.verbose)];
         }
       } catch (e) {
         console.error(e);
@@ -971,42 +971,48 @@ async function main() {
   program
     .command('start')
     .description('Starts local deploy for debugging purposes. To start only the front end (no databases), see the manual.')
-    .option('-nc, --nocache', 'Rebuild all images from scratch, without using the cache.')
+    .option('--no-cache', 'Rebuild all images from scratch, without using the cache.')
     .option('-v, --verbose', 'output extra debugging info')
     .action(async (options) => {
-      if (options.verbose) console.log("starting start...");
+      if (options.verbose) console.log("Starting start...");
       moveToProjectRoot();
-      if (options.verbose) console.log(`Copying experiments.js to front-end.`);
+      if (options.verbose) console.log("Copying experiments.js to front-end");
       try {
         fs.copyFileSync('pushkin/front-end/src/experiments.js', 'pushkin/front-end/experiments.js');
       } catch (e) {
-        console.error("Couldn't copy experiments.js. Make sure it exists and is in the right place.")
-        process.exit();
+        console.error("Couldn't copy experiments.js. Make sure it exists and is in the right place.");
+        process.exit(1);
       }
-      if (options.nocache){
+
+      if (!options.cache) { // options.cache===true by default because of --no-cache flag
         try {
-          await compose.buildAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: options.verbose, commandOptions: ["--no-cache"]})    
+          await compose.buildAll({
+            cwd: path.join(process.cwd(), 'pushkin'),
+            config: 'docker-compose.dev.yml',
+            log: options.verbose,
+            commandOptions: ["--no-cache"]
+          });
         } catch (e) {
-          console.error("Problem rebuilding docker images");
+          console.error("Problem rebuilding docker images:");
           throw e;
         }
-        if (options.verbose) console.log(`Running docker-compose up...`);
-        compose.upAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: options.verbose, commandOptions: ["--remove-orphans"]})
-          .then(
-            out => { 
-              console.log(out.out, 'Starting. You may not be able to load localhost for a minute or two.')
-            },
-            err => { console.log('something went wrong:', err)}
-          );
-      } else {
-        compose.upAll({cwd: path.join(process.cwd(), 'pushkin'), config: 'docker-compose.dev.yml', log: options.verbose, commandOptions: ["--build","--remove-orphans"]})
-          .then(
-            out => { console.log(out.out, 'Starting. You may not be able to load localhost for a minute or two.')},
-            err => { console.log('something went wrong:', err)}
-          );
       }
-      return;
-    })
+
+      if (options.verbose) console.log(`Running docker-compose up...`);
+      const composeUpOptions = options.cache ? ["--build", "--remove-orphans"] : ["--remove-orphans"];
+      try {
+        await compose.upAll({
+          cwd: path.join(process.cwd(), 'pushkin'),
+          config: 'docker-compose.dev.yml',
+          log: options.verbose,
+          commandOptions: composeUpOptions
+        });
+        console.log('Starting. You may not be able to load localhost for a minute or two.');
+      } catch (e) {
+        console.error("Something went wrong:");
+        throw e;
+      }
+    });
 
   program
     .command('stop')
@@ -1019,12 +1025,12 @@ async function main() {
           err => { console.log('something went wrong:', err)}
         );
       return;
-    })
+    });
 
   program
     .command('kill')
     .description('Removes all containers and volumes from local Docker, as well as pushkin-specific images. To additionally remove third-party images, run `pushkin armageddon`.')
-    .action(killLocal)
+    .action(killLocal);
 
   program
     .command('armageddon')

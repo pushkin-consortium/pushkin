@@ -127,7 +127,7 @@ pushkin prep <options>
 ```
 **Options:**
 
-- no-migrations: `--nomigrations` will run `prep` without database migrations. If you do this, make sure the database structure has not changed since you ran `prep` previously (with migrations).
+- no-migrations: `--no-migrations` will run `prep` without database migrations. If you do this, make sure the database structure has not changed since you ran `prep` previously (with migrations).
 
 - verbose: `-v` or `--verbose` shows additional console output which may be helpful for debugging.
 
@@ -155,7 +155,7 @@ pushkin start <options>
 
 **Options:**
 
-- no-cache: `--nocache` will rebuild all Docker images from scratch without using the cache. By default, this is false.
+- no-cache: `--no-cache` will rebuild all Docker images from scratch without using the cache. By default, this is false.
 
 - verbose: `-v` or `--verbose` shows additional console output which may be helpful for debugging.
 
