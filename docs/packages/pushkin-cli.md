@@ -106,6 +106,35 @@ If you select the basic template, this command will give you the option to impor
 
 The command also integrates a new experiment into the Pushkin framework. It performs key tasks such as updating template file names and contents to reflect the new experiment's name, setting up database migrations, initializing essential directories for the experiment's API, web page, and worker components, and ensuring the experiment is correctly configured in the Docker environment. The API and web page components are then locally published using yalc.
 
+### remove experiment
+
+This command allows users to remove a pushkin experiment from their site. It's arguments can be given in one command, or it will prompt the user for their arguments in the command line. The command offers two distinct ways of removing an experiment
+
+1. Archive: Archiving an experiment simply removes it from pushkin's frontend. This means that the experiment will no longer be viewable by users. It does this by setting a flag inside the experiment to not include it in the front end build. This means that the experiments backend files and data will be untouched 
+2. Delete: Deleting an experiment removes all of its files & assets, docker components, and databases. This command should only be done if you want the experiment completely gone, as it is irreversible. Pushkin [kill](#kill) is run at the end of this command. 
+
+**Note:** For any of the changes implemented by remove experiment to take affect, [prep](#prep) will need to be run after the command finishes
+
+**Syntax:**
+
+```
+pushkin remove experiment
+```
+
+or
+
+```
+pushkin pushkin remove experiment [array of exps] delete/archive 
+```
+
+**Options:**
+
+- verbose: `-v` or `--verbose` shows additional console output during the installation process which may be helpful for debugging.
+
+**Details:**
+
+Remove performs the selected removal action(archival or deletion) on one or multiple experiments that the user selects or provides. For deletion this involves a recursive process of removing experiment files, timeline assets, and docker/database components. For archival, there is a flag set inside the experiments yaml file to ignore it when building the front end. 
+
 ### updateDB
 
 Runs migrations and seeds for experiments to update the database. This is set up to ensure experiments using the same database (as defined in `pushkin.yaml`) are migrated at the same time to avoid errors with the `knex_migrations` table. This is automatically run as part of `pushkin prep`.

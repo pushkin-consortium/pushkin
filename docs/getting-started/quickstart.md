@@ -205,6 +205,17 @@ Imagine now you want to add another experiment or edit an existing one. Every ti
  pushkin prep
  pushkin start
 ```
+## Removing experiments 
+
+If there is one or many experiments that you no longer want to be apart of your site, you can remove them using the remove command. 
+
+```
+  pushkin remove experiment 
+```
+
+There are two options when removing an experiment, **archive** and **delete**. Archiving an experiment simply removes it from pushkin's frontend. This means that the experiment will no longer be viewable by users. Deleting an experiment removes all of its files & assets, docker components, and databases. This command should only be done if you want the experiment completely gone, as it is irreversible.
+
+Since this command updates your site, you will need to run `pushkin prep` just like if you added an experiment or edited other site contents.
 
 ## Viewing your data
 
