@@ -285,3 +285,136 @@ export function getJsPsychImports(plugins, verbose) {
     return; // If no plugins were found, return undefined
   }
 }
+
+/**
+ * Remove an experiment from the docker file 
+ * @param {*} experimentName 
+ * @param {*} verbose 
+ */
+const removeExperimentFromDockerCompose = async (experimentName, verbose) => {
+  while (process.cwd() != path.parse(process.cwd()).root) {
+    if (fs.existsSync(path.join(process.cwd(), 'pushkin.yaml'))) {
+      if (verbose) {
+        console.log('Project root found.');
+      }
+      break; 
+    }
+    process.chdir('..');
+  }
+  
+  const dockerComposePath = path.join(process.cwd(), 'pushkin', 'docker-compose.dev.yml');
+  
+  if (verbose) {
+    console.log(`Updating docker-compose file at ${dockerComposePath}`);
+  }
+
+  try {
+    const fileContents = fs.readFileSync(dockerComposePath, 'utf8');
+    const dockerCompose = jsYaml.load(fileContents);
+
+    if (dockerCompose.services && dockerCompose.services[`${experimentName}_worker`]) {
+      delete dockerCompose.services[`${experimentName}_worker`];
+    } else {
+      throw new Error(`No service found for ${experimentName}_worker`);
+    }
+
+    const newYaml = jsYaml.dump(dockerCompose);
+
+    fs.writeFileSync(dockerComposePath, newYaml, 'utf8');
+
+    if (verbose) {
+      console.log(`docker-compose file updated successfully.`);
+    }
+  } catch (err) {
+    console.error(`Error updating docker-compose file: ${err}`);
+    process.exit(1);
+  }
+};
+
+const deleteTimelineAssets = async (experimentName, verbose) => {
+  while (process.cwd() != path.parse(process.cwd()).root) {
+    if (fs.existsSync(path.join(process.cwd(), 'pushkin.yaml'))) {
+      if (verbose) {
+        console.log('Project root found.');
+      }
+
+      const targetDir = path.join(process.cwd(), 'pushkin/front-end/src/assets');
+      if (fs.existsSync(targetDir)) {
+        process.chdir(targetDir);
+
+        if (verbose) {
+          console.log('Navigated to /pushkin/front-end/src/assets');
+        }
+
+        const experimentDir = path.join(targetDir, 'timeline', experimentName);
+        if (fs.existsSync(experimentDir)) {
+          fs.rmSync(experimentDir, { recursive: true, force: true });
+          if (verbose) {
+            console.log(`Deleted timeline assets for experiment: ${experimentName}`);
+          }
+        } else {
+          if (verbose) {
+            console.log(`No timeline assets to delete for experiment: ${experimentName}`);
+          }
+        }
+      } else {
+        console.error('Target directory /pushkin/front-end/src/assets does not exist.');
+      }
+      break;
+    }
+    process.chdir('..');
+  }
+}
+
+export async function deleteExperiment(experimentPath, verbose) {
+  try {
+    if (verbose) {
+      console.log('Starting experiment deletion process...');
+    }
+
+    const experimentName = path.basename(experimentPath);
+
+    if (verbose) {
+      console.log(`Experiment selected for deletion: ${experimentPath}`);
+      console.log('Deleting experiment directory...');
+    }
+
+    shell.rm('-rf', experimentPath);
+
+    await deleteTimelineAssets(experimentName, verbose)
+
+    await removeExperimentFromDockerCompose(experimentName, verbose);
+
+    if (verbose) {
+      console.log('Experiment directory deleted.');
+      console.log('Experiment deleted successfully.');
+    }
+  } catch (e) {
+    console.error('Error deleting experiment:', e.message);
+    process.exit(1);
+  }
+}
+
+
+export async function archiveExperiment(experimentPath, verbose) {
+  const configFile = `${experimentPath}/config.yaml`;
+  
+  try {
+    const configContent = fs.readFileSync(configFile, 'utf8');
+    
+    const config = jsYaml.load(configContent);
+    
+    config.archived = true;
+    
+    const newYaml = jsYaml.dump(config);
+    
+    fs.writeFileSync(configFile, newYaml, 'utf8');
+    
+    if (verbose) {
+      console.log(`Experiment at ${experimentPath} has been successfully archived.`);
+    }
+  } catch (error) {
+    console.error(`Failed to archive experiment at ${experimentPath}: ${error}`);
+  }
+}
+
