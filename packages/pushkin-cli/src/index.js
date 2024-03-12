@@ -818,6 +818,13 @@ const killLocal = async () => {
   return;  
 }
 
+/**
+ * The primary function for deleting and archiving/unarchiving experiments
+ * @param {string[]} experiments The (short) names of the experiments to be removed
+ * @param {string} mode The mode of removal ("delete", "archive", or "unarchive")
+ * @param {boolean} force Whether to suppress the deletion confirmation prompt
+ * @param {boolean} verbose Output extra information to the console for debugging purposes
+ */
 const handleRemove = async (experiments, mode, force, verbose) => {
   if (verbose) console.log('--verbose flag set inside handleRemove()');
   // Make sure we're in the root of the site directory
