@@ -108,32 +108,43 @@ The command also integrates a new experiment into the Pushkin framework. It perf
 
 ### remove experiment
 
-This command allows users to remove a pushkin experiment from their site. It's arguments can be given in one command, or it will prompt the user for their arguments in the command line. The command offers two distinct ways of removing an experiment
+This command allows users to remove an experiment from their site and offers two removal modes:
 
-1. Archive: Archiving an experiment simply removes it from pushkin's frontend. This means that the experiment will no longer be viewable by users. It does this by setting a flag inside the experiment to not include it in the front end build. This means that the experiments backend files and data will be untouched 
-2. Delete: Deleting an experiment removes all of its files & assets, docker components, and databases. This command should only be done if you want the experiment completely gone, as it is irreversible. Pushkin [kill](#kill) is run at the end of this command. 
+1. **delete:** Deleting an experiment permanently removes all of its files, data, and associated Docker components. This command should only be used if you want the experiment completely gone, as it is irreversible. Note that this mode currently runs [`kill`](#kill), and will consequently delete **all** experiments' data from your local database, not just the experiment(s) you deleted. Future development may address this limitation.
+2. **archive:** Archiving an experiment removes it from your site's front end, so it is no longer accessible to participants. However, all of the experiment's files remain in place and the site's back end and data will not be affected.
 
-**Note:** For any of the changes implemented by remove experiment to take affect, [prep](#prep) will need to be run after the command finishes
+The command has a third mode, `unarchive`, that adds archived experiments back to your site's front end.
+
+!!! note
+    You must run [`prep`](#prep) after `remove experiment` for changes to your site to take effect.
 
 **Syntax:**
 
 ```
-pushkin remove experiment
+pushkin remove experiment <options>
 ```
 
 or
 
 ```
-pushkin pushkin remove experiment [array of exps] delete/archive 
+pushkin rm exp <options>
 ```
 
 **Options:**
 
-- verbose: `-v` or `--verbose` shows additional console output during the installation process which may be helpful for debugging.
+- experiments: `-e` or `--experiments` allows you to specify which experiment(s) to delete, archive, or unarchive. Provide the experiments' short names (i.e. the name of the folder in the `/experiments` directory) separated by spaces after the `-e` flag (e.g. `pushkin rm exp -e exp1 exp2 exp3`). If the `--experiments` option is omitted, the CLI will interactively prompt you to select the experiments you want.
+
+- mode: `-m` or `--mode` allows you to specify the `delete`, `archive`, or `unarchive` mode (e.g. `pushkin rm exp -m delete`). If the `--mode` option is omitted, the CLI will interactively prompt you to select which mode you want.
+
+- force: `-f` or `--force` applies only to the `delete` mode and allows you to suppress the deletion confirmation prompt.
+
+- verbose: `-v` or `--verbose` shows additional console output during the removal process which may be helpful for debugging.
+
+- help: `-h` or `--help` displays the command's help information.
 
 **Details:**
 
-Remove performs the selected removal action(archival or deletion) on one or multiple experiments that the user selects or provides. For deletion this involves a recursive process of removing experiment files, timeline assets, and docker/database components. For archival, there is a flag set inside the experiments yaml file to ignore it when building the front end. 
+Archiving and unarchiving experiments is a simple operation that entails setting the `archived` property in the experiment's `config.yaml` file to `true` or `false`. You can change this property manually if you wish, but using `pushkin rm exp -m archive` offers a convenient way to quickly change this property for multiple experiments.
 
 ### updateDB
 

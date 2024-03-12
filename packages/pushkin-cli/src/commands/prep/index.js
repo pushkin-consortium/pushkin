@@ -289,20 +289,21 @@ export const prep = async (experimentsDir, coreDir, verbose) => {
 
   const expDirs = fs.readdirSync(experimentsDir);
 
-  const notArchivedDirs = [];
-
+  // Filter out any experiments where the config.yaml file has `archived` set to true
+  const archivedDirs = [];
   expDirs.forEach(dir => {
-  const configFile = path.join(experimentsDir, dir, 'config.yaml');
     try {
-      const configContent = fs.readFileSync(configFile, 'utf8');
-      const config = jsYaml.load(configContent);
-    if (!config.archived) {
-      notArchivedDirs.push(dir);
-    }
+      const configPath = path.join(experimentsDir, dir, 'config.yaml');
+      const config = jsYaml.safeLoad(fs.readFileSync(configPath));
+      if (config.archived) {
+        archivedDirs.push(dir);
+      }
     } catch (error) {
-      console.error(`Failed to read or parse config.yaml for ${dir}: ${error}`);
+      console.error(`Failed to read config.yaml for ${dir}: ${error}`);
+      throw error;
     }
   });
+  const frontEndDirs = expDirs.filter(dir => !archivedDirs.includes(dir));
 
   const prepAPIWrapper = (exp, verbose) => {
     if (verbose) {
@@ -396,7 +397,8 @@ export const prep = async (experimentsDir, coreDir, verbose) => {
 
   let webPageIncludes;
   try {
-    webPageIncludes = Promise.all(notArchivedDirs.map((exp) => prepWebWrapper(exp, verbose)));
+    // Mapping over frontEndDirs (not expDirs) because we want to keep archived experiments off the front end
+    webPageIncludes = Promise.all(frontEndDirs.map((exp) => prepWebWrapper(exp, verbose)));
   } catch (err) {
     console.error(err);
     process.exit();

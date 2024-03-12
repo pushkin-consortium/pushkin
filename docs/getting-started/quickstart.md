@@ -108,7 +108,7 @@ salt: "cognitivescience"
 To add experiments to your Pushkin site, run:
 
 ```
- pushkin install experiment
+pushkin install experiment
 ```
 
 You'll first be asked what you want to name your experiment. Call it `hello`, since we're going to make this experiment a simple "hello, world" example.
@@ -167,7 +167,7 @@ experimentName: 'My super fun experiment!'
 Keeping all the files for an experiment within the same root folder is convenient for development, but not for actually deploying the website. To reorganize your site for deployment (and local testing), run:
 
 ```
- pushkin prep
+pushkin prep
 ```
 
 ![](../assets/getting-started/quickstart/quickstart_4.gif)
@@ -179,8 +179,8 @@ Keeping all the files for an experiment within the same root folder is convenien
 
 Now let’s look at your website! Start your local deploy by running:
 
-```bash
- pushkin start
+```
+pushkin start
 ```
 
 ![](../assets/getting-started/quickstart/quickstart_5.gif)
@@ -190,7 +190,7 @@ In a web browser, open [localhost](http://localhost) and you should see your sit
 When you are done looking at your website, stop the local deploy by running:
 
 ```
- pushkin stop
+pushkin stop
 ```
 
 ![](../assets/getting-started/quickstart/quickstart_7.gif)
@@ -202,20 +202,23 @@ If you don’t do that, the web server will keep running in Docker until you qui
 Imagine now you want to add another experiment or edit an existing one. Every time you update your site, you’ll need to run `pushkin prep` (and `pushkin start` if you want to look at your updates) again:
 
 ```
- pushkin prep
- pushkin start
+pushkin prep
+pushkin start
 ```
-## Removing experiments 
+### Removing experiments 
 
-If there is one or many experiments that you no longer want to be apart of your site, you can remove them using the remove command. 
+If you'd like to get rid of one or more of your site's experiments, you can remove them with this command:
 
 ```
-  pushkin remove experiment 
+pushkin remove experiment
 ```
 
-There are two options when removing an experiment, **archive** and **delete**. Archiving an experiment simply removes it from pushkin's frontend. This means that the experiment will no longer be viewable by users. Deleting an experiment removes all of its files & assets, docker components, and databases. This command should only be done if you want the experiment completely gone, as it is irreversible.
+There are two options when removing an experiment, **archive** and **delete**. Archiving an experiment simply removes it from your site's front end. This means that the experiment will no longer be accessible to participants. Archiving an experiment can be undone by calling `pushkin remove experiment` again and specifying the `unarchive` mode. Deleting an experiment removes all of its files, data, and Docker components. Deleting an experiment is **irreversible**, so be sure you want the experiment gone before using this mode.
 
-Since this command updates your site, you will need to run `pushkin prep` just like if you added an experiment or edited other site contents.
+!!! warning
+    For technical reasons, the current implementation of the `delete` mode deletes **all** experiments' data from your local database, not just the experiment(s) you deleted. Future development may address this limitation.
+
+Since the `remove experiment` command updates your site, you will need to run `pushkin prep` afterwards just like if you added an experiment or edited other parts of your site.
 
 ## Viewing your data
 

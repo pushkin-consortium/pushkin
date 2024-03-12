@@ -47,7 +47,7 @@ const promiseExpFolderInit = async (expDir, expComponent, packageName, rootDir, 
       throw(e)
     }
   })
-}
+};
 
 /**
  * Performs setup tasks for a Pushkin experiment after template files have been copied into the experiment directory.
@@ -173,7 +173,7 @@ export const setupPushkinExp = async (longName, shortName, expDir, rootDir, verb
   }
 
   return await Promise.all(renamedMigrations.concat(webPromise))
-}
+};
 
 /**
  * Extracts the timeline-creation procedure from a jsPsych experiment.
@@ -207,7 +207,7 @@ export function getJsPsychTimeline(experimentPath, verbose) {
       return jsPsychExp.slice(timelineBegin, timelineEnd);
     }
   }
-}
+};
 
 /**
  * Extracts the necessary plugins from a jsPsych experiment.
@@ -233,7 +233,7 @@ export function getJsPsychPlugins(experimentPath, verbose) {
     if (verbose) console.log('Found jsPsych packages:', '\n\t'.concat(plugins.join('\n\t')));
     return plugins;
   }
-}
+};
 
 /**
  * Creates the necessary import statement for each jsPsych plugin for experiment.js.
@@ -284,137 +284,86 @@ export function getJsPsychImports(plugins, verbose) {
     console.log('Problem creating import statements for jsPsych packages');
     return; // If no plugins were found, return undefined
   }
-}
+};
 
 /**
- * Remove an experiment from the docker file 
- * @param {*} experimentName 
- * @param {*} verbose 
+ * Deletes an experiment's files from the experiments directory, as well as its timeline assets
+ * @param {string} experimentPath The path to the experiment to be deleted
+ * @param {boolean} verbose Output extra information to the console for debugging purposes
+ * @returns {Promise} A promise that resolves when the experiment's files are deleted
  */
-const removeExperimentFromDockerCompose = async (experimentName, verbose) => {
-  while (process.cwd() != path.parse(process.cwd()).root) {
-    if (fs.existsSync(path.join(process.cwd(), 'pushkin.yaml'))) {
-      if (verbose) {
-        console.log('Project root found.');
-      }
-      break; 
-    }
-    process.chdir('..');
-  }
-  
-  const dockerComposePath = path.join(process.cwd(), 'pushkin', 'docker-compose.dev.yml');
-  
-  if (verbose) {
-    console.log(`Updating docker-compose file at ${dockerComposePath}`);
-  }
-
+export function deleteExperiment(experimentPath, verbose) {
+  if (verbose) console.log('--verbose flag set inside deleteExperiment()');
   try {
-    const fileContents = fs.readFileSync(dockerComposePath, 'utf8');
-    const dockerCompose = jsYaml.load(fileContents);
-
-    if (dockerCompose.services && dockerCompose.services[`${experimentName}_worker`]) {
-      delete dockerCompose.services[`${experimentName}_worker`];
-    } else {
-      throw new Error(`No service found for ${experimentName}_worker`);
-    }
-
-    const newYaml = jsYaml.dump(dockerCompose);
-
-    fs.writeFileSync(dockerComposePath, newYaml, 'utf8');
-
-    if (verbose) {
-      console.log(`docker-compose file updated successfully.`);
-    }
-  } catch (err) {
-    console.error(`Error updating docker-compose file: ${err}`);
-    process.exit(1);
+    const experimentName = path.basename(experimentPath);
+    if (verbose) console.log('Deleting experiment:', experimentName);
+    // First delete the experiment directory
+    const removedExpFiles = fs.promises.rm(experimentPath, { recursive: true, force: true });
+    // Then delete the experiment's timeline assets
+    const timelineAssetsPath = path.join(process.cwd(), 'pushkin/front-end/public/experiments', experimentName);
+    const removedTimelineAssets = fs.promises.rm(timelineAssetsPath, { recursive: true, force: true });
+    // Return a promise that resolves when both the experiment directory and timeline assets are deleted
+    return Promise.all([removedExpFiles, removedTimelineAssets]);    
+  } catch (e) {
+    console.error('Error deleting experiment:', experimentName, e);
+    throw(e);
   }
 };
 
-const deleteTimelineAssets = async (experimentName, verbose) => {
-  while (process.cwd() != path.parse(process.cwd()).root) {
-    if (fs.existsSync(path.join(process.cwd(), 'pushkin.yaml'))) {
-      if (verbose) {
-        console.log('Project root found.');
-      }
-
-      const targetDir = path.join(process.cwd(), 'pushkin/front-end/src/assets');
-      if (fs.existsSync(targetDir)) {
-        process.chdir(targetDir);
-
-        if (verbose) {
-          console.log('Navigated to /pushkin/front-end/src/assets');
-        }
-
-        const experimentDir = path.join(targetDir, 'timeline', experimentName);
-        if (fs.existsSync(experimentDir)) {
-          fs.rmSync(experimentDir, { recursive: true, force: true });
-          if (verbose) {
-            console.log(`Deleted timeline assets for experiment: ${experimentName}`);
-          }
-        } else {
-          if (verbose) {
-            console.log(`No timeline assets to delete for experiment: ${experimentName}`);
-          }
-        }
-      } else {
-        console.error('Target directory /pushkin/front-end/src/assets does not exist.');
-      }
-      break;
-    }
-    process.chdir('..');
-  }
-}
-
-export async function deleteExperiment(experimentPath, verbose) {
+/**
+ * Removes deleted experiments' workers from the site's docker-compose file 
+ * @param {string[]} experiments The (short) names of the experiments to be removed
+ * @param {boolean} verbose Output extra information to the console for debugging purposes
+ * @returns {Promise} A promise that resolves when the updated docker-compose file is written
+ */
+export function removeExpWorkers(experiments, verbose) {
+  if (verbose) console.log('--verbose flag set inside removeExpWorkers()');
   try {
-    if (verbose) {
-      console.log('Starting experiment deletion process...');
-    }
+    if (verbose) console.log(`Removing deleted experiments' workers from docker-compose file`);
+    const dockerComposePath = path.join(process.cwd(), 'pushkin/docker-compose.dev.yml');
+    // Read in the docker-compose file
+    const dockerCompose = jsYaml.safeLoad(fs.readFileSync(dockerComposePath, 'utf8'));
+    experiments.forEach((exp) => {
+      if (dockerCompose.services[`${exp}_worker`]) {
+        // Delete the experiment's worker
+        delete dockerCompose.services[`${exp}_worker`];
+      } else {
+        console.log(`No service found for ${exp}_worker in docker-compose.dev.yml`);
+      }
+    });
+    // Return the promise to write the updated docker-compose file
+    return fs.promises.writeFile(dockerComposePath, jsYaml.safeDump(dockerCompose));
+  } catch (e) {
+    console.error("Error updating docker-compose file", e);
+    throw e;
+  }
+};
 
+/**
+ * Updates an experiment's config file to set the 'archived' flag to true
+ * @param {string} experimentPath The path to the experiment to be archived
+ * @param {boolean} archived The value for the 'archived' flag in the experiment's config file
+ * @param {boolean} verbose Output extra information to the console for debugging purposes
+ * @returns {Promise} A promise that resolves when the updated config file is written
+ */
+export function archiveExperiment(experimentPath, archived, verbose) {
+  if (verbose) console.log('--verbose flag set inside archiveExperiment()');
+  try {
     const experimentName = path.basename(experimentPath);
-
-    if (verbose) {
-      console.log(`Experiment selected for deletion: ${experimentPath}`);
-      console.log('Deleting experiment directory...');
-    }
-
-    shell.rm('-rf', experimentPath);
-
-    await deleteTimelineAssets(experimentName, verbose)
-
-    await removeExperimentFromDockerCompose(experimentName, verbose);
-
-    if (verbose) {
-      console.log('Experiment directory deleted.');
-      console.log('Experiment deleted successfully.');
+    if (verbose) console.log(archived ? 'Archiving experiment:' : 'Unarchiving experiment:', experimentName);
+    // Read in the experiment's config file and set the 'archived' flag to true
+    const configPath = path.join(experimentPath, 'config.yaml');
+    const config = jsYaml.safeLoad(fs.readFileSync(configPath, 'utf8'));
+    if (config.archived === archived) {
+      if (verbose) console.log(`Experiment ${experimentName} is already ${archived ? 'archived' : 'unarchived'}`);
+      return;
+    } else {
+      config.archived = archived;
+      // Write the updated config file
+      return fs.promises.writeFile(configPath, jsYaml.safeDump(config));
     }
   } catch (e) {
-    console.error('Error deleting experiment:', e.message);
-    process.exit(1);
+    console.error(`Failed to archive experiment: ${path.basename(experimentPath)}`, e);
+    throw e;
   }
-}
-
-
-export async function archiveExperiment(experimentPath, verbose) {
-  const configFile = `${experimentPath}/config.yaml`;
-  
-  try {
-    const configContent = fs.readFileSync(configFile, 'utf8');
-    
-    const config = jsYaml.load(configContent);
-    
-    config.archived = true;
-    
-    const newYaml = jsYaml.dump(config);
-    
-    fs.writeFileSync(configFile, newYaml, 'utf8');
-    
-    if (verbose) {
-      console.log(`Experiment at ${experimentPath} has been successfully archived.`);
-    }
-  } catch (error) {
-    console.error(`Failed to archive experiment at ${experimentPath}: ${error}`);
-  }
-}
-
+};
