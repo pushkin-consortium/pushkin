@@ -23,8 +23,6 @@ mkdir pushkin_quickstart
 cd pushkin_quickstart
 ```
 
-![](../assets/getting-started/quickstart/quickstart_1.gif)
-
 (For more on basic terminal commands, you can check out [this blog post](https://medium.com/@grace.m.nolan/terminal-for-beginners-e492ba10902a).)
 
 Install your pushkin site in the directory you just created:
@@ -34,8 +32,6 @@ pushkin install site
 ```
 
 You will be asked to select a site template to use. Choose **basic**, then choose the recommended version.
-
-![](../assets/getting-started/quickstart/quickstart_2.gif)
 
 This sets up a skeleton website in the current folder and a development database. Once the command finishes, you should have a directory tree like this:
 
@@ -117,8 +113,6 @@ Then you'll be asked which experiment template you want to use. The **basic** te
 
 Repeat the process above but this time select the **lexical-decision** template. You can call this one `lexdec`. Now do the same thing for the **grammaticality-judgment** and **self-paced-reading** templates, naming them `gram` and `spr`.
 
-![](../assets/getting-started/quickstart/quickstart_3.gif)
-
 The `experiments` directory of your site should now look like this:
 
 ```text
@@ -170,8 +164,6 @@ Keeping all the files for an experiment within the same root folder is convenien
 pushkin prep
 ```
 
-![](../assets/getting-started/quickstart/quickstart_4.gif)
-
 !!! note
     Don't worry: `pushkin prep` won't jumble up the files in the `pushkin_quickstart` directory you created; rather it reorganizes the files into Docker containers. There's never any need to "unprep" your site. You can run `pushkin prep`, make changes in your local site directory, re-run `pushkin prep`, and the changes you made will be reflected in Docker.
 
@@ -183,8 +175,6 @@ Now let’s look at your website! Start your local deploy by running:
 pushkin start
 ```
 
-![](../assets/getting-started/quickstart/quickstart_5.gif)
-
 In a web browser, open [localhost](http://localhost) and you should see your site with the experiments you made. Click on the one you called `hello`. It should display "Hello world!". Complete the experiment by pressing any key. If you want to take a look at the other experiments you made, feel free to look over those now too.
 
 When you are done looking at your website, stop the local deploy by running:
@@ -192,8 +182,6 @@ When you are done looking at your website, stop the local deploy by running:
 ```
 pushkin stop
 ```
-
-![](../assets/getting-started/quickstart/quickstart_7.gif)
 
 If you don’t do that, the web server will keep running in Docker until you quit Docker or restart. When the command has finished running, it should output `done`.
 
