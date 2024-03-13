@@ -477,7 +477,7 @@ const handleInstall = async (templateType, verbose) => {
       ]);
       longName = expNamePrompt.expName;
       // Make sure the experiment name begins with a letter
-      if (!/^[a-zA-z]/.test(longName)) {
+      if (!/^[a-zA-Z]/.test(longName)) {
         console.error('Experiment names must begin with a letter. Please choose a different name.');
         process.exit(1);
       }
