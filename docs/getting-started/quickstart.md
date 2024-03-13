@@ -30,8 +30,8 @@ Install your pushkin site in the directory you just created:
 ```
 pushkin install site
 ```
-
-You will be asked to select a site template to use. Choose **basic**, then choose the recommended version.
+You will be asked where you want to look for a site template. Choose **Official Pushkin distribution**. 
+You will be asked to select a site template to use. Choose **site-basic**, then choose the recommended version.
 
 This sets up a skeleton website in the current folder and a development database. Once the command finishes, you should have a directory tree like this:
 
@@ -109,7 +109,9 @@ pushkin install experiment
 
 You'll first be asked what you want to name your experiment. Call it `hello`, since we're going to make this experiment a simple "hello, world" example.
 
-Then you'll be asked which experiment template you want to use. The **basic** template is a bare-bones "hello, world" experiment. Choose **basic** and then select the recommended version of the template. Choose 'no' when asked if you want to import a jsPsych experiment (this option only applies to the basic template).
+You'll then be asked where you want to look for your experiment template, choose **Official Pushkin distribution**. 
+
+Then you'll be asked which experiment template you want to use. The **exp-basic** template is a bare-bones "hello, world" experiment. Choose **exp-basic** and then select the recommended version of the template. Choose 'no' when asked if you want to import a jsPsych experiment (this option only applies to the basic template).
 
 Repeat the process above but this time select the **lexical-decision** template. You can call this one `lexdec`. Now do the same thing for the **grammaticality-judgment** and **self-paced-reading** templates, naming them `gram` and `spr`.
 
