@@ -1,0 +1,1749 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Pushkin provides a customizable, scalable ecosystem for massive online psychological experiments.">
+      
+      
+      
+      
+        <link rel="prev" href="../../packages/pushkin-worker/">
+      
+      
+        <link rel="next" href="../documentation/">
+      
+      
+      <link rel="icon" href="../../assets/pushkin_bw_no_text.png">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.8">
+    
+    
+      
+        <title>Getting started on development - Pushkin</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.f2e4d321.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="pink">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#getting-started-on-development" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Pushkin" class="md-header__button md-logo" aria-label="Pushkin" data-md-component="logo">
+      
+  <img src="../../assets/pushkin_bw_no_text.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Pushkin
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Getting started on development
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="pink"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3 3.19.09m3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95 2.06.05m-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31Z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="pink"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5c-.84 0-1.65.15-2.39.42L12 2M3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29L3.34 7m.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14L3.36 17M20.65 7l-1.77 3.79a7.023 7.023 0 0 0-2.38-4.15l4.15.36m-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29L20.64 17M12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44L12 22Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/pushkin-consortium/pushkin" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    pushkin-consortium/pushkin
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Pushkin" class="md-nav__button md-logo" aria-label="Pushkin" data-md-component="logo">
+      
+  <img src="../../assets/pushkin_bw_no_text.png" alt="logo">
+
+    </a>
+    Pushkin
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/pushkin-consortium/pushkin" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    pushkin-consortium/pushkin
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Getting started
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Getting started
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/installation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Installation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Quickstart tutorial
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/deploying-to-aws/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deploying to AWS
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/simple-experiment-tutorial/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Simple experiment tutorial
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Site templates
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Site templates
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../site-templates/site-templates-overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Overview of site templates
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../site-templates/site-basic/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    site-basic
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Experiment templates
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Experiment templates
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../exp-templates/exp-templates-overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Overview of experiment templates
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../exp-templates/exp-basic/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    exp-basic
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../exp-templates/exp-lexical-decision/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    exp-lexical-decision
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../exp-templates/exp-grammaticality-judgment/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    exp-grammaticality-judgment
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../exp-templates/exp-self-paced-reading/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    exp-self-paced-reading
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Packages
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Packages
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../packages/packages-overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Overview of packages
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../packages/pushkin-cli/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    pushkin-cli
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../packages/pushkin-api/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    pushkin-api
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../packages/pushkin-client/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    pushkin-client
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../packages/pushkin-worker/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    pushkin-worker
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Developers
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Developers
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Getting started on development
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Getting started on development
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview-of-technologies" class="md-nav__link">
+    <span class="md-ellipsis">
+      Overview of technologies
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Overview of technologies">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#front-end" class="md-nav__link">
+    <span class="md-ellipsis">
+      Front-end
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#back-end-and-database" class="md-nav__link">
+    <span class="md-ellipsis">
+      Back-end and database
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other" class="md-nav__link">
+    <span class="md-ellipsis">
+      Other
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing-development-versions-of-pushkin-packages-and-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      Testing development versions of Pushkin packages and templates
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Testing development versions of Pushkin packages and templates">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#site-and-experiment-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      Site and experiment templates
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pushkin-cli" class="md-nav__link">
+    <span class="md-ellipsis">
+      pushkin-cli
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#using-yalc-with-pushkin-utility-packages" class="md-nav__link">
+    <span class="md-ellipsis">
+      Using yalc with Pushkin utility packages
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Using yalc with Pushkin utility packages">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pushkin-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      pushkin-api
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pushkin-client" class="md-nav__link">
+    <span class="md-ellipsis">
+      pushkin-client
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pushkin-worker" class="md-nav__link">
+    <span class="md-ellipsis">
+      pushkin-worker
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing-with-jest" class="md-nav__link">
+    <span class="md-ellipsis">
+      Testing with Jest
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Testing with Jest">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#jest-for-pushkin-repo-development" class="md-nav__link">
+    <span class="md-ellipsis">
+      Jest for pushkin repo development
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jest-for-user-site-development" class="md-nav__link">
+    <span class="md-ellipsis">
+      Jest for user site development
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../documentation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Documentation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributions/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contributions
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../security/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Security
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Support
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Support
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../support/troubleshooting/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Troubleshooting
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../support/github-discussions/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    GitHub Discussions
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    About
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            About
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../about/about-pushkin/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    About Pushkin
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../about/pushkin-license/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    License
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview-of-technologies" class="md-nav__link">
+    <span class="md-ellipsis">
+      Overview of technologies
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Overview of technologies">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#front-end" class="md-nav__link">
+    <span class="md-ellipsis">
+      Front-end
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#back-end-and-database" class="md-nav__link">
+    <span class="md-ellipsis">
+      Back-end and database
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other" class="md-nav__link">
+    <span class="md-ellipsis">
+      Other
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing-development-versions-of-pushkin-packages-and-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      Testing development versions of Pushkin packages and templates
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Testing development versions of Pushkin packages and templates">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#site-and-experiment-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      Site and experiment templates
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pushkin-cli" class="md-nav__link">
+    <span class="md-ellipsis">
+      pushkin-cli
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#using-yalc-with-pushkin-utility-packages" class="md-nav__link">
+    <span class="md-ellipsis">
+      Using yalc with Pushkin utility packages
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Using yalc with Pushkin utility packages">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pushkin-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      pushkin-api
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pushkin-client" class="md-nav__link">
+    <span class="md-ellipsis">
+      pushkin-client
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pushkin-worker" class="md-nav__link">
+    <span class="md-ellipsis">
+      pushkin-worker
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing-with-jest" class="md-nav__link">
+    <span class="md-ellipsis">
+      Testing with Jest
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Testing with Jest">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#jest-for-pushkin-repo-development" class="md-nav__link">
+    <span class="md-ellipsis">
+      Jest for pushkin repo development
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jest-for-user-site-development" class="md-nav__link">
+    <span class="md-ellipsis">
+      Jest for user site development
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="getting-started-on-development">Getting started on development</h1>
+<h2 id="overview-of-technologies">Overview of technologies</h2>
+<p>Below is a non-exhaustive list of technologies in the Pushkin stack. Depending on what you're trying to develop some of these may be absolutely essential or less important. In some cases, we suggest learning resources. If you find other resources that are particularly helpful, please make a pull request to update this page!</p>
+<h3 id="front-end">Front-end</h3>
+<ul>
+<li><strong>HTML:</strong> A basic building block of websites, most HTML in a Pushkin site lives in conjunction with React tags.</li>
+<li><strong>CSS:</strong> How stylings for websites are often declared. Pushkin currently uses a combination of CSS and JS to set the stylings.</li>
+<li><strong>React:</strong> A JavaScript library for building interactive user interfaces and single-page applications (SPAs). Pushkin creates your site as an SPA using React.<ul>
+<li>You’ll want a reasonably thorough grounding in Javascript and React (especially important for working with site templates). We recommend the Codecademy.com <a href="https://www.codecademy.com/learn/react-101">Learn React</a> course.</li>
+<li>For a gentle introduction to SPAs, read this <a href="https://auth0.com/blog/beyond-create-react-app-react-router-redux-saga-and-more/">tutorial</a>, which also describes incorporating authentication with Auth0. Note that this tutorial is slightly out of date in that Auth0 now uses auth0-spa-js for SPAs, and create-react-app suggests using function components rather than class components.</li>
+</ul>
+</li>
+<li><strong>React-Router:</strong> Handles navigation components for setting your page URLs in your SPA.<ul>
+<li>To work with site templates, you probably want to learn more about routing using React-Router. We use <a href="https://reacttraining.com/blog/react-router-v5/">v5</a>, which is nearly identical to v4. If you read up on React Router, you’ll see a lot of <a href="https://github.com/ReactTraining/react-router/blob/master/packages/react-router/docs/guides/philosophy.md">discussion of dynamic routing</a>, though you can probably safely ignore this. One of the better tutorials available is <a href="https://auth0.com/blog/react-router-4-practical-tutorial/">here</a>, though it’s a bit short.</li>
+</ul>
+</li>
+<li><strong>Redux:</strong> Redux is used to keep track of application-level state variables. In the case of Pushkin, we use React-Redux. A primary use case is keeping track of subject IDs.<ul>
+<li>The best tutorial we’ve found for React-Redux is <a href="https://redux.js.org/basics/basic-tutorial">the official one</a>. Note that it’s a little out-of-date with regards to the use of object spread syntax (which is now supported by Node) and with how to handle asynchronous requests, for which we use <a href="https://redux-saga.js.org/docs/introduction/">redux sagas</a>. A good place to start on why redux sagas are worth using is <a href="https://engineering.universe.com/what-is-redux-saga-c1252fc2f4d1">here</a>.</li>
+</ul>
+</li>
+<li><strong>jsPsych:</strong> jsPsych creates the experiments themselves within the Pushkin site and collects participants' data.<ul>
+<li>A solid grasp of jsPsych is essential for developing experiment templates. We recommend consulting their <a href="https://www.jspsych.org">documentation</a>.</li>
+</ul>
+</li>
+<li><strong>Bootstrap:</strong> A framework for building responsive websites that adapt across devices. This includes features like navigation bars and buttons that easily adapt to different window dimensions. In the case of Pushkin, we use React-Bootstrap, which integrates Bootstrap styling into the React SPA.</li>
+<li><strong>Aphrodite:</strong> Adds JavaScript-based styling (to update CSS) for React components. Currently, this is used to customize hover styling for the QuizTile icons and buttons but can be imported into other components to add more control over the styling via JavaScript.</li>
+</ul>
+<h3 id="back-end-and-database">Back-end and database</h3>
+<ul>
+<li><strong>Node:</strong> The language of the back end. This is used to set up the APIs, set up the server for the site, and more.<ul>
+<li>You’ll need a decent understanding of Javascript and Node for doing development on the Pushkin CLI.</li>
+</ul>
+</li>
+<li><strong>SQL:</strong> Used to manage the site databases, such as user information and experiment data. Pushkin is designed to use PostgreSQL.</li>
+<li><strong>Knex:</strong> A SQL query builder for building, updating, and interacting with Pushkin databases.</li>
+<li><strong>RabbitMQ:</strong> A message broker for validation and routing. Routes messages from the API controller for the worker to receive.</li>
+</ul>
+<h3 id="other">Other</h3>
+<ul>
+<li><strong>Docker:</strong> A platform for developing, shipping, and running applications. Used for testing your Pushkin site locally and deploying it.<ul>
+<li>There are a number of tutorials out there on Docker. For ongoing use, this <a href="https://www.digitalocean.com/community/tutorials/how-to-remove-docker-images-containers-and-volumes">cheatsheet</a> is pretty useful.</li>
+</ul>
+</li>
+<li><strong>Babel:</strong> Compiles the JavaScript used in the Pushkin project to ensure browser compatibility. This means having the ability to use modern JavaScript without losing accessibility for visitors on older browsers.</li>
+<li><strong>Auth0:</strong> The service used for authorization to enable logins for site visitors.</li>
+<li><strong>Jest:</strong> A JavaScript testing framework. The Pushkin team uses Jest in development of Pushkin packages and templates, but users can also add it to their Pushkin sites and develop their own tests.</li>
+</ul>
+<h2 id="testing-development-versions-of-pushkin-packages-and-templates">Testing development versions of Pushkin packages and templates</h2>
+<p>All development tasks are going to start by cloning the <code>pushkin</code> repo and running <code>yarn install</code> from the root. The repo uses <a href="https://classic.yarnpkg.com/lang/en/docs/workspaces/">Yarn workspaces</a>, so <code>yarn install</code> will install the dependencies for all Pushkin packages and templates. At this point, you can run either:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>yarn workspaces run build
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a># Execute build scripts for all packages and templates
+</span></code></pre></div>
+<p>or</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>yarn workspace &lt;package-name&gt; build
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a># Build only the particular workspace you&#39;re testing
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a># (equivalent to `yarn build` from the package root)
+</span></code></pre></div>
+<h3 id="site-and-experiment-templates">Site and experiment templates</h3>
+<p>Site and experiment templates are the easiest Pushkin components to test, since the CLI includes an option to install templates from a local path. Simply follow the CLI's instructions and provide the local path to your development template. Before you test your updates, make sure you run the template's <code>build</code> script so <code>build/template.zip</code> will reflect your changes. You can do this by running <code>yarn workspace &lt;name-of-template&gt; build</code> from the root of the <code>pushkin</code> repo (or just <code>yarn build</code> from the root of the template itself).</p>
+<h3 id="pushkin-cli">pushkin-cli</h3>
+<p>Building <code>pushkin-cli</code> will create a <code>/build</code> directory in your local copy of the package. You can call development versions of all the normal <code>pushkin</code> commands by calling <code>node</code> on <code>/build/index.js</code> and specifying which command you want. For example:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>node &lt;path-to-repo&gt;/pushkin/packages/pushkin-cli/build/index.js install site
+</span></code></pre></div>
+<p>For ease, you might want to create your test site directory in same parent directory where you cloned the repo, so you can specify the path to the main build file like so:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>node ../pushkin/packages/pushkin-cli/build/index.js prep
+</span></code></pre></div>
+<p>Don't forget to run <code>yarn workspace pushkin-cli build</code> prior to testing changes in order to update the build files. Note that you should run this command in the root of the <code>pushkin</code> repo, not your test site.</p>
+<h3 id="using-yalc-with-pushkin-utility-packages">Using yalc with Pushkin utility packages</h3>
+<p>Testing development versions of the Pushkin utility packages (<code>pushkin-api</code>, <code>pushkin-client</code>, and <code>pushkin-worker</code>) is not as straightforward as with templates or the CLI. These packages typically get installed in various locations in the user's site via npm (through commands executed by the CLI). Normally, that means you can only include published versions. We can get around this using <a href="https://github.com/wclr/yalc"><code>yalc</code></a>, which you've already installed if you followed the Pushkin <a href="../../getting-started/installation/#installing-yalc">installation instructions</a>.</p>
+<h4 id="pushkin-api">pushkin-api</h4>
+<p>Assuming you already have a Pushkin site installed with at least one experiment in it, do the following:</p>
+<ol>
+<li>In your local copy of the <code>pushkin</code> repo (where presumably you have made changes to <code>pushkin-api</code>), go to <code>/packages/pushkin-api</code>. Be sure you've rebuilt the package to reflect your changes by running <code>yarn build</code>.</li>
+<li>Run <code>yalc publish</code> to create a locally published version of <code>pushkin-api</code>.</li>
+<li>Go to the <code>/pushkin/api</code> directory of your Pushkin site.</li>
+<li>Run <code>yalc add pushkin-api</code> to add your locally published version as a dependency.</li>
+<li>Go to the <code>/experiments/&lt;experiment-name&gt;/api controllers</code> directory of your Pushkin site.</li>
+<li>Again run <code>yalc add pushkin-api</code>.</li>
+<li>Open <code>package.json</code> in that same directory.</li>
+<li>You should see it has a property <code>"files"</code> with a value <code>["build/*"]</code>. Add <code>".yalc"</code> to the list of files like such:</li>
+</ol>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="w">    </span><span class="nt">&quot;files&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">        </span><span class="s2">&quot;build/*&quot;</span><span class="p">,</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">        </span><span class="s2">&quot;.yalc&quot;</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">    </span><span class="p">],</span>
+</span></code></pre></div>
+<ol>
+<li>Repeat steps 5-8 for each additional experiment in your site's <code>/experiments</code> directory.</li>
+</ol>
+<p>Now you should be able to run <code>pushkin prep</code> and <code>pushkin start</code>. If you make subsequent changes to <code>pushkin-api</code>, you'll need to:</p>
+<ol>
+<li>Re-run <code>yarn build</code> in <code>pushkin/packages/pushkin-api</code>.</li>
+<li>In the same directory, run <code>yalc push</code>. <code>yalc push</code> will update your locally published version of <code>pushkin-api</code> and push the changes wherever the package is being used. This saves you the hassle of running <code>yalc update</code> in all the places you previously ran <code>yalc add</code>.</li>
+</ol>
+<h4 id="pushkin-client">pushkin-client</h4>
+<p>Assuming you already have a Pushkin site installed with at least one experiment in it, do the following:</p>
+<ol>
+<li>In your local copy of the <code>pushkin</code> repo (where presumably you have made changes to <code>pushkin-client</code>), go to <code>/packages/pushkin-client</code>. Be sure you've rebuilt the package to reflect your changes by running <code>yarn build</code>.</li>
+<li>Run <code>yalc publish</code> to create a locally published version of <code>pushkin-client</code>.</li>
+<li>Go to the <code>/pushkin/front-end</code> directory of your Pushkin site.</li>
+<li>Run <code>yalc add pushkin-client</code> to add your locally published version as a dependency.</li>
+<li>Go to the <code>/experiments/&lt;experiment-name&gt;/web page</code> directory of your Pushkin site.</li>
+<li>Again run <code>yalc add pushkin-client</code>.</li>
+<li>Open <code>package.json</code> in that same directory.</li>
+<li>You should see it has a property <code>"files"</code> with a value <code>["build/*"]</code>. Add <code>".yalc"</code> to the list of files like such:</li>
+</ol>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="w">    </span><span class="nt">&quot;files&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">        </span><span class="s2">&quot;build/*&quot;</span><span class="p">,</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">        </span><span class="s2">&quot;.yalc&quot;</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">    </span><span class="p">],</span>
+</span></code></pre></div>
+<ol>
+<li>Repeat steps 5-8 for each additional experiment in your site's <code>/experiments</code> directory.</li>
+</ol>
+<p>Now you should be able to run <code>pushkin prep</code> and <code>pushkin start</code>. If you make subsequent changes to <code>pushkin-client</code>, you'll need to:</p>
+<ol>
+<li>Re-run <code>yarn build</code> in <code>pushkin/packages/pushkin-client</code>.</li>
+<li>In the same directory, run <code>yalc push</code>. <code>yalc push</code> will update your locally published version of <code>pushkin-client</code> and push the changes wherever the package is being used. This saves you the hassle of running <code>yalc update</code> in all the places you previously ran <code>yalc add</code>.</li>
+</ol>
+<h4 id="pushkin-worker">pushkin-worker</h4>
+<p>Assuming you already have a Pushkin site installed with at least one experiment in it, do the following:</p>
+<ol>
+<li>In your local copy of the <code>pushkin</code> repo (where presumably you have made changes to <code>pushkin-worker</code>), go to <code>/packages/pushkin-worker</code>. Be sure you've rebuilt the package to reflect your changes by running <code>yarn build</code>.</li>
+<li>Run <code>yalc publish</code> to create a locally published version of <code>pushkin-worker</code>.</li>
+<li>Go to the <code>/experiments/&lt;experiment-name&gt;/worker</code> directory of your Pushkin site corresponding to the experiment for which you'd like to use the modified worker.</li>
+<li>Run <code>yalc add pushkin-worker</code> to add your locally published version as a dependency.</li>
+<li>Open <code>package.json</code> in that same directory and add the property <code>"files"</code> with a value <code>[".yalc"]</code> like such:</li>
+</ol>
+<div class="language-JSON highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="w">    </span><span class="nt">&quot;files&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;.yalc&quot;</span><span class="p">],</span>
+</span></code></pre></div>
+<ol>
+<li>Open the <code>Dockerfile</code> in the same directory and edit it to copy yalc files:</li>
+</ol>
+<div class="language-dockerfile highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">COPY</span><span class="w"> </span>.yalc<span class="w"> </span>/usr/src/app/.yalc/
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="k">COPY</span><span class="w"> </span>./yalc.lock<span class="w"> </span>/usr/src/app/
+</span></code></pre></div>
+<p>These lines need to come <strong>before</strong> <code>WORKDIR</code> is changed. So for example:</p>
+<div class="language-dockerfile highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="k">FROM</span><span class="w"> </span><span class="s">node:20.2</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="k">COPY</span><span class="w"> </span>Dockerfile<span class="w"> </span>index.js<span class="w"> </span>package.json<span class="w"> </span>start.sh<span class="w"> </span>yarn.lock<span class="w"> </span>/usr/src/app/
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="k">COPY</span><span class="w"> </span>.yalc<span class="w"> </span>/usr/src/app/.yalc/
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="k">COPY</span><span class="w"> </span>./yalc.lock<span class="w"> </span>/usr/src/app/
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="k">WORKDIR</span><span class="w"> </span><span class="s">/usr/src/app</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="k">RUN</span><span class="w"> </span>yarn<span class="w"> </span>install<span class="w"> </span>--production
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="k">RUN</span><span class="w"> </span>apt-get<span class="w"> </span>update<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>-qy<span class="w"> </span>netcat
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="k">EXPOSE</span><span class="w"> </span><span class="s">8000</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="k">CMD</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;bash&quot;</span><span class="p">,</span><span class="s2">&quot;start.sh&quot;</span><span class="p">]</span>
+</span></code></pre></div>
+<p>Now you should be able to run <code>pushkin prep</code> and <code>pushkin start</code>. If you make subsequent changes to <code>pushkin-worker</code>, you'll need to:</p>
+<ol>
+<li>Re-run <code>yarn build</code> in <code>pushkin/packages/pushkin-worker</code>.</li>
+<li>In the same directory, run <code>yalc push</code>. <code>yalc push</code> will update your locally published version of <code>pushkin-worker</code> and push the changes wherever the package is being used. This saves you the hassle of running <code>yalc update</code> where you previously ran <code>yalc add</code>.</li>
+</ol>
+<h2 id="testing-with-jest">Testing with Jest</h2>
+<p>The pushkin repo is set up to run tests using <a href="https://jestjs.io/">Jest</a>, a popular JavaScript testing library. In addition to testing contributions to the Pushkin codebase, Jest is also configured for Pushkin users to run tests on their own Pushkin sites.</p>
+<h3 id="jest-for-pushkin-repo-development">Jest for pushkin repo development</h3>
+<p>After cloning the <code>pushkin</code> repo and running <code>yarn install</code>, you can run tests for all Pushkin packages and templates by running:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>yarn test
+</span></code></pre></div>
+<p>Alternatively, to run tests for just one particular package or template, run:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>yarn workspace &lt;workspace-name&gt; test
+</span></code></pre></div>
+<p>Improving test coverage is a priority for Pushkin, so we will happily receive pull requests for additional tests. If you're contributing to some other aspect of the codebase, we ask that you try to add appropriate tests to cover your updates (see our guide to <a href="../contributions/">contributions</a> for more).</p>
+<h3 id="jest-for-user-site-development">Jest for user site development</h3>
+<p>Pushkin sites come pre-configured to run Jest tests. Currently, the only tests distributed to Pushkin users enter your site through experiment templates; however, you can expand testing for your Pushkin site as you see fit. If you develop more sophisticated testing for your site, we encourage you to consider how it could be contributed back to the project, so other users might benefit as well.</p>
+<p>After running <code>pushkin install exp</code>, run <code>yarn test</code> from the root of your site to run tests for any experiments you've installed. Note that some tests written for experiment templates may fail when you customize the experiment. </p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var tab,labels=set.querySelector(".tabbed-labels");for(tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12Z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../../packages/pushkin-worker/" class="md-footer__link md-footer__link--prev" aria-label="Previous: pushkin-worker">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                pushkin-worker
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../documentation/" class="md-footer__link md-footer__link--next" aria-label="Next: Documentation">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Documentation
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4Z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2015-2024 Joshua Hartshorne
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.top", "navigation.instant", "navigation.instant.progress", "navigation.path", "navigation.footer", "search.suggest", "search.highlight", "content.tabs.link", "content.code.annotation", "content.code.copy", "toc.follow"], "search": "../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.8fd75fb4.min.js"></script>
+      
+        <script src="https://unpkg.com/tablesort@5.3.0/dist/tablesort.min.js"></script>
+      
+        <script src="../../javascripts/tablesort.js"></script>
+      
+        <script src="../../js/open_in_new_tab.js"></script>
+      
+    
+  </body>
+</html>
