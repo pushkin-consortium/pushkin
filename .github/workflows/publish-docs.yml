@@ -8,6 +8,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Check if actor is allowed
+        run: |
+          ALLOWED_ACTORS=("jkhartshorne" "jessestorbeck")
+          if [[ ! " ${ALLOWED_ACTORS[@]} " =~ " ${GITHUB_ACTOR} " ]]; then
+            echo "${GITHUB_ACTOR} is not allowed to run this workflow."
+            exit 1
+          fi
+
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
@@ -35,8 +43,8 @@ jobs:
 
       - name: Config git
         run: |
-          git config --global user.name "$GITHUB_ACTOR"
-          git config --global user.email "${GITHUB_ACTOR_ID}+${GITHUB_ACTOR}@users.noreply.github.com"
+          git config --global user.name "${GITHUB_ACTOR}"
+          git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
 
       - name: Deploy docs
         run: |
@@ -48,5 +56,5 @@ jobs:
       - name: Push gh-pages branch
         uses: ad-m/github-push-action@master
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.PAT_TOKEN }}
           branch: gh-pages
