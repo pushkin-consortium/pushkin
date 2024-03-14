@@ -1,14 +1,36 @@
 {
-  "private": true,
   "name": "@pushkin-templates/exp-self-paced-reading",
   "version": "5.0.2",
   "description": "A Pushkin experiment template containing a jsPsych self-paced-reading timeline.",
-  "scripts": {
-    "test": "jest"
+  "keywords": [
+    "pushkin",
+    "template"
+  ],
+  "author": "L3",
+  "license": "MIT",
+  "homepage": "https://pushkin-consortium.github.io/pushkin",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pushkin-consortium/pushkin.git",
+    "directory": "templates/experiments/self-paced-reading"
   },
-  "devDependencies": {
+  "bugs": {
+    "url": "https://github.com/pushkin-consortium/pushkin/issues"
+  },
+  "files": [
+    "build/*"
+  ],
+  "scripts": {
+    "test": "jest",
+    "build": "mkdir -p build && cd src && zip -FS -r -q ../build/template.zip .",
+    "prepack": "cp ../../../LICENSE ."
+  },
+  "dependencies": {
     "@babel/core": "^7.23.6",
     "@babel/preset-env": "^7.23.6",
+    "jest-environment-jsdom": "^29.7.0"
+  },
+  "devDependencies": {
     "@jspsych-contrib/plugin-self-paced-reading": "^2.0.0",
     "@jspsych/plugin-html-keyboard-response": "^1.1.2",
     "@jspsych/test-utils": "^1.1.2",

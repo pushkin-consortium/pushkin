@@ -23,8 +23,6 @@ mkdir pushkin_quickstart
 cd pushkin_quickstart
 ```
 
-![](../assets/getting-started/quickstart/quickstart_1.gif)
-
 (For more on basic terminal commands, you can check out [this blog post](https://medium.com/@grace.m.nolan/terminal-for-beginners-e492ba10902a).)
 
 Install your pushkin site in the directory you just created:
@@ -32,10 +30,8 @@ Install your pushkin site in the directory you just created:
 ```
 pushkin install site
 ```
-
-You will be asked to select a site template to use. Choose **basic**, then choose the recommended version.
-
-![](../assets/getting-started/quickstart/quickstart_2.gif)
+You will be asked where you want to look for a site template. Choose **Official Pushkin distribution**. 
+You will then be asked to select a site template to use. Choose **site-basic**; then choose the recommended version.
 
 This sets up a skeleton website in the current folder and a development database. Once the command finishes, you should have a directory tree like this:
 
@@ -108,16 +104,16 @@ salt: "cognitivescience"
 To add experiments to your Pushkin site, run:
 
 ```
- pushkin install experiment
+pushkin install experiment
 ```
 
 You'll first be asked what you want to name your experiment. Call it `hello`, since we're going to make this experiment a simple "hello, world" example.
 
-Then you'll be asked which experiment template you want to use. The **basic** template is a bare-bones "hello, world" experiment. Choose **basic** and then select the recommended version of the template. Choose 'no' when asked if you want to import a jsPsych experiment (this option only applies to the basic template).
+You'll then be asked where you want to look for experiment templates; choose **Official Pushkin distribution**. 
+
+Then you'll be asked which experiment template you want to use. The **exp-basic** template is a bare-bones "hello, world" experiment. Choose **exp-basic** and then select the recommended version of the template. Choose 'no' when asked if you want to import a jsPsych experiment (this option only applies to the basic template).
 
 Repeat the process above but this time select the **lexical-decision** template. You can call this one `lexdec`. Now do the same thing for the **grammaticality-judgment** and **self-paced-reading** templates, naming them `gram` and `spr`.
-
-![](../assets/getting-started/quickstart/quickstart_3.gif)
 
 The `experiments` directory of your site should now look like this:
 
@@ -167,10 +163,8 @@ experimentName: 'My super fun experiment!'
 Keeping all the files for an experiment within the same root folder is convenient for development, but not for actually deploying the website. To reorganize your site for deployment (and local testing), run:
 
 ```
- pushkin prep
+pushkin prep
 ```
-
-![](../assets/getting-started/quickstart/quickstart_4.gif)
 
 !!! note
     Don't worry: `pushkin prep` won't jumble up the files in the `pushkin_quickstart` directory you created; rather it reorganizes the files into Docker containers. There's never any need to "unprep" your site. You can run `pushkin prep`, make changes in your local site directory, re-run `pushkin prep`, and the changes you made will be reflected in Docker.
@@ -179,21 +173,17 @@ Keeping all the files for an experiment within the same root folder is convenien
 
 Now let’s look at your website! Start your local deploy by running:
 
-```bash
- pushkin start
 ```
-
-![](../assets/getting-started/quickstart/quickstart_5.gif)
+pushkin start
+```
 
 In a web browser, open [localhost](http://localhost) and you should see your site with the experiments you made. Click on the one you called `hello`. It should display "Hello world!". Complete the experiment by pressing any key. If you want to take a look at the other experiments you made, feel free to look over those now too.
 
 When you are done looking at your website, stop the local deploy by running:
 
 ```
- pushkin stop
+pushkin stop
 ```
-
-![](../assets/getting-started/quickstart/quickstart_7.gif)
 
 If you don’t do that, the web server will keep running in Docker until you quit Docker or restart. When the command has finished running, it should output `done`.
 
@@ -202,9 +192,23 @@ If you don’t do that, the web server will keep running in Docker until you qui
 Imagine now you want to add another experiment or edit an existing one. Every time you update your site, you’ll need to run `pushkin prep` (and `pushkin start` if you want to look at your updates) again:
 
 ```
- pushkin prep
- pushkin start
+pushkin prep
+pushkin start
 ```
+### Removing experiments 
+
+If you'd like to get rid of one or more of your site's experiments, you can remove them with this command:
+
+```
+pushkin remove experiment
+```
+
+There are two options when removing an experiment, **archive** and **delete**. Archiving an experiment simply removes it from your site's front end. This means that the experiment will no longer be accessible to participants. Archiving an experiment can be undone by calling `pushkin remove experiment` again and specifying the `unarchive` mode. Deleting an experiment removes all of its files, data, and Docker components. Deleting an experiment is **irreversible**, so be sure you want the experiment gone before using this mode.
+
+!!! warning
+    For technical reasons, the current implementation of the `delete` mode deletes **all** experiments' data from your local database, not just the experiment(s) you deleted. Future development may address this limitation.
+
+Since the `remove experiment` command updates your site, you will need to run `pushkin prep` afterwards just like if you added an experiment or edited other parts of your site.
 
 ## Viewing your data
 

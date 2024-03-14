@@ -18,7 +18,8 @@
     ],
     "scripts": {
         "test": "jest",
-        "build": "babel src -d build"
+        "build": "babel src -d build",
+        "prepack": "cp ../../LICENSE ."
     },
     "keywords": [
         "pushkin",

@@ -44,7 +44,7 @@ You should now have a folder in your site called `/experiments/lexdec` with the 
 Open `/lexdec/web page/src/experiment.js`. It should look like this:
 
 ```js title="experiment.js"
---8<-- "templates/experiments/basic/web page/src/experiment.js"
+--8<-- "templates/experiments/basic/src/web page/src/experiment.js"
 ```
 
 From the jsPsych code [above](#initial-jspsych-code), copy everything between `const timeline = []` and `jsPsych.run(timeline);` (excluding those lines). Paste that content into `experiment.js` (replacing the existing content) between `const timeline = []` and `return timeline`. Thus you should now have a function `createTimeline()` within which you build up and finally return the timeline for the experiment.
@@ -58,7 +58,7 @@ In the jsPsych code [above](#initial-code), plugins are loaded with `<script>` t
 In theory, there's nothing preventing you from declaring your stimuli inside `experiment.js` in the same way as shown above in [`lexical-decision.html`](#initial-jspsych-code); however, we can keep our `experiment.js` tidier by exporting the stimuli from a dedicated file `/lexdec/web page/src/stim.js` like this:
 
 ```javascript title="stim.js"
---8<-- "templates/experiments/lexical-decision/web page/src/stim.js"
+--8<-- "templates/experiments/lexical-decision/src/web page/src/stim.js"
 ```
 
 Then we need to import `stimArray` into `experiment.js` by adding the following line underneath the `import` statement for the plugin: 
@@ -72,7 +72,7 @@ import stimArray from './stim';
 The experiment [above](#initial-jspsych-code) relies on CSS styling from `<link>` and `<style>` tags to display the experiment correctly. This styling needs be moved to `/experiments/lexdec/web page/src/assets/experiment.css` in order to style your Pushkin experiment. The new CSS file will look like this:
 
 ```css title="experiment.css"
---8<-- "templates/experiments/lexical-decision/web page/src/assets/experiment.css"
+--8<-- "templates/experiments/lexical-decision/src/web page/src/assets/experiment.css"
 ```
 
 ## Finishing up

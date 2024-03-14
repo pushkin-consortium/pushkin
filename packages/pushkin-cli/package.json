@@ -11,7 +11,8 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "babel src -d build"
+    "build": "babel src -d build",
+    "prepack": "cp ../../LICENSE ."
   },
   "keywords": [
     "pushkin",
@@ -29,10 +30,9 @@
     "eslint-plugin-import": "^2.22.0"
   },
   "dependencies": {
-    "adm-zip": "^0.4.16",
     "balanced-match": "^1.0.0",
     "command-line-args": "^5.1.1",
-    "commander": "^6.0.0",
+    "commander": "^11.1.0",
     "core-js": "^3.6.5",
     "corejs": "^1.0.0",
     "docker-compose": "^0.23.5",
@@ -45,7 +45,6 @@
     "regenerator-runtime": "^0.13.5",
     "replace-in-file": "^6.1.0",
     "shelljs": "^0.8.4",
-    "superagent": "^5.3.1",
     "tar": "^6.0.2",
     "uuid": "^8.3.0"
   }

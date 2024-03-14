@@ -1,5 +1,5 @@
-<img src="/web page/src/assets/pushkin_bw_w_text.png" height="400" width="450">
+<img src="https://raw.githubusercontent.com/pushkin-consortium/pushkin/main/docs/assets/pushkin_bw_w_text.png" height="400" width="450" alt="pushkin logo">
 
-# pushkin-exptemplates-grammatical
+# @pushkin-templates/exp-grammaticality-judgment
 
-Basic jsPsych grammaticality judgment experiment
+A Pushkin experiment template containing a jsPsych grammaticality-judgment timeline.

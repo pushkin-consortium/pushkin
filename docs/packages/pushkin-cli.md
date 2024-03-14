@@ -106,6 +106,46 @@ If you select the basic template, this command will give you the option to impor
 
 The command also integrates a new experiment into the Pushkin framework. It performs key tasks such as updating template file names and contents to reflect the new experiment's name, setting up database migrations, initializing essential directories for the experiment's API, web page, and worker components, and ensuring the experiment is correctly configured in the Docker environment. The API and web page components are then locally published using yalc.
 
+### remove experiment
+
+This command allows users to remove an experiment from their site and offers two removal modes:
+
+1. **delete:** Deleting an experiment permanently removes all of its files, data, and associated Docker components. This command should only be used if you want the experiment completely gone, as it is irreversible. Note that this mode currently runs [`kill`](#kill), and will consequently delete **all** experiments' data from your local database, not just the experiment(s) you deleted. Future development may address this limitation.
+2. **archive:** Archiving an experiment removes it from your site's front end, so it is no longer accessible to participants. However, all of the experiment's files remain in place and the site's back end and data will not be affected.
+
+The command has a third mode, `unarchive`, that adds archived experiments back to your site's front end.
+
+!!! note
+    You must run [`prep`](#prep) after `remove experiment` for changes to your site to take effect.
+
+**Syntax:**
+
+```
+pushkin remove experiment <options>
+```
+
+or
+
+```
+pushkin rm exp <options>
+```
+
+**Options:**
+
+- experiments: `-e` or `--experiments` allows you to specify which experiment(s) to delete, archive, or unarchive. Provide the experiments' short names (i.e. the name of the folder in the `/experiments` directory) separated by spaces after the `-e` flag (e.g. `pushkin rm exp -e exp1 exp2 exp3`). If the `--experiments` option is omitted, the CLI will interactively prompt you to select the experiments you want.
+
+- mode: `-m` or `--mode` allows you to specify the `delete`, `archive`, or `unarchive` mode (e.g. `pushkin rm exp -m delete`). If the `--mode` option is omitted, the CLI will interactively prompt you to select which mode you want.
+
+- force: `-f` or `--force` applies only to the `delete` mode and allows you to suppress the deletion confirmation prompt.
+
+- verbose: `-v` or `--verbose` shows additional console output during the removal process which may be helpful for debugging.
+
+- help: `-h` or `--help` displays the command's help information.
+
+**Details:**
+
+Archiving and unarchiving experiments is a simple operation that entails setting the `archived` property in the experiment's `config.yaml` file to `true` or `false`. You can change this property manually if you wish, but using `pushkin rm exp -m archive` offers a convenient way to quickly change this property for multiple experiments.
+
 ### updateDB
 
 Runs migrations and seeds for experiments to update the database. This is set up to ensure experiments using the same database (as defined in `pushkin.yaml`) are migrated at the same time to avoid errors with the `knex_migrations` table. This is automatically run as part of `pushkin prep`.
@@ -127,7 +167,7 @@ pushkin prep <options>
 ```
 **Options:**
 
-- no-migrations: `--nomigrations` will run `prep` without database migrations. If you do this, make sure the database structure has not changed since you ran `prep` previously (with migrations).
+- no-migrations: `--no-migrations` will run `prep` without database migrations. If you do this, make sure the database structure has not changed since you ran `prep` previously (with migrations).
 
 - verbose: `-v` or `--verbose` shows additional console output which may be helpful for debugging.
 
@@ -155,7 +195,7 @@ pushkin start <options>
 
 **Options:**
 
-- no-cache: `--nocache` will rebuild all Docker images from scratch without using the cache. By default, this is false.
+- no-cache: `--no-cache` will rebuild all Docker images from scratch without using the cache. By default, this is false.
 
 - verbose: `-v` or `--verbose` shows additional console output which may be helpful for debugging.
 
