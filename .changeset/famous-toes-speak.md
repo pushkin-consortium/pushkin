@@ -1,4 +1,5 @@
 ---
+"pushkin-cli": major
 "@pushkin-templates/exp-basic": major
 ---
 
