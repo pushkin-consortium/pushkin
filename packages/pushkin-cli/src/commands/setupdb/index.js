@@ -27,7 +27,7 @@ const fixConfig = function(configPath, verbose) {
     config.productionDB = "Main";
     try {
       temp = fs.writeFileSync(configPath, jsYaml.safeDump(config), 'utf8');
-      if (verbose) console.log(`Updated users/config.yaml to be compatible with default site template v2+.`);
+      if (verbose) console.log(`Updated "productionDB" in users/config.yaml`);
     } catch(e) {
       throw e;
     }

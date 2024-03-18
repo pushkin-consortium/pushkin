@@ -108,15 +108,16 @@ The command also integrates a new experiment into the Pushkin framework. It perf
 
 ### remove experiment
 
-This command allows users to remove an experiment from their site and offers two removal modes:
+This command allows users to remove an experiment from their site and offers three removal modes:
 
 1. **delete:** Deleting an experiment permanently removes all of its files, data, and associated Docker components. This command should only be used if you want the experiment completely gone, as it is irreversible. Note that this mode currently runs [`kill`](#kill), and will consequently delete **all** experiments' data from your local database, not just the experiment(s) you deleted. Future development may address this limitation.
 2. **archive:** Archiving an experiment removes it from your site's front end, so it is no longer accessible to participants. However, all of the experiment's files remain in place and the site's back end and data will not be affected.
+3. **pause-data:** Pausing data collection means that the front end of the experiment stays accessible, but no data from subsequent runs of that experiment will be saved to the Pushkin database. When data collection is paused, an additional trial is added to the beginning of the experiment informing potential participants that no data will be collected.
 
-The command has a third mode, `unarchive`, that adds archived experiments back to your site's front end.
+The `archive` and `pause-data` modes have complementary modes `unarchive` and `unpause-data` which respectively restore an archived experiment to the front end and resume data collection. The `delete` mode has no such complement, since it is permanent.
 
 !!! note
-    You must run [`prep`](#prep) after `remove experiment` for changes to your site to take effect.
+    You must run [`prep`](#prep) after `remove experiment` for the changes to your site to take effect.
 
 **Syntax:**
 
@@ -134,7 +135,7 @@ pushkin rm exp <options>
 
 - experiments: `-e` or `--experiments` allows you to specify which experiment(s) to delete, archive, or unarchive. Provide the experiments' short names (i.e. the name of the folder in the `/experiments` directory) separated by spaces after the `-e` flag (e.g. `pushkin rm exp -e exp1 exp2 exp3`). If the `--experiments` option is omitted, the CLI will interactively prompt you to select the experiments you want.
 
-- mode: `-m` or `--mode` allows you to specify the `delete`, `archive`, or `unarchive` mode (e.g. `pushkin rm exp -m delete`). If the `--mode` option is omitted, the CLI will interactively prompt you to select which mode you want.
+- mode: `-m` or `--mode` allows you to specify the `delete`, `archive`, `unarchive`, `pause-data`, or `unpause-data` mode (e.g. `pushkin rm exp -m delete`). If the `--mode` option is omitted, the CLI will interactively prompt you to select which mode you want.
 
 - force: `-f` or `--force` applies only to the `delete` mode and allows you to suppress the deletion confirmation prompt.
 
@@ -144,7 +145,7 @@ pushkin rm exp <options>
 
 **Details:**
 
-Archiving and unarchiving experiments is a simple operation that entails setting the `archived` property in the experiment's `config.yaml` file to `true` or `false`. You can change this property manually if you wish, but using `pushkin rm exp -m archive` offers a convenient way to quickly change this property for multiple experiments.
+All that results from calling `remove experiment` in the `archive` or `pause-data` mode (as well as their opposite modes) is that the experiment's `config.yaml` file will be updated with respect to the boolean property `archived` or `dataPaused`. You can change this property manually if you wish, but using `pushkin rm exp -m archive` or `pushkin rm exp -m pause-data` offers a convenient way to quickly change this property for multiple experiments.
 
 ### updateDB
 

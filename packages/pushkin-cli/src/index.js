@@ -8,7 +8,7 @@ import 'core-js/stable';
 import 'regenerator-runtime/runtime';
 import { execSync, exec } from 'child_process'; // eslint-disable-line
 // subcommands
-import { setupPushkinExp, getJsPsychTimeline, getJsPsychPlugins, getJsPsychImports, deleteExperiment, removeExpWorkers, archiveExperiment } from './commands/experiments/index.js';
+import { setupPushkinExp, getJsPsychTimeline, getJsPsychPlugins, getJsPsychImports, deleteExperiment, removeExpWorkers, updateExpConfig } from './commands/experiments/index.js';
 import { initSite, setupPushkinSite } from './commands/sites/index.js';
 import { awsInit, nameProject, addIAM, awsArmageddon, awsList, createAutoScale } from './commands/aws/index.js'
 //import prep from './commands/prep/index.js'; //has to be separate from other imports from prep/index.js; this is the default export
@@ -486,8 +486,11 @@ const handleInstall = async (templateType, verbose) => {
       // Then replace any whitespace with underscores
       shortName = longName.replace(/[^\w\s]/g, "").replace(/\s/g, "_");
       // Check that the experiment name is not already in use
-      if (fs.existsSync(path.join(process.cwd(), config.experimentsDir, shortName))) {
-        console.error('An experiment with this name already exists. Please choose a different name.');
+      const expNames = fs.readdirSync(path.join(process.cwd(), config.experimentsDir));
+      // Compare the experiment's short name to the short names of existing experiments
+      // All names must be lowercased to avoid name collisions with experiment workers (which must be lowercase)
+      if (expNames.map((name) => name.toLowerCase()).includes(shortName.toLowerCase())) {
+        console.error('An experiment with this name (case-insensitive) already exists. Please choose a different name.');
         process.exit(1);
       }
     }
@@ -821,7 +824,7 @@ const killLocal = async () => {
 /**
  * The primary function for deleting and archiving/unarchiving experiments
  * @param {string[]} experiments The (short) names of the experiments to be removed
- * @param {string} mode The mode of removal ("delete", "archive", or "unarchive")
+ * @param {string} mode The mode of removal ("delete", "archive", "unarchive", "pause-data", or "unpause-data")
  * @param {boolean} force Whether to suppress the deletion confirmation prompt
  * @param {boolean} verbose Output extra information to the console for debugging purposes
  */
@@ -833,7 +836,7 @@ const handleRemove = async (experiments, mode, force, verbose) => {
   const config = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'pushkin.yaml')));
   // Get the path to the experiments directory
   const expDir = path.join(process.cwd(), config.experimentsDir);
-  // Check that the experiments directory exists\
+  // Check that the experiments directory exists
   if (!fs.existsSync(expDir)) {
     console.error(`Experiments folder (${expDir}) not found.`);
     process.exit(1);
@@ -849,7 +852,7 @@ const handleRemove = async (experiments, mode, force, verbose) => {
     });
     expsToRemove.push(...experiments);
   } else { // If no experiments were specified, ask which ones the user wants to remove
-    const expList = fs.readdirSync(expDir)//.filter(file => fs.statSync(path.join(expDir, file)).isDirectory());
+    const expList = fs.readdirSync(expDir);
     const expPrompt = await inquirer.prompt([
       { type: 'checkbox',
         name: 'expsToRemove',
@@ -873,11 +876,17 @@ const handleRemove = async (experiments, mode, force, verbose) => {
     const modePrompt = await inquirer.prompt([
       { type: 'list',
         name: 'mode',
-        message: 'Would you like to delete, archive, or unarchive the experiment(s)?',
-        choices: ['Delete', 'Archive', 'Unarchive']
+        message: 'What would you like to do with the experiment(s)?',
+        choices: [
+          { name: 'Delete', value: 'delete' },
+          { name: 'Archive', value: 'archive' },
+          { name: 'Unarchive', value: 'unarchive' },
+          { name: 'Pause data collection', value: 'pause-data' },
+          { name: 'Unpause data collection', value: 'unpause-data' }
+        ]
       }
     ]);
-    removeMode = modePrompt.mode.toLowerCase();
+    removeMode = modePrompt.mode;
   }
 
   // If the mode is delete, ask the user for confirmation
@@ -899,26 +908,49 @@ const handleRemove = async (experiments, mode, force, verbose) => {
     let removedExps
     const expPaths = expsToRemove.map(exp => path.join(expDir, exp));
     if (removeMode === 'delete') {
-      // Kill all Pushkin Docker containers and images
-      killLocal();
       if (verbose) console.log('Deleting experiment(s)...')
       // deleteExperiment() returns a promise for each deleted experiment
       removedExps = expPaths.map(expPath => deleteExperiment(expPath, verbose));
       // Add another promise to update the docker-compose file
       removedExps.push(removeExpWorkers(expsToRemove, verbose));
+      // Remove the experiments' web and api packages from the site's web and api packages
+      // COME BACK TO THIS
+      // For some reason, removing the unneeded _web and _api packages is breaking all the site's experiments
+      // if (verbose) console.log('Removing experiment(s) from site front-end and api components')
+      // const webPackages = expsToRemove.map(exp => exp.concat('_web'));
+      // const apiPackages = expsToRemove.map(exp => exp.concat('_api'));
+      // execSync(`yalc remove ${webPackages.join(' ')}`, { cwd: path.join(process.cwd(), 'pushkin/front-end') });
+      // execSync(`yalc remove ${apiPackages.join(' ')}`, { cwd: path.join(process.cwd(), 'pushkin/api') });
     
     } else if (removeMode === 'archive') {
       if (verbose) console.log('Archiving experiment(s)...')
       // Similarly create an array of promises using archiveExperiment()
-      removedExps = expPaths.map(expPath => archiveExperiment(expPath, true, verbose));
+      removedExps = expPaths.map(expPath => updateExpConfig(expPath, { archived: true }, verbose));
     
-    } else { // removeMode === 'unarchive'
+    } else if (removeMode === 'unarchive') {
       if (verbose) console.log('Unarchiving experiment(s)...')
-      removedExps = expPaths.map(expPath => archiveExperiment(expPath, false, verbose));
+      removedExps = expPaths.map(expPath => updateExpConfig(expPath, { archived: false }, verbose));
+    
+    } else if (removeMode === 'pause-data') {
+      if (verbose) console.log('Pausing data collection for experiment(s)...')
+      removedExps = expPaths.map(expPath => updateExpConfig(expPath, { dataPaused: true }, verbose));
+
+    } else { // removeMode === 'unpause-data'
+      if (verbose) console.log('Unpausing data collection for experiment(s)...')
+      removedExps = expPaths.map(expPath => updateExpConfig(expPath, { dataPaused: false }, verbose));
     }
     
     await Promise.all(removedExps);
-    console.log(`Experiment(s) sucessfully ${removeMode}d`);
+    
+    if (removeMode === 'delete') {
+      // Kill all Pushkin Docker containers and images
+      killLocal(); // Putting this here for now, since it needs to read the compose file
+      console.log(`Experiment(s) successfully deleted`);
+    } else if (removeMode.endsWith('pause-data')) {
+      console.log(`Success! Data collection for experiment(s) will be ${removeMode.split('-')[0]}d after you run \`pushkin prep\``);
+    } else {
+      console.log(`Success! Experiment(s) will be ${removeMode}d after you run \`pushkin prep\``);
+    }
   } catch (e) {
     console.error("Problem removing experiment(s)", e);
     throw e;
@@ -955,17 +987,18 @@ async function main() {
   program
     .command('remove <what>')
     .alias('rm')
-    .description(`Delete, archive, or unarchive a Pushkin experiment. Deletion permanently removes all the experiment's files and data; archiving simply removes the experiment from the front end.`)
-    .option('-e, --experiments [experiments...]', 'Specify which experiment(s) to delete, archive, or unarchive')
-    .option('-m, --mode [mode]', 'Specify whether to delete, archive, or unarchive the experiment(s)')
+    .description(`Delete, (un)archive, or (un)pause a Pushkin experiment. Deletion permanently removes all the experiment's files and data; archiving simply removes the experiment from the front end; pausing stops data collection but leaves the experiment's front end in place.`)
+    .option('-e, --experiments [experiments...]', 'Specify which experiment(s) to remove')
+    .option('-m, --mode [mode]', 'Specify whether to delete, (un)archive, or (un)pause the experiment(s)')
     .option('-f, --force', 'Suppresses confirmation prompt when deleting experiments')
     .option('-v, --verbose', 'Output extra debugging info')
     .action(async (what, options) => {
       // Check that `remove` argument is valid
       if (what === 'exp' || what === 'experiment') {
         // Check that mode is valid (if provided)
-        if (options.mode && !['delete', 'archive', 'unarchive'].includes(options.mode)) {
-          console.error('Invalid mode. Mode can only be "delete", "archive", or "unarchive".');
+        const modes = ['delete', 'archive', 'unarchive', 'pause-data', 'unpause-data'];
+        if (options.mode && !modes.includes(options.mode)) {
+          console.error(`Invalid mode. Mode must be one of:\n -${modes.join('\n -')}`);
           process.exit(1);
         }
         try{
