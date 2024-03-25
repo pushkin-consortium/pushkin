@@ -4,7 +4,7 @@ import '@testing-library/jest-dom';
 import FindingsCard from './FindingsCard';
 
 test('Renders the FindingsCard component', () => {
-    // Sample props for rendering - Add a representative 'name'
+    // Sample props for rendering 
     const props = {
       image: '/sample-image.jpg',
       title: 'Sample Finding',
@@ -15,9 +15,11 @@ test('Renders the FindingsCard component', () => {
     render(<FindingsCard {...props} />);
   
     // Assertions to check if elements are present
-    const image = screen.getByRole('img'); // Find the image element 
+    const image = screen.getByRole('img'); 
     expect(image).toBeInTheDocument();
-    expect(image).toHaveAttribute('alt', props.name); // Check the 'alt' attribute
+    
+    // Check the 'alt' attribute
+    expect(image).toHaveAttribute('alt', props.name); 
 
     expect(screen.getByText('Sample Finding')).toBeInTheDocument();
     expect(screen.getByText('This is a sample description')).toBeInTheDocument();
