@@ -1,5 +1,11 @@
 # @pushkin-templates/exp-basic
 
+## 6.1.0
+
+### Minor Changes
+
+- [#305](https://github.com/pushkin-consortium/pushkin/pull/305) [`ffba8bb`](https://github.com/pushkin-consortium/pushkin/commit/ffba8bbbb62d901d271655d71453f95648d5f5aa) Thanks [@jessestorbeck](https://github.com/jessestorbeck)! - Added modes to `rm exp` to pause and unpause data collection for the specified experiment(s).
+
 ## 6.0.0
 
 ### Major Changes
