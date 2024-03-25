@@ -113,7 +113,10 @@ export function setEnv(debug, verbose) {
     console.log('running setEnv()');
   }
   try {
-    fs.writeFileSync(path.join(process.cwd(), 'pushkin/front-end/src', '.env.js'), `export const debug = ${debug};`)
+    const envJS = `export const debug = ${debug};
+      export const codespaces = ${process.env.CODESPACES};
+      export const codespaceName = '${process.env.CODESPACE_NAME}';`;
+    fs.writeFileSync(path.join(process.cwd(), 'pushkin/front-end/src', '.env.js'), envJS, 'utf8')
   } catch (e) {
     console.error(`Unable to create .env.js`)
   }
