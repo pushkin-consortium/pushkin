@@ -1,6 +1,6 @@
 {
   "name": "@pushkin-templates/site-basic",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A template for building a bare-bones Pushkin site. No authentication, no forum, no dashboard, but everything else you need.",
   "keywords": [
     "pushkin",
