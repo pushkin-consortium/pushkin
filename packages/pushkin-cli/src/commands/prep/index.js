@@ -6,6 +6,7 @@ import util from 'util';
 import { execSync } from 'child_process'; // eslint-disable-line
 const exec = util.promisify(require('child_process').exec);
 import pacMan from '../../pMan.js'; //which package manager is available?
+import { env } from 'process';
 
 // give package unique name, package it, npm install on installDir, return module name
 const publishLocalPackage = async (modDir, modName, verbose) => {
@@ -113,9 +114,10 @@ export function setEnv(debug, verbose) {
     console.log('running setEnv()');
   }
   try {
-    const envJS = `export const debug = ${debug};
+    let envJS = `export const debug = ${debug};
       export const codespaces = ${process.env.CODESPACES};
       export const codespaceName = '${process.env.CODESPACE_NAME}';`;
+    envJS = envJS.split('\n').map((line) => line.trim()).join('\n'); // Remove indentation
     fs.writeFileSync(path.join(process.cwd(), 'pushkin/front-end/src', '.env.js'), envJS, 'utf8')
   } catch (e) {
     console.error(`Unable to create .env.js`)
