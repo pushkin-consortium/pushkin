@@ -6,6 +6,7 @@ import util from 'util';
 import { execSync } from 'child_process'; // eslint-disable-line
 const exec = util.promisify(require('child_process').exec);
 import pacMan from '../../pMan.js'; //which package manager is available?
+import { env } from 'process';
 
 // give package unique name, package it, npm install on installDir, return module name
 const publishLocalPackage = async (modDir, modName, verbose) => {
@@ -107,13 +108,25 @@ const publishLocalPackage = async (modDir, modName, verbose) => {
   })
 };
 
+/**
+ * Creates/updates .env.js in the Pushkin site's pushkin/front-end/src directory
+ * @param {boolean} debug Whether the site is being prepped for testing (true) or deployment (false)
+ * @param {boolean} verbose Output extra information to the console for debugging purposes
+ */
 export function setEnv(debug, verbose) {
   if (verbose) {
     console.log('--verbose flag set inside setEnv()');
-    console.log('running setEnv()');
+    console.log('Updating pushkin/front-end/src/.env.js');
   }
   try {
-    fs.writeFileSync(path.join(process.cwd(), 'pushkin/front-end/src', '.env.js'), `export const debug = ${debug};`)
+    let envJS = `const debug = ${debug};
+      // The following will be undefined in the local environment
+      // but are needed to route the API and server correctly for GitHub Codespaces
+      const codespaces = ${process.env.CODESPACES};
+      const codespaceName = '${process.env.CODESPACE_NAME}';
+      module.exports = { debug, codespaces, codespaceName };`;
+    envJS = envJS.split('\n').map((line) => line.trim()).join('\n'); // Remove indentation
+    fs.writeFileSync(path.join(process.cwd(), 'pushkin/front-end/src', '.env.js'), envJS, 'utf8')
   } catch (e) {
     console.error(`Unable to create .env.js`)
   }

@@ -1,3 +1,4 @@
+const { codespaces, codespaceName } = require('./src/.env.js');
 const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
 
 const maybe_modify_test = test => {
@@ -10,6 +11,14 @@ const maybe_modify_test = test => {
 };
 
 module.exports = {
+  devServer: (devServerConfig, { env, paths, proxy, allowedHost }) => {
+    if (codespaces) {
+      // If testing with Codespaces, the WebSocket URL needs to be updated
+      const webSocketURL = "wss://" + codespaceName + "-80.app.github.dev/ws";
+      devServerConfig.client.webSocketURL = webSocketURL;
+    }
+    return devServerConfig;
+  },
   webpack: {
     plugins: {
       add: [

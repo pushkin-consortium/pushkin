@@ -187,6 +187,18 @@ pushkin stop
 
 If you don’t do that, the web server will keep running in Docker until you quit Docker or restart. When the command has finished running, it should output `done`.
 
+### Site testing with GitHub Codespaces
+
+If you are developing your Pushkin site in a codespace, you'll run `pushkin start` just like for local testing; however, to view your site, click on the "PORTS" tab and click the globe icon for port 80 to open your site in the browser:
+
+![](../assets/getting-started/quickstart/codespacesPorts1.png)
+
+If you notice CORS errors in the console while testing your site in a codespace, a potential fix can be to make port 80 public:
+
+![](../assets/getting-started/quickstart/codespacesPorts2.png)
+
+After you're done looking at your site, run `pushkin stop` just as you would for local testing.
+
 ## Updating your site
 
 Imagine now you want to add another experiment or edit an existing one. Every time you update your site, you’ll need to run `pushkin prep` (and `pushkin start` if you want to look at your updates) again:
@@ -212,7 +224,7 @@ Since the `remove experiment` command updates your site, you will need to run `p
 
 ## Viewing your data
 
-At this point, you should have generated some data by testing at least one of your experiments. In order to view it, you can use whatever Postgres manager you installed based on the Pushkin [installation instructions](installation.md#installing-a-postgres-manager). Here, we'll go over how to view the data using either pgAdmin or SQLTools.
+At this point, you should have generated some data by testing at least one of your experiments. In order to view it, you can use whatever Postgres manager you installed based on the Pushkin [installation instructions](installation.md#installing-a-postgres-manager). Here, we'll go over how to view the data using either pgAdmin or SQLTools. Make sure your database is running first by using the command `pushkin start`.
 
 === "pgAdmin"
 
