@@ -14,8 +14,8 @@ module.exports = {
   devServer: (devServerConfig, { env, paths, proxy, allowedHost }) => {
     if (codespaces) {
       // If testing with Codespaces, the WebSocket URL needs to be updated
-      const webSocketURL = "wss://" + codespaceName + "-80.app.github.dev/ws"
-      devServerConfig.client.webSocketURL = webSocketURL
+      const webSocketURL = "wss://" + codespaceName + "-80.app.github.dev/ws";
+      devServerConfig.client.webSocketURL = webSocketURL;
     }
     return devServerConfig;
   },
