@@ -4,7 +4,7 @@
 //import fs from 'fs';
 //import jsYaml from 'js-yaml';
 import { pushkinConfig } from './.pushkin.js'
-import { debug } from './.env.js'
+import { debug, codespaces, codespaceName } from './.env.js'
 
 // Front-end configuration file
 
@@ -14,7 +14,13 @@ let frontEndURL; //Still needed?
 let logoutURL; //Still needed?
 if (debug) {
   // Debug / Test
-  const rootDomain = 'http://localhost';
+  let rootDomain;
+  if (codespaces) {
+    // Make sure to point to the Codespaces URL if testing in a codespace
+    rootDomain = 'https://' + codespaceName + '-80.app.github.dev';
+  } else {
+    rootDomain = 'http://localhost';
+  }
   apiEndpoint = rootDomain + '/api';
   frontEndURL = rootDomain + '/callback';
   logoutURL = rootDomain;
