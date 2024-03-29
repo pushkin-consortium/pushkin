@@ -41,7 +41,7 @@
         "amqplib": "^0.10.3",
         "cookie-session": "^2.0.0-beta.3",
         "cors": "^2.8.5",
-        "express": "^4.18.2",
+        "express": "^4.19.2",
         "regenerator-runtime": "^0.14.0",
         "uuid": "^9.0.0"
     }
