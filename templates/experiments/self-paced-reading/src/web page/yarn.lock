@@ -1323,10 +1323,10 @@ fill-range@^7.0.1:
   dependencies:
     to-regex-range "^5.0.1"
 
-follow-redirects@^1.15.4:
-  version "1.15.5"
-  resolved "https://registry.yarnpkg.com/follow-redirects/-/follow-redirects-1.15.5.tgz#54d4d6d062c0fa7d9d17feb008461550e3ba8020"
-  integrity sha512-vSFWUON1B+yAw1VN4xMfxgn5fTUiaOzAJCKBwIIgT/+7CuGy9+r+5gITvP62j3RmaD5Ph65UaERdOSRGUzZtgw==
+follow-redirects@^1.15.0:
+  version "1.15.6"
+  resolved "https://registry.yarnpkg.com/follow-redirects/-/follow-redirects-1.15.6.tgz#7f815c0cda4249c74ff09e95ef97c23b5fd0399b"
+  integrity sha512-wWN62YITEaOpSK584EZXJafH1AGpO8RVgElfkuXbTOrPX4fIfOyEpW/CsiNd8JdYrAoOvafRTOEnvsO++qCqFA==
 
 form-data@^4.0.0:
   version "4.0.0"
@@ -1508,10 +1508,10 @@ json5@^2.2.2:
   resolved "https://registry.yarnpkg.com/json5/-/json5-2.2.3.tgz#78cd6f1a19bdc12b73db5ad0c61efd66c1e29283"
   integrity sha512-XmOWe7eyHYH14cLdVPoyg+GOH3rYX++KpzrylJwSW98t3Nk+U8XOl8FWKOgwtzdb8lXGf6zYwDUzeHMWfxasyg==
 
-jspsych@^7.3.3:
-  version "7.3.3"
-  resolved "https://registry.yarnpkg.com/jspsych/-/jspsych-7.3.3.tgz#c0869fcd90e4157634e65b1866f5a5ae16b369a1"
-  integrity sha512-ke8NQ1qNRRfmsCCUOE9GLKXYngK5ZGaqeJViMFWVpwfiYLMNgPGchBTzLlzqQhBRLjBzA/VrYRFiZcacLpc/TQ==
+jspsych@^7.3.4:
+  version "7.3.4"
+  resolved "https://registry.yarnpkg.com/jspsych/-/jspsych-7.3.4.tgz#c6b0c0215d7b869a6663f470f87d0ee72955706a"
+  integrity sha512-wKJJaJ9wed4AORLVANs0G5MfuU8juKDY/2DrIlnphf/1NEaFYfW7Bt0HyRuQwoalUCkTZDqptn9gi0k++Spkwg==
   dependencies:
     auto-bind "^4.0.0"
     random-words "^1.1.1"
