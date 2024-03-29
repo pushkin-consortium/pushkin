@@ -22,7 +22,7 @@
   ],
   "scripts": {
     "test": "jest",
-    "build": "mkdir -p build && cd src && zip -FS -r -q ../build/template.zip .",
+    "build": "mkdir -p build && cd src && zip -FS -r -q ../build/template.zip . -x \"*node_modules*\"",
     "prepack": "cp ../../../LICENSE ."
   },
   "dependencies": {
