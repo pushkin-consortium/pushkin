@@ -45,8 +45,11 @@ export const initSite = async (verbose) => {
     packageJson.name = 'pushkin-site';
     // Set up for Jest tests
     packageJson.scripts = { "test": "jest" };
-    packageJson.jest = { "testPathIgnorePatterns": ["/node_modules/", "/.yalc/", "/build/"] };
-    fs.writeFileSync('babel.config.js', `module.exports = {presets: ['@babel/preset-env']};`);
+    packageJson.jest = {
+      "testEnvironment": "jsdom",
+      "testPathIgnorePatterns": ["/node_modules/", "/.yalc/", "/build/"]
+    };
+    fs.writeFileSync('babel.config.js', `module.exports = { presets: ['@babel/preset-env', '@babel/preset-react' ],};`);
     // Write the updated package.json
     fs.writeFileSync('package.json', JSON.stringify(packageJson, null, 2));
   } catch (error) {
