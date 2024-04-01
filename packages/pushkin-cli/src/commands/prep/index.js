@@ -6,6 +6,7 @@ import util from 'util';
 import { execSync } from 'child_process'; // eslint-disable-line
 const exec = util.promisify(require('child_process').exec);
 import pacMan from '../../pMan.js'; //which package manager is available?
+import { env } from 'process';
 
 // give package unique name, package it, npm install on installDir, return module name
 const publishLocalPackage = async (modDir, modName, verbose) => {
@@ -20,10 +21,10 @@ const publishLocalPackage = async (modDir, modName, verbose) => {
     }
     let buildCmd
     if (packageJson.dependencies['build-if-changed'] == null) {
-      if (verbose) console.log(modName, " does not have build-if-changed installed. Recommend installation for faster runs of prep.");
+      if (verbose) console.log(modName, "does not have build-if-changed installed. Recommend installation for faster runs of prep.");
       buildCmd = pacMan.concat(' --mutex network run build');
     } else {
-      if (verbose) console.log("Using build-if-changed for ",modName);
+      if (verbose) console.log("Using build-if-changed for", modName);
       const pacRunner = (pacMan == 'yarn') ? 'yarn' : 'npx';
       buildCmd = pacRunner.concat(' build-if-changed');
     }
@@ -107,17 +108,29 @@ const publishLocalPackage = async (modDir, modName, verbose) => {
   })
 };
 
+/**
+ * Creates/updates .env.js in the Pushkin site's pushkin/front-end/src directory
+ * @param {boolean} debug Whether the site is being prepped for testing (true) or deployment (false)
+ * @param {boolean} verbose Output extra information to the console for debugging purposes
+ */
 export function setEnv(debug, verbose) {
   if (verbose) {
     console.log('--verbose flag set inside setEnv()');
-    console.log('running setEnv()');
+    console.log('Updating pushkin/front-end/src/.env.js');
   }
   try {
-    fs.writeFileSync(path.join(process.cwd(), 'pushkin/front-end/src', '.env.js'), `export const debug = ${debug}`)
+    let envJS = `const debug = ${debug};
+      // The following will be undefined in the local environment
+      // but are needed to route the API and server correctly for GitHub Codespaces
+      const codespaces = ${process.env.CODESPACES};
+      const codespaceName = '${process.env.CODESPACE_NAME}';
+      module.exports = { debug, codespaces, codespaceName };`;
+    envJS = envJS.split('\n').map((line) => line.trim()).join('\n'); // Remove indentation
+    fs.writeFileSync(path.join(process.cwd(), 'pushkin/front-end/src', '.env.js'), envJS, 'utf8')
   } catch (e) {
     console.error(`Unable to create .env.js`)
   }
-  if (verbose) console.log(`Successfully set front-end 'environment variable'`);
+  if (verbose) console.log(`Successfully set front-end environment variable debug=${debug}`);
 }
 
 export function updatePushkinJs(verbose) {
@@ -190,8 +203,6 @@ const prepWeb = async (expDir, expConfig, coreDir, verbose) => {
     console.error(`Failed on publishing web page: ${err}`);
     throw err;
   }
-  // chekc if moduleName exists
-  console.log(moduleName);
 
   if (verbose) console.log(`Loaded web page for ${expConfig.experimentName} (${moduleName})`);
   const modListAppendix = "{ fullName: `".concat(expConfig.experimentName).concat("`,") 
@@ -289,9 +300,23 @@ export const prep = async (experimentsDir, coreDir, verbose) => {
     throw e
   }
 
-  // Get an array of all experiment directories
-  // Iterate over this later to prep each experiment's api, web page, and worker 
   const expDirs = fs.readdirSync(experimentsDir);
+
+  // Filter out any experiments where the config.yaml file has `archived` set to true
+  const archivedDirs = [];
+  expDirs.forEach(dir => {
+    try {
+      const configPath = path.join(experimentsDir, dir, 'config.yaml');
+      const config = jsYaml.safeLoad(fs.readFileSync(configPath));
+      if (config.archived) {
+        archivedDirs.push(dir);
+      }
+    } catch (error) {
+      console.error(`Failed to read config.yaml for ${dir}: ${error}`);
+      throw error;
+    }
+  });
+  const frontEndDirs = expDirs.filter(dir => !archivedDirs.includes(dir));
 
   const prepAPIWrapper = (exp, verbose) => {
     if (verbose) {
@@ -385,7 +410,8 @@ export const prep = async (experimentsDir, coreDir, verbose) => {
 
   let webPageIncludes;
   try {
-    webPageIncludes = Promise.all(expDirs.map((exp) => prepWebWrapper(exp, verbose)));
+    // Mapping over frontEndDirs (not expDirs) because we want to keep archived experiments off the front end
+    webPageIncludes = Promise.all(frontEndDirs.map((exp) => prepWebWrapper(exp, verbose)));
   } catch (err) {
     console.error(err);
     process.exit();

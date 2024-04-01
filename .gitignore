@@ -7,6 +7,12 @@ build/
 # Test files
 testing/
 
+# Ignore all LICENSE files...
+LICENSE
+# except for the one in the root
+!/LICENSE
+# Root LICENSE will be included when each package is published
+
 # Swap files
 *.swp
 
@@ -66,11 +72,18 @@ typings/
 # Yarn Integrity file
 .yarn-integrity
 
-# dotenv environment variables file
+# the following two have passwords
 .env
+docker-compose.production.noEnvDependency.yml
 
 # next.js build output
 .next
 
 # yarn cache files
 **/.yarn
+# Docs build
+site/
+venv/
+
+# VS Code files
+.vscode/

@@ -1,6 +1,6 @@
 {
     "name": "pushkin-client",
-    "version": "1.7.1",
+    "version": "1.7.2",
     "description": "A front-end Javascript module for interfacing with a Pushkin API",
     "main": "build/index.js",
     "jest": {
@@ -18,7 +18,8 @@
     ],
     "scripts": {
         "test": "jest",
-        "build": "babel src -d build"
+        "build": "babel src -d build",
+        "prepack": "cp ../../LICENSE ."
     },
     "keywords": [
         "pushkin",
@@ -27,7 +28,7 @@
     "author": "L3",
     "license": "MIT",
     "dependencies": {
-        "axios": "^1.4.0"
+        "axios": "1.6.8"
     },
     "devDependencies": {
         "@babel/cli": "^7.10.5",
@@ -43,7 +44,6 @@
         "eslint-plugin-react": "^7.20.3",
         "eslint-plugin-react-hooks": "^4.0.8",
         "fs": "^0.0.1-security",
-        "jest": "^29.6.3",
-        "jest-environment-jsdom": "^29.6.3"
+        "jest-environment-jsdom": "^29.7.0"
     }
 }

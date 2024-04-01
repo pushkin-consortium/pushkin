@@ -1,0 +1,24 @@
+{
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "templates/*/*"
+  ],
+  "scripts": {
+    "docs:deploy": "poetry install --no-root && poetry run mike deploy -u --alias-type=redirect",
+    "docs:serve": "poetry run mike serve",
+    "release": "yarn workspaces run build && yarn changeset publish",
+    "test": "jest"
+  },
+  "devDependencies": {
+    "@changesets/changelog-github": "^0.5.0",
+    "@changesets/cli": "^2.27.1",
+    "jest": "^29.7.0"
+  },
+  "jest": {
+    "projects": [
+      "<rootDir>/packages/*",
+      "<rootDir>/templates/*/*"
+    ]
+  }
+}

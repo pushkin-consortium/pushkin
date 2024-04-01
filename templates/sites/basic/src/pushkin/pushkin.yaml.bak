@@ -1,0 +1,29 @@
+# main directories relative to project root ('..')
+experimentsDir: 'experiments'
+coreDir: 'pushkin'
+DockerHubID: ''
+
+# databases configs experiments can use
+databases:
+  localtestdb:
+    user: 'postgres'
+    pass: 'example'
+    url: 'localhost'
+    port: '5432'
+    name: 'test_db'
+    host: 'test_db'
+
+# basic site configuration
+info:
+  rootDomain: 'localhost'
+  whoAmI: 'Citizen Science Website'
+  hashtags: 'science, learn'
+  email: 'me@mydomain.com'
+  shortName: 'CSW'
+addons:
+  useForum: false
+  useAuth: false
+salt: 'abc123'
+fc: {
+  popup: false
+}

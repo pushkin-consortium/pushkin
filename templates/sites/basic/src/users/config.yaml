@@ -1,0 +1,9 @@
+migrations:
+  location: 'migrations'
+seeds:
+  location: ''
+# Used for migration and seed commands via main CLI
+# Note that these might be different than those given to the worker,
+# Since it's running inside a linked docker container
+database: 'localtestdb'
+productionDB: Main

@@ -1,0 +1,10 @@
+@font-face {
+  font-family: 'slabo';
+  src: local('slabo'),
+  url('./assets/fonts/Slabo27px-Regular.ttf') format('truetype');
+}
+
+body {
+  font-family: 'slabo';
+  font-size: large;
+}

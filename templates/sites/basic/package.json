@@ -1,0 +1,32 @@
+{
+  "name": "@pushkin-templates/site-basic",
+  "version": "1.0.0",
+  "description": "A template for building a bare-bones Pushkin site. No authentication, no forum, no dashboard, but everything else you need.",
+  "keywords": [
+    "pushkin",
+    "template"
+  ],
+  "author": "L3",
+  "license": "MIT",
+  "homepage": "https://pushkin-consortium.github.io/pushkin",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pushkin-consortium/pushkin.git",
+    "directory": "templates/sites/basic"
+  },
+  "bugs": {
+    "url": "https://github.com/pushkin-consortium/pushkin/issues"
+  },
+  "files": [
+    "build/*"
+  ],
+  "scripts": {
+    "test": "jest --passWithNoTests",
+    "build": "mkdir -p build && cd src && zip -FS -r -q ../build/template.zip . -x \"*node_modules*\"",
+    "prepack": "cp ../../../LICENSE ."
+  },
+  "devDependencies": {
+    "@babel/core": "^7.23.6",
+    "@babel/preset-env": "^7.23.6"
+  }
+}

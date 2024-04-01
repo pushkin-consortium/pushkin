@@ -1,0 +1,32 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite our article in Behavior Research Methods."
+preferred-citation:
+  authors:
+  - family-names: Hartshorne
+    given-names: Joshua K.
+    orcid: "https://orcid.org/0000-0003-1240-3598"
+  - family-names: Leeuw
+    given-names: Joshua R.
+    name-particle: de
+    orcid: "https://orcid.org/0000-0003-4815-2364"
+  - family-names: Goodman
+    given-names: Noah D.
+    # orcid: ""
+  - family-names: Jennings
+    given-names: Mariela
+    # orcid: ""
+  - family-names: O’Donnell 
+    given-names: Timothy J.
+    # orcid: ""
+  date-published: 2019-02-11
+  date-issued: 2019-08-15
+  doi: 10.3758/s13428-018-1155-z
+  journal: Behavior Research Methods
+  publisher:
+    name: Springer
+  volume: 51
+  start: 1782
+  end: 1803
+  title: "A thousand studies for the price of one: Accelerating psychological science with Pushkin"
+  type: article
+  url: "https://link.springer.com/article/10.3758/s13428-018-1155-z"

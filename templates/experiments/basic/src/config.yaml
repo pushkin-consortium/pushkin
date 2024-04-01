@@ -1,0 +1,35 @@
+# v5.0.4
+experimentName: &fullName 'pushkintemplate'
+shortName: &shortName 'pushkintemplate' # This should be unique as its used for urls, etc.
+apiControllers: # The default export from each of these locations will be attached to a pushkin API
+  mountPath: *shortName
+  location: 'api controllers'
+  name: 'mycontroller'
+worker:
+  location: 'worker'
+  service: # what to add as a service in main compose file
+    image: *shortName
+    links:
+      - message-queue
+      - test_db
+      - test_transaction_db
+    environment:
+      AMQP_ADDRESS: 'amqp://message-queue:5672'
+      DB_USER: "postgres"
+      DB_PASS: "example"
+      DB_URL: "test_db"
+      DB_NAME: "test_db"     
+webPage:
+  location: 'web page'
+migrations:
+  location: 'migrations'
+seeds:
+  location: ''
+# Used for migration and seed commands via main CLI
+# Note that these might be different than those given to the worker,
+# Since it's running inside a linked docker container
+database: 'localtestdb'
+logo: 'logo512.png'
+text: 'Enter your experiment description here.'
+tagline: 'Be a citizen scientist! Try this quiz.'
+duration: ''
