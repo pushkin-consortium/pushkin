@@ -192,6 +192,11 @@ Improving test coverage is a priority for Pushkin, so we will happily receive pu
 
 ### Jest for user site development
 
-Pushkin sites come pre-configured to run Jest tests. Currently, the only tests distributed to Pushkin users enter your site through experiment templates; however, you can expand testing for your Pushkin site as you see fit. If you develop more sophisticated testing for your site, we encourage you to consider how it could be contributed back to the project, so other users might benefit as well.
+Pushkin sites come pre-configured to run Jest tests. Currently, the only tests distributed to Pushkin users enter your site through two areas:
 
-After running `pushkin install exp`, run `yarn test` from the root of your site to run tests for any experiments you've installed. Note that some tests written for experiment templates may fail when you customize the experiment. 
+1. **Experiment Templates**: Tests in the experiment templates primarily focus on validating the jsPsych timeline that is essential to experiment functionality
+2. **Site Templates**: Currently, [site-basic](../site-templates/site-basic.md) has multiple tests focusing on rendering site components
+
+You can expand testing for your Pushkin site as you see fit. If you develop more sophisticated testing for your site, we encourage you to consider how it could be contributed back to the project, so other users might benefit as well.
+
+After running `pushkin install exp`, run `yarn test` from the root of your site to run tests for what you've installed. Note that some tests written for experiment templates and/or frontend components may fail when you customize them. 
