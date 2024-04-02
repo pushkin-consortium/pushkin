@@ -14,7 +14,9 @@ import { kill } from 'process';
 import { STSClient, GetCallerIdentityCommand } from "@aws-sdk/client-sts";
 import { fromIni } from "@aws-sdk/credential-provider-ini";
 import { ACMClient, ListCertificatesCommand } from "@aws-sdk/client-acm";
+import { Route53Client, ListResourceRecordSetsCommand, ChangeResourceRecordSetsCommand } from "@aws-sdk/client-route-53";
 
+myRegion = "us-east-1" //set as default. may want this to be a parameter somewhere that can be changed.
 
 const exec = util.promisify(require('child_process').exec);
 const mkdir = util.promisify(require('fs').mkdir);
@@ -143,126 +145,142 @@ export const syncS3 = async (awsName, useIAM) => {
   }  
 }
 
-const makeRecordSet = async (myDomain, useIAM, projName, theCloud) => {
-  console.log(`Retrieving hostedzone ID for ${myDomain}`)
-  let zoneID, temp
+const makeRecordSet = async (hostedZoneId, domainName, recordType, recordValue) => {
+  const route53 = new Route53Client({ 
+    region: myRegion,
+    credentials: fromIni({ profile: useIAM.iam })
+  });
+
+  let zoneID;
+
   try {
-    temp = await exec(`aws route53 list-hosted-zones-by-name --dns-name ${myDomain} --profile ${useIAM}`)
+    const data = await route53.send(new ListHostedZonesByNameCommand({ DNSName: myDomain }));
+    if (data.HostedZones.length === 0) {
+      console.error(`No hostedzone found for ${myDomain}`);
+      throw new Error(`No hostedzone found for ${myDomain}`);
+    }
+    zoneID = data.HostedZones[0].Id.split("/hostedzone/")[1];
   } catch (e) {
-    console.error(`Unable to retrieve hostedzone for ${myDomain}`)
-    throw e
+    console.error(`Unable to retrieve hostedzone for ${myDomain}`);
+    throw e;
   }
-  if (JSON.parse(temp.stdout).HostedZones.length == 0) {
-    console.error(`No hostedzone found for ${myDomain}`)
-    throw new Error(`No hostedzone found for ${myDomain}`)
-  }
-  try {
-    zoneID = JSON.parse(temp.stdout).HostedZones[0].Id.split("/hostedzone/")[1]
-  } catch (e) {
-    console.error(`Unable to parse hostedzone for ${myDomain}`)
-    throw e
-  }
-
-  let recordSet = {
-    "Comment": "",
-    "Changes": []
-  }
-  recordSet.Changes[0] = JSON.parse(JSON.stringify(changeSet));
-  recordSet.Changes[1] = JSON.parse(JSON.stringify(changeSet));
-  recordSet.Changes[2] = JSON.parse(JSON.stringify(changeSet));
-  recordSet.Changes[3] = JSON.parse(JSON.stringify(changeSet));
-
-  recordSet.Changes[0].ResourceRecordSet.Name = myDomain
-  recordSet.Changes[0].ResourceRecordSet.AliasTarget.DNSName = theCloud.DomainName
-  recordSet.Changes[0].ResourceRecordSet.Type = "A"
-  recordSet.Changes[0].ResourceRecordSet.SetIdentifier = projName
-
-  recordSet.Changes[1].ResourceRecordSet.Name = myDomain
-  recordSet.Changes[1].ResourceRecordSet.AliasTarget.DNSName = theCloud.DomainName
-  recordSet.Changes[1].ResourceRecordSet.Type = "AAAA"
-  recordSet.Changes[1].ResourceRecordSet.SetIdentifier = projName
-
-  recordSet.Changes[2].ResourceRecordSet.Name = "www.".concat(myDomain) //forward from www
-  recordSet.Changes[2].ResourceRecordSet.AliasTarget.DNSName = theCloud.DomainName
-  recordSet.Changes[2].ResourceRecordSet.Type = "A"
-  recordSet.Changes[2].ResourceRecordSet.SetIdentifier = projName
-
-  recordSet.Changes[3].ResourceRecordSet.Name = "www.".concat(myDomain) //forward from www
-  recordSet.Changes[3].ResourceRecordSet.AliasTarget.DNSName = theCloud.DomainName
-  recordSet.Changes[3].ResourceRecordSet.Type = "AAAA"
-  recordSet.Changes[3].ResourceRecordSet.SetIdentifier = projName
-
-  let returnVal
 
   // if there was a failed init, there may already be resource record sets
   // which will cause this to fail. So, we'll try to delete them first.
-  let existingRecords
+  let existingRecords;  
   try {
-    existingRecords = await exec(`aws route53 list-resource-record-sets --hosted-zone-id ${zoneID} --profile ${useIAM}`)
+    const data = await route53.send(new ListResourceRecordSetsCommand({ HostedZoneId: zoneID }));
+    existingRecords = data.ResourceRecordSets;
   } catch (e) {
-    console.error(`Unable to list resource record sets for ${myDomain}`)
-    throw e
+    console.error(`Unable to list resource record sets for ${myDomain}`);
+    throw e;
   }
-  if (JSON.parse(existingRecords.stdout).ResourceRecordSets.length > 0) {
-    console.log(`Deleting existing resource record sets for ${myDomain}`)
+  
+  if (existingRecords.length > 0) {
+    console.log(`Deleting existing resource record sets for ${myDomain}`);
+    const changes = existingRecords.map(record => ({
+      Action: "DELETE",
+      ResourceRecordSet: record
+    }));
+  
     try {
-      await exec(`aws route53 change-resource-record-sets --hosted-zone-id ${zoneID} --change-batch '{ "Changes": [ { "Action": "DELETE", "ResourceRecordSet": ${JSON.stringify(JSON.parse(existingRecords.stdout).ResourceRecordSets)} } ] }' --profile ${useIAM}`)
+      await route53.send(new ChangeResourceRecordSetsCommand({ HostedZoneId: zoneID, ChangeBatch: { Changes: changes } }));
     } catch (e) {
-      console.error(`Unable to delete resource record sets for ${myDomain}`)
-    }
+      console.error(`Unable to delete resource record sets for ${myDomain}`);
+    }  
   }
 
-  const waitForRecordSetDeletion = async (zoneID, useIAM) => {
-    let existingRecords
+  // set up recordset variable
+  const createChange = (name, dnsName, type, setIdentifier) => ({
+    Action: "UPSERT",
+    ResourceRecordSet: {
+      Name: name,
+      Type: type,
+      Region: myRegion,
+      SetIdentifier: setIdentifier,
+      AliasTarget: {
+        HostedZoneId: "Z2FDTNDATAQYW2",
+        DNSName: dnsName,
+        EvaluateTargetHealth: false
+      },
+    }
+  });
+  
+  let recordSet = {
+    Comment: "",
+    Changes: [
+      createChange(myDomain, theCloud.DomainName, "A", projName),
+      createChange(myDomain, theCloud.DomainName, "AAAA", projName),
+      createChange(`www.${myDomain}`, theCloud.DomainName, "A", projName),
+      createChange(`www.${myDomain}`, theCloud.DomainName, "AAAA", projName)
+    ]
+  };
+
+  const waitForRecordSetDeletion = async (zoneID) => {
+  
     while (true) {
       try {
-        existingRecords = await exec(`aws route53 list-resource-record-sets --hosted-zone-id ${zoneID} --profile ${useIAM}`)
+        const data = await route53.send(new ListResourceRecordSetsCommand({ HostedZoneId: zoneID }));
+        existingRecords = data.ResourceRecordSets;
       } catch (e) {
-        console.error(`Unable to list resource record sets for ${zoneID}`)
-        throw e
-      }
-
-      
-      if (JSON.parse(existingRecords.stdout).ResourceRecordSets.map((r) => {
-        if (r.SetIdentifier) {
-          console.log(`found SetIdentifier ${r.SetIdentifier} for ${r.Name}, ${r.Type}`)
-          //try deleting this record set
-          try {
-            execSync(`aws route53 change-resource-record-sets --hosted-zone-id ${zoneID} --change-batch '{ "Changes": [ { "Action": "DELETE", "ResourceRecordSet": ${JSON.stringify(r)} } ] }' --profile ${useIAM}`)
-          } catch (e) {
-            console.error(`Unable to delete resource record set ${r.SetIdentifier} for ${zoneID}`)
-            console.error(e)
-          }
-          return true
-        } else {
-          console.log(`No SetIdentifier ${r.SetIdentifier} for ${r.Name}, ${r.Type}`)
-          return false
-        }
-      }).includes(true)) {
-        console.log(`Waiting for resource record sets to be deleted for zone ${zoneID}...`)
-      } else {
-        console.log(`All resource record sets for zone ${zoneID} have been deleted.`)
-        break
+        console.error(`Unable to list resource record sets for ${zoneID}`);
+        throw e;
       }
   
-      console.log(`Waiting for resource record sets to be deleted for zone ${zoneID}...`)
-      await new Promise(resolve => setTimeout(resolve, 20000))
+      if (existingRecords.some(r => r.SetIdentifier)) {
+        console.log(`Waiting for resource record sets to be deleted for zone ${zoneID}...`);
+  
+        for (const record of existingRecords) {
+          if (record.SetIdentifier) {
+            console.log(`found SetIdentifier ${record.SetIdentifier} for ${record.Name}, ${record.Type}`);
+            //try deleting this record set
+            try {
+              await route53.send(new ChangeResourceRecordSetsCommand({
+                HostedZoneId: zoneID,
+                ChangeBatch: {
+                  Changes: [{
+                    Action: "DELETE",
+                    ResourceRecordSet: record
+                  }]
+                }
+              }));
+            } catch (e) {
+              console.error(`Unable to delete resource record set ${record.SetIdentifier} for ${zoneID}`);
+              console.error(e);
+            }
+          } else {
+            console.log(`No SetIdentifier ${record.SetIdentifier} for ${record.Name}, ${record.Type}`);
+          }
+        }
+      } else {
+        console.log(`All resource record sets for zone ${zoneID} have been deleted.`);
+        break;
+      }
+  
+      console.log(`Waiting for resource record sets to be deleted for zone ${zoneID}...`);
+      await new Promise(resolve => setTimeout(resolve, 20000));
     }
-  }
+  };
 
-  await waitForRecordSetDeletion(zoneID, useIAM)
+  await waitForRecordSetDeletion(zoneID)
+
+  // create the new record set
+  let returnVal;
   
   try {
-    console.log(`Creating resource record sets for ${myDomain}`)
-    returnVal = execSync(`aws route53 change-resource-record-sets --hosted-zone-id ${zoneID} --change-batch '${JSON.stringify(recordSet)}' --profile ${useIAM}`)
-    console.log(`Updated record set for ${myDomain}.`)
-   } catch (e) {
-    console.error(`Unable to create resource record set for ${myDomain}`)
-    throw e
+    console.log(`Creating resource record sets for ${myDomain}`);
+    returnVal = await route53.send(new ChangeResourceRecordSetsCommand({
+      HostedZoneId: zoneID,
+      ChangeBatch: recordSet
+    }));
+    console.log(`Updated record set for ${myDomain}.`);
+  } catch (e) {
+    console.error(`Unable to create resource record set for ${myDomain}`);
+    throw e;
   }
-
-  return returnVal
-}
+  
+  return returnVal;
+};
 
 const deployFrontEnd = async (projName, awsName, useIAM, myDomain, myCertificate, builtFrontEnd) => {
   let temp
@@ -1356,7 +1374,7 @@ const chooseCertificate = async(useIAM) => {
   console.log('Setting up SSL for load-balancer');
 
   const acm = new ACMClient({ 
-    region: "us-east-1", 
+    region: myRegion, 
     credentials: fromIni({ profile: useIAM }) 
   });
 
