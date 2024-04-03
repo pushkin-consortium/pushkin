@@ -47,7 +47,10 @@ export const initSite = async (verbose) => {
     packageJson.scripts = { "test": "jest" };
     packageJson.jest = {
       "testEnvironment": "jsdom",
-      "testPathIgnorePatterns": ["/node_modules/", "/.yalc/", "/build/"]
+      "testPathIgnorePatterns": ["/node_modules/", "/.yalc/", "/build/"],
+      "moduleNameMapper": {
+        "\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$": "<rootDir>/__mocks__/fileMock.js"
+      }
     };
     fs.writeFileSync('babel.config.js', `module.exports = { presets: ['@babel/preset-env', '@babel/preset-react' ],};`);
     // Write the updated package.json
