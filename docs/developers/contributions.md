@@ -11,7 +11,7 @@ The project is managed entirely through Pushkin's [GitHub repository](https://gi
 ## Guidelines for contributing
 
 !!! warning "Security vulnerabilities"
-    If your potential contribution relates to a security vulnerability, please refer to our [security policy](./security.md) for guidance on reporting it privately.
+    If your potential contribution relates to a security vulnerability, please refer to our [security policy](https://github.com/pushkin-consortium/pushkin/security/policy) for guidance on reporting it privately.
 
 ### Contributing to the codebase
 
