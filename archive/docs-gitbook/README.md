@@ -4,8 +4,8 @@ description: >-
   psychological experiments
 ---
 
-## 🏡 We've moved!
-> **Please refer to the new Pushkin documentation at https://pushkin-consortium.github.io/pushkin!**
+# 🏡 We've moved!
+**Please refer to the new Pushkin documentation at [https://pushkin-consortium.github.io/pushkin](https://pushkin-consortium.github.io/pushkin)!**
 
 ---
 
