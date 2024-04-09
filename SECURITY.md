@@ -9,8 +9,6 @@ We take the security of our software seriously. If you have discovered a securit
 1. **Navigate to the Repository:** Go to the GitHub repository where the project is hosted.
 2. **Locate the Security Tab:** In the repository, you will find a tab labeled “Security” along the top menu. Click on this tab. This section of the GitHub repository is dedicated to security policies and vulnerability reporting.
 
-![](docs/assets/developers/security/report-vulnerability.gif)
-
 ## Using GitHub's security advisory feature
 
 1. **Create a new advisory:** In the Security tab, look for a button or link to “Create a new advisory”. Click on this to start the process.

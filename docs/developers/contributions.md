@@ -17,7 +17,7 @@ The project is managed entirely through Pushkin's [GitHub repository](https://gi
 
 We welcome contributions of any scope. To facilitate a smooth integration into the main codebase, we generally require a few things:
 
-- **Updated relevant documentation:** Any pages in `/docs` affected by your contribution should be updated. If new pages are needed, please create them. For instance, if you're contributing a new experiment template, we would expect that you:
+- **Updates to relevant documentation:** Any pages in `/docs` affected by your contribution should be updated. If new pages are needed, please create them. For instance, if you're contributing a new experiment template, we would expect that you:
     - Add a documentation page to `/docs/exp-templates` with the format `exp-<my-exp-name>.md`.
     - Update the [mkdocs configuration file](https://github.com/pushkin-consortium/pushkin/blob/main/mkdocs.yml) so that your new page shows up in the site navigation bar.
     - Update the list of available templates in the [overview of experiment templates](../exp-templates/exp-templates-overview.md).
