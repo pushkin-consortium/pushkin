@@ -45,7 +45,7 @@
     "regenerator-runtime": "^0.13.5",
     "replace-in-file": "^6.1.0",
     "shelljs": "^0.8.4",
-    "tar": "^6.0.2",
+    "tar": "^6.2.1",
     "uuid": "^8.3.0"
   }
 }
