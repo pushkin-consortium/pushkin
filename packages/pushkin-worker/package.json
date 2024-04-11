@@ -35,7 +35,7 @@
   },
   "dependencies": {
     "@babel/polyfill": "^7.7.0",
-    "amqplib": "^0.6.0",
+    "amqplib": "^0.10.3",
     "core-js": "^3.4.5",
     "knex": "^2.4.2",
     "pg": "^8.11.0",
