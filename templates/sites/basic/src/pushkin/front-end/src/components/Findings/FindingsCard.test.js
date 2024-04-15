@@ -4,7 +4,7 @@ import '@testing-library/jest-dom';
 import { BrowserRouter as Router } from 'react-router-dom'; 
 import FindingsCard from './FindingsCard';
 
-// mock baseProps of one card 
+// Mock baseProps of one card 
 describe('FindingsCard component tests', () => {
     const baseProps = {
         image: '/sample-image.jpg',
