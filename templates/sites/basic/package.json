@@ -30,6 +30,7 @@
     "@testing-library/dom": "^9.3.4",
     "@testing-library/jest-dom": "^6.4.2",
     "@testing-library/react": "^14.2.1",
+    "@testing-library/user-event": "^14.5.2",
     "aphrodite": "^2.4.0",
     "history": "^5.3.0",
     "identity-obj-proxy": "^3.0.0",
@@ -48,9 +49,6 @@
     "@babel/preset-env": "^7.23.6",
     "@babel/preset-react": "^7.23.3",
     "jest-environment-jsdom": "^29.7.0"
-  },
-  "resolutions": {
-    "react-is": "16.13.1"
   },
   "jest": {
     "testEnvironment": "jsdom",
