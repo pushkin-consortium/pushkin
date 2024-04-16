@@ -1,5 +1,11 @@
 # pushkin-client
 
+## 1.7.3
+
+### Patch Changes
+
+- [#304](https://github.com/pushkin-consortium/pushkin/pull/304) [`81f61e4`](https://github.com/pushkin-consortium/pushkin/commit/81f61e4c049a3dd7416c62e4c2b8876fcd1907f2) Thanks [@dependabot](https://github.com/apps/dependabot)! - bump axios to 1.6.8
+
 ## 1.7.2
 
 ### Patch Changes

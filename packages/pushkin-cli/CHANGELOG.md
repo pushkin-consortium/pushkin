@@ -1,5 +1,21 @@
 # pushkin-cli
 
+## 4.1.0
+
+### Minor Changes
+
+- [#305](https://github.com/pushkin-consortium/pushkin/pull/305) [`ffba8bb`](https://github.com/pushkin-consortium/pushkin/commit/ffba8bbbb62d901d271655d71453f95648d5f5aa) Thanks [@jessestorbeck](https://github.com/jessestorbeck)! - Added modes to `rm exp` to pause and unpause data collection for the specified experiment(s).
+
+### Patch Changes
+
+- [#305](https://github.com/pushkin-consortium/pushkin/pull/305) [`ffba8bb`](https://github.com/pushkin-consortium/pushkin/commit/ffba8bbbb62d901d271655d71453f95648d5f5aa) Thanks [@jessestorbeck](https://github.com/jessestorbeck)! - - Fixed issue where workers for experiments including capital letters would not be deleted by `rm exp --mode delete`.
+
+  - Fixed issue where it was possible to create two experiments which would yield workers with the same name.
+
+- [#310](https://github.com/pushkin-consortium/pushkin/pull/310) [`81d9aab`](https://github.com/pushkin-consortium/pushkin/commit/81d9aab753b85d05d8ad572329803fbdfaa2279f) Thanks [@jessestorbeck](https://github.com/jessestorbeck)! - - Added logic to front end's `config.js` to automatically detect use in GitHub Codespaces and appropriately set API endpoints
+  - Similar logic added to front end's craco config to set WebSocket URL appropriately for Codespaces
+  - Added detection of Codespaces-specific environment variables to CLI's `setEnv()` function
+
 ## 4.0.0
 
 ### Major Changes
