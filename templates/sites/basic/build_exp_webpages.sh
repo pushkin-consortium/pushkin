@@ -9,7 +9,7 @@ do
 
   # Run yarn install
   echo "Running 'yarn install' in $(pwd)"
-  yarn install
+  yarn install --frozen-lockfile
 
   # Run yarn build
   echo "Running 'yarn build' in $(pwd)"
