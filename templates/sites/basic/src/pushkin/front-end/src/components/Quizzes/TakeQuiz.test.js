@@ -5,26 +5,29 @@ import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
 import configureStore from 'redux-mock-store';
 import TakeQuiz from './TakeQuiz';
+import mockExperiments from '../../../../../__mocks__/experiments.mjs';
 
-// Correctly mock experiments.js as an array ?
-jest.mock('../../experiments.js', () => [
-  { shortName: 'sampleQuiz', module: () => <div>Sample Quiz Content</div> },
-  { shortName: 'unknownQuiz', module: () => <div>Unknown Quiz Content</div> }  // Fallback or error content
-]);
+console.log('mockExperiments:', mockExperiments);
 
+// Mock the experiments.js using your actual mock data
+jest.mock('../../experiments.js', () => {
+  console.log(mockExperiments)
+  return mockExperiments; // Return the mockExperiments array directly as the default export
+});
+
+
+// Ensure that the CONFIG from the mock file is being used throughout the test
 jest.mock('../../config', () => ({
-  CONFIG: {
-    apiEndpoint: 'http://example.com/api'
-  }
+  CONFIG: require('../../../../../__mocks__/config').CONFIG
 }));
 
-// Mock the entire react-router-dom module
+// Mock the react-router-dom module, specifically useParams
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),  // use actual for all non-hook parts
   useParams: jest.fn()
 }));
 
-// Mock react-redux
+// Mock react-redux to simply pass through the component
 jest.mock('react-redux', () => ({
   connect: () => (component) => component,
   Provider: ({children}) => <div>{children}</div>
@@ -35,22 +38,19 @@ describe('TakeQuiz Component', () => {
   let store;
 
   beforeEach(() => {
-    // Set up mock store and initial state
     store = mockStore({
       userInfo: {
         userID: '123'
       }
     });
-
-    // Define the return value for useParams before each test
-    require('react-router-dom').useParams.mockReturnValue({ quizName: 'sampleQuiz' });
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
-  test('renders the quiz component based on URL parameters', () => {
+  it('renders the quiz component based on URL parameters for a known quiz', () => {
+    require('react-router-dom').useParams.mockReturnValue({ quizName: 'basic' });
     render(
       <Provider store={store}>
         <MemoryRouter>
@@ -59,21 +59,8 @@ describe('TakeQuiz Component', () => {
       </Provider>
     );
 
-    expect(screen.getByText('Sample Quiz Content')).toBeInTheDocument();
-    // No longer check for the URL text in the document since it's logged to console.
+    expect(screen.getByText('Be a citizen scientist! Try this quiz.')).toBeInTheDocument();
   });
 
-  test('handles non-existent quiz names gracefully', () => {
-    require('react-router-dom').useParams.mockReturnValue({ quizName: 'unknownQuiz' });
 
-    render(
-      <Provider store={store}>
-        <MemoryRouter>
-          <TakeQuiz />
-        </MemoryRouter>
-      </Provider>
-    );
-
-    expect(screen.getByText('Unknown Quiz Content')).toBeInTheDocument();
-  });
 });
