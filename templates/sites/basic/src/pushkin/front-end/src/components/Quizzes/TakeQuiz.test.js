@@ -6,15 +6,13 @@ import { MemoryRouter } from 'react-router-dom';
 import configureStore from 'redux-mock-store';
 import TakeQuiz from './TakeQuiz';
 import mockExperiments from '../../../../../__mocks__/experiments.mjs';
+console.log(mockExperiments); // This should log the array if import is successful
 
-console.log('mockExperiments:', mockExperiments);
 
-// Mock the experiments.js using your actual mock data
-jest.mock('../../experiments.js', () => {
-  console.log(mockExperiments)
-  return mockExperiments; // Return the mockExperiments array directly as the default export
-});
-
+// Cannot get this to run 
+jest.mock('../../experiments.js', () => ({
+  default: mockExperiments  
+}));
 
 // Ensure that the CONFIG from the mock file is being used throughout the test
 jest.mock('../../config', () => ({
