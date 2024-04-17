@@ -23,7 +23,8 @@
   "scripts": {
     "test": "jest",
     "build": "mkdir -p build && cd src && zip -FS -r -q ../build/template.zip . -x \"*node_modules*\"",
-    "prepack": "cp ../../../LICENSE ."
+    "prepack": "cp ../../../LICENSE .",
+    "build-exp-web-pages": "./build_exp_webpages.sh"
   },
   "devDependencies": {
     "@reduxjs/toolkit": "^2.2.2",
