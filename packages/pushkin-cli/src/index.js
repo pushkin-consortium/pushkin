@@ -3,7 +3,8 @@
 import { execSync, exec } from "child_process";
 /* eslint-disable-next-line no-unused-vars */
 import commandLineArgs from "command-line-args"; // commandLineArgs is necessary for the CLI to run
-import { Command } from "commander";
+//import { Command } from "commander";
+import * as commander from "commander";
 import "core-js/stable";
 import * as compose from "docker-compose";
 import got from "got";
@@ -37,9 +38,10 @@ import { setupdb, setupTestTransactionsDB } from "./commands/setupdb/index.js";
 import { initSite, setupPushkinSite } from "./commands/sites/index.js";
 
 import pacMan from "./pMan.js"; //which package manager is available?
+import exp from "constants";
 
 // Commander.js setup
-const program = new Command();
+const program = new commander.Command();
 const version = require("../package.json").version;
 program.version(version);
 
@@ -493,7 +495,10 @@ const getTemplates = async (scope, templateType, verbose) => {
     });
     templates.sort();
   } catch (error) {
-    console.error(`Problem fetching available ${templateType} templates`);
+    console.error(
+      `Problem fetching available ${templateType} templates`,
+      error,
+    );
     process.exit(1);
   }
   return templates;
@@ -519,18 +524,27 @@ const getVersions = async (packageName, verbose) => {
     versions.versionList = Object.keys(body.versions).reverse(); // reverse the list so most recent versions are first
     versions.latest = body["dist-tags"].latest;
   } catch (error) {
-    console.error(`Problem fetching available versions of ${packageName}`);
+    console.error(
+      `Problem fetching available versions of ${packageName}`,
+      error,
+    );
     process.exit(1);
   }
   return versions;
 };
 
 /**
- * The primary function for installing site and experiment templates.
- * @param {string} templateType "site" or "experiment".
- * @param {boolean} verbose Output extra information to the console for debugging purposes.
+ * The primary function for installing site and experiment templates
+ * @param {string} templateType "site" or "experiment"
+ * @param {Object} options The object of command-line options for installing without inquirer prompts
+ * @param {string} options.expName The name of the experiment to be created (only for experiment templates)
+ * @param {string} options.templateName The name of a published template package
+ * @param {boolean} options.templatePath The path to a local template package
+ * @param {string} options.templateVersion The version number or tag of a published template package
+ * @param {string} options.expImport The local path to a jsPsych experiment.html (basic exp template only)
+ * @param {boolean} verbose Output extra information to the console for debugging purposes
  */
-const handleInstall = async (templateType, verbose) => {
+const handleInstall = async (templateType, options, verbose) => {
   if (verbose) console.log("--verbose flag set inside handleInstall()");
   /* The first major section of handleInstall() is substantially similar for site and exp templates.
   The main goals are to determine which template the user wants, install it as a dependency of their site,
@@ -538,11 +552,15 @@ const handleInstall = async (templateType, verbose) => {
   The second major section of handleInstall() is different for site and exp templates,
   since what we do with the template files differs between sites and experiments. */
 
-  let templateName;
-  let templateVersion;
   let longName; // Only for experiments
   let shortName; // Only for experiments
   let config; // Only for experiments
+  let templateSource; // Will be "pushkin", "npm", or "path"
+  let templatePath; // Only for installation from local path
+  let templateName;
+  let templateVersion;
+  let importExp; // Only for import of jsPsych experiment.html with basic exp template
+  let expHtmlPath; // Only for import of jsPsych experiment.html with basic exp template
   let newExpJs; // Only for import of jsPsych experiment.html with basic exp template
 
   if (templateType === "site") {
@@ -572,16 +590,20 @@ const handleInstall = async (templateType, verbose) => {
     // templateType === "experiment"}
     // Make sure we're in the root of the site directory
     moveToProjectRoot();
-    // Ask the user for the name of their experiment
-    config = await loadConfig("pushkin.yaml");
-    const expNamePrompt = await inquirer.prompt([
-      {
-        type: "input",
-        name: "expName",
-        message: "What do you want to call your experiment?",
-      },
-    ]);
-    longName = expNamePrompt.expName;
+    // Check if the experiment name was provided in the command
+    if (!options.expName) {
+      // If not, ask the user for the name of their experiment
+      const expNamePrompt = await inquirer.prompt([
+        {
+          type: "input",
+          name: "expName",
+          message: "What do you want to call your experiment?",
+        },
+      ]);
+      longName = expNamePrompt.expName;
+    } else {
+      longName = options.expName;
+    }
     // Make sure the experiment name begins with a letter
     if (!/^[a-zA-Z]/.test(longName)) {
       console.error(
@@ -594,6 +616,7 @@ const handleInstall = async (templateType, verbose) => {
     // Then replace any whitespace with underscores
     shortName = longName.replace(/[^\w\s]/g, "").replace(/\s/g, "_");
     // Check that the experiment name is not already in use
+    config = await loadConfig("pushkin.yaml");
     const expNames = fs.readdirSync(
       path.join(process.cwd(), config.experimentsDir),
     );
@@ -610,36 +633,49 @@ const handleInstall = async (templateType, verbose) => {
       process.exit(1);
     }
   }
-  // Ask the user where they want to get their template from
-  const templateSourcePrompt = await inquirer.prompt([
-    {
-      type: "list",
-      name: "templateSource",
-      choices: [
-        {
-          name: "Official Pushkin distribution (@pushkin-templates)",
-          value: "pushkin",
-          short: "@pushkin-templates",
-        },
-        { name: "Elsewhere on npm", value: "npm", short: "npm" },
-        { name: "Local path", value: "path", short: "path" },
-      ],
-      default: 0,
-      message: `Where do you want to look for ${templateType} templates?`,
-    },
-  ]);
-  const templateSource = templateSourcePrompt.templateSource;
-
-  if (templateSource === "path") {
-    // Ask the user for the path to their template
-    const templatePathPrompt = await inquirer.prompt([
+  // Check whether the --template or --path flags were used
+  if (!options.templateName && !options.templatePath) {
+    // Ask the user where they want to get their template from
+    const templateSourcePrompt = await inquirer.prompt([
       {
-        type: "input",
-        name: "templatePath",
-        message: `What is the absolute path to your ${templateType} template?`,
+        type: "list",
+        name: "templateSource",
+        choices: [
+          {
+            name: "Official Pushkin distribution (@pushkin-templates)",
+            value: "pushkin",
+            short: "@pushkin-templates",
+          },
+          { name: "Elsewhere on npm", value: "npm", short: "npm" },
+          { name: "Local path", value: "path", short: "path" },
+        ],
+        default: 0,
+        message: `Where do you want to look for ${templateType} templates?`,
       },
     ]);
-    const templatePath = templatePathPrompt.templatePath;
+    templateSource = templateSourcePrompt.templateSource;
+  } else if (options.templatePath) {
+    templateSource = "path";
+  } else {
+    // In this case, they must've specified options.templateName (can't have both templateName and templatePath)
+    // Probably a Pushkin template, but the procedure follows the install logic for general npm packages
+    templateSource = "npm";
+  }
+  if (templateSource === "path") {
+    if (options.templatePath) {
+      // If they supplied the path, just use that
+      templatePath = options.templatePath;
+    } else {
+      // Otherwise, ask the user for the path to their template
+      const templatePathPrompt = await inquirer.prompt([
+        {
+          type: "input",
+          name: "templatePath",
+          message: `What is the absolute path to your ${templateType} template?`,
+        },
+      ]);
+      templatePath = templatePathPrompt.templatePath;
+    }
     // Check that the path exists
     if (!fs.existsSync(templatePath)) {
       console.error("That path does not exist. Please try again!");
@@ -675,9 +711,9 @@ const handleInstall = async (templateType, verbose) => {
     execSync("yalc publish", { cwd: templatePath });
   } else {
     // templateSource === "npm" || templateSource === "pushkin"
-
     if (templateSource === "pushkin") {
       // If the user wants an official Pushkin template, fetch a list of available ones
+      // Not relevant for inquirer-less install
       const templateNames = await getTemplates(
         "pushkin-templates",
         templateType,
@@ -695,31 +731,41 @@ const handleInstall = async (templateType, verbose) => {
       templateName = templateNamePrompt.templateName;
     } else {
       // templateSource === "npm"
-      // Ask the user for the npm package for their template
-      const npmTemplateNamePrompt = await inquirer.prompt([
-        {
-          type: "input",
-          name: "npmTemplateName",
-          message: "What is the name of the npm package?",
-        },
-      ]);
-      templateName = npmTemplateNamePrompt.npmTemplateName;
+      if (options.templateName) {
+        // If the template name was provided as a command-line option, use that
+        templateName = options.templateName;
+      } else {
+        // Otherwise, ask the user for the npm package for their template
+        const npmTemplateNamePrompt = await inquirer.prompt([
+          {
+            type: "input",
+            name: "npmTemplateName",
+            message: "What is the name of the npm package?",
+          },
+        ]);
+        templateName = npmTemplateNamePrompt.npmTemplateName;
+      }
     }
 
-    // Fetch available versions of the template package
-    const templateVersions = await getVersions(templateName, verbose);
-    // Ask the user which version they want to use
-    const templateVersionPrompt = await inquirer.prompt([
-      {
-        type: "list",
-        name: "templateVersion",
-        choices: templateVersions.versionList,
-        default: templateVersions.latest,
-        // If the user is using an official Pushkin site template, recommend the latest version
-        message: `Which version would you like to use?${templateSource === "pushkin" ? ` (Recommended: ${templateVersions.latest})` : ""}`,
-      },
-    ]);
-    templateVersion = templateVersionPrompt.templateVersion;
+    if (options.templateVersion) {
+      // If the template version was provided as a command-line option, use that
+      templateVersion = options.templateVersion;
+    } else {
+      // Otherwise, fetch available versions of the template package
+      const templateVersions = await getVersions(templateName, verbose);
+      // Ask the user which version they want to use
+      const templateVersionPrompt = await inquirer.prompt([
+        {
+          type: "list",
+          name: "templateVersion",
+          choices: templateVersions.versionList,
+          default: templateVersions.latest,
+          // If the user is using an official Pushkin site template, recommend the latest version
+          message: `Which version would you like to use?${templateSource === "pushkin" ? ` (Recommended: ${templateVersions.latest})` : ""}`,
+        },
+      ]);
+      templateVersion = templateVersionPrompt.templateVersion;
+    }
   }
 
   // If the user is installing a site template, initialize the user's site directory as a private package
@@ -732,24 +778,40 @@ const handleInstall = async (templateType, verbose) => {
     templateType === "experiment" &&
     templateName === "@pushkin-templates/exp-basic"
   ) {
-    const importExpPrompt = await inquirer.prompt([
-      {
-        type: "confirm",
-        name: "importExp",
-        default: false,
-        message: "Would you like to import a jsPsych experiment.html?",
-      },
-    ]);
-    const importExp = importExpPrompt.importExp;
-    if (importExp) {
-      const expHtmlPathPrompt = await inquirer.prompt([
+    // Check if the options object has the expImport property
+    if (Object.prototype.hasOwnProperty.call(options, "expImport")) {
+      if (options.expImport) {
+        // The property will be true if they supplied a path through the command line
+        importExp = true;
+        expHtmlPath = options.expImport;
+      } else {
+        // If the user supplied flags to use a local or published template,
+        // The expImport flag will be false
+        importExp = false;
+      }
+    } else {
+      // If the expImport flag is undefined run interactively
+      const importExpPrompt = await inquirer.prompt([
         {
-          type: "input",
-          name: "expHtmlPath",
-          message: "What is the absolute path to your experiment.html?",
+          type: "confirm",
+          name: "importExp",
+          default: false,
+          message: "Would you like to import a jsPsych experiment.html?",
         },
       ]);
-      const expHtmlPath = expHtmlPathPrompt.expHtmlPath;
+      importExp = importExpPrompt.importExp;
+      if (importExp) {
+        const expHtmlPathPrompt = await inquirer.prompt([
+          {
+            type: "input",
+            name: "expHtmlPath",
+            message: "What is the absolute path to your experiment.html?",
+          },
+        ]);
+        expHtmlPath = expHtmlPathPrompt.expHtmlPath;
+      }
+    }
+    if (importExp) {
       if (!expHtmlPath) {
         console.log(
           "No path provided to jsPsych experiment; installing the basic template as is.",
@@ -789,17 +851,27 @@ const handleInstall = async (templateType, verbose) => {
           });
           newExpJs = `${imports}\nexport function createTimeline(jsPsych) {\n${expHtmlTimeline}\nreturn timeline;\n}\n`;
         } else {
-          const importErrorPrompt = await inquirer.prompt([
-            {
-              type: "confirm",
-              name: "installBasic",
-              default: false,
-              message:
-                "There was a problem importing your experiment.html. Would you like to install the basic template as is?",
-            },
-          ]);
-          if (!importErrorPrompt.installBasic) {
+          if (options.expImport) {
+            // If the user gave a path through the command line, we should exit,
+            // just error out and let the template install fail
+            // This will be run in a test/CI environment, so we don't want prompts
+            console.error("Problem importing jsPsych experiment.html");
             process.exit(1);
+          } else {
+            // If the command is running interactively,
+            // ask the user if they want to install the basic template as is
+            const importErrorPrompt = await inquirer.prompt([
+              {
+                type: "confirm",
+                name: "installBasic",
+                default: false,
+                message:
+                  "There was a problem importing your experiment.html. Would you like to install the basic template as is?",
+              },
+            ]);
+            if (!importErrorPrompt.installBasic) {
+              process.exit(1);
+            }
           }
         }
       }
@@ -824,7 +896,7 @@ const handleInstall = async (templateType, verbose) => {
     // The attempted fix is the following:
     // Check if the path to the zip archive in node_modules exists
     if (fs.existsSync(`node_modules/${templateName}/build/template.zip`)) {
-      // If so, unzip it
+      // If so, unzip it into the main site folder or the experiment folder, depending on the template type
       execSync(
         `unzip node_modules/${templateName}/build/template.zip ${templateType === "experiment" ? `-d ${path.join(config.experimentsDir, shortName)}` : ""}`,
       );
@@ -903,9 +975,8 @@ const handleAWSInit = async (force) => {
 
   let newProj = true;
   if (config.info.projName) {
-    let myChoices = config.info.projName
-      ? [config.info.projName, "new"]
-      : ["new"];
+    let myChoices =
+      config.info.projName ? [config.info.projName, "new"] : ["new"];
     try {
       projName = await inquirer.prompt([
         {
@@ -1184,28 +1255,83 @@ async function main() {
   program
     .command("install")
     .alias("i")
-    .argument(
-      "<what>",
-      `Which type of template to install. Options are "site" or "experiment" (or "exp").`,
+    .addArgument(
+      new commander.Argument(
+        "<template_type>",
+        "Type of template to install",
+      ).choices(["site", "experiment", "exp"]),
     )
-    .option("-v, --verbose", "output extra debugging info")
+    .option("--expName <name>", "The name of the experiment to create") // only for exp templates
+    .addOption(
+      new commander.Option(
+        "--template <template>",
+        "The name of a published template to install",
+      )
+        .conflicts("path") // published template precludes specifying a local template
+        // Assume no jsPsych experiment import if no path specified (can be overridden with expImport flag)
+        // Assume latest release if no version specified
+        .implies({ expImport: false, release: "latest" }),
+    )
+    .addOption(
+      new commander.Option(
+        "--path <path>",
+        "The path to a local template to install",
+      )
+        .conflicts(["template", "release"]) // local template precludes specifying an npm release
+        // Assume no jsPsych experiment import if no path specified (can be overridden with expImport flag)
+        .implies({ expImport: false }),
+    )
+    .addOption(
+      new commander.Option(
+        "--release <release>",
+        "The release number or tag of a published template to install",
+      )
+        .conflicts("path") // local template precludes specifying an npm release
+        // Assume no jsPsych experiment import if no path specified (can be overridden with expImport flag)
+        .implies({ expImport: false }),
+    )
+    .addOption(
+      new commander.Option(
+        "--expImport <expPath>",
+        "The path to a jsPsych experiment.html to import",
+      ).implies({ template: "@pushkin-templates/exp-basic" }), // expImport only relevant for basic exp template
+    )
+    .option("-v, --verbose", "Output extra debugging info")
     .description(`Install website ('site') or experiment template.`)
-    .action((what, options) => {
-      if (["site", "experiment", "exp"].includes(what)) {
-        let templateType;
-        if (what === "exp") {
-          templateType = "experiment";
-        } else {
-          templateType = what;
-        }
-        try {
-          handleInstall(templateType, options.verbose);
-        } catch (e) {
-          console.error(e);
-          process.exit();
-        }
-      } else {
-        console.error(`Command not recognized. Run 'pushkin --help' for help.`);
+    .action((template_type, options) => {
+      console.log(options);
+      const templateType =
+        template_type === "exp" ? "experiment" : template_type;
+      if (templateType === "site" && options.expName) {
+        console.error(
+          "Error: The --expName option can only be used with experiment templates",
+        );
+        process.exit(1);
+      }
+      if (
+        options.expImport &&
+        options.template !== "@pushkin-templates/exp-basic"
+      ) {
+        console.error(
+          "Error: The --expImport option can only be used with the basic experiment template",
+        );
+        process.exit(1);
+      }
+      try {
+        handleInstall(
+          templateType,
+          {
+            expName: options.expName,
+            templateName: options.template,
+            templatePath: options.path,
+            templateVersion: options.release,
+            expImport: options.expImport,
+          },
+          options.verbose,
+        );
+      } catch (e) {
+        console.error(e);
+        process.exit(1);
       }
     });
 
@@ -1442,6 +1568,7 @@ async function main() {
         );
       } catch (e) {
         console.error(
+          e,
           "Couldn't copy experiments.js. Make sure it exists and is in the right place.",
         );
         process.exit(1);
@@ -1464,9 +1591,8 @@ async function main() {
       }
 
       if (options.verbose) console.log(`Running docker-compose up...`);
-      const composeUpOptions = options.cache
-        ? ["--build", "--remove-orphans"]
-        : ["--remove-orphans"];
+      const composeUpOptions =
+        options.cache ? ["--build", "--remove-orphans"] : ["--remove-orphans"];
       try {
         await compose.upAll({
           cwd: path.join(process.cwd(), "pushkin"),

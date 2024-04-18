@@ -36,6 +36,10 @@
       "<rootDir>/templates/*/*"
     ]
   },
+  "prettier": {
+    "experimentalTernaries": true,
+    "printWidth": 100
+  },
   "lint-staged": {
     "*": "eslint"
   }

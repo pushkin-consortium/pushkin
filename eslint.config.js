@@ -1,5 +1,6 @@
 const babelParser = require("@babel/eslint-parser");
 const babelPlugin = require("@babel/eslint-plugin");
+// This plugin should be used by virtue of `plugins: ["@babel"]` below
 const globals = require("globals");
 const js = require("@eslint/js");
 const pluginPrettierRecommended = require("eslint-plugin-prettier/recommended");
@@ -19,6 +20,9 @@ module.exports = [
   {
     // This is definitely wrong, but a stopgap until I figure out Babel issues
     files: ["packages/pushkin-cli/src/**/*.js"],
+    plugins: {
+      "@babel": babelPlugin,
+    },
     languageOptions: {
       globals: {
         ...globals.node,
@@ -31,8 +35,16 @@ module.exports = [
       },
       sourceType: "module",
     },
+    rules: {
+      "@babel/new-cap": "error",
+      "@babel/no-invalid-this": "error",
+      "@babel/no-undef": "error",
+      "@babel/no-unused-expressions": "error",
+      "@babel/object-curly-spacing": "error",
+      "@babel/semi": "error",
+    },
   },
-  // Any other config imports go at the top
+  // Any other config imports go above
   pluginPrettierRecommended,
 ];
 

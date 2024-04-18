@@ -57,6 +57,19 @@ pushkin i site <options>
 
 **Options:**
 
+Except for the `--verbose` and `--help` flags, the other options for `install site` are intended to allow the command to be run without the need for interactive prompts, which is useful for automating site creation.
+
+- template: `--template <template_name>` allows you to specify a published site template from the command line instead of choosing interactively.
+    - Use the full name of the package as published on npm, e.g. `@pushkin-templates/site-basic`.
+    - This option is incompatible with the `--path` option.
+    - If you do not specify a version of the template with the `--release` option, the version tagged `latest` will be used by default.
+
+- path: `--path <path/to/template>` allows you to specify a path to a local site template from the command line instead of entering it interactively.
+    - This option is incompatible with the `--template` and `--release` options.
+
+- release: `--release <version_or_tag>` allows you to specify the release number or tag of a published site template from the command line instead of entering it interactively.
+    - This option is incompatible with the `--path` option.
+
 - verbose: `-v` or `--verbose` shows additional console output during the installation process which may be helpful for debugging.
 
 - help: `-h` or `--help` displays the command's help information.
@@ -93,6 +106,25 @@ pushkin i exp <options>
 ```
 
 **Options:**
+
+Except for the `--verbose` and `--help` flags, the other options for `install experiment` are intended to allow the command to be run without the need for interactive prompts, which is useful for automating site creation.
+
+- expName: `--expName <experiment_name>` allows you to specify a name for the experiment from the command line instead of entering it interactively.
+
+- template: `--template <template_name>` allows you to specify a published experiment template from the command line instead of choosing interactively.
+    - Use the full name of the package as published on npm, e.g. `@pushkin-templates/exp-basic`.
+    - This option is incompatible with the `--path` option.
+    - If you do not specify a version of the template with the `--release` option, the version tagged `latest` will be used by default.
+
+- path: `--path <path/to/template>` allows you to specify a path to a local experiment template from the command line instead of entering it interactively.
+    - This option is incompatible with the `--template` and `--release` options.
+
+- release: `--release <version_or_tag>` allows you to specify the release number or tag of a published experiment template from the command line instead of entering it interactively.
+    - This option is incompatible with the `--path` option.
+
+- expImport: `--expImport <path/to/experiment>` allows you to specify a path to a jsPsych experiment which you'd like to import into the basic experiment template.
+    - Just like importing a jsPsych experiment interactively, this option is only applicable to the basic experiment template.
+    - This option is implied `false` if you use the `--template`, `--path`, or `--release` flags. If you're using any of those flags and want to import a jsPsych experiment, you must use the `--expImport` option; there will not be an interactive prompt.
 
 - verbose: `-v` or `--verbose` shows additional console output during the installation process which may be helpful for debugging.
 
