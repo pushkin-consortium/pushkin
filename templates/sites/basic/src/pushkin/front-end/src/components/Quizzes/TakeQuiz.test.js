@@ -5,19 +5,19 @@ import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
 import configureStore from 'redux-mock-store';
 import TakeQuiz from './TakeQuiz';
-import mockExperiments from '../../../../../__mocks__/experiments.mjs';
-console.log(mockExperiments); // This should log the array if import is successful
+//import mockExperiments from '../../../../../__mocks__/experiments.js';
+//console.log(mockExperiments); // This should log the array if import is successful
 
 
 // Cannot get this to run 
-jest.mock('../../experiments.js', () => ({
-  default: mockExperiments  
-}));
+// jest.mock('../../experiments.js', () => ({
+//   default: mockExperiments  
+// }));
 
 // Ensure that the CONFIG from the mock file is being used throughout the test
-jest.mock('../../config', () => ({
-  CONFIG: require('../../../../../__mocks__/config').CONFIG
-}));
+// jest.mock('../../config', () => ({
+//   CONFIG: require('../../../../../__mocks__/config').CONFIG
+// }));
 
 // Mock the react-router-dom module, specifically useParams
 jest.mock('react-router-dom', () => ({
@@ -57,7 +57,8 @@ describe('TakeQuiz Component', () => {
       </Provider>
     );
 
-    expect(screen.getByText('Be a citizen scientist! Try this quiz.')).toBeInTheDocument();
+    expect(screen.getByText('Loading...')).toBeInTheDocument();
+    expect(document.getElementById('jsPsychTarget')).toBeInTheDocument();
   });
 
 

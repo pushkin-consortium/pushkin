@@ -21,10 +21,9 @@
     "build/*"
   ],
   "scripts": {
-    "test": "jest",
+    "test": "node preTest.js && jest",
     "build": "mkdir -p build && cd src && zip -FS -r -q ../build/template.zip . -x \"*node_modules*\"",
-    "prepack": "cp ../../../LICENSE .",
-    "build-exp-web-pages": "./build_exp_webpages.sh"
+    "prepack": "cp ../../../LICENSE ."
   },
   "devDependencies": {
     "@reduxjs/toolkit": "^2.2.2",
@@ -74,7 +73,7 @@
     "moduleNameMapper": {
       "\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$": "<rootDir>/src/__mocks__/fileMock.js",
       "../../config(?:/.*)?(?:\\.js)?$": "<rootDir>/src/__mocks__/config.js",
-      "../experiments(?:/.*)?(?:\\.js)?$": "<rootDir>/src/__mocks__/experiments.mjs",
+      "../../experiments(\\.js)?$": "<rootDir>/src/__mocks__/experiments.js",
       "\\.(css|less|scss|sass)$": "identity-obj-proxy"
     },
     "testPathIgnorePatterns": [
