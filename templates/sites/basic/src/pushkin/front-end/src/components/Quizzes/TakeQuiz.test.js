@@ -5,31 +5,18 @@ import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
 import configureStore from 'redux-mock-store';
 import TakeQuiz from './TakeQuiz';
-//import mockExperiments from '../../../../../__mocks__/experiments.js';
-//console.log(mockExperiments); // This should log the array if import is successful
+import mockExperiments from '../../../../../__mocks__/experiments'
 
-
-// Cannot get this to run 
-// jest.mock('../../experiments.js', () => ({
-//   default: mockExperiments  
-// }));
-
-// Ensure that the CONFIG from the mock file is being used throughout the test
-// jest.mock('../../config', () => ({
-//   CONFIG: require('../../../../../__mocks__/config').CONFIG
-// }));
-
-// Mock the react-router-dom module, specifically useParams
 jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),  // use actual for all non-hook parts
+  ...jest.requireActual('react-router-dom'),
   useParams: jest.fn()
 }));
 
-// Mock react-redux to simply pass through the component
 jest.mock('react-redux', () => ({
   connect: () => (component) => component,
-  Provider: ({children}) => <div>{children}</div>
+  Provider: ({ children }) => <div>{children}</div>
 }));
+
 
 describe('TakeQuiz Component', () => {
   const mockStore = configureStore();
@@ -47,19 +34,23 @@ describe('TakeQuiz Component', () => {
     jest.restoreAllMocks();
   });
 
-  it('renders the quiz component based on URL parameters for a known quiz', () => {
-    require('react-router-dom').useParams.mockReturnValue({ quizName: 'basic' });
-    render(
-      <Provider store={store}>
-        <MemoryRouter>
-          <TakeQuiz />
-        </MemoryRouter>
-      </Provider>
-    );
+  // Try and render each experiment 
+  mockExperiments.forEach((experiment) => {
+    it(`renders the quiz component for the "${experiment.fullName}" experiment`, () => {
+      require('react-router-dom').useParams.mockReturnValue({ quizName: experiment.shortName });
+      render(
+        <Provider store={store}>
+          <MemoryRouter>
+            <TakeQuiz />
+          </MemoryRouter>
+        </Provider>
+      );
 
-    expect(screen.getByText('Loading...')).toBeInTheDocument();
-    expect(document.getElementById('jsPsychTarget')).toBeInTheDocument();
+      // Look for some standard things across quizzes 
+      expect(screen.getByText('Loading...')).toBeInTheDocument();
+      expect(document.getElementById('jsPsychTarget')).toBeInTheDocument();
+
+      // Additional checks can be made here 
+    });
   });
-
-
 });
