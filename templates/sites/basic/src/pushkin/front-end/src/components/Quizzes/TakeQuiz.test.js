@@ -5,7 +5,12 @@ import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
 import configureStore from 'redux-mock-store';
 import TakeQuiz from './TakeQuiz';
-import mockExperiments from '../../../../../__mocks__/experiments'
+import mockExperiments from '../../../../../__mocks__/experiments';
+import axios from 'axios';
+
+jest.mock('axios', () => ({
+  post: jest.fn(() => Promise.resolve({ data: {} })),
+}));
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
@@ -17,7 +22,6 @@ jest.mock('react-redux', () => ({
   Provider: ({ children }) => <div>{children}</div>
 }));
 
-
 describe('TakeQuiz Component', () => {
   const mockStore = configureStore();
   let store;
@@ -28,13 +32,13 @@ describe('TakeQuiz Component', () => {
         userID: '123'
       }
     });
+    axios.post.mockResolvedValue({ data: {} }); // Mocking Axios post request
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
-  // Try and render each experiment 
   mockExperiments.forEach((experiment) => {
     it(`renders the quiz component for the "${experiment.fullName}" experiment`, () => {
       require('react-router-dom').useParams.mockReturnValue({ quizName: experiment.shortName });
