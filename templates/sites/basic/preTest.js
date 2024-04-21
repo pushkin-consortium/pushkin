@@ -2,7 +2,7 @@ const fs = require('fs');
 const execSync = require('child_process').execSync;
 
 // Make a list of all experiment templates
-const expTemplates = fs.readdirSync('../../experiments');
+const expTemplates = fs.readdirSync('../../experiments').filter(dir => dir !== '.DS_Store');
 
 // Create an array of objects to mock a typical experiments.js file
 const expsJsArray = expTemplates.map(exp => {
