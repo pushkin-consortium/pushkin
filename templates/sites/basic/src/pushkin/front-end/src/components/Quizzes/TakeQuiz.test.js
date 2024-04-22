@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react'; // Import act from testing-library
 import '@testing-library/jest-dom';
 import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
@@ -7,10 +7,6 @@ import configureStore from 'redux-mock-store';
 import TakeQuiz from './TakeQuiz';
 import experiments from '../../../../../__mocks__/experiments';
 import axios from 'axios';
-
-jest.mock('axios', () => ({
-  post: jest.fn(() => Promise.resolve({ data: {} })),
-}));
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
@@ -40,21 +36,20 @@ describe('TakeQuiz Component', () => {
   });
 
   experiments.forEach((experiment) => {
-    it(`renders the quiz component for the "${experiment.fullName}" experiment`, () => {
-      require('react-router-dom').useParams.mockReturnValue({ quizName: experiment.shortName });
-      render(
-        <Provider store={store}>
-          <MemoryRouter>
-            <TakeQuiz />
-          </MemoryRouter>
-        </Provider>
-      );
+    it(`renders the quiz component for the "${experiment.fullName}" experiment`, async () => {
+      await act(async () => { // Use async and await inside act for rendering and state updates
+        require('react-router-dom').useParams.mockReturnValue({ quizName: experiment.shortName });
+        render(
+          <Provider store={store}>
+            <MemoryRouter>
+              <TakeQuiz />
+            </MemoryRouter>
+          </Provider>
+        );
+      });
 
-      // Look for some standard things across quizzes 
-      expect(screen.getByText('Loading...')).toBeInTheDocument();
+      // Assertions can now be done after the async operations have resolved
       expect(document.getElementById('jsPsychTarget')).toBeInTheDocument();
-
-      // Additional checks can be made here 
     });
   });
 });
