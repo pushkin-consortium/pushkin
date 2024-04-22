@@ -19,4 +19,4 @@ It's recommended for new users to start by [installing Pushkin and its dependenc
 If you'd like to ask a question, report a bug, or request a feature, [GitHub Discussions](https://github.com/pushkin-consortium/pushkin/discussions) is the place to start. To get the latest news and updates on Pushkin, sign up for our [newsletter](https://groups.google.com/g/pushkinjs).
 
 !!! note
-    You're viewing version 4.0 of the Pushkin documentation, which corresponds to version 4.0 of [pushkin-cli](https://www.npmjs.com/package/pushkin-cli), the primary software in the Pushkin ecosystem. Other Pushkin packages and templates are independently versioned, and any compatibility constraints with pushkin-cli are noted on their respective documentation pages.
+    You're viewing version 4.1 of the Pushkin documentation, which corresponds to version 4.1 of [pushkin-cli](https://www.npmjs.com/package/pushkin-cli), the primary software in the Pushkin ecosystem. Other Pushkin packages and templates are independently versioned, and any compatibility constraints with pushkin-cli are noted on their respective documentation pages.
