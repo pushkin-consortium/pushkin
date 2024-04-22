@@ -1,5 +1,21 @@
 # @pushkin-templates/exp-lexical-decision
 
+## 6.1.0
+
+### Minor Changes
+
+- [#305](https://github.com/pushkin-consortium/pushkin/pull/305) [`ffba8bb`](https://github.com/pushkin-consortium/pushkin/commit/ffba8bbbb62d901d271655d71453f95648d5f5aa) Thanks [@jessestorbeck](https://github.com/jessestorbeck)! - Added modes to `rm exp` to pause and unpause data collection for the specified experiment(s).
+
+### Patch Changes
+
+- [#304](https://github.com/pushkin-consortium/pushkin/pull/304) [`973bb92`](https://github.com/pushkin-consortium/pushkin/commit/973bb92667497df54d41bea5f85061d855c89f06) Thanks [@dependabot](https://github.com/apps/dependabot)! - Added flag to build script to keep node_modules out of template.zip
+
+- [#311](https://github.com/pushkin-consortium/pushkin/pull/311) [`aca988c`](https://github.com/pushkin-consortium/pushkin/commit/aca988c9c4b9acab0b676798a0780848f70bdbf6) Thanks [@dependabot](https://github.com/apps/dependabot)! - Bump express from 4.18.2 to 4.19.2
+
+- [#338](https://github.com/pushkin-consortium/pushkin/pull/338) [`2c96097`](https://github.com/pushkin-consortium/pushkin/commit/2c9609743f32c15a6e812daeb15188bc481a3864) Thanks [@jessestorbeck](https://github.com/jessestorbeck)! - Regenerate lock files for web page, api controllers, and worker components of all experiment templates to resolve security alerts.
+
+- [#304](https://github.com/pushkin-consortium/pushkin/pull/304) [`81f61e4`](https://github.com/pushkin-consortium/pushkin/commit/81f61e4c049a3dd7416c62e4c2b8876fcd1907f2) Thanks [@dependabot](https://github.com/apps/dependabot)! - bump axios to 1.6.8
+
 ## 6.0.0
 
 ### Major Changes
