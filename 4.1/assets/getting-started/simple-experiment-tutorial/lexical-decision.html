@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>My experiment</title>
+    <script src="https://unpkg.com/jspsych@7.3.3"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@1.1.2"></script>
+    <link
+      href="https://unpkg.com/jspsych@7.3.3/css/jspsych.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <style>
+      .fixation {
+        border: 2px solid black;
+        height: 100px;
+        width: 200px;
+        font-size: 24px;
+        position: relative;
+        margin: auto;
+      }
+      .fixation p {
+        width: 100%;
+        position: absolute;
+        margin: 0.25em;
+      }
+      .fixation p.top {
+        top: 0px;
+      }
+      .fixation p.bottom {
+        bottom: 0px;
+      }
+      .correct {
+        border-color: green;
+      }
+      .incorrect {
+        border-color: red;
+      }
+    </style>
+  </head>
+  <body></body>
+  <script>
+    const stimArray = [
+      { word_1: 'SOCKS', word_2: 'SHOE', both_words: true, related: true },
+      { word_1: 'SLOW', word_2: 'FAST', both_words: true, related: true },
+      { word_1: 'QUEEN', word_2: 'KING', both_words: true, related: true },
+      { word_1: 'LEAF', word_2: 'TREE', both_words: true, related: true },
+
+      { word_1: 'SOCKS', word_2: 'TREE', both_words: true, related: false },
+      { word_1: 'SLOW', word_2: 'SHOE', both_words: true, related: false },
+      { word_1: 'QUEEN', word_2: 'FAST', both_words: true, related: false },
+      { word_1: 'LEAF', word_2: 'KING', both_words: true, related: false },
+
+      { word_1: 'AGAIN', word_2: 'PLAW', both_words: false, related: false },
+      { word_1: 'BOARD', word_2: 'TRUDE', both_words: false, related: false },
+      { word_1: 'LIBE', word_2: 'HAIR', both_words: false, related: false },
+      { word_1: 'MOCKET', word_2: 'MEET', both_words: false, related: false },
+
+      { word_1: 'FLAFF', word_2: 'PLAW', both_words: false, related: false },
+      { word_1: 'BALT', word_2: 'TRUDE', both_words: false, related: false },
+      { word_1: 'LIBE', word_2: 'NUNE', both_words: false, related: false },
+      { word_1: 'MOCKET', word_2: 'FULLOW', both_words: false, related: false }
+    ];
+    
+    const jsPsych = initJsPsych();
+
+    const timeline = [];
+
+    var welcome = {
+      type: jsPsychHtmlKeyboardResponse,
+      stimulus:`
+        <p>Welcome!</p>
+        <p>Press spacebar to continue.</p>
+      `,
+      choices: [" "],
+    };
+
+    timeline.push(welcome);
+
+    var instructions_1 = {
+      type: jsPsychHtmlKeyboardResponse,
+      stimulus: `
+        <p>You will see two sets of letters displayed in a box, like this:</p>
+        <div class="fixation"><p class="top">HELLO</p><p class="bottom">WORLD</p></div>
+        <p>Press Y if both sets are valid English words. Press N if one or both is not a word.</p>
+        <p>Press Y to continue.</p>
+      `,
+      choices: ["y"],
+    };
+
+    timeline.push(instructions_1);
+
+    var instructions_2 = {
+      type: jsPsychHtmlKeyboardResponse,
+      stimulus: `
+        <p>In this case, you would press N.</p>
+        <div class="fixation"><p class="top">FOOB</p><p class="bottom">ARTIST</p></div>
+        <p>Press N to begin the experiment.</p>
+      `,
+      choices: ["n"],
+    };
+
+    timeline.push(instructions_2);
+
+    var lexical_decision_procedure = {
+      timeline: [
+        {
+          type: jsPsychHtmlKeyboardResponse,
+          stimulus: '<div class="fixation"></div>',
+          choices: "NO_KEYS",
+          trial_duration: 1000,
+        },
+        {
+          type: jsPsychHtmlKeyboardResponse,
+          stimulus: function () {
+            let first_word = jsPsych.timelineVariable("word_1");
+            let second_word = jsPsych.timelineVariable("word_2");
+            first_word =
+              '<div class="fixation"><p class="top">' + first_word + "</p>";
+            second_word =
+              '<div class="fixation"><p class="bottom">' + second_word + "</p>";
+            return first_word + second_word;
+          },
+          choices: ["y", "n"],
+          data: {
+            both_words: jsPsych.timelineVariable("both_words"),
+            related: jsPsych.timelineVariable("related"),
+          },
+          on_finish: function (data) {
+            if (data.both_words) {
+              data.correct = jsPsych.pluginAPI.compareKeys(data.response, "y");
+            } else {
+              data.correct = jsPsych.pluginAPI.compareKeys(data.response, "n");
+            }
+          },
+        },
+        {
+          type: jsPsychHtmlKeyboardResponse,
+          stimulus: function () {
+            let last_correct = jsPsych.data
+              .getLastTrialData()
+              .values()[0].correct;
+            if (last_correct) {
+              return '<div class="fixation correct"></div>';
+            } else {
+              return '<div class="fixation incorrect"></div>';
+            }
+          },
+          choices: "NO_KEYS",
+          trial_duration: 2000,
+        },
+      ],
+      timeline_variables: stimArray,
+      randomize_order: true,
+    };
+
+    timeline.push(lexical_decision_procedure);
+
+    var data_summary = {
+      type: jsPsychHtmlKeyboardResponse,
+      stimulus: function () {
+        // Calculate performance on task
+        let correct_related = jsPsych.data
+          .get()
+          .filter({ related: true, correct: true })
+          .count();
+        let total_related = jsPsych.data
+          .get()
+          .filter({ related: true })
+          .count();
+        let mean_rt_related = jsPsych.data
+          .get()
+          .filter({ related: true, correct: true })
+          .select("rt")
+          .mean();
+
+        let correct_unrelated = jsPsych.data
+          .get()
+          .filter({ related: false, both_words: true, correct: true })
+          .count();
+        let total_unrelated = jsPsych.data
+          .get()
+          .filter({ related: false, both_words: true })
+          .count();
+        let mean_rt_unrelated = jsPsych.data
+          .get()
+          .filter({ related: false, both_words: true, correct: true })
+          .select("rt")
+          .mean();
+
+        // Show results
+        let results = `<p>You were correct on ${correct_related} of ${total_related} related word pairings!
+            Your average correct response time for these was ${Math.round(
+              mean_rt_related
+            )} milliseconds.</p>
+            <p>For unrelated word pairings, you were correct on ${correct_unrelated} of ${total_unrelated}!
+            Your average correct response time for these was ${Math.round(
+              mean_rt_unrelated
+            )} milliseconds.</p>`;
+        return results;
+      },
+      choices: "NO_KEYS",
+    };
+
+    timeline.push(data_summary);
+
+    jsPsych.run(timeline);
+  </script>
+</html>
