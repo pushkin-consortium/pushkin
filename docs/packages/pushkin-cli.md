@@ -126,6 +126,11 @@ Except for the `--verbose` and `--help` flags, the other options for `install ex
     - Just like importing a jsPsych experiment interactively, this option is only applicable to the basic experiment template.
     - This option is implied `false` if you use the `--template`, `--path`, or `--release` flags. If you're using any of those flags and want to import a jsPsych experiment, you must use the `--expImport` option; there will not be an interactive prompt.
 
+- all: `-a <source>` or `--all <source>` installs all available experiment templates from a given source in a single command. The source can be either `latest` or the path to the experiment templates folder of a local clone of the `pushkin` repo. This option facilitates automated and manual testing procedures in which you want to test an update's effect on all templates.
+    - If running `--all latest`, the latest version of all experiment templates under the `@pushkin-templates` scope will be installed from npm. The names of the experiments will be the template name minus `@pushkin-templates/exp-` with `_latest` appended.
+    - If running `-all <path>`, the development versions of templates from the local `pushkin` repo will be used. The path must end in `pushkin/templates/experiments`. The names of the experiments will be the names of the directories in the experiment templates folder with `_path` appended.
+    - This option is incompatible with all other options except `--verbose`.
+
 - verbose: `-v` or `--verbose` shows additional console output during the installation process which may be helpful for debugging.
 
 - help: `-h` or `--help` displays the command's help information.

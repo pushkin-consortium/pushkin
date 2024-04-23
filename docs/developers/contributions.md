@@ -28,7 +28,15 @@ We welcome contributions of any scope. To facilitate a smooth integration into t
     - If your changes are more substantial and merit multiple commits, add the changeset to whichever commit you like (one of the final ones is probably most sensible). You don't need to include a changeset with every commit.
     - In less common cases, your pull request might merit multiple changesets. Example situations might be if you are making unrelated changes to separate packages or a mix of patches and new features.
 
-- **Code style and quality:** Contributions should follow the established coding standards and practices of the project. This includes writing clean, readable, and well-documented code. Please ensure that new code passes all existing tests and, where applicable, add new tests to cover your updates.
+- **Code style and quality:** Contributions should follow the established coding standards and practices of the project. This includes writing clean, readable, and well-documented code. Please ensure that new code passes all existing tests and, where applicable, add new tests to cover your updates. We recommend installing the ESLint extension for your IDE (e.g. [ESLint for VSCode](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint)) so you can easily fix automatically detected problems in your code as you work. In the future, contributors will not be able to commit code with lint problems (see warning below).
+
+!!! warning
+    Pushkin is gradually configuring linting for the entire monorepo. The eventual goal is to automatically correct code style and quality issues when a contributor commits; if issues were detected which could not be automatically fixed, the commit would fail. So that development can proceed while we dial in our lint configuration, we currently have all lint problems set to throw warnings, rather than errors. This means that, for now, you can still commit code with lint problems, although this will change in the future. Contributors can help us in the meantime by:
+
+    1. Installing the ESLint extension for your IDE (e.g. [ESLint for VSCode](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint)) and not adding any code with new lint problems
+    2. If you're sufficiently confident, correcting lint problems in the files you're working on
+    3. If you're sufficiently confident, editing the ESLint configuration file in the root of the monorepo to account for the needs of the package or template you're working on
+    4. **Not** commiting code with lint-disabling comments, as this doesn't help us update the lint configuration to be maximally helpful (if you think disabling linting for a particular line/block is absolutely necessary, please discuss it with Pushkin maintainers)
 
 ### Contributing to the documentation
 

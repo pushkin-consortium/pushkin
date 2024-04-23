@@ -1,6 +1,5 @@
 const babelParser = require("@babel/eslint-parser");
 const babelPlugin = require("@babel/eslint-plugin");
-// This plugin should be used by virtue of `plugins: ["@babel"]` below
 const globals = require("globals");
 const js = require("@eslint/js");
 const pluginPrettierRecommended = require("eslint-plugin-prettier/recommended");

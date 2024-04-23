@@ -38,7 +38,6 @@ import { setupdb, setupTestTransactionsDB } from "./commands/setupdb/index.js";
 import { initSite, setupPushkinSite } from "./commands/sites/index.js";
 
 import pacMan from "./pMan.js"; //which package manager is available?
-import exp from "constants";
 
 // Commander.js setup
 const program = new commander.Command();
@@ -144,10 +143,7 @@ const updateMigrations = async () => {
   console.log(`Handling migrations`);
   let ranMigrations, dbsToExps;
   try {
-    dbsToExps = await getMigrations(
-      path.join(process.cwd(), experimentsDir),
-      true,
-    );
+    dbsToExps = await getMigrations(path.join(process.cwd(), experimentsDir), true);
   } catch (e) {
     console.error(`Unable to run database migrations`);
     throw e;
@@ -184,10 +180,7 @@ const updateECS = async () => {
             cwd: path.join(process.cwd(), "ECStasks"),
           });
         } catch (e) {
-          console.warn(
-            "\x1b[31m%s\x1b[0m",
-            `Unable to update service ${yaml}.`,
-          );
+          console.warn("\x1b[31m%s\x1b[0m", `Unable to update service ${yaml}.`);
           console.warn("\x1b[31m%s\x1b[0m", e);
         }
       }
@@ -263,16 +256,14 @@ const handleCreateAutoScale = async () => {
 
 const handleViewConfig = async (what) => {
   moveToProjectRoot();
-  let x = await ((what == "site") | !what
-    ? loadConfig(path.join(process.cwd(), "pushkin.yaml"))
-    : "");
+  let x = await ((what == "site") | !what ?
+    loadConfig(path.join(process.cwd(), "pushkin.yaml"))
+  : "");
   let exps = fs.readdirSync(path.join(process.cwd(), "experiments"));
   let y = await Promise.all(
     exps.map(async (exp) => {
-      return (await ((what == exp) | !what))
-        ? loadConfig(
-            path.join(process.cwd(), "experiments", exp, "config.yaml"),
-          )
+      return (await ((what == exp) | !what)) ?
+          loadConfig(path.join(process.cwd(), "experiments", exp, "config.yaml"))
         : "";
     }),
   );
@@ -309,8 +300,8 @@ const removeDS = (verbose) => {
     console.log("--verbose flag set inside removeDS()");
     console.log("Removing any .DS_Store files, if present.");
   }
-  shelljs.rm('-rf', '*/.DS_Store');
-  shelljs.rm('-rf', './.DS_Store');
+  shelljs.rm("-rf", "*/.DS_Store");
+  shelljs.rm("-rf", "./.DS_Store");
 };
 
 const handlePrep = async (verbose) => {
@@ -388,9 +379,7 @@ const handleAWSKill = async () => {
     console.log("That is probably wise. Exiting.");
     return;
   }
-  console.log(
-    `I hope you know what you are doing. This makes me nervous every time...`,
-  );
+  console.log(`I hope you know what you are doing. This makes me nervous every time...`);
   let useIAM;
   try {
     useIAM = await inquirer.prompt([
@@ -443,9 +432,7 @@ const handleAWSArmageddon = async () => {
     console.log("That is probably wise. Exiting.");
     return;
   }
-  console.log(
-    `I hope you know what you are doing. This makes me nervous every time...`,
-  );
+  console.log(`I hope you know what you are doing. This makes me nervous every time...`);
   let useIAM;
   try {
     useIAM = await inquirer.prompt([
@@ -478,27 +465,18 @@ const getTemplates = async (scope, templateType, verbose) => {
   if (verbose) console.log(`Fetching available ${templateType} templates`);
   try {
     // Search with npm API for all packages under given scope (250 is max number of results; 20 is default limit)
-    response = await got(
-      `https://registry.npmjs.org/-/v1/search?text=scope:${scope}&size=250`,
-    ); // Allowing for flexibility in scope, in case we ever do a pushkin-contrib scope or similar
+    response = await got(`https://registry.npmjs.org/-/v1/search?text=scope:${scope}&size=250`); // Allowing for flexibility in scope, in case we ever do a pushkin-contrib scope or similar
     body = JSON.parse(response.body);
     body.objects.forEach((searchResult) => {
       let template = searchResult.package.name;
       // If a template package matches the given scope and template type, add it to the list
       // Note for exp templates, templateType will be "experiment", but the package name will start with "@pushkin/template-exp-"
-      if (
-        template.startsWith(
-          `@${scope}/${templateType === "experiment" ? "exp" : templateType}`,
-        )
-      )
+      if (template.startsWith(`@${scope}/${templateType === "experiment" ? "exp" : templateType}`))
         templates.push(template);
     });
     templates.sort();
   } catch (error) {
-    console.error(
-      `Problem fetching available ${templateType} templates`,
-      error,
-    );
+    console.error(`Problem fetching available ${templateType} templates`, error);
     process.exit(1);
   }
   return templates;
@@ -524,10 +502,7 @@ const getVersions = async (packageName, verbose) => {
     versions.versionList = Object.keys(body.versions).reverse(); // reverse the list so most recent versions are first
     versions.latest = body["dist-tags"].latest;
   } catch (error) {
-    console.error(
-      `Problem fetching available versions of ${packageName}`,
-      error,
-    );
+    console.error(`Problem fetching available versions of ${packageName}`, error);
     process.exit(1);
   }
   return versions;
@@ -606,9 +581,7 @@ const handleInstall = async (templateType, options, verbose) => {
     }
     // Make sure the experiment name begins with a letter
     if (!/^[a-zA-Z]/.test(longName)) {
-      console.error(
-        "Experiment names must begin with a letter. Please choose a different name.",
-      );
+      console.error("Experiment names must begin with a letter. Please choose a different name.");
       process.exit(1);
     }
     // Create a short name for the experiment
@@ -617,16 +590,10 @@ const handleInstall = async (templateType, options, verbose) => {
     shortName = longName.replace(/[^\w\s]/g, "").replace(/\s/g, "_");
     // Check that the experiment name is not already in use
     config = await loadConfig("pushkin.yaml");
-    const expNames = fs.readdirSync(
-      path.join(process.cwd(), config.experimentsDir),
-    );
+    const expNames = fs.readdirSync(path.join(process.cwd(), config.experimentsDir));
     // Compare the experiment's short name to the short names of existing experiments
     // All names must be lowercased to avoid name collisions with experiment workers (which must be lowercase)
-    if (
-      expNames
-        .map((name) => name.toLowerCase())
-        .includes(shortName.toLowerCase())
-    ) {
+    if (expNames.map((name) => name.toLowerCase()).includes(shortName.toLowerCase())) {
       console.error(
         "An experiment with this name (case-insensitive) already exists. Please choose a different name.",
       );
@@ -684,13 +651,8 @@ const handleInstall = async (templateType, options, verbose) => {
     // Extract the package.json and check that it has the necessary build script
     let packageJson;
     try {
-      packageJson = JSON.parse(
-        fs.readFileSync(path.join(templatePath, "package.json"), "utf8"),
-      );
-      if (
-        !packageJson.scripts.build ||
-        !packageJson.scripts.build.includes("build/template.zip")
-      ) {
+      packageJson = JSON.parse(fs.readFileSync(path.join(templatePath, "package.json"), "utf8"));
+      if (!packageJson.scripts.build || !packageJson.scripts.build.includes("build/template.zip")) {
         console.error(
           `The ${templateType} template package must have a build script that zips the template files into build/template.zip`,
         );
@@ -706,19 +668,14 @@ const handleInstall = async (templateType, options, verbose) => {
     if (verbose) console.log(`Building the ${templateType} template package`);
     execSync(`${pacMan} build`, { cwd: templatePath });
     // Locally publish the template package
-    if (verbose)
-      console.log(`Locally publishing the ${templateType} template package`);
+    if (verbose) console.log(`Locally publishing the ${templateType} template package`);
     execSync("yalc publish", { cwd: templatePath });
   } else {
     // templateSource === "npm" || templateSource === "pushkin"
     if (templateSource === "pushkin") {
       // If the user wants an official Pushkin template, fetch a list of available ones
       // Not relevant for inquirer-less install
-      const templateNames = await getTemplates(
-        "pushkin-templates",
-        templateType,
-        verbose,
-      );
+      const templateNames = await getTemplates("pushkin-templates", templateType, verbose);
       // Ask the user which template they want to use
       const templateNamePrompt = await inquirer.prompt([
         {
@@ -774,10 +731,7 @@ const handleInstall = async (templateType, options, verbose) => {
   }
 
   // If the user is installing the basic experiment template, ask if they want to import a jsPsych experiment.html
-  if (
-    templateType === "experiment" &&
-    templateName === "@pushkin-templates/exp-basic"
-  ) {
+  if (templateType === "experiment" && templateName === "@pushkin-templates/exp-basic") {
     // Check if the options object has the expImport property
     if (Object.prototype.hasOwnProperty.call(options, "expImport")) {
       if (options.expImport) {
@@ -813,16 +767,9 @@ const handleInstall = async (templateType, options, verbose) => {
     }
     if (importExp) {
       if (!expHtmlPath) {
-        console.log(
-          "No path provided to jsPsych experiment; installing the basic template as is.",
-        );
-      } else if (
-        !fs.existsSync(expHtmlPath) ||
-        !fs.lstatSync(expHtmlPath).isFile()
-      ) {
-        console.error(
-          "Invalid file path to jsPsych experiment; please try again.",
-        );
+        console.log("No path provided to jsPsych experiment; installing the basic template as is.");
+      } else if (!fs.existsSync(expHtmlPath) || !fs.lstatSync(expHtmlPath).isFile()) {
+        console.error("Invalid file path to jsPsych experiment; please try again.");
         process.exit(1);
       } else {
         // If the path looks valid, try to import the jsPsych experiment.html
@@ -844,9 +791,7 @@ const handleInstall = async (templateType, options, verbose) => {
                 `import ${expHtmlImports[plugin]} from '${pluginNoVersion}'; // version:${pluginVersion} //\n`,
               );
             } else {
-              imports = imports.concat(
-                `import ${expHtmlImports[plugin]} from '${plugin}';\n`,
-              );
+              imports = imports.concat(`import ${expHtmlImports[plugin]} from '${plugin}';\n`);
             }
           });
           newExpJs = `${imports}\nexport function createTimeline(jsPsych) {\n${expHtmlTimeline}\nreturn timeline;\n}\n`;
@@ -889,8 +834,7 @@ const handleInstall = async (templateType, options, verbose) => {
     throw e;
   }
   // Unzip the template files into the appropriate directory
-  if (verbose)
-    console.log(`Unzipping template files into ${templateType} directory`);
+  if (verbose) console.log(`Unzipping template files into ${templateType} directory`);
   try {
     // On some systems, we noticed the unzip command seemingly trying to execute before the install command was finished.
     // The attempted fix is the following:
@@ -935,12 +879,7 @@ const handleInstall = async (templateType, options, verbose) => {
     if (newExpJs) {
       if (verbose) console.log(`Writing new experiment.js file`);
       fs.writeFileSync(
-        path.join(
-          process.cwd(),
-          config.experimentsDir,
-          shortName,
-          "web page/src/experiment.js",
-        ),
+        path.join(process.cwd(), config.experimentsDir, shortName, "web page/src/experiment.js"),
         newExpJs,
       );
     }
@@ -975,8 +914,7 @@ const handleAWSInit = async (force) => {
 
   let newProj = true;
   if (config.info.projName) {
-    let myChoices =
-      config.info.projName ? [config.info.projName, "new"] : ["new"];
+    let myChoices = config.info.projName ? [config.info.projName, "new"] : ["new"];
     try {
       projName = await inquirer.prompt([
         {
@@ -1048,10 +986,7 @@ const handleAWSInit = async (force) => {
     process.exit();
   }
   try {
-    await Promise.all([
-      awsInit(projName.name, awsName, useIAM.iam, config.DockerHubID),
-      addedIAM,
-    ]);
+    await Promise.all([awsInit(projName.name, awsName, useIAM.iam, config.DockerHubID), addedIAM]);
   } catch (e) {
     throw e;
   }
@@ -1109,9 +1044,7 @@ const handleRemove = async (experiments, mode, force, verbose) => {
   // Make sure we're in the root of the site directory
   moveToProjectRoot();
   // Load the pushkin.yaml file
-  const config = jsYaml.safeLoad(
-    fs.readFileSync(path.join(process.cwd(), "pushkin.yaml")),
-  );
+  const config = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), "pushkin.yaml")));
   // Get the path to the experiments directory
   const expDir = path.join(process.cwd(), config.experimentsDir);
   // Check that the experiments directory exists
@@ -1192,9 +1125,7 @@ const handleRemove = async (experiments, mode, force, verbose) => {
     if (removeMode === "delete") {
       if (verbose) console.log("Deleting experiment(s)...");
       // deleteExperiment() returns a promise for each deleted experiment
-      removedExps = expPaths.map((expPath) =>
-        deleteExperiment(expPath, verbose),
-      );
+      removedExps = expPaths.map((expPath) => deleteExperiment(expPath, verbose));
       // Add another promise to update the docker-compose file
       removedExps.push(removeExpWorkers(expsToRemove, verbose));
       // Remove the experiments' web and api packages from the site's web and api packages
@@ -1223,8 +1154,7 @@ const handleRemove = async (experiments, mode, force, verbose) => {
       );
     } else {
       // removeMode === 'unpause-data'
-      if (verbose)
-        console.log("Unpausing data collection for experiment(s)...");
+      if (verbose) console.log("Unpausing data collection for experiment(s)...");
       removedExps = expPaths.map((expPath) =>
         updateExpConfig(expPath, { dataPaused: false }, verbose),
       );
@@ -1241,9 +1171,7 @@ const handleRemove = async (experiments, mode, force, verbose) => {
         `Success! Data collection for experiment(s) will be ${removeMode.split("-")[0]}d after you run \`pushkin prep\``,
       );
     } else {
-      console.log(
-        `Success! Experiment(s) will be ${removeMode}d after you run \`pushkin prep\``,
-      );
+      console.log(`Success! Experiment(s) will be ${removeMode}d after you run \`pushkin prep\``);
     }
   } catch (e) {
     console.error("Problem removing experiment(s)", e);
@@ -1256,27 +1184,22 @@ async function main() {
     .command("install")
     .alias("i")
     .addArgument(
-      new commander.Argument(
-        "<template_type>",
-        "Type of template to install",
-      ).choices(["site", "experiment", "exp"]),
+      new commander.Argument("<template_type>", "Type of template to install").choices([
+        "site",
+        "experiment",
+        "exp",
+      ]),
     )
     .option("--expName <name>", "The name of the experiment to create") // only for exp templates
     .addOption(
-      new commander.Option(
-        "--template <template>",
-        "The name of a published template to install",
-      )
+      new commander.Option("--template <template>", "The name of a published template to install")
         .conflicts("path") // published template precludes specifying a local template
         // Assume no jsPsych experiment import if no path specified (can be overridden with expImport flag)
         // Assume latest release if no version specified
         .implies({ expImport: false, release: "latest" }),
     )
     .addOption(
-      new commander.Option(
-        "--path <path>",
-        "The path to a local template to install",
-      )
+      new commander.Option("--path <path>", "The path to a local template to install")
         .conflicts(["template", "release"]) // local template precludes specifying an npm release
         // Assume no jsPsych experiment import if no path specified (can be overridden with expImport flag)
         .implies({ expImport: false }),
@@ -1284,7 +1207,7 @@ async function main() {
     .addOption(
       new commander.Option(
         "--release <release>",
-        "The release number or tag of a published template to install",
+        "The release number or tag of a published template",
       )
         .conflicts("path") // local template precludes specifying an npm release
         // Assume no jsPsych experiment import if no path specified (can be overridden with expImport flag)
@@ -1296,42 +1219,104 @@ async function main() {
         "The path to a jsPsych experiment.html to import",
       ).implies({ template: "@pushkin-templates/exp-basic" }), // expImport only relevant for basic exp template
     )
+    .addOption(
+      new commander.Option(
+        "-a, --all <source>",
+        "Install all available experiment templates from a given source",
+      ).conflicts(["expName, template", "path", "release", "expImport"]),
+    )
     .option("-v, --verbose", "Output extra debugging info")
     .description(`Install website ('site') or experiment template.`)
-    .action((template_type, options) => {
-      console.log(options);
-      const templateType =
-        template_type === "exp" ? "experiment" : template_type;
-      if (templateType === "site" && options.expName) {
-        console.error(
-          "Error: The --expName option can only be used with experiment templates",
-        );
-        process.exit(1);
+    .action(async (template_type, options) => {
+      // Argument and option pre-processing
+      const templateType = template_type === "exp" ? "experiment" : template_type;
+      if (templateType === "site") {
+        if (options.expName || options.expImport || options.all) {
+          console.error(
+            "Error: The options --expName, expImport, and --all can only be used with experiment templates",
+          );
+          process.exit(1);
+        }
       }
-      if (
-        options.expImport &&
-        options.template !== "@pushkin-templates/exp-basic"
-      ) {
+      if (options.expImport && options.template !== "@pushkin-templates/exp-basic") {
         console.error(
           "Error: The --expImport option can only be used with the basic experiment template",
         );
         process.exit(1);
       }
-      try {
-        handleInstall(
-          templateType,
-          {
-            expName: options.expName,
-            templateName: options.template,
-            templatePath: options.path,
-            templateVersion: options.release,
-            expImport: options.expImport,
-          },
-          options.verbose,
-        );
-      } catch (e) {
-        console.error(e);
-        process.exit(1);
+      if (options.all) {
+        // Pre-processing for the --all option
+        let optionsToPass = []; // This will be an array of options objects to be passed to handleInstall()
+        let templateList;
+        // Check whether the source is a valid local path
+        if (
+          fs.existsSync(options.all) &&
+          fs.lstatSync(options.all).isDirectory() &&
+          options.all.endsWith("pushkin/templates/experiments")
+        ) {
+          templateList = fs.readdirSync(options.all);
+          templateList.forEach((template) => {
+            // Check that the supplied path contains only directories
+            if (!fs.lstatSync(path.join(options.all, template)).isDirectory()) {
+              console.error(`Error: The path ${options.all} contains non-directory files`);
+              process.exit(1);
+            }
+            // Add the options array needed to install that template
+            optionsToPass.push({
+              // Add "_path" to the expName to avoid name conflicts with exps installed with `--all latest`
+              expName: template + "_path",
+              templatePath: path.join(options.all, template),
+              expImport: false, // Blocks jsPsych experiment import prompt for basic template
+            });
+          });
+        } else if (options.all === "latest") {
+          templateList = await getTemplates("pushkin-templates", "experiment", options.verbose);
+          console.log(templateList);
+          templateList.forEach((template) => {
+            optionsToPass.push({
+              // Trim off the @pushkin-templates/exp- prefix from expName and
+              // Add "_latest" to avoid name conflicts with exps installed with `--all path`
+              expName: template.split("/exp-")[1] + "_latest",
+              templateName: template,
+              templateVersion: "latest",
+              expImport: false, // Blocks jsPsych experiment import prompt for basic template
+            });
+          });
+        } else {
+          console.error(
+            `Error: The --all option must be followed by "latest" or a valid local path ending in "pushkin/templates/experiments"`,
+          );
+          process.exit(1);
+        }
+        // Install all the templates
+        // Use a for loop to ensure that the templates are installed sequentially
+        // .forEach() could lead to race conditions or file write conflicts
+        for (let installOptions of optionsToPass) {
+          try {
+            await handleInstall("experiment", installOptions, options.verbose);
+          } catch (e) {
+            console.error(`Experiment installation failed for ${installOptions.expName}`, e);
+            process.exit(1);
+          }
+        }
+      } else {
+        // Not using the --all option
+        try {
+          handleInstall(
+            templateType,
+            {
+              expName: options.expName,
+              templateName: options.template,
+              templatePath: options.path,
+              templateVersion: options.release,
+              expImport: options.expImport,
+            },
+            options.verbose,
+          );
+        } catch (e) {
+          console.error(`Experiment installation failed for ${options.expName}`, e);
+          process.exit(1);
+        }
       }
     });
 
@@ -1341,51 +1326,30 @@ async function main() {
     .description(
       `Delete, (un)archive, or (un)pause a Pushkin experiment. Deletion permanently removes all the experiment's files and data; archiving simply removes the experiment from the front end; pausing stops data collection but leaves the experiment's front end in place.`,
     )
-    .option(
-      "-e, --experiments [experiments...]",
-      "Specify which experiment(s) to remove",
-    )
+    .option("-e, --experiments [experiments...]", "Specify which experiment(s) to remove")
     .option(
       "-m, --mode [mode]",
       "Specify whether to delete, (un)archive, or (un)pause the experiment(s)",
     )
-    .option(
-      "-f, --force",
-      "Suppresses confirmation prompt when deleting experiments",
-    )
+    .option("-f, --force", "Suppresses confirmation prompt when deleting experiments")
     .option("-v, --verbose", "Output extra debugging info")
     .action(async (what, options) => {
       // Check that `remove` argument is valid
       if (what === "exp" || what === "experiment") {
         // Check that mode is valid (if provided)
-        const modes = [
-          "delete",
-          "archive",
-          "unarchive",
-          "pause-data",
-          "unpause-data",
-        ];
+        const modes = ["delete", "archive", "unarchive", "pause-data", "unpause-data"];
         if (options.mode && !modes.includes(options.mode)) {
-          console.error(
-            `Invalid mode. Mode must be one of:\n -${modes.join("\n -")}`,
-          );
+          console.error(`Invalid mode. Mode must be one of:\n -${modes.join("\n -")}`);
           process.exit(1);
         }
         try {
-          await handleRemove(
-            options.experiments,
-            options.mode,
-            options.force,
-            options.verbose,
-          );
+          await handleRemove(options.experiments, options.mode, options.force, options.verbose);
         } catch (e) {
           console.error("Problem removing experiment(s):", e);
           process.exit(1);
         }
       } else {
-        console.error(
-          'Invalid argument. Currently, you can only remove "experiment" (or "exp").',
-        );
+        console.error('Invalid argument. Currently, you can only remove "experiment" (or "exp").');
         process.exit(1);
       }
     });
@@ -1420,10 +1384,7 @@ async function main() {
         case "update":
           try {
             //await handleAWSUpdate();
-            console.warn(
-              "\x1b[31m%s\x1b[0m",
-              `Not currently implemented. Sorry.`,
-            );
+            console.warn("\x1b[31m%s\x1b[0m", `Not currently implemented. Sorry.`);
           } catch (e) {
             console.error(e);
             process.exit();
@@ -1446,23 +1407,17 @@ async function main() {
           }
           break;
         default:
-          console.error(
-            "Command not recognized. For help, run 'pushkin help aws'.",
-          );
+          console.error("Command not recognized. For help, run 'pushkin help aws'.");
       }
     });
 
   program
     .command("setDockerHub")
-    .description(
-      `Set (or change) your DockerHub ID. This must be run before deploying to AWS.`,
-    )
+    .description(`Set (or change) your DockerHub ID. This must be run before deploying to AWS.`)
     .action(() => {
       moveToProjectRoot();
       inquirer
-        .prompt([
-          { type: "input", name: "ID", message: "What is your DockerHub ID?" },
-        ])
+        .prompt([{ type: "input", name: "ID", message: "What is your DockerHub ID?" }])
         .then(async (answers) => {
           let config;
           try {
@@ -1473,10 +1428,7 @@ async function main() {
           }
           config.DockerHubID = answers.ID;
           try {
-            fs.writeFileSync(
-              path.join(process.cwd(), "pushkin.yaml"),
-              jsYaml.safeDump(config),
-            );
+            fs.writeFileSync(path.join(process.cwd(), "pushkin.yaml"), jsYaml.safeDump(config));
           } catch (e) {
             console.error("Unable to rewrite pushkin.yaml.");
             console.error(e);
@@ -1506,10 +1458,7 @@ async function main() {
     .description(
       "Prepares local copy for local testing. This step includes running migrations, so be sure you have read the documentation on how that works.",
     )
-    .option(
-      "--no-migrations",
-      "Do not run migrations. Be sure database structure has not changed!",
-    )
+    .option("--no-migrations", "Do not run migrations. Be sure database structure has not changed!")
     .option(
       "-p, --production",
       "Run with front-end env var `debug`=false. Do this before deploying to AWS.",
@@ -1532,10 +1481,7 @@ async function main() {
         if (options.migrations) {
           // options.migrations===true by default because of --no-migrations flag
           //running prep and updating DB
-          awaits = [
-            handlePrep(options.verbose),
-            handleUpdateDB(options.verbose),
-          ];
+          awaits = [handlePrep(options.verbose), handleUpdateDB(options.verbose)];
         } else {
           //only running prep
           awaits = [handlePrep(options.verbose)];
@@ -1552,20 +1498,14 @@ async function main() {
     .description(
       "Starts local deploy for debugging purposes. To start only the front end (no databases), see the manual.",
     )
-    .option(
-      "--no-cache",
-      "Rebuild all images from scratch, without using the cache.",
-    )
+    .option("--no-cache", "Rebuild all images from scratch, without using the cache.")
     .option("-v, --verbose", "output extra debugging info")
     .action(async (options) => {
       if (options.verbose) console.log("Starting start...");
       moveToProjectRoot();
       if (options.verbose) console.log("Copying experiments.js to front-end");
       try {
-        fs.copyFileSync(
-          "pushkin/front-end/src/experiments.js",
-          "pushkin/front-end/experiments.js",
-        );
+        fs.copyFileSync("pushkin/front-end/src/experiments.js", "pushkin/front-end/experiments.js");
       } catch (e) {
         console.error(
           e,
@@ -1600,9 +1540,7 @@ async function main() {
           log: options.verbose,
           commandOptions: composeUpOptions,
         });
-        console.log(
-          "Starting. You may not be able to load localhost for a minute or two.",
-        );
+        console.log("Starting. You may not be able to load localhost for a minute or two.");
       } catch (e) {
         console.error("Something went wrong:");
         throw e;
@@ -1645,9 +1583,7 @@ async function main() {
       "Complete reset of the local docker. This will generate some error messages, which you can safely ignore. WARNING This will NOT discriminate between Pushkin-related Docker images and other Docker images you may be using.",
     )
     .action(async () => {
-      console.log(
-        `Deleting all local docker images, including those not related to Pushkin...`,
-      );
+      console.log(`Deleting all local docker images, including those not related to Pushkin...`);
       try {
         await exec(
           "docker stop $(docker ps -aq); docker rm $(docker ps -aq); docker network prune -f; docker rmi -f $(docker images --filter dangling=true -qa); docker volume rm $(docker volume ls --filter dangling=true -q); docker rmi -f $(docker images -qa)",
@@ -1704,9 +1640,7 @@ async function main() {
           break;
         case "zip":
           try {
-            execSync(
-              `zip -r Archive.zip . -x "*node_modules*" -x "*.git*" -x "*.DS_Store"`,
-            );
+            execSync(`zip -r Archive.zip . -x "*node_modules*" -x "*.git*" -x "*.DS_Store"`);
           } catch (e) {
             console.error(e);
             process.exit();
@@ -1722,9 +1656,7 @@ async function main() {
           }
           break;
         default:
-          console.error(
-            "Command not recognized. For help, run 'pushkin help utils'.",
-          );
+          console.error("Command not recognized. For help, run 'pushkin help utils'.");
       }
     });
 
