@@ -5,8 +5,15 @@ import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
 import configureStore from 'redux-mock-store';
 import TakeQuiz from './TakeQuiz';
-import experiments from '../../../../../__mocks__/experiments';
 import axios from 'axios';
+
+// Dynamic import for experiments based on the environment variable
+let experiments;
+if (process.env.USE_REAL_EXPERIMENTS) {
+  experiments = require('../../../../experiments');
+} else {
+  experiments = require('../../../../../__mocks__/experiments');
+}
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),

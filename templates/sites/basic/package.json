@@ -21,7 +21,7 @@
     "build/*"
   ],
   "scripts": {
-    "test": "node preTest.js && jest",
+    "test": "node preTest.js && (test -f pushkin.yaml && (export USE_REAL_EXPERIMENTS=true || SET USE_REAL_EXPERIMENTS=true) && jest --config jest.config.real.js || jest --config jest.config.mock.js)",
     "build": "mkdir -p build && cd src && zip -FS -r -q ../build/template.zip . -x \"*node_modules*\"",
     "prepack": "cp ../../../LICENSE ."
   },
@@ -49,40 +49,5 @@
     "@babel/preset-env": "^7.23.6",
     "@babel/preset-react": "^7.23.3",
     "jest-environment-jsdom": "^29.7.0"
-  },
-  "jest": {
-    "testEnvironment": "jsdom",
-    "clearMocks": true,
-    "coveragePathIgnorePatterns": [
-      "/node_modules/"
-    ],
-    "coverageThreshold": {
-      "global": {
-        "branches": 50,
-        "functions": 50,
-        "lines": 50,
-        "statements": 50
-      }
-    },
-    "moduleFileExtensions": [
-      "js",
-      "jsx",
-      "json",
-      "node"
-    ],
-    "moduleNameMapper": {
-      "\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$": "<rootDir>/src/__mocks__/fileMock.js",
-      "../../config(?:/.*)?(?:\\.js)?$": "<rootDir>/src/__mocks__/config.js",
-      "../../experiments(\\.js)?$": "<rootDir>/src/__mocks__/experiments.js",
-      "\\.(css|less|scss|sass)$": "identity-obj-proxy",
-      "^axios$": "<rootDir>/__mocks__/axios.js"
-    },
-    "testPathIgnorePatterns": [
-      "/node_modules/",
-      "/public/"
-    ],
-    "transformIgnorePatterns": [
-      "<rootDir>/node_modules/"
-    ]
   }
 }

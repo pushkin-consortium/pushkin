@@ -3,7 +3,13 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { BrowserRouter as Router } from 'react-router-dom';
 import QuizTile from './QuizTile';
-import experiments from '../../../../../__mocks__/experiments';
+
+let experiments;
+if (process.env.USE_REAL_EXPERIMENTS) {
+  experiments = require('../../../../experiments');
+} else {
+  experiments = require('../../../../../__mocks__/experiments');
+}
 
 // Mock window.open
 beforeAll(() => {
@@ -30,14 +36,12 @@ jest.mock('react-social-icons', () => ({
 }));
 
 describe('QuizTile Component', () => {
-  // Function to render the component with given props
   const renderComponent = (props) => render(
     <Router>
       <QuizTile {...props} />
     </Router>
   );
 
-  // Test each experiment config
   experiments.forEach((exp) => {
     test(`renders QuizTile for ${exp.shortName} without crashing`, () => {
       const props = {
@@ -77,7 +81,7 @@ describe('QuizTile Component', () => {
       renderComponent(props);
       const cardImage = screen.getByRole('img');
       fireEvent.click(cardImage);
-      // Add additional checks if needed
+      // Additional checks can be added if needed
     });
   });
 
