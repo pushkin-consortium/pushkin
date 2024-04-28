@@ -6,7 +6,7 @@ import QuizTile from './QuizTile';
 
 let experiments;
 if (process.env.USE_REAL_EXPERIMENTS) {
-  experiments = require('../../../../experiments');
+  experiments = require('../../experiments');
 } else {
   experiments = require('../../../../../__mocks__/experiments');
 }

@@ -10,7 +10,7 @@ import axios from 'axios';
 // Dynamic import for experiments based on the environment variable
 let experiments;
 if (process.env.USE_REAL_EXPERIMENTS) {
-  experiments = require('../../../../experiments');
+  experiments = require('../../experiments');
 } else {
   experiments = require('../../../../../__mocks__/experiments');
 }

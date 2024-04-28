@@ -21,8 +21,8 @@
     "build/*"
   ],
   "scripts": {
-    "test": "node preTest.js && (test -f pushkin.yaml && (export USE_REAL_EXPERIMENTS=true || SET USE_REAL_EXPERIMENTS=true) && jest --config jest.config.real.js || jest --config jest.config.mock.js)",
-    "build": "mkdir -p build && cd src && zip -FS -r -q ../build/template.zip . -x \"*node_modules*\"",
+    "test": "node preTest.js && export USE_REAL_EXPERIMENTS=false && jest --config jest.config.mock.js",
+    "build": "mkdir -p build && zip -r -q build/template.zip jest.config.js jest.config.real.js && cd src && zip -r -q ../build/template.zip . -x \"*node_modules*\" && cd ..",
     "prepack": "cp ../../../LICENSE ."
   },
   "devDependencies": {
