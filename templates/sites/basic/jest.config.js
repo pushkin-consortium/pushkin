@@ -25,7 +25,11 @@ module.exports = {
     },
     testPathIgnorePatterns: [
       "/node_modules/",
-      "/public/"
+      "/public/",
+      ".*\\.yalc.*" 
+    ],
+    modulePathIgnorePatterns: [
+      ".*\\.yalc.*" 
     ],
     transformIgnorePatterns: [
       "<rootDir>/node_modules/"
