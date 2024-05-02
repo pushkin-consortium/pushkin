@@ -1044,7 +1044,7 @@ const handleRemove = async (experiments, mode, force, verbose) => {
   // Make sure we're in the root of the site directory
   moveToProjectRoot();
   // Load the pushkin.yaml file
-  const config = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), "pushkin.yaml")));
+  const config = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), "pushkin.yaml"), "utf8"));
   // Get the path to the experiments directory
   const expDir = path.join(process.cwd(), config.experimentsDir);
   // Check that the experiments directory exists
@@ -1177,6 +1177,220 @@ const handleRemove = async (experiments, mode, force, verbose) => {
     console.error("Problem removing experiment(s)", e);
     throw e;
   }
+};
+
+/**
+ * Writes the previously used published version of a Pushkin utility package to file before updating to a dev version
+ * @param {string} pkg The Pushkin utility package to substitute
+ * @param {string} location Either "main site" or the name of an experiment
+ * @param {string} component The site or experiment component to update
+ * @param {string} componentPath The path to the particular site or experiment component
+ * @param {boolean} revert Revert to the previously used published versions of Pushkin utilities
+ * @param {boolean} verbose Output extra information to the console for debugging purposes
+ */
+const addDevPackage = (pkg, location, component, componentPath, revert, verbose) => {
+  if (verbose) console.log("--verbose flag set inside addDevPackage()");
+  // Write the published version to file for use with the --revert flag
+  let pkgJson;
+  try {
+    pkgJson = JSON.parse(fs.readFileSync(path.join(componentPath, "package.json"), "utf8"));
+  } catch (e) {
+    console.error(`Problem reading package.json in ${location} ${component}`, e);
+    process.exit(1);
+  }
+  if (!revert) {
+    const publishedVersion = pkgJson.dependencies[pkg];
+    // Don't write the file if the package is already a local dev version
+    if (!publishedVersion.startsWith("file:")) {
+      if (verbose) console.log(`Recording previous version of ${pkg} in ${location} ${component}`);
+      try {
+        fs.promises.writeFile(path.join(componentPath, `.${pkg}-revert-version`), publishedVersion);
+      } catch (e) {
+        console.error(`Problem writing .${pkg}-revert-version in ${location} ${component}`, e);
+        process.exit(1);
+      }
+    }
+  }
+  // For the experiment component packages, edit the `files` property
+  if (location !== "main site") {
+    if (verbose) console.log(`Updating package.json "files" array in ${location} ${component}`);
+    let updatePkgJson = false;
+    if (revert) {
+      // If reverting, .yalc should be removed from the `files` array in package.json
+      if (pkgJson.files && pkgJson.files.includes(".yalc")) {
+        pkgJson.files = pkgJson.files.filter((file) => file !== ".yalc");
+        updatePkgJson = true;
+      } else {
+        console.log(`${location} ${component} "files" array does not include ".yalc"`);
+      }
+    } else {
+      // If not reverting, .yalc should be added to the `files` array in package.json
+      if (!pkgJson.files) {
+        // Worker components don't have a `files` property yet
+        pkgJson.files = [".yalc"];
+        updatePkgJson = true;
+      } else if (!pkgJson.files.includes(".yalc")) {
+        // For other components, check if .yalc is already included `files`
+        pkgJson.files.push(".yalc");
+        updatePkgJson = true;
+      } else {
+        // Otherwise, .yalc has already been added to `files`
+        if (verbose) console.log(`${location} ${component} "files" array already includes ".yalc"`);
+      }
+    }
+    if (updatePkgJson) {
+      try {
+        fs.promises.writeFile(
+          path.join(componentPath, "package.json"),
+          JSON.stringify(pkgJson, null, 2),
+        );
+      } catch (e) {
+        console.error(`Problem updating package.json "files" array in ${location} ${component}`, e);
+        process.exit(1);
+      }
+    }
+  }
+
+  if (revert) {
+    // Revert to the previously used published version of the package
+    try {
+      if (verbose)
+        console.log(
+          `Removing dev version and reverting to published version of ${pkg} in ${location} ${component}`,
+        );
+      const revertVersion = fs.readFileSync(
+        path.join(componentPath, `.${pkg}-revert-version`),
+        "utf8",
+      );
+      exec(`yalc remove ${pkg} && ${pacMan} add ${pkg}@${revertVersion}`, { cwd: componentPath });
+    } catch (e) {
+      console.error(
+        `Problem reverting to published version of ${pkg} in ${location} ${component}`,
+        e,
+      );
+      process.exit(1);
+    }
+  } else {
+    // Substitute the local dev version of the package
+    if (verbose) console.log(`Adding dev version of ${pkg} in ${location} ${component}`);
+    try {
+      exec(`yalc add ${pkg}`, { cwd: componentPath });
+    } catch (e) {
+      console.error(`Problem adding dev version of ${pkg} in ${location} ${component}`, e);
+      process.exit(1);
+    }
+  }
+};
+
+/**
+ * Updates the experiment worker's Dockerfile to copy yalc-related files
+ * @param {string} experiment The name of an experiment
+ * @param {string} componentPath The path to the experiment's worker component
+ * @param {boolean} revert Remove copying of yalc-related files from the Dockerfile
+ * @param {boolean} verbose Output extra information to the console for debugging purposes
+ */
+const updateWorkerDockerfile = (experiment, componentPath, revert, verbose) => {
+  if (verbose) console.log("--verbose flag set inside updateWorkerDockerfile()");
+  if (verbose) console.log(`Updating Dockerfile for ${experiment} worker`);
+  let dockerfile;
+  let updatedDockerfile;
+  try {
+    dockerfile = fs.readFileSync(path.join(componentPath, "Dockerfile"), "utf8");
+  } catch (e) {
+    console.error(`Problem reading Dockerfile in ${experiment} worker`, e);
+    process.exit(1);
+  }
+  // Lines to be added to the Dockerfile to copy yalc-related files
+  const copyYalc = "COPY .yalc /usr/src/app/.yalc/\nCOPY ./yalc.lock /usr/src/app/";
+  if (revert) {
+    // If reverting, remove the lines that copy yalc-related files
+    if (dockerfile.includes(copyYalc)) {
+      updatedDockerfile = dockerfile.replace(copyYalc + "\n", "");
+    } else {
+      console.log(`yalc-related files already omitted from Dockerfile for ${experiment} worker`);
+      updatedDockerfile = dockerfile;
+    }
+  } else {
+    // Otherwise, check if lines to copy yalc files are already present
+    if (!dockerfile.includes(copyYalc)) {
+      // If not, add them by splitting the Dockerfile into lines,
+      const lines = dockerfile.split("\n");
+      // finding the line with the COPY command
+      const copyLineIndex = lines.findIndex((line) => line.startsWith("COPY"));
+      // and inserting the new lines after it
+      lines.splice(copyLineIndex + 1, 0, copyYalc);
+      updatedDockerfile = lines.join("\n");
+    } else {
+      console.log(`Dockerfile for ${experiment} worker already copies yalc-related files`);
+      updatedDockerfile = dockerfile;
+    }
+  }
+  // If the Dockerfile needs to be updated, write the changes to the file
+  if (updatedDockerfile !== dockerfile) {
+    try {
+      fs.promises.writeFile(path.join(componentPath, "Dockerfile"), updatedDockerfile);
+    } catch (e) {
+      console.error(`Problem updating Dockerfile for ${experiment} worker`, e);
+      process.exit(1);
+    }
+  }
+};
+
+/**
+ * Substitute a local development version of a Pushkin utility package
+ * @param {string[]} packages The Pushkin utility packages to substitute
+ * @param {string} pkgsPath The path to the directory containing the dev Pushkin packages
+ * @param {string[]} workerExps The experiments to update with a dev version of pushkin-worker
+ * @param {boolean} update Push updates to dev utility packages already in place
+ * @param {boolean} revert Revert to the previously used published versions of Pushkin utilities
+ * @param {boolean} verbose Output extra information to the console for debugging purposes
+ */
+const useDevUtilities = async (packages, pkgsPath, workerExps, update, revert, verbose) => {
+  if (verbose) console.log("--verbose flag set inside useDevUtilities()");
+  packages.forEach(async (pkg) => {
+    if (!revert) {
+      // Build and locally publish the specified package(s)
+      if (verbose) console.log(`Building and locally publishing ${pkg}`);
+      try {
+        // If the user is updating the dev version, `yalc push` is all they need
+        const yalcCommand = update ? "push" : "publish";
+        exec(`yarn build && yalc ${yalcCommand}`, { cwd: path.join(pkgsPath, pkg) });
+        if (verbose && update) console.log(`Pushed updates to dev ${pkg}`);
+      } catch (e) {
+        console.error(`Problem building or locally publishing ${pkg}`, e);
+        process.exit(1);
+      }
+    }
+    // That should be it if the user is just updating a dev version that's already in place
+    if (!update) {
+      // Edit the relevant site files to use the local dev version of the specified package(s)
+      if (pkg !== "pushkin-worker") {
+        // Update the main site components for the api and front-end
+        const siteComponent = pkg === "pushkin-api" ? "api" : "front-end";
+        const siteComponentPath = path.join(process.cwd(), "pushkin", siteComponent);
+        addDevPackage(pkg, "main site", siteComponent, siteComponentPath, revert, verbose);
+      }
+      // Loop over the site's experiments, adding the local dev version of the package
+      const expDir = path.join(process.cwd(), "experiments");
+      // If the package is pushkin-worker and the --experiments option was used, only update the specified experiments
+      const exps = pkg === "pushkin-worker" && workerExps ? workerExps : fs.readdirSync(expDir);
+      exps.forEach((exp) => {
+        const componentMap = {
+          "pushkin-client": "web page",
+          "pushkin-api": "api controllers",
+          "pushkin-worker": "worker",
+        };
+        const expComponent = componentMap[pkg];
+        const expComponentPath = path.join(expDir, exp, expComponent);
+        // Record the previous version of the package and add the dev version
+        addDevPackage(pkg, exp, expComponent, expComponentPath, revert, verbose);
+        // If using a dev worker, the worker's Dockerfile also needs to be updated
+        if (pkg === "pushkin-worker") {
+          updateWorkerDockerfile(exp, expComponentPath, revert, verbose);
+        }
+      });
+    }
+  });
 };
 
 async function main() {
@@ -1352,6 +1566,89 @@ async function main() {
         console.error('Invalid argument. Currently, you can only remove "experiment" (or "exp").');
         process.exit(1);
       }
+    });
+
+  program
+    .command("use-dev")
+    .description("Use a local development version of the specified Pushkin utility package(s)")
+    .addArgument(
+      new commander.Argument(
+        "<packages...>",
+        "The Pushkin utility package(s) for which you want to subtitute a local development version",
+      ).choices(["api", "pushkin-api", "client", "pushkin-client", "worker", "pushkin-worker"]),
+    )
+    .addOption(
+      new commander.Option(
+        "-p, --path <path>",
+        "The path to the `packages` directory in your local clone of the pushkin repository",
+      ).conflicts("revert"),
+    )
+    .option(
+      "-e, --experiments <experiments...>",
+      "The experiment(s) in which you want to use a dev version of pushkin-worker (defaults to all experiments)",
+    )
+    .addOption(
+      new commander.Option(
+        "-u, --update",
+        "Push additional local updates to the specified Pushkin utility package(s) in your site",
+      ).conflicts("revert"),
+    )
+    .addOption(
+      new commander.Option(
+        "--revert",
+        "Revert to the previously used published version of the specified Pushkin utility package(s)",
+      ).conflicts(["update", "path"]),
+    )
+    .option("-v, --verbose", "Output extra debugging info")
+    .action((packages, options) => {
+      // Make sure we're in the root of the site directory
+      moveToProjectRoot();
+      // Make sure there are no DS_Store files
+      removeDS(options.verbose);
+      // Check that the path is valid
+      if (!options.revert) {
+        if (
+          !fs.existsSync(options.path) ||
+          !fs.lstatSync(options.path).isDirectory() ||
+          !options.path.endsWith("pushkin/packages")
+        ) {
+          console.error("The specified path is invalid; it must end with 'pushkin/packages'.");
+          process.exit(1);
+        }
+      }
+      // Pre-processing of the packages list (add 'pushkin-' prefix if necessary and remove duplicates)
+      const packageList = [
+        ...new Set(packages.map((pkg) => (pkg.startsWith("pushkin-") ? pkg : `pushkin-${pkg}`))),
+      ];
+      if (options.experiments) {
+        // Check that the experiments list is valid
+        const expDir = path.join(process.cwd(), "experiments");
+        options.experiments.forEach((exp) => {
+          if (
+            !fs.existsSync(path.join(expDir, exp)) ||
+            !fs.lstatSync(path.join(expDir, exp)).isDirectory()
+          ) {
+            console.error(`Experiment ${exp} does not exist.`);
+            process.exit(1);
+          }
+        });
+        // Only pushkin-worker can be experiment-specific
+        if (!packageList.includes("pushkin-worker")) {
+          console.error(
+            "The --experiments flag can only be used in combination with a dev pushkin-worker.",
+          );
+          process.exit(1);
+        }
+      }
+      // Integrate the dev package(s) into the site
+      useDevUtilities(
+        packageList,
+        options.path,
+        options.experiments,
+        options.update,
+        options.revert,
+        options.verbose,
+      );
     });
 
   program
