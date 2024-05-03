@@ -21,8 +21,8 @@
     "build/*"
   ],
   "scripts": {
-    "test": "node preTest.js && export USE_REAL_EXPERIMENTS=false && jest --config jest.config.mock.js",
-    "build": "mkdir -p build && zip -r -q build/template.zip jest.config.js jest.config.real.js && cd src && zip -r -q ../build/template.zip . -x \"*node_modules*\" && cd ..",
+    "test": "jest",
+    "build": "mkdir -p build && cd src && zip -FS -r -q ../build/template.zip . -x \"*/node_modules/*\" -x \"*/build/*\" && cd .. && zip -u -q build/template.zip jest.config.js babel.config.js",
     "prepack": "cp ../../../LICENSE ."
   },
   "devDependencies": {

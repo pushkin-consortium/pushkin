@@ -43,20 +43,7 @@ export const initSite = async (verbose) => {
     const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
     delete packageJson.main;
     packageJson.name = 'pushkin-site';
-    // Set up for Jest tests with real experiments
-    packageJson.scripts = {
-      // Ensure the test script uses the real configuration and sets the environment variable
-      "test": "export USE_REAL_EXPERIMENTS=true && jest --config jest.config.real.js"
-    };
-    packageJson.jest = {
-      "testEnvironment": "jsdom",
-      "testPathIgnorePatterns": ["/node_modules/", "/.yalc/", "/build/"],
-      "moduleNameMapper": {
-        "\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$": "<rootDir>/__mocks__/fileMock.js"
-      }
-    };
-    // Write additional configuration files if needed
-    fs.writeFileSync('babel.config.js', `module.exports = { presets: ['@babel/preset-env', '@babel/preset-react'], };`);
+    packageJson.scripts = {test: "jest"};
     // Write the updated package.json
     fs.writeFileSync('package.json', JSON.stringify(packageJson, null, 2));
     } catch (error) {

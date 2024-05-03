@@ -3,13 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { BrowserRouter as Router } from 'react-router-dom';
 import QuizTile from './QuizTile';
-
-let experiments;
-if (process.env.USE_REAL_EXPERIMENTS) {
-  experiments = require('../../experiments');
-} else {
-  experiments = require('../../../../../__mocks__/experiments');
-}
+import experiments from '../../experiments';
 
 // Mock window.open
 beforeAll(() => {
@@ -84,6 +78,5 @@ describe('QuizTile Component', () => {
       // Additional checks can be added if needed
     });
   });
-
   // More generic tests can be added here if needed
 });
