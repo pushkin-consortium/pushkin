@@ -486,7 +486,7 @@ const getTemplates = async (scope, templateType, verbose) => {
  * Fetches all versions of a given template package from npm.
  * @param {string} packageName The name of the template package.
  * @param {boolean} verbose Output extra information to the console for debugging purposes.
- * @returns {Object} An object containing the package name, a list of available versions, and the latest version.
+ * @returns {object} An object containing the package name, a list of available versions, and the latest version.
  */
 const getVersions = async (packageName, verbose) => {
   let response;
@@ -511,7 +511,7 @@ const getVersions = async (packageName, verbose) => {
 /**
  * The primary function for installing site and experiment templates
  * @param {string} templateType "site" or "experiment"
- * @param {Object} options The object of command-line options for installing without inquirer prompts
+ * @param {object} options The object of command-line options for installing without inquirer prompts
  * @param {string} options.expName The name of the experiment to be created (only for experiment templates)
  * @param {string} options.templateName The name of a published template package
  * @param {boolean} options.templatePath The path to a local template package
@@ -1393,6 +1393,10 @@ const useDevUtilities = async (packages, pkgsPath, workerExps, update, revert, v
   });
 };
 
+/**
+ * The entry point for `pushkin` commands
+ * See commander documentation (https://www.npmjs.com/package/commander)
+ */
 async function main() {
   program
     .command("install")
