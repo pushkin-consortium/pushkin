@@ -76,4 +76,4 @@ You should now be able to view the docs at `http://localhost:8000`. When you're 
 !!! warning
     Only core Pushkin maintainers have permissions to push to `gh-pages`.
 
-As mentioned [above](#build-the-docs-locally), building the docs locally will automatically commit to `gh-pages`. Pushing these commits will update the public site. Typically, these steps should be automated by the workflow defined in `/.github/workflows/publish-docs.yml`, which helps ensure that `gh-pages` isn't being updated with changes that haven't yet been merged into `main`; however, in some cases, it may be necessary to update `gh-pages` manually.
+As mentioned [above](#install-dependencies-and-build-the-docs), building the docs locally will automatically commit to `gh-pages`. Pushing these commits will update the public site. Typically, these steps should be automated by the workflow defined in `/.github/workflows/publish-docs.yml`, which helps ensure that `gh-pages` isn't being updated with changes that haven't yet been merged into `main`; however, in some cases, it may be necessary to update `gh-pages` manually.

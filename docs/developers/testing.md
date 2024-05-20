@@ -4,6 +4,9 @@ The pushkin repo is set up to run tests using [Jest](https://jestjs.io/), a popu
 
 ## Jest for pushkin repo development
 
+!!! bug "Tests failing with 'invalid hook call' warning?"
+    If you install or upgrade any dependencies in the front-end component of a site template (e.g. `templates/sites/basic/src/pushkin/front-end`), some of the site template tests will fail, and you'll see a number of errors, including "invalid hook call". This occurs because of duplicate copies of React in your top-level `node_modules` and `node_modules` in the front-end component (see [here](https://legacy.reactjs.org/warnings/invalid-hook-call-warning.html#duplicate-react)). To resolve this issue, simply delete `node_modules` **from the front-end component**. This guidance applies only to the **development** environment, where these dependencies are not needed.
+
 After cloning the `pushkin` repo and running `yarn install`, you can run tests for all Pushkin packages and templates by running:
 
 ```
@@ -20,22 +23,11 @@ Improving test coverage is a priority for Pushkin, so we will happily receive pu
 
 ## Jest for user site development
 
-Pushkin sites come pre-configured to run Jest tests. Currently, the only tests distributed to Pushkin users enter your site through two areas:
+Pushkin sites come pre-configured to run Jest tests. Tests enter your site from two sources:
 
-1. **Experiment Templates**: Tests in the experiment templates primarily focus on validating the jsPsych timeline that is essential to experiment functionality
-2. **Site Templates**: Currently, [site-basic](../site-templates/site-basic.md) has multiple tests focusing on rendering site components and integration testing of experiments.
+1. **Site templates**: Currently, the [basic site template](../site-templates/site-basic.md) has multiple tests focusing on rendering site components and integration tests for your experiments.
+2. **Experiment templates**: Tests in the experiment templates focus primarily on checking that the jsPsych timeline runs and outputs the expected data.
 
-!!! warning "Dependency Installation Issue in /pushkin/front-end"
-    If you install any dependencies in `/pushkin/front-end` during development, the tests will fail, resulting in the "invalid hook call" error.  To resolve this problem, delete the `node_modules` directory and reinstall the dependencies.
-
-To run tests on your local site begin by running `yarn install` followed by `yarn test`. Note that the `install` command only needs to be run once. 
-
-```
-yarn install
-```
-
-```
-yarn test
-```
+To run tests on your local Pushkin site, run `yarn test` from the root of the site. **Importantly,** you must run `pushkin prep` before running tests in order for new experiments and/or changes to existing experiments to be picked up by the tests.
 
 You can expand testing for your Pushkin site as you see fit. If you develop more sophisticated testing for your site, we encourage you to consider how it could be contributed back to the project, so other users might benefit as well.

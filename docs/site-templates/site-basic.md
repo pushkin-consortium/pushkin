@@ -12,12 +12,13 @@ pushkin i site
 
 Select the main Pushkin distribution and `@pushkin-templates/site-basic` from the list of available templates. Then choose which version you want (the latest is typically recommended).
 
-## Testing 
+## Testing
 
-!!! warning "Dependency Installation Issue in /pushkin/front-end"
-    If you install any dependencies in `/pushkin/front-end` during development, the tests will fail, resulting in the "invalid hook call" error.  To resolve this problem, delete the `node_modules` directory and reinstall the dependencies.
+Out of the box, the basic site template supports limited integration and component testing using Jest. Before running tests, you must first install at least one experiment and run `pushkin prep`. You can then run the included tests with the command `yarn test` from the root of your site.
 
-Pushkin supports both integration and component tests for its React/JavaScript components. To learn more about how to run these tests please see the relevant documentation [here](../developers/testing.md)
+ Note that you must run `pushkin prep` before running tests in order for new experiments and/or changes to existing experiments to be picked up by the tests.
+
+To learn more about how Pushkin uses Jest, please see the relevant documentation [here](../developers/testing.md).
 
 ### Integration Tests 
 
