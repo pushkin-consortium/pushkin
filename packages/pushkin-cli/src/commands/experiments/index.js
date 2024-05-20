@@ -324,11 +324,12 @@ export function removeExpWorkers(experiments, verbose) {
     // Read in the docker-compose file
     const dockerCompose = jsYaml.safeLoad(fs.readFileSync(dockerComposePath, 'utf8'));
     experiments.forEach((exp) => {
-      if (dockerCompose.services[`${exp}_worker`]) {
+      const workerName = exp.toLowerCase().concat('_worker');
+      if (dockerCompose.services[workerName]) {
         // Delete the experiment's worker
-        delete dockerCompose.services[`${exp}_worker`];
+        delete dockerCompose.services[workerName];
       } else {
-        console.log(`No service found for ${exp}_worker in docker-compose.dev.yml`);
+        console.log(`Warning: no service found for ${workerName} in docker-compose.dev.yml. You might need to remove it manually.`);
       }
     });
     // Return the promise to write the updated docker-compose file
@@ -340,30 +341,33 @@ export function removeExpWorkers(experiments, verbose) {
 };
 
 /**
- * Updates an experiment's config file to set the 'archived' flag to true
- * @param {string} experimentPath The path to the experiment to be archived
- * @param {boolean} archived The value for the 'archived' flag in the experiment's config file
+ * Updates an experiment's config file by adding/updating the specified key-value pair(s)
+ * @param {string} experimentPath The path to the experiment
+ * @param {Object} properties The key-value pair(s) to add/update in the experiment's config file
  * @param {boolean} verbose Output extra information to the console for debugging purposes
  * @returns {Promise} A promise that resolves when the updated config file is written
  */
-export function archiveExperiment(experimentPath, archived, verbose) {
-  if (verbose) console.log('--verbose flag set inside archiveExperiment()');
+export function updateExpConfig(experimentPath, properties, verbose) {
+  if (verbose) console.log('--verbose flag set inside updateExpConfig()');
   try {
     const experimentName = path.basename(experimentPath);
-    if (verbose) console.log(archived ? 'Archiving experiment:' : 'Unarchiving experiment:', experimentName);
+    if (verbose) console.log('Updating config file for', experimentName);
     // Read in the experiment's config file and set the 'archived' flag to true
     const configPath = path.join(experimentPath, 'config.yaml');
     const config = jsYaml.safeLoad(fs.readFileSync(configPath, 'utf8'));
-    if (config.archived === archived) {
-      if (verbose) console.log(`Experiment ${experimentName} is already ${archived ? 'archived' : 'unarchived'}`);
-      return;
-    } else {
-      config.archived = archived;
-      // Write the updated config file
-      return fs.promises.writeFile(configPath, jsYaml.safeDump(config));
+    // In verbose mode, tell the user if any of the keys are already set to the specified value
+    if (verbose) {
+      Object.keys(properties).forEach((key) => {
+        if (config[key] === properties[key]) {
+          console.log(`"${key}" is already set to "${properties[key]}" in config for ${experimentName}`);
+        }
+      });
     }
+    // Add/update the specified key-value pair(s)
+    Object.assign(config, properties);
+    return fs.promises.writeFile(configPath, jsYaml.safeDump(config));
   } catch (e) {
-    console.error(`Failed to archive experiment: ${path.basename(experimentPath)}`, e);
+    console.error(`Failed to update config file for ${experimentName}`, e);
     throw e;
   }
 };

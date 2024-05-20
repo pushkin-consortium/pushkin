@@ -1,56 +1,85 @@
 # Getting started on development
 
-## Overview of technologies
+## Setting up the development environment
 
-Below is a non-exhaustive list of technologies in the Pushkin stack. Depending on what you're trying to develop some of these may be absolutely essential or less important. In some cases, we suggest learning resources. If you find other resources that are particularly helpful, please make a pull request to update this page!
+Your first step in Pushkin development is cloning the `pushkin` repo. Your IDE (e.g. VS Code) probably has an easy means of doing this, or you can run the following command in the terminal, which will save the repo in your current working directory:
 
-### Front-end
+```
+git clone https://github.com/pushkin-consortium/pushkin.git && cd pushkin
+```
 
-- **HTML:** A basic building block of websites, most HTML in a Pushkin site lives in conjunction with React tags.
-- **CSS:** How stylings for websites are often declared. Pushkin currently uses a combination of CSS and JS to set the stylings.
-- **React:** A JavaScript library for building interactive user interfaces and single-page applications (SPAs). Pushkin creates your site as an SPA using React.
-    - You’ll want a reasonably thorough grounding in Javascript and React (especially important for working with site templates). We recommend the Codecademy.com [Learn React](https://www.codecademy.com/learn/react-101) course.
-    - For a gentle introduction to SPAs, read this [tutorial](https://auth0.com/blog/beyond-create-react-app-react-router-redux-saga-and-more/), which also describes incorporating authentication with Auth0. Note that this tutorial is slightly out of date in that Auth0 now uses auth0-spa-js for SPAs, and create-react-app suggests using function components rather than class components.
-- **React-Router:** Handles navigation components for setting your page URLs in your SPA.
-    - To work with site templates, you probably want to learn more about routing using React-Router. We use [v5](https://reacttraining.com/blog/react-router-v5/), which is nearly identical to v4. If you read up on React Router, you’ll see a lot of [discussion of dynamic routing](https://github.com/ReactTraining/react-router/blob/master/packages/react-router/docs/guides/philosophy.md), though you can probably safely ignore this. One of the better tutorials available is [here](https://auth0.com/blog/react-router-4-practical-tutorial/), though it’s a bit short.
-- **Redux:** Redux is used to keep track of application-level state variables. In the case of Pushkin, we use React-Redux. A primary use case is keeping track of subject IDs.
-    - The best tutorial we’ve found for React-Redux is [the official one](https://redux.js.org/basics/basic-tutorial). Note that it’s a little out-of-date with regards to the use of object spread syntax (which is now supported by Node) and with how to handle asynchronous requests, for which we use [redux sagas](https://redux-saga.js.org/docs/introduction/). A good place to start on why redux sagas are worth using is [here](https://engineering.universe.com/what-is-redux-saga-c1252fc2f4d1).
-- **jsPsych:** jsPsych creates the experiments themselves within the Pushkin site and collects participants' data.
-    - A solid grasp of jsPsych is essential for developing experiment templates. We recommend consulting their [documentation](https://www.jspsych.org).
-- **Bootstrap:** A framework for building responsive websites that adapt across devices. This includes features like navigation bars and buttons that easily adapt to different window dimensions. In the case of Pushkin, we use React-Bootstrap, which integrates Bootstrap styling into the React SPA.
-- **Aphrodite:** Adds JavaScript-based styling (to update CSS) for React components. Currently, this is used to customize hover styling for the QuizTile icons and buttons but can be imported into other components to add more control over the styling via JavaScript.
+Next you'll need to install the repo's dependencies and build all packages/templates. We'll assume here that you've followed the Pushkin [installation instructions](../getting-started/installation.md#installing-node) and already have Node and Yarn installed. To install dependencies, simply run:
 
-### Back-end and database
+```
+yarn install
+```
 
-- **Node:** The language of the back end. This is used to set up the APIs, set up the server for the site, and more.
-    - You’ll need a decent understanding of Javascript and Node for doing development on the Pushkin CLI.
-- **SQL:** Used to manage the site databases, such as user information and experiment data. Pushkin is designed to use PostgreSQL.
-- **Knex:** A SQL query builder for building, updating, and interacting with Pushkin databases.
-- **RabbitMQ:** A message broker for validation and routing. Routes messages from the API controller for the worker to receive.
-
-### Other
-- **Docker:** A platform for developing, shipping, and running applications. Used for testing your Pushkin site locally and deploying it.
-    - There are a number of tutorials out there on Docker. For ongoing use, this [cheatsheet](https://www.digitalocean.com/community/tutorials/how-to-remove-docker-images-containers-and-volumes) is pretty useful.
-- **Babel:** Compiles the JavaScript used in the Pushkin project to ensure browser compatibility. This means having the ability to use modern JavaScript without losing accessibility for visitors on older browsers.
-- **Auth0:** The service used for authorization to enable logins for site visitors.
-- **Jest:** A JavaScript testing framework. The Pushkin team uses Jest in development of Pushkin packages and templates, but users can also add it to their Pushkin sites and develop their own tests.
-
-## Testing development versions of Pushkin packages and templates
-
-All development tasks are going to start by cloning the `pushkin` repo and running `yarn install` from the root. The repo uses [Yarn workspaces](https://classic.yarnpkg.com/lang/en/docs/workspaces/), so `yarn install` will install the dependencies for all Pushkin packages and templates. At this point, you can run either:
+The repo uses [Yarn workspaces](https://classic.yarnpkg.com/lang/en/docs/workspaces/), so `yarn install` will install the dependencies for all Pushkin packages and templates. Then run:
 
 ```
 yarn workspaces run build
-# Execute build scripts for all packages and templates
+# Executes build scripts for all packages/templates
 ```
 
-or
+If you only want to build a particular package/template (e.g. you're testing updates you've made to that package), you can do that with the following command:
 
 ```
 yarn workspace <package-name> build
-# Build only the particular workspace you're testing
-# (equivalent to `yarn build` from the package root)
+# Equivalent to `yarn build` from the package root
 ```
+
+Finally, if you're using VS Code, we recommend you install the [ESLint extension](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint), so you see code suggestions as you work. Other IDEs may have equivalent extensions/plugins. Even without this extension, ESLint will still run when you commit and automatically fix style and errors when possible. 
+
+## Repo structure
+
+For new developers, the number and diversity of files in the `pushkin` repo might be overwhelming; this section is intended to be a brief explanation of the repo's structure. At a high level, `pushkin` uses a monorepo structure which encompasses all of the source code for the various Pushkin packages and templates, as well as for the documentation. The repo also contains various directories and files that support development and publication of the packages, templates, and docs. Click the annotations below to see descriptions of some of the repo's directories and files:
+
+```bash
+├── .changeset # (1)!
+├── .github
+│   └── workflows # (2)!
+├── .husky
+│   └── pre-commit # (3)!
+├── archive # (4)!
+├── docs # (5)!
+├── packages # (6)!
+├── templates # (7)!
+│   ├── experiments # (8)!
+│   └── sites # (9)!
+├── .gitbook.yaml # (10)!
+├── .gitignore
+├── CITATION.cff # (11)!
+├── LICENSE
+├── README.md
+├── SECURITY.md # (12)!
+├── eslint.config.js # (13)!
+├── mkdocs.yml # (14)!
+├── package.json # (15)!
+├── poetry.lock # (16)!
+├── pyproject.toml # (17)!
+└── yarn.lock # (18)!
+```
+
+1.  Pushkin uses [changesets](https://github.com/atlassian/changesets/blob/main/docs/adding-a-changeset.md) as part of our release workflow. For more information, see our [contribution guidelines](./contributions.md#contributing-to-the-codebase). Inside the `/.changesets` folder, you'll find a configuration file and possibly some changesets for upcoming releases, which always get a random `<adjective>-<noun>-<verb>.md` filename. In some cases, you may need to manually edit a changeset, but typically you'll add a new one by calling `yarn changeset`.
+2.  The `/.github/workflows` folder contains YAML files that specify [GitHub Actions](https://docs.github.com/en/actions/quickstart), which automate tasks like releasing package updates on npm or welcoming new Pushkin contributors.
+3.  Pushkin uses [Husky](https://typicode.github.io/husky/) for pre-commit hooks, meaning we can run certain tasks (e.g.linting and tests) every time a contributor commits.
+4.  The `/archive` folder holds legacy documentation, which will likely be deleted in the future. There should be no reason to edit these files.
+5.  The `/docs` folder holds the source files for the site you're currently reading! See our [documentation instructions](./documentation.md) for more information.
+6.  `/packages` contains the source code for Pushkin CLI and other Pushkin packages. See the [packages overview](../packages/packages-overview.md) for more information.
+7.  `/templates` contains the source code for Pushkin site and experiment templates, which are also implemented as npm packages.
+8.  See the [experiment template overview](../exp-templates/exp-templates-overview.md) for more information.
+9.  See the [site template overview](../site-templates/site-templates-overview.md) for more information.
+10. This is a configuration file for legacy documentation, which will be deleted in the future. There should be no need to edit it until then.
+11. `CITATION.cff` is automatically picked up by GitHub and provides the preferred citation for citing Pushkin.
+12. This is our security policy, which appears on [GitHub](https://github.com/pushkin-consortium/pushkin/security/policy) and this site's [security](./security.md) page.
+13. This is the configuration file for [ESLint](https://eslint.org/), software that automatically corrects style and errors in our code.
+14. `mkdocs.yml` is the configuration file for our documentation. You might need to edit it if you're adding new pages to the docs.
+15. Pushkin uses [Yarn workspaces](https://classic.yarnpkg.com/lang/en/docs/workspaces/) to streamline development of all Pushkin software released on npm (i.e. everything in `/packages` and `/templates`). If you look at one of our released packages (e.g. `pushkin-cli`), it has a more typical `package.json` that (among other things) lists the package's dependencies. The root of a monorepo utilizing workspaces also needs a `package.json`, but you'll notice it is `private`, meaning it's not intended for release on npm. It contains some configuration information for workspaces and scripts that support Pushkin development. Unless you are a Pushkin maintainer, you probably shouldn't have a reason to edit this file.
+16. `poetry.lock` is the Poetry equivalent of the `yarn.lock` file below. You should **not** manually edit this file.
+17. Pushkin is generally a JavaScript project, so you might be surprised to see this Python-related file here; however, Pushkin uses Python via [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) to create our documentation. This file is the equivalent of a `package.json` for Python and tells the Python package manager [Poetry](https://python-poetry.org/) how to set up the build environment for our documentation. This streamlines and standardizes the process of testing and deploying our docs. Unless you are a Pushkin maintainer, you probably shouldn't have a reason to edit this file.
+18. `yarn.lock` tells Yarn exactly what versions of dependencies (and dependencies of dependencies, etc.) it should install in `node_modules`. Because we are using workspaces, this lock file contains dependency information for everything in `/packages` and `/templates` (you'll notice these packages don't have lock files), in addition to the development dependencies for the whole monorepo. You should **not** manually edit this file.
+
+## Testing development versions of Pushkin packages and templates
 
 ### Site and experiment templates
 

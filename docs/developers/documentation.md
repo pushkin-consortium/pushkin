@@ -60,17 +60,16 @@ or (1)
 poetry run mike serve
 ```
 
-You should now be able to view the docs at `http://localhost:8000`.
+You should now be able to view the docs at `http://localhost:8000`. When you're done viewing your changes, press ++ctrl+c++. If you want to preview additional changes, you need to re-run the `deploy` and `serve` scripts.
 
 !!! tip
-    Each time you build the docs, `mike` automatically commits to your local `gh-pages` branch. If you're doing local testing as you compose updates to the docs, you will be left with a bunch of junk commits that you might want to delete. To delete them, run:
+    Each time you build the docs, `mike` automatically commits to your local `gh-pages` branch. If you're doing local testing as you compose updates to the docs, you will be left with a bunch of junk commits on `gh-pages` that you might want to delete. When you've finished your documentation updates and have committed them to your development branch, you can delete your local commits on `gh-pages` by running:
 
     ```
-    git checkout gh-pages
-    git reset --hard origin/gh-pages
+    git checkout gh-pages && git reset --hard origin/gh-pages
     ```
     
-    This will reset your local `gh-pages` branch to the remote state (i.e. whatever is currently deployed on the live site). Make **certain** you've checked out `gh-pages` before running the reset command, as you don't want to accidentally reset your actual development branch.
+    This will reset your local `gh-pages` branch to the remote state (i.e. whatever is currently deployed on the live site). Make **certain** you've checked out `gh-pages` before running the `reset` command, as you don't want to accidentally reset your actual development branch.
 
 ## Public deployment
 

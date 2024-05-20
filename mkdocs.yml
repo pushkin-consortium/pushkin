@@ -12,7 +12,7 @@ theme:
     - search.suggest
     - search.highlight
     - content.tabs.link
-    - content.code.annotation
+    - content.code.annotate
     - content.code.copy
     - toc.follow
   language: en
@@ -46,6 +46,7 @@ markdown_extensions:
       pygments_lang_class: true
       use_pygments: true
   - pymdownx.inlinehilite
+  - pymdownx.keys
   - pymdownx.snippets
   - pymdownx.superfences:
       custom_fences:
@@ -94,6 +95,7 @@ nav:
   - pushkin-client: 'packages/pushkin-client.md'
   - pushkin-worker: 'packages/pushkin-worker.md'
 - Developers: 
+  - Overview of technologies: 'developers/technologies-overview.md'
   - Getting started on development: 'developers/getting-started-on-development.md'
   - Documentation: 'developers/documentation.md'
   - Contributions: 'developers/contributions.md'
