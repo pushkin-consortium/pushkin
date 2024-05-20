@@ -100,6 +100,7 @@ nav:
   - Documentation: 'developers/documentation.md'
   - Contributions: 'developers/contributions.md'
   - Security: 'developers/security.md'
+  - Testing: 'developers/testing.md'
 - Support:
   - Troubleshooting: 'support/troubleshooting.md'
   - GitHub Discussions: 'support/github-discussions.md'
