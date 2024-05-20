@@ -1,6 +1,6 @@
 {
   "name": "pushkin-worker",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "description": "A basic starter worker used to communicate between a Pushkin API and databases",
   "main": "build/index.js",
   "files": [
@@ -34,9 +34,8 @@
     "eslint": "^7.5.0"
   },
   "dependencies": {
-    "@babel/polyfill": "^7.7.0",
-    "amqplib": "^0.6.0",
-    "core-js": "^3.4.5",
+    "amqplib": "^0.10.3",
+    "core-js": "^3.23.3",
     "knex": "^2.4.2",
     "pg": "^8.11.0",
     "regenerator-runtime": "^0.13.3"
