@@ -10,6 +10,8 @@ import { migrateTransactionsDB, runMigrations, getMigrations } from '../setupdb/
 import { updatePushkinJs, readConfig } from '../prep/index.js'
 import inquirer from 'inquirer'
 import { kill } from 'process';
+const crypto = require('crypto');
+
 const exec = util.promisify(require('child_process').exec);
 const mkdir = util.promisify(require('fs').mkdir);
 
@@ -519,7 +521,21 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
 
   let needDB = await doINeedDB(dbName, dbType, useIAM)
   if (needDB) {
-    dbPassword = Math.random().toString() //Pick random password for database
+    // Function to generate a secure random password
+    const generateSecurePassword = () => {
+      const length = 12; 
+      const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+';
+      let password = '';
+      
+      for (let i = 0; i < length; i++) {
+          const randomIndex = crypto.randomInt(0, charset.length);
+          password += charset[randomIndex];
+      }
+      
+      return password;
+    };
+
+    dbPassword = generateSecurePassword() //Pick random password for database
     let myDBConfig = JSON.parse(JSON.stringify(dbConfig));
     myDBConfig.DBName = dbName
     myDBConfig.DBInstanceIdentifier = dbName
