@@ -1240,7 +1240,8 @@ const addDevPackage = (pkg, location, component, componentPath, revert, verbose)
     }
     if (updatePkgJson) {
       try {
-        fs.promises.writeFile(
+        // Using synchronous write here, since yalc needs to read/write the package.json file too
+        fs.writeFileSync(
           path.join(componentPath, "package.json"),
           JSON.stringify(pkgJson, null, 2),
         );
@@ -1262,7 +1263,9 @@ const addDevPackage = (pkg, location, component, componentPath, revert, verbose)
         path.join(componentPath, `.${pkg}-revert-version`),
         "utf8",
       );
-      exec(`yalc remove ${pkg} && ${pacMan} add ${pkg}@${revertVersion}`, { cwd: componentPath });
+      execSync(`yalc remove ${pkg} && ${pacMan} add ${pkg}@${revertVersion}`, {
+        cwd: componentPath,
+      });
     } catch (e) {
       console.error(
         `Problem reverting to published version of ${pkg} in ${location} ${component}`,
@@ -1274,7 +1277,7 @@ const addDevPackage = (pkg, location, component, componentPath, revert, verbose)
     // Substitute the local dev version of the package
     if (verbose) console.log(`Adding dev version of ${pkg} in ${location} ${component}`);
     try {
-      exec(`yalc add ${pkg}`, { cwd: componentPath });
+      execSync(`yalc add ${pkg}`, { cwd: componentPath });
     } catch (e) {
       console.error(`Problem adding dev version of ${pkg} in ${location} ${component}`, e);
       process.exit(1);
@@ -1337,7 +1340,8 @@ const updateWorkerDockerfile = (experiment, componentPath, revert, verbose) => {
 };
 
 /**
- * Substitute a local development version of a Pushkin utility package
+ * The main function for the `use-dev` command
+ * Substitutes a local development version of a Pushkin utility package
  * @param {string[]} packages The Pushkin utility packages to substitute
  * @param {string} pkgsPath The path to the directory containing the dev Pushkin packages
  * @param {string[]} workerExps The experiments to update with a dev version of pushkin-worker
@@ -1345,16 +1349,19 @@ const updateWorkerDockerfile = (experiment, componentPath, revert, verbose) => {
  * @param {boolean} revert Revert to the previously used published versions of Pushkin utilities
  * @param {boolean} verbose Output extra information to the console for debugging purposes
  */
-const useDevUtilities = async (packages, pkgsPath, workerExps, update, revert, verbose) => {
-  if (verbose) console.log("--verbose flag set inside useDevUtilities()");
-  packages.forEach(async (pkg) => {
+const handleUseDev = (packages, pkgsPath, workerExps, update, revert, verbose) => {
+  if (verbose) console.log("--verbose flag set inside handleUseDev()");
+  for (const pkg of packages) {
+    // Using a for loop here instead of forEach() to loop over the packages
+    // since it seemed like there were race conditions related to the yalc commands,
+    // specifically with yalc writing to the installations.json file in the local package store
     if (!revert) {
       // Build and locally publish the specified package(s)
       if (verbose) console.log(`Building and locally publishing ${pkg}`);
       try {
         // If the user is updating the dev version, `yalc push` is all they need
         const yalcCommand = update ? "push" : "publish";
-        exec(`yarn build && yalc ${yalcCommand}`, { cwd: path.join(pkgsPath, pkg) });
+        execSync(`yarn build && yalc ${yalcCommand}`, { cwd: path.join(pkgsPath, pkg) });
         if (verbose && update) console.log(`Pushed updates to dev ${pkg}`);
       } catch (e) {
         console.error(`Problem building or locally publishing ${pkg}`, e);
@@ -1374,7 +1381,8 @@ const useDevUtilities = async (packages, pkgsPath, workerExps, update, revert, v
       const expDir = path.join(process.cwd(), "experiments");
       // If the package is pushkin-worker and the --experiments option was used, only update the specified experiments
       const exps = pkg === "pushkin-worker" && workerExps ? workerExps : fs.readdirSync(expDir);
-      exps.forEach((exp) => {
+      for (const exp of exps) {
+        // See comment above about using a for loop instead of forEach() to avoid race conditions
         const componentMap = {
           "pushkin-client": "web page",
           "pushkin-api": "api controllers",
@@ -1388,9 +1396,9 @@ const useDevUtilities = async (packages, pkgsPath, workerExps, update, revert, v
         if (pkg === "pushkin-worker") {
           updateWorkerDockerfile(exp, expComponentPath, revert, verbose);
         }
-      });
+      }
     }
-  });
+  }
 };
 
 /**
@@ -1645,7 +1653,7 @@ async function main() {
         }
       }
       // Integrate the dev package(s) into the site
-      useDevUtilities(
+      handleUseDev(
         packageList,
         options.path,
         options.experiments,
