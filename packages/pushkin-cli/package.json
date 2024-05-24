@@ -11,7 +11,7 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "babel src -d build",
+    "build": "babel --root-mode upward src -d build",
     "prepack": "cp ../../LICENSE ."
   },
   "keywords": [
@@ -20,15 +20,16 @@
   ],
   "author": "L3",
   "license": "MIT",
-  "devDependencies": {
-    "@babel/cli": "^7.10.5",
-    "@babel/core": "^7.10.5",
-    "@babel/preset-env": "^7.10.4",
-    "babel-eslint": "^10.1.0",
-    "eslint": "^7.5.0",
-    "eslint-config-airbnb-base": "^14.2.0",
-    "eslint-plugin-import": "^2.22.0"
+  "homepage": "https://pushkin-consortium.github.io/pushkin",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pushkin-consortium/pushkin.git",
+    "directory": "packages/pushkin-cli"
   },
+  "bugs": {
+    "url": "https://github.com/pushkin-consortium/pushkin/issues"
+  },
+  "devDependencies": {},
   "dependencies": {
     "balanced-match": "^1.0.0",
     "command-line-args": "^5.1.1",
@@ -45,7 +46,6 @@
     "regenerator-runtime": "^0.13.5",
     "replace-in-file": "^6.1.0",
     "shelljs": "^0.8.4",
-    "tar": "^6.0.2",
     "uuid": "^8.3.0"
   }
 }

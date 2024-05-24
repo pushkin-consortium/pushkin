@@ -28,7 +28,11 @@ const FindingsCard = props => {
     <Card className="mt-5 border-0 shadow" style={styles.card}>
       <Row>
         <Col md={5}>
-          <Card.Img src={props.image} style={styles.cardImage} />
+          <Card.Img 
+            src={props.image} 
+            alt={props.name} 
+            style={styles.cardImage} 
+          />
         </Col>
         <Col md={7}>
           <Card.Body>

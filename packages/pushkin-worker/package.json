@@ -11,20 +11,21 @@
     "build": "babel src -d build",
     "prepack": "cp ../../LICENSE ."
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/pushkin-consortium/pushkin-worker.git"
-  },
   "keywords": [
     "pushkin",
     "worker"
   ],
   "author": "L3",
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/pushkin-consortium/pushkin-worker/issues"
+  "homepage": "https://pushkin-consortium.github.io/pushkin",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pushkin-consortium/pushkin.git",
+    "directory": "packages/pushkin-worker"
   },
-  "homepage": "https://github.com/pushkin-consortium/pushkin-worker#readme",
+  "bugs": {
+    "url": "https://github.com/pushkin-consortium/pushkin/issues"
+  },
   "devDependencies": {
     "@babel/cli": "^7.7.4",
     "@babel/core": "^7.7.4",
