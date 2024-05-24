@@ -48,16 +48,17 @@ For new developers, the number and diversity of files in the `pushkin` repo migh
 │   └── sites # (9)!
 ├── .gitbook.yaml # (10)!
 ├── .gitignore
-├── CITATION.cff # (11)!
+├── babel.config.json # (11)!
+├── CITATION.cff # (12)!
 ├── LICENSE
 ├── README.md
-├── SECURITY.md # (12)!
-├── eslint.config.js # (13)!
-├── mkdocs.yml # (14)!
-├── package.json # (15)!
-├── poetry.lock # (16)!
-├── pyproject.toml # (17)!
-└── yarn.lock # (18)!
+├── SECURITY.md # (13)!
+├── eslint.config.js # (14)!
+├── mkdocs.yml # (15)!
+├── package.json # (16)!
+├── poetry.lock # (17)!
+├── pyproject.toml # (18)!
+└── yarn.lock # (19)!
 ```
 
 1.  Pushkin uses [changesets](https://github.com/atlassian/changesets/blob/main/docs/adding-a-changeset.md) as part of our release workflow. For more information, see our [contribution guidelines](./contributions.md#contributing-to-the-codebase). Inside the `/.changesets` folder, you'll find a configuration file and possibly some changesets for upcoming releases, which always get a random `<adjective>-<noun>-<verb>.md` filename. In some cases, you may need to manually edit a changeset, but typically you'll add a new one by calling `yarn changeset`.
@@ -70,14 +71,15 @@ For new developers, the number and diversity of files in the `pushkin` repo migh
 8.  See the [experiment template overview](../exp-templates/exp-templates-overview.md) for more information.
 9.  See the [site template overview](../site-templates/site-templates-overview.md) for more information.
 10. This is a configuration file for legacy documentation, which will be deleted in the future. There should be no need to edit it until then.
-11. `CITATION.cff` is automatically picked up by GitHub and provides the preferred citation for citing Pushkin.
-12. This is our security policy, which appears on [GitHub](https://github.com/pushkin-consortium/pushkin/security/policy) and this site's [security](./security.md) page.
-13. This is the configuration file for [ESLint](https://eslint.org/), software that automatically corrects style and errors in our code.
-14. `mkdocs.yml` is the configuration file for our documentation. You might need to edit it if you're adding new pages to the docs.
-15. Pushkin uses [Yarn workspaces](https://classic.yarnpkg.com/lang/en/docs/workspaces/) to streamline development of all Pushkin software released on npm (i.e. everything in `/packages` and `/templates`). If you look at one of our released packages (e.g. `pushkin-cli`), it has a more typical `package.json` that (among other things) lists the package's dependencies. The root of a monorepo utilizing workspaces also needs a `package.json`, but you'll notice it is `private`, meaning it's not intended for release on npm. It contains some configuration information for workspaces and scripts that support Pushkin development. Unless you are a Pushkin maintainer, you probably shouldn't have a reason to edit this file.
-16. `poetry.lock` is the Poetry equivalent of the `yarn.lock` file below. You should **not** manually edit this file.
-17. Pushkin is generally a JavaScript project, so you might be surprised to see this Python-related file here; however, Pushkin uses Python via [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) to create our documentation. This file is the equivalent of a `package.json` for Python and tells the Python package manager [Poetry](https://python-poetry.org/) how to set up the build environment for our documentation. This streamlines and standardizes the process of testing and deploying our docs. Unless you are a Pushkin maintainer, you probably shouldn't have a reason to edit this file.
-18. `yarn.lock` tells Yarn exactly what versions of dependencies (and dependencies of dependencies, etc.) it should install in `node_modules`. Because we are using workspaces, this lock file contains dependency information for everything in `/packages` and `/templates` (you'll notice these packages don't have lock files), in addition to the development dependencies for the whole monorepo. You should **not** manually edit this file.
+11. This is the configuration file for [Babel](https://babel.dev/), which we use to transpile source code for Pushkin packages. Note this configuration file does not apply to internal packages within templates (e.g. experiments' `web page` components). Those have have their own config files, which are utilized in the user's site.
+12. `CITATION.cff` is automatically picked up by GitHub and provides the preferred citation for citing Pushkin.
+13. This is our security policy, which appears on [GitHub](https://github.com/pushkin-consortium/pushkin/security/policy) and this site's [security](./security.md) page.
+14. This is the configuration file for [ESLint](https://eslint.org/), software that automatically corrects style and errors in our code.
+15. `mkdocs.yml` is the configuration file for our documentation. You might need to edit it if you're adding new pages to the docs.
+16. Pushkin uses [Yarn workspaces](https://classic.yarnpkg.com/lang/en/docs/workspaces/) to streamline development of all Pushkin software released on npm (i.e. everything in `/packages` and `/templates`). If you look at one of our released packages (e.g. `pushkin-cli`), it has a more typical `package.json` that (among other things) lists the package's dependencies. The root of a monorepo utilizing workspaces also needs a `package.json`, but you'll notice it is `private`, meaning it's not intended for release on npm. It contains some configuration information for workspaces and scripts that support Pushkin development. Unless you are a Pushkin maintainer, you probably shouldn't have a reason to edit this file.
+17. `poetry.lock` is the Poetry equivalent of the `yarn.lock` file below. You should **not** manually edit this file.
+18. Pushkin is generally a JavaScript project, so you might be surprised to see this Python-related file here; however, Pushkin uses Python via [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) to create our documentation. This file is the equivalent of a `package.json` for Python and tells the Python package manager [Poetry](https://python-poetry.org/) how to set up the build environment for our documentation. This streamlines and standardizes the process of testing and deploying our docs. Unless you are a Pushkin maintainer, you probably shouldn't have a reason to edit this file.
+19. `yarn.lock` tells Yarn exactly what versions of dependencies (and dependencies of dependencies, etc.) it should install in `node_modules`. Because we are using workspaces, this lock file contains dependency information for everything in `/packages` and `/templates` (you'll notice these packages don't have lock files), in addition to the development dependencies for the whole monorepo. You should **not** manually edit this file.
 
 ## Testing development versions of Pushkin packages and templates
 
