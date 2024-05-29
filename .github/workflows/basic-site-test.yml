@@ -1,0 +1,36 @@
+name: Basic site test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  site-test:
+    runs-on: ubuntu-latest
+    steps:
+        - uses: actions/checkout@v4
+  
+        - name: Setup Node.js 20
+          uses: actions/setup-node@v4
+          with:
+            node-version: '20'
+  
+        - name: Install Dependencies
+          run: yarn install --frozen-lockfile
+  
+        - name: Build packages
+          run: yarn workspaces run build
+
+        - name: Setup and start a basic Pushkin site
+          run: |
+            export PATH="$(yarn global bin):$PATH"
+            yarn global add yalc
+            mkdir testing && cd testing
+            node ../packages/pushkin-cli/build/index.js i site --path ${{ github.workspace }}//templates/sites/basic -v
+            node ../packages/pushkin-cli/build/index.js i exp --all ${{ github.workspace }}/templates/experiments -v
+            node ../packages/pushkin-cli/build/index.js use-dev api client worker --path ${{ github.workspace }}/packages -v
+            node ../packages/pushkin-cli/build/index.js prep -v
+            yarn test
+            node ../packages/pushkin-cli/build/index.js start -v
+        
+        - name: Fetch homepage content
+          run: curl http://localhost:80
