@@ -1,13 +1,18 @@
+const fs = require("fs");
 const puppeteer = require("puppeteer");
 const url = "http://localhost:80/";
 let browser;
 let page;
-const expNames = [
-  "basic_path",
-  "grammaticality-judgment_path",
-  //"lexical-decision_path",
-  "self-paced-reading_path",
-];
+let expNames;
+
+// If the pushkin.yaml file exists, we are in the user's site after template installation
+if (fs.existsSync("pushkin.yaml")) {
+  // Read from the site's experiments directory
+  expNames = fs.readdirSync("experiments");
+} else {
+  // Read from the repo's experiment templates directory and add "_path"
+  expNames = fs.readdirSync("templates/experiments").map((template) => `${template}_path`);
+}
 
 beforeEach(async () => {
   browser = await puppeteer.launch();
@@ -34,7 +39,7 @@ describe.each(expNames)("Experiment: %s", (expName) => {
     const expCards = await page.$$(".card-body");
     const expCard = expCards.filter(async (card) => {
       const cardText = await card.evaluate((el) => el.textContent);
-      return cardText.includes(`${expName}`);
+      return cardText === expName;
     })[0];
     const expImg = await expCard.$("img");
     await expImg.click();
@@ -52,7 +57,7 @@ describe("Basic experiment", () => {
     const expCards = await page.$$(".card-body");
     const expCard = expCards.filter(async (card) => {
       const cardText = await card.evaluate((el) => el.textContent);
-      return cardText.includes("basic");
+      return cardText === "basic";
     })[0];
     const expImg = await expCard.$("img");
     await expImg.click();

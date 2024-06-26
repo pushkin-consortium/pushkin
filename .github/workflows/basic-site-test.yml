@@ -37,13 +37,12 @@ jobs:
       
       - name: Run end-to-end tests
         run: |
-          for i in {1..12}
-          do
-            if curl --output /dev/null --silent --head --fail http://localhost:80; then
-              break
-            fi
-            echo 'Waiting for the server to start...'
-            sleep 5
-          done
-          curl http://localhost:80
+          # for i in {1..12}
+          # do
+          #   if curl --output /dev/null --silent --head --fail http://localhost:80; then
+          #     break
+          #   fi
+          #   echo 'Waiting for the server to start...'
+          #   sleep 5
+          # done
           yarn test:e2e
