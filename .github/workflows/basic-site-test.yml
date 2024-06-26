@@ -35,7 +35,7 @@ jobs:
           yarn test
           node ../packages/pushkin-cli/build/index.js start -v
       
-      - name: Fetch homepage content
+      - name: Run end-to-end tests
         run: |
           for i in {1..12}
           do
@@ -46,3 +46,4 @@ jobs:
             sleep 5
           done
           curl http://localhost:80
+          yarn test:e2e

@@ -10,6 +10,7 @@ const onlyWarn = require("eslint-plugin-only-warn");
 // It's active in the config without the var being used, hence the eslint-disable-next-line
 const jsdoc = require("eslint-plugin-jsdoc");
 const react = require("eslint-plugin-react");
+const jest = require("eslint-plugin-jest");
 const { fixupPluginRules } = require("@eslint/compat");
 
 // const importPlugin = require("eslint-plugin-import");
@@ -23,12 +24,22 @@ const { fixupPluginRules } = require("@eslint/compat");
 const monorepoConfig = {
   ...js.configs.recommended,
   ...jsdoc.configs["flat/recommended"],
+  ...jest.configs["flat/recommended"],
   languageOptions: {
     sourceType: "commonjs",
+    globals: {
+      ...globals.node,
+      ...globals.jest,
+    },
+  },
+  plugins: {
+    jsdoc,
+    jest,
   },
   rules: {
     ...js.configs.recommended.rules,
     ...jsdoc.configs["flat/recommended"].rules,
+    ...jest.configs["flat/recommended"].rules,
     "jsdoc/require-jsdoc": [
       "error",
       {

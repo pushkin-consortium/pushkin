@@ -21,9 +21,10 @@
     "build/*"
   ],
   "scripts": {
-    "test": "jest",
     "build": "mkdir -p build && cd src && zip -FS -r -q ../build/template.zip . -x \"*/node_modules/*\" -x \"*/build/*\" && cd .. && zip -u -q build/template.zip jest.config.js babel.config.js",
-    "prepack": "cp ../../../LICENSE ."
+    "prepack": "cp ../../../LICENSE .",
+    "test": "jest",
+    "test:e2e": "jest --config jest.config.e2e.js"
   },
   "devDependencies": {
     "@reduxjs/toolkit": "^2.2.2",
@@ -48,6 +49,7 @@
     "@babel/core": "^7.23.6",
     "@babel/preset-env": "^7.23.6",
     "@babel/preset-react": "^7.23.3",
-    "jest-environment-jsdom": "^29.7.0"
+    "jest-environment-jsdom": "^29.7.0",
+    "puppeteer": "^22.10.0"
   }
 }
