@@ -35,14 +35,17 @@ jobs:
           yarn test
           node ../packages/pushkin-cli/build/index.js start -v
       
-      - name: Run end-to-end tests
+      - name: Wait for the server to start
         run: |
-          # for i in {1..12}
-          # do
-          #   if curl --output /dev/null --silent --head --fail http://localhost:80; then
-          #     break
-          #   fi
-          #   echo 'Waiting for the server to start...'
-          #   sleep 5
-          # done
-          yarn test:e2e
+          # Wait up to a minute 
+          for i in {1..12}
+          do
+            if curl --output /dev/null --silent --head --fail http://localhost:80; then
+              break
+            fi
+            echo 'Waiting for the server to start...'
+            sleep 5
+          done
+      
+      - name: Run end-to-end tests
+        run: yarn test:e2e
