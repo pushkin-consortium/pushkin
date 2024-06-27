@@ -1,18 +1,48 @@
 const fs = require("fs");
+const knex = require("knex");
+const jsYaml = require("js-yaml");
 const puppeteer = require("puppeteer");
 const url = "http://localhost:80/";
 let browser;
 let page;
 let expNames;
+let db;
+const connection = {};
 
 // If the pushkin.yaml file exists, we are in the user's site after template installation
 if (fs.existsSync("pushkin.yaml")) {
   // Read from the site's experiments directory
   expNames = fs.readdirSync("experiments");
+  // Get the database connection info from pushkin.yaml
+  const pushkinConfig = jsYaml.safeLoad(fs.readFileSync("pushkin.yaml", "utf8"));
+  connection.host = pushkinConfig.databases.localtestdb.url;
+  connection.database = pushkinConfig.databases.localtestdb.name;
+  connection.port = pushkinConfig.databases.localtestdb.port;
+  connection.user = pushkinConfig.databases.localtestdb.user;
+  connection.password = pushkinConfig.databases.localtestdb.password;
 } else {
   // Read from the repo's experiment templates directory and add "_path"
   expNames = fs.readdirSync("templates/experiments").map((template) => `${template}_path`);
+  // Fill in the default database connection info
+  connection.host = "localhost";
+  connection.database = "test_db";
+  connection.port = "5432";
+  connection.user = "postgres";
+  connection.password = "example";
 }
+
+beforeAll(() => {
+  // Open the database connection
+  db = knex({
+    client: "pg",
+    connection: connection,
+  });
+});
+
+afterAll(() => {
+  // Close the database connection
+  return db.destroy();
+});
 
 beforeEach(async () => {
   browser = await puppeteer.launch();
@@ -53,21 +83,29 @@ describe.each(expNames)("Experiment: %s", (expName) => {
 });
 
 describe("Basic experiment", () => {
-  test("should log data", async () => {
+  test("should log data correctly", async () => {
     const expCards = await page.$$(".card-body");
     const expCard = expCards.filter(async (card) => {
       const cardText = await card.evaluate((el) => el.textContent);
-      return cardText === "basic";
+      return cardText.includes("basic");
     })[0];
     const expImg = await expCard.$("img");
     await expImg.click();
     await page.waitForSelector("#jsPsychTarget");
     await page.waitForNetworkIdle();
     await page.keyboard.press("f");
-    // Get the timestamp for the data row
-    const timestamp = Date.now();
-    console.log(timestamp);
+    // Get the timestamp for the trial
+    const trialTimeWeb = Date.now() / 1000; // convert to seconds
     // Check that the data was logged in the database
-    console.log(new Date("2024-06-26 15:00:10.335+00").getTime());
+    const data = await db // Fetch only the most recent row
+      .select()
+      .from("basic_path_stimulusResponses")
+      .orderBy("created_at", "desc")
+      .first();
+    const trialTimeDB = new Date(data.created_at).getTime() / 1000; // convert to seconds
+    expect(data).not.toBeNull();
+    expect(data.stimulus).toBe("Hello, world!");
+    expect(data.response.response).toBe("f");
+    expect(trialTimeDB).toBeCloseTo(trialTimeWeb, 1); // within 50 milliseconds
   });
 });
