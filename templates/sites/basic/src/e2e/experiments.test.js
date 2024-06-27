@@ -104,7 +104,14 @@ describe("Basic experiment", () => {
       .first();
     const trialTimeDB = new Date(data.created_at).getTime() / 1000; // convert to seconds
     expect(data).not.toBeNull();
-    expect(data.stimulus).toBe("Hello, world!");
+    expect(data.response).toEqual(
+      expect.objectContaining({
+        rt: expect.any(Number),
+        stimulus: expect.any(String),
+        response: expect.any(String),
+      }),
+    );
+    expect(data.response.stimulus).toBe("Hello, world!");
     expect(data.response.response).toBe("f");
     expect(trialTimeDB).toBeCloseTo(trialTimeWeb, 1); // within 50 milliseconds
   });
