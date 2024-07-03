@@ -64,7 +64,8 @@ const babelConfig = {
   files: [
     "packages/*/src/**/*.js",
     "templates/sites/*/src/pushkin/*/src/**/*.js",
-    "templates/experiments/*/src/*/src/**/*.js",],
+    "templates/experiments/*/src/*/src/**/*.js",
+  ],
   plugins: {
     "@babel": babelPlugin,
   },

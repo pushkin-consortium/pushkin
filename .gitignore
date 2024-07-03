@@ -85,3 +85,9 @@ venv/
 
 # VS Code files
 .vscode/
+
+# Playwright files
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/

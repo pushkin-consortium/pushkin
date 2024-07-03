@@ -28,7 +28,7 @@ jobs:
           export PATH="$(yarn global bin):$PATH"
           yarn global add yalc
           mkdir testing && cd testing
-          node ../packages/pushkin-cli/build/index.js i site --path ${{ github.workspace }}//templates/sites/basic -v
+          node ../packages/pushkin-cli/build/index.js i site --path ${{ github.workspace }}/templates/sites/basic -v
           node ../packages/pushkin-cli/build/index.js i exp --all ${{ github.workspace }}/templates/experiments -v
           node ../packages/pushkin-cli/build/index.js use-dev api client worker --path ${{ github.workspace }}/packages -v
           node ../packages/pushkin-cli/build/index.js prep -v
