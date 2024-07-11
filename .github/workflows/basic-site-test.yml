@@ -50,6 +50,7 @@ jobs:
       - name: Run end-to-end tests
         run: |
           cd testing
+          yarn playwright install --with-deps
           yarn test:e2e
 
       - uses: actions/upload-artifact@v4
