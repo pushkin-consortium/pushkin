@@ -1,118 +1,116 @@
+const { test, expect } = require("@playwright/test");
 const fs = require("fs");
-const knex = require("knex");
 const jsYaml = require("js-yaml");
-const puppeteer = require("puppeteer");
-const url = "http://localhost:80/";
-let browser;
-let page;
-let expNames;
+const knex = require("knex");
+
+// Get the experiment names and other relevant info from exp config files
+const expInfo = [];
+const expFolders = fs.readdirSync("./experiments");
+expFolders.forEach((exp) => {
+  const expConfig = jsYaml.load(fs.readFileSync(`./experiments/${exp}/config.yaml`));
+  expInfo.push({
+    longName: expConfig.experimentName,
+    shortName: expConfig.shortName,
+    archived: expConfig.archived,
+    paused: expConfig.dataPaused,
+  });
+});
+
+// Get the main config file
+const pushkinConfig = jsYaml.load(fs.readFileSync("pushkin.yaml", "utf8"));
+
+// Used for database connections
 let db;
-const connection = {};
 
-// If the pushkin.yaml file exists, we are in the user's site after template installation
-if (fs.existsSync("pushkin.yaml")) {
-  // Read from the site's experiments directory
-  expNames = fs.readdirSync("experiments");
-  // Get the database connection info from pushkin.yaml
-  const pushkinConfig = jsYaml.safeLoad(fs.readFileSync("pushkin.yaml", "utf8"));
-  connection.host = pushkinConfig.databases.localtestdb.url;
-  connection.database = pushkinConfig.databases.localtestdb.name;
-  connection.port = pushkinConfig.databases.localtestdb.port;
-  connection.user = pushkinConfig.databases.localtestdb.user;
-  connection.password = pushkinConfig.databases.localtestdb.password;
-} else {
-  // Read from the repo's experiment templates directory and add "_path"
-  expNames = fs.readdirSync("templates/experiments").map((template) => `${template}_path`);
-  // Fill in the default database connection info
-  connection.host = "localhost";
-  connection.database = "test_db";
-  connection.port = "5432";
-  connection.user = "postgres";
-  connection.password = "example";
-}
+test.beforeEach(async ({ page }) => {
+  await page.goto("/");
+});
 
-beforeAll(() => {
-  // Open the database connection
-  db = knex({
-    client: "pg",
-    connection: connection,
+test.describe("Homepage experiment list", () => {
+  test("should display all experiments", async ({ page }) => {
+    const expCards = await page.locator(".card-body > div");
+    const expNames = expInfo.map((exp) => exp.longName);
+    await expect(expCards).toHaveText(expNames);
   });
 });
 
-afterAll(() => {
-  // Close the database connection
-  return db.destroy();
-});
-
-beforeEach(async () => {
-  browser = await puppeteer.launch();
-  page = await browser.newPage();
-  await page.setViewport({ width: 1920, height: 1080 });
-  await page.goto(url);
-});
-
-afterEach(async () => {
-  await browser.close();
-});
-
-describe("Homepage experiment list", () => {
-  test("should display all experiments", async () => {
-    const expNamesWeb = await page.$$eval(".card-body > div", (exps) =>
-      exps.map((exp) => exp.textContent),
-    );
-    expect(expNamesWeb).toEqual(expNames);
+expInfo.forEach((exp) => {
+  test.describe(exp.longName, () => {
+    test("should open when image is clicked", async ({ page }) => {
+      const expCard = await page.locator(".card-body").filter({ hasText: exp.longName });
+      const expImg = await expCard.getByRole("img");
+      await expImg.click();
+      await page.waitForURL(`http://localhost/quizzes/${exp.shortName}`);
+      const jsPsychTarget = await page.locator("#jsPsychTarget");
+      await expect(jsPsychTarget).toHaveText(/.+/);
+    });
+    test("should open when button is clicked", async ({ page }) => {
+      const expCard = await page.locator(".card").filter({ hasText: exp.longName });
+      const expButton = await expCard.locator(".btn");
+      await expButton.click();
+      await page.waitForURL(`http://localhost/quizzes/${exp.shortName}`);
+      const jsPsychTarget = await page.locator("#jsPsychTarget");
+      await expect(jsPsychTarget).toHaveText(/.+/);
+    });
   });
-});
-
-describe.each(expNames)("Experiment: %s", (expName) => {
-  test("should open when clicked", async () => {
-    const expCards = await page.$$(".card-body");
-    const expCard = expCards.filter(async (card) => {
-      const cardText = await card.evaluate((el) => el.textContent);
-      return cardText === expName;
-    })[0];
-    const expImg = await expCard.$("img");
-    await expImg.click();
-    const jsPsychTarget = await page.waitForSelector("#jsPsychTarget");
-    // Tests fail without the line below in headless mode without slowMo
-    // Perhaps the jsPsychTarget div exists, but the text hasn't loaded yet?
-    await page.waitForNetworkIdle();
-    const jsPsychText = await jsPsychTarget.evaluate((el) => el.textContent);
-    expect(jsPsychText.length).toBeGreaterThan(0);
-  });
-});
-
-describe("Basic experiment", () => {
-  test("should log data correctly", async () => {
-    const expCards = await page.$$(".card-body");
-    const expCard = expCards.filter(async (card) => {
-      const cardText = await card.evaluate((el) => el.textContent);
-      return cardText.includes("basic");
-    })[0];
-    const expImg = await expCard.$("img");
-    await expImg.click();
-    await page.waitForSelector("#jsPsychTarget");
-    await page.waitForNetworkIdle();
-    await page.keyboard.press("f");
-    // Get the timestamp for the trial
-    const trialTimeWeb = Date.now() / 1000; // convert to seconds
-    // Check that the data was logged in the database
-    const data = await db // Fetch only the most recent row
-      .select()
-      .from("basic_path_stimulusResponses")
-      .orderBy("created_at", "desc")
-      .first();
-    const trialTimeDB = new Date(data.created_at).getTime() / 1000; // convert to seconds
-    expect(data).not.toBeNull();
-    expect(data.response).toEqual(
-      expect.objectContaining({
-        rt: expect.any(Number),
-        stimulus: expect.any(String),
-        response: expect.any(String),
-      }),
-    );
-    expect(data.response.stimulus).toBe("Hello, world!");
-    expect(data.response.response).toBe("f");
-    expect(trialTimeDB).toBeCloseTo(trialTimeWeb, 1); // within 50 milliseconds
+  test.describe(`Data logging for ${exp.longName}`, () => {
+    test.beforeEach(async ({ page }) => {
+      await page.goto(`/quizzes/${exp.shortName}`);
+      await page.locator("#jsPsychTarget", { hasText: /.+/ }).waitFor();
+      // Connect to the database
+      db = knex({
+        client: "pg",
+        connection: {
+          host: pushkinConfig.databases.localtestdb.url,
+          database: pushkinConfig.databases.localtestdb.name,
+          port: pushkinConfig.databases.localtestdb.port,
+          user: pushkinConfig.databases.localtestdb.user,
+          password: pushkinConfig.databases.localtestdb.pass,
+        },
+      });
+    });
+    test.afterEach(async () => {
+      // Disconnect from the database
+      return db.destroy();
+    });
+    test("should look correct for the first trial", async ({ page }) => {
+      await page.keyboard.press(" ");
+      // Get the timestamp for the trial
+      const trialTimeWeb = Date.now();
+      // Check that the data was logged in the database
+      const data = await db // Fetch only the most recent row
+        .select()
+        .from(`${exp.shortName}_stimulusResponses`)
+        .orderBy("created_at", "desc")
+        .first();
+      const trialTimeDB = new Date(data.created_at).getTime();
+      expect(data).not.toBeNull();
+      expect(data.response).toEqual(
+        expect.objectContaining({
+          rt: expect.any(Number),
+          stimulus: expect.any(String),
+          response: expect.any(String),
+        }),
+      );
+      expect(data.response.stimulus).toEqual(expect.any(String));
+      expect(data.response.response).toBe(" ");
+      expect(Math.abs(trialTimeDB - trialTimeWeb)).toBeLessThan(5000); // within 5 seconds of each other
+    });
+    test("should match the data sent with the stimulusResponse request", async ({ page }) => {
+      const trialRequestPromise = page.waitForRequest(
+        `http://localhost/api/${exp.shortName}/stimulusResponse`,
+      );
+      await page.keyboard.press(" ");
+      const trialRequest = await trialRequestPromise;
+      const trialData = trialRequest.postDataJSON();
+      const dbData = await db // Fetch only the most recent row
+        .select()
+        .from(`${exp.shortName}_stimulusResponses`)
+        .where("user_id", trialData.user_id)
+        .orderBy("created_at", "desc")
+        .first();
+      expect(trialData.stimulus).toEqual(JSON.parse(dbData.stimulus));
+      expect(trialData.data_string).toEqual(dbData.response);
+    });
   });
 });

@@ -9,7 +9,6 @@
     "docs:serve": "poetry run mike serve",
     "release": "yarn workspaces run build && yarn changeset publish",
     "test": "jest",
-    "test:e2e": "jest --config templates/sites/basic/jest.config.e2e.js",
     "prepare": "husky"
   },
   "devDependencies": {
