@@ -35,7 +35,17 @@ export const initSite = async (verbose) => {
     }
     try {
       // Make sure files with passwords don't get pushed to GitHub
-      const ignoreFiles = ["pushkin.yaml", ".docker", ".DS_Store", "node_modules", "build"];
+      const ignoreFiles = [
+        "pushkin.yaml",
+        ".docker",
+        ".DS_Store",
+        "node_modules",
+        "build",
+        "test-results/",
+        "playwright-report/",
+        "blob-report/",
+        "playwright/.cache/",
+      ];
       fs.writeFileSync(".gitignore", ignoreFiles.join("\n"));
     } catch (e) {
       console.error("Unable to write .gitignore during site template setup", e);

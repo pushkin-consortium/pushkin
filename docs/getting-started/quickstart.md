@@ -33,20 +33,21 @@ pushkin install site
 You will be asked where you want to look for a site template. Choose **Official Pushkin distribution**. 
 You will then be asked to select a site template to use. Choose **site-basic**; then choose the recommended version.
 
-This sets up a skeleton website in the current folder and a development database. Once the command finishes, you should have a directory tree like this:
+This sets up a skeleton website in the current folder and a development database. Once the command finishes, your site folder should contain the following directories and files:
 
 ```
+├── __mocks__
+├── babel.config.js
+├── coreMigrations
+├── e2e
 ├── experiments
-├── LICENSE
+├── jest.config.js
+├── node_modules
+├── package.json
+├── playwright.config.js
 ├── pushkin
-│   ├── api
-│   ├── docker-compose.dev.yml
-│   └── front-end
 ├── pushkin.yaml
-├── README.md
 └── users
-    ├── config.yaml
-    └── migrations
 ```
 
 ### Updating site config options
@@ -121,33 +122,25 @@ The `experiments` directory of your site should now look like this:
 └── gram
     ├── api controllers
     ├── config.yaml
-    ├── LICENSE
     ├── migrations
-    ├── README.md
     ├── web page
     └── worker
 └── hello
     ├── api controllers
     ├── config.yaml
-    ├── LICENSE
     ├── migrations
-    ├── README.md
     ├── web page
     └── worker
 └── lexdec
     ├── api controllers
     ├── config.yaml
-    ├── LICENSE
     ├── migrations
-    ├── README.md
     ├── web page
     └── worker
 └── spr
     ├── api controllers
     ├── config.yaml
-    ├── LICENSE
     ├── migrations
-    ├── README.md
     ├── web page
     └── worker
 ```

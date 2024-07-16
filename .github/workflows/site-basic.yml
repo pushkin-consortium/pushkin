@@ -1,4 +1,4 @@
-name: Basic site test
+name: E2E tests for basic site template
 
 on:
   workflow_dispatch:
@@ -17,13 +17,13 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install Dependencies
+      - name: Install dependencies
         run: yarn install --frozen-lockfile
 
       - name: Build packages
         run: yarn workspaces run build
 
-      - name: Setup and start a basic Pushkin site
+      - name: Setup and start Pushkin site
         run: |
           export PATH="$(yarn global bin):$PATH"
           yarn global add yalc
@@ -35,7 +35,7 @@ jobs:
           yarn test
           node ../packages/pushkin-cli/build/index.js start -v
       
-      - name: Wait for the server to start
+      - name: Wait for server to start
         run: |
           # Wait up to a minute 
           for i in {1..12}
@@ -47,10 +47,14 @@ jobs:
             sleep 5
           done
       
+      - name: Install Playwright browsers
+        run: |
+          cd testing
+          npx playwright install --with-deps
+      
       - name: Run end-to-end tests
         run: |
           cd testing
-          yarn playwright install --with-deps
           yarn test:e2e
 
       - uses: actions/upload-artifact@v4

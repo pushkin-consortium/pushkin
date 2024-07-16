@@ -17,7 +17,7 @@ expInfo
         const expCard = await page.locator(".card-body").filter({ hasText: exp.longName });
         const expImg = await expCard.getByRole("img");
         await expImg.click();
-        await page.waitForURL(`http://localhost/quizzes/${exp.shortName}`);
+        await page.waitForURL(`/quizzes/${exp.shortName}`);
         await page.locator("#jsPsychTarget", { hasText: /.+/ }).waitFor();
         const trialRequestPromise = page.waitForRequest(`/api/${exp.shortName}/stimulusResponse`);
         await page.keyboard.press(" ");
@@ -47,16 +47,23 @@ expInfo
         await db.destroy();
       });
       test("should have the correct format", async () => {
-        if (!trialData || !dbData || !db) console.log([trialData, dbData, db]);
         expect(dbData).not.toBeNull();
+        expect(dbData.id).toEqual(expect.any(Number));
+        expect(dbData.created_at).toEqual(expect.any(Date));
+        expect(dbData.updated_at).toBeNull();
         expect(dbData.response).toEqual(
           expect.objectContaining({
             rt: expect.any(Number),
             stimulus: expect.any(String),
             response: expect.any(String),
+            trial_type: expect.any(String),
+            trial_index: expect.any(Number),
+            time_elapsed: expect.any(Number),
+            internal_node_id: expect.any(String),
+            user_id: expect.any(String),
           }),
         );
-        expect(dbData.response.stimulus).toEqual(expect.any(String));
+        expect(dbData.stimulus).toEqual(expect.any(String));
       });
       test("should have the correct key response", async () => {
         expect(dbData.response.response).toBe(" ");
