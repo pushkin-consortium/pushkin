@@ -44,6 +44,7 @@ test.beforeEach(async ({ page }) => {
 test.describe("Homepage experiment list", () => {
   test("should display all experiments", async ({ page }) => {
     const expCards = await page.locator(".card-body > div");
+    // Archived experiments should not be displayed
     const activeExps = expInfo.filter((exp) => !exp.archived);
     const expNames = activeExps.map((exp) => exp.longName);
     await expect(expCards).toHaveText(expNames);
@@ -56,6 +57,7 @@ expInfo
     test.describe(exp.longName, () => {
       test("should open when image is clicked", async ({ page }) => {
         clickExpImg(page, exp);
+        // jsPsychTarget should have some text when the experiment loads
         const jsPsychTarget = await page.locator("#jsPsychTarget");
         await expect(jsPsychTarget).toHaveText(/.+/);
       });
@@ -65,6 +67,7 @@ expInfo
         await expect(jsPsychTarget).toHaveText(/.+/);
       });
       test("should hit startExperiment API endpoint when opened", async ({ page }) => {
+        // This listener needs to be initialized before opening the experiment
         const startExpRequestPromise = page.waitForRequest(`/api/${exp.shortName}/startExperiment`);
         clickExpImg(page, exp);
         await page.locator("#jsPsychTarget", { hasText: /.+/ }).waitFor();
@@ -73,10 +76,11 @@ expInfo
         expect(startExpData.user_id).not.toBeNull();
         expect(startExpData.user_id).toEqual(expect.any(String));
       });
-      test("should hit startExperiment API endpoint when trial is completed", async ({ page }) => {
-        const trialRequestPromise = page.waitForRequest(`/api/${exp.shortName}/stimulusResponse`);
+      test("should hit stimulusResponse API endpoint when trial is completed", async ({ page }) => {
         clickExpImg(page, exp);
         await page.locator("#jsPsychTarget", { hasText: /.+/ }).waitFor();
+        // This listener needs to be initialized before completing the trial
+        const trialRequestPromise = page.waitForRequest(`/api/${exp.shortName}/stimulusResponse`);
         await page.keyboard.press(" ");
         const trialRequest = await trialRequestPromise;
         const trialData = trialRequest.postDataJSON();

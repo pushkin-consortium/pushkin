@@ -4,26 +4,35 @@ const { pushkinConfig, expInfo } = require("./siteInfo");
 
 expInfo
   .filter((exp) => !exp.paused && !exp.archived)
+  // Paused and archived experiments won't send any data to the database
   .forEach((exp) => {
-    let page;
-    let trialTimeWeb;
-    let trialData;
-    let db;
-    let dbData;
     test.describe(`First trial data for ${exp.longName}`, () => {
+      // These vars need to be accessible to beforeAll, afterAll, and test blocks
+      let page;
+      let trialTimeWeb;
+      let trialData;
+      let db;
+      let dbData;
       test.beforeAll(async ({ browser }) => {
+        // Need to use the newPage method here because we are reusing browser context across tests
+        // This cuts down the number of database connections we need to make
         page = await browser.newPage();
         await page.goto("/");
+        // Click on the image to advance to the experiment
         const expCard = await page.locator(".card-body").filter({ hasText: exp.longName });
         const expImg = await expCard.getByRole("img");
         await expImg.click();
+        // Wait for the experiment to load
         await page.waitForURL(`/quizzes/${exp.shortName}`);
         await page.locator("#jsPsychTarget", { hasText: /.+/ }).waitFor();
+        // Set up a listener for the stimulusResponse request
         const trialRequestPromise = page.waitForRequest(`/api/${exp.shortName}/stimulusResponse`);
         await page.keyboard.press(" ");
+        // Save this to compare to database time
         trialTimeWeb = Date.now();
         const trialRequest = await trialRequestPromise;
         trialData = trialRequest.postDataJSON();
+        // Connect to database and get the latest response from the user
         db = knex({
           client: "pg",
           connection: {
@@ -42,6 +51,7 @@ expInfo
           .orderBy("created_at", "desc")
           .first();
       });
+      // Close the page and database connection after all tests are done for the experiment
       test.afterAll(async () => {
         await page.close();
         await db.destroy();
