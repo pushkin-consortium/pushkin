@@ -7,9 +7,10 @@
   "scripts": {
     "docs:deploy": "poetry install --no-root && poetry run mike deploy -u --alias-type=redirect",
     "docs:serve": "poetry run mike serve",
+    "prepare": "husky",
     "release": "yarn workspaces run build && yarn changeset publish",
-    "test": "jest",
-    "prepare": "husky"
+    "setup-site": "node ./setupSite.js",
+    "test": "jest"
   },
   "devDependencies": {
     "@babel/cli": "^7.24.1",

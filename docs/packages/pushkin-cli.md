@@ -64,7 +64,7 @@ Except for the `--verbose` and `--help` flags, the other options for `install si
     - This option is incompatible with the `--path` option.
     - If you do not specify a version of the template with the `--release` option, the version tagged `latest` will be used by default.
 
-- path: `--path <path/to/template>` allows you to specify the absolute path to a local site template from the command line instead of entering it interactively.
+- path: `--path <path/to/template>` allows you to specify the path to a local site template from the command line instead of entering it interactively.
     - This option is incompatible with the `--template` and `--release` options.
 
 - release: `--release <version_or_tag>` allows you to specify the release number or tag of a published site template from the command line instead of entering it interactively.
@@ -116,7 +116,7 @@ Except for the `--verbose` and `--help` flags, the other options for `install ex
     - This option is incompatible with the `--path` option.
     - If you do not specify a version of the template with the `--release` option, the version tagged `latest` will be used by default.
 
-- path: `--path <path/to/template>` allows you to specify the absolute path to a local experiment template from the command line instead of entering it interactively.
+- path: `--path <path/to/template>` allows you to specify the path to a local experiment template from the command line instead of entering it interactively.
     - This option is incompatible with the `--template` and `--release` options.
 
 - release: `--release <version_or_tag>` allows you to specify the release number or tag of a published experiment template from the command line instead of entering it interactively.
@@ -285,7 +285,7 @@ Add the Pushkin utility packages for which you want to substitute a local develo
 
 **Options**
 
-- path: `-p` or `--path <path/to/packages>` is required to specify the absolute path to the `packages` directory in your local clone of the `pushkin` repo. This path must end with "pushkin/packages". This option is required in all cases, except when reverting to a published version with the `--revert` option (in which case, `--path` is invalid).
+- path: `-p` or `--path <path/to/packages>` is required to specify the path to the `packages` directory in your local clone of the `pushkin` repo. This option is required in all cases, except when reverting to a published version with the `--revert` option (in which case, `--path` is invalid).
 
 - experiments: `-e` or `--experiments <experiments>` allows you to specify for which experiment(s) you want to use a dev version of `pushkin-worker`. Enter the experiments' short names (i.e. the names of the directories in `/experiments`) following the option flag, e.g. `-e exp1 exp2 exp3`.
     - Only workers can be experiment-specific; therefore the command `pushkin use-dev api client worker -p <path> -e <exp1_of_3>` will change the worker for one of three experiments, but `pushkin-api` and `pushkin-client` for the entire site.
