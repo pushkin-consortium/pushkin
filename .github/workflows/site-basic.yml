@@ -23,17 +23,15 @@ jobs:
       - name: Build packages
         run: yarn workspaces run build
 
-      - name: Setup a basic Pushkin site
+      - name: Setup and start a basic Pushkin site
         run: |
           export PATH="$(yarn global bin):$PATH"
           yarn global add yalc
-          yarn setup-site basic
+          yarn test:e2e:setup basic
 
-      - name: Start the Pushkin site
+      - name: Wait for site to start
         run: |
-          cd testing
-          node ../packages/pushkin-cli/build/index.js start -v
-          # Wait up to a minute for the site to start
+          # Wait up to a minute
           for i in {1..12}
           do
             if curl --output /dev/null --silent --head --fail http://localhost:80; then
@@ -50,7 +48,6 @@ jobs:
       
       - name: Run end-to-end tests
         run: |
-          cd testing
           yarn test:e2e
 
       - uses: actions/upload-artifact@v4

@@ -9,8 +9,9 @@
     "docs:serve": "poetry run mike serve",
     "prepare": "husky",
     "release": "yarn workspaces run build && yarn changeset publish",
-    "setup-site": "node ./setupSite.js",
-    "test": "jest"
+    "test": "jest",
+    "test:e2e": "cd testing && yarn test:e2e",
+    "test:e2e:setup": "node ./e2eSetup.js"
   },
   "devDependencies": {
     "@babel/cli": "^7.24.1",

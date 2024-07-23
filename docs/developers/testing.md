@@ -1,6 +1,6 @@
 # Testing
 
-## Jest
+## Jest (unit/integration) testing
 
 The pushkin repo is set up to run tests using [Jest](https://jestjs.io/), a popular JavaScript testing library. In addition to testing contributions to the Pushkin codebase, Jest is also configured for Pushkin users to run tests on their own Pushkin sites.
 
@@ -34,24 +34,52 @@ To run tests on your local Pushkin site, run `yarn test` from the root of the si
 
 You can expand Jest testing for your Pushkin site as you see fit. If you develop more sophisticated testing for your site, we encourage you to consider how it could be contributed back to the project, so other users might benefit as well.
 
-## Playwright
+## Playwright (end-to-end) testing
 
 Pushkin sites also come set up to run end-to-end tests using [Playwright](https://playwright.dev/). Unlike Jest tests, Playwright actually interacts with your local test deployment (i.e. it visits your site, does experiments, checks data, etc.). We utilize Playwright during development as well as an additional test on contributions.
 
-Note that end-to-end tests are only relevant for running sites. You cannot run Playwright tests on source code in the development environment like you can with Jest tests. While we do use end-to-end tests in the development process, they have to be run on a test site.
+Pushkin site templates contain a folder of end-to-end tests (`src/e2e/`) and a config file (`src/playwright.config.js`) that are copied into your Pushkin site when you run `pushkin install site`. This step also installs necessary dependencies. Once the site is running (i.e. you've run `pushkin start`), you're ready to run end-to-end tests.
 
-### For end-to-end testing
+Note that while Jest test files are organized alongside source files, end-to-end tests are all located in the `e2e/` directory. Jest is configured to ignore test files in `e2e/`, so that the two testing systems remain separate.
 
-Pushkin site templates contain a folder of end-to-end tests (`src/e2e/`) and a config file (`src/playwright.config.js`) that are copied into your Pushkin site when you run `pushkin install site`. This step also installs necessary dependencies. Because end-to-end tests actually interact with the local test site, you must have the site running when you run end-to-end tests (i.e. you must have already run `pushkin start`). Run the tests with the command:
+### For pushkin repo development
+
+It's important to note first that end-to-end tests are only relevant for running sites. You cannot run Playwright tests on source code in the development environment like you can with Jest tests. Nevertheless, we've tried to setup end-to-end testing so that contributors and users can utilize it in a similar way as with Jest tests.
+
+Say you're working on a contribution and you want to run end-to-end tests using the basic site template. First, make sure to run the build script(s) for the relevant package(s)/template(s); then, from the root of the `pushkin` repo, run:
+
+```
+yarn test:e2e:setup basic
+```
+
+The `test:e2e:setup` script takes the name of the site template as its argument and sets up a test site in the `/testing` directory (which is Git-ignored). **Note that this script will clear out your local Docker with `docker system prune`.** When the script has finished running, you'll have a running Pushkin site containing experiments from all experiment templates in the repo and utilizing development versions of all Pushkin packages.
+
+You can then run end-to-end tests with:
 
 ```
 yarn test:e2e
 ```
 
-If you're developing your own tests, you may find it helpful to run your tests in [UI](https://playwright.dev/docs/test-ui-mode) or [debug](https://playwright.dev/docs/debug) mode by adding the `--ui` or `--debug` flags (respectively) to the command above.
+This command simply goes into your test site and runs its `test:e2e` script, which in turn calls Playwright. If you run this immediately after the setup script, note that some tests may fail because components of the site haven't fully started yet (e.g. the front end has started but the the database hasn't).
 
-Note that while Jest test files are organized alongside source files, end-to-end tests are all located in the `e2e/` directory. Jest is configured to ignore test files in `e2e/`, so that the two testing systems remain separate.
+Note that if you need to stop your site, you'll need to run `pushkin stop` inside the `/testing` directory. Likewise, you can manually add additional experiments to the test site, but you'll need to re-run the `prep` and `start` commands in the `/testing` directory before running end-to-end tests.
 
-Each site template's tests are run automatically via GitHub Actions as an additional layer of testing for contributions. The `.github/workflows/` directory contains a workflow file for each site template, e.g. `site-basic.yml`, which runs its end-to-end tests.
+If you're developing new tests or your changes are causing tests to fail, you may find it helpful to run your tests in [UI](https://playwright.dev/docs/test-ui-mode) or [debug](https://playwright.dev/docs/debug) mode by adding the `--ui` or `--debug` flags (respectively) to the `yarn test:e2e` command.
 
-If you're contributing to a site template, we encourage you to add add both Jest and end-to-end tests (if possible) to cover your contribution. If you extend end-to-end testing for your own Pushkin site, please consider how your tests might be made general enough to be contributed back to one or more site templates.
+Each site template's tests are run automatically via GitHub Actions as an additional layer of testing for contributions. The `/.github/workflows` directory contains a workflow file for each site template, e.g. `site-basic.yml`, which runs its end-to-end tests.
+
+If you're contributing to a site template, we encourage you to add add both Jest and end-to-end tests (if possible) to cover your contribution. 
+
+### For user site development
+
+Pushkin sites ship to users with all the end-to-end tests corresponding to that particular site template. We try to make the tests for each template general and robust enough to be helpful to Pushkin users. Users can utilize, extend, or ignore the tests as they see fit.
+
+To run end-to-end tests, first make sure your site is running (i.e. run `pushkin start`). Then, from the root of your site, run:
+
+```
+yarn test:e2e
+```
+
+If you're developing new tests or your changes are causing tests to fail, you may find it helpful to run your tests in [UI](https://playwright.dev/docs/test-ui-mode) or [debug](https://playwright.dev/docs/debug) mode by adding the `--ui` or `--debug` flags (respectively) to the `yarn test:e2e` command.
+
+If you extend end-to-end testing for your Pushkin site, please consider how your tests might be made general enough to be contributed back to one or more site templates.

@@ -28,7 +28,7 @@ if (fs.existsSync("./testing")) {
 }
 fs.mkdirSync("./testing");
 
-// Setup a new Pushkin site
+// Setup and start a new Pushkin site
 process.chdir("testing");
 execSync(
   `node ../packages/pushkin-cli/build/index.js i site --path ../templates/sites/${siteType} -v`,
@@ -42,3 +42,4 @@ execSync(
   { stdio: "inherit" },
 );
 execSync("node ../packages/pushkin-cli/build/index.js prep -v", { stdio: "inherit" });
+execSync("node ../packages/pushkin-cli/build/index.js start -v", { stdio: "inherit" });
