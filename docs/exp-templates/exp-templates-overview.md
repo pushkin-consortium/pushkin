@@ -30,7 +30,7 @@ The other permutations `pushkin i experiment` and `pushkin install exp` will lik
 
 ## Customizing Experiments
 
-## Adding additional jsPsych plugins
+### Adding additional jsPsych plugins
 
 !!! warning
     As of v1.7 of `pushkin-client`, every jsPsych trial in a Pushkin experiment needs to have a `stimulus` parameter in its data object (see this [issue](https://github.com/pushkin-consortium/pushkin/issues/267)). Many jsPsych plugins do this by default, but some do not. Consult jsPsych's [plugin documentation](https://www.jspsych.org/latest/plugins/list-of-plugins/) for all plugins that you wish to use in your experiment and check that their data object includes a `stimulus` parameter. If it does not, you can insert one when you define the trial in `experiment.js`:
@@ -69,7 +69,7 @@ The procedure above only works for jsPsych plugins available through npm. If you
 1. Add the plugin file to the `web page/src` folder of the experiment
 2. Add the plugin towards the top of your experiment.js file like `import jsPsychMovingWindow from './jspsych-moving-window';`
 
-## Adding static assets
+### Adding static assets
 
 The current experiment templates do not use any image, audio, or video stimuli. In order to reference static assets such as these in your jsPsych timeline, put them in the experiment's `web page/src/assets/timeline` folder. You can use whatever directory structure inside that folder you please, if, for instance, you want to keep audio files separate from images or divide assets from different experimental lists. When you run `pushkin prep`, the contents of the timeline assets folder will be copied to `pushkin/front-end/public/experiments/<experiment_name>`, where `<experiment_name>` is replaced with the same name as the folder within your site's experiments directory. The folder `pushkin/front-end/public` can be referenced at runtime using the environment variable `process.env.PUBLIC_URL`. Thus, when you refer to static assets in your jsPsych timeline, the reference should be as follows.
 
@@ -112,6 +112,10 @@ Note that `process.env.PUBLIC_URL` works for local development. Depending on how
 There is currently no way of automatically packaging up an existing custom experiment into a new experiment template. How complicated the process will be of turning your experiment into a template depends on how much customization you've done (presumably based on the basic template). If all you've done is edit `experiment.js` and add a few jsPsych plugins, it should be easy to make those same changes to the basic template itself; on the other hand, more complex customizations may present unexpected challenges for creation of a template. We encourage potential template contributors to reach out to the Pushkin team if they encounter any such issues.
 
 In general, we encourage you to follow to the [contributor guidelines](../developers/contributions.md). Additionally, if you'd like to contribute a template, please consider how you can make it maximally general by parameterizing as many of your customizations as you can. Try to imagine what variations on your experiment would be relevant for other researchers and make it easy to implement those variations via changing configuration settings.
+
+## Automated Testing
+
+Pushkin experiment templates come with unit tests using Jest and end-to-end tests using Playwright. See our page on [testing](../developers/testing.md) for more information on how to run these tests and extend them for your own site.
 
 ## Experiment Component Structure
 

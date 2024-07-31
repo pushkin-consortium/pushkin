@@ -56,7 +56,7 @@ Pushkin now supports integration testing for experiments. These tests function b
 
 ## Playwright testing
 
-Pushkin sites also come set up to run end-to-end tests using [Playwright](https://playwright.dev/). All end-to-end tests can be found in the `src/e2e/` directory of the basic site template. They are run according to the config file `src/playwright.config.js`.
+Pushkin sites also come set up to run end-to-end tests using [Playwright](https://playwright.dev/). All the template's end-to-end tests can be found in the `src/e2e/` directory. They are run according to the config file `src/playwright.config.js`.
 
 These tests differ from Jest tests since they actually interact with your local test site. Therefore, in order to run end-to-end tests, your site must first be started using `pushkin start`. You can then run Playwright tests using `yarn test:e2e`.
 

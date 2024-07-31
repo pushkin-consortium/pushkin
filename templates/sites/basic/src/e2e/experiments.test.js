@@ -1,5 +1,5 @@
 const { test, expect } = require("@playwright/test");
-const { expInfo } = require("./siteInfo");
+const { expsInfo } = require("./siteInfo");
 
 /**
  * @typedef {import('playwright').Page} Page
@@ -45,13 +45,13 @@ test.describe("Homepage experiment list", () => {
   test("should display all experiments", async ({ page }) => {
     const expCards = await page.locator(".card-body > div");
     // Archived experiments should not be displayed
-    const activeExps = expInfo.filter((exp) => !exp.archived);
+    const activeExps = expsInfo.filter((exp) => !exp.archived);
     const expNames = activeExps.map((exp) => exp.longName);
     await expect(expCards).toHaveText(expNames);
   });
 });
 
-expInfo
+expsInfo
   .filter((exp) => !exp.archived)
   .forEach((exp) => {
     test.describe(exp.longName, () => {
@@ -66,41 +66,5 @@ expInfo
         const jsPsychTarget = await page.locator("#jsPsychTarget");
         await expect(jsPsychTarget).toHaveText(/.+/);
       });
-      test("should hit startExperiment API endpoint when opened", async ({ page }) => {
-        // This listener needs to be initialized before opening the experiment
-        const startExpRequestPromise = page.waitForRequest(`/api/${exp.shortName}/startExperiment`);
-        clickExpImg(page, exp);
-        await page.locator("#jsPsychTarget", { hasText: /.+/ }).waitFor();
-        const startExpRequest = await startExpRequestPromise;
-        const startExpData = startExpRequest.postDataJSON();
-        expect(startExpData.user_id).not.toBeNull();
-        expect(startExpData.user_id).toEqual(expect.any(String));
-      });
-      test("should hit stimulusResponse API endpoint when trial is completed", async ({ page }) => {
-        clickExpImg(page, exp);
-        await page.locator("#jsPsychTarget", { hasText: /.+/ }).waitFor();
-        // This listener needs to be initialized before completing the trial
-        const trialRequestPromise = page.waitForRequest(`/api/${exp.shortName}/stimulusResponse`);
-        await page.keyboard.press(" ");
-        const trialRequest = await trialRequestPromise;
-        const trialData = trialRequest.postDataJSON();
-        expect(trialData).not.toBeNull();
-        expect(trialData.user_id).toEqual(expect.any(String));
-        expect(trialData.data_string).toEqual(
-          expect.objectContaining({
-            rt: expect.any(Number),
-            stimulus: expect.any(String),
-            response: expect.any(String),
-            trial_type: expect.any(String),
-            trial_index: expect.any(Number),
-            time_elapsed: expect.any(Number),
-            internal_node_id: expect.any(String),
-            user_id: expect.any(String),
-          }),
-        );
-        expect(trialData.stimulus).toEqual(expect.any(String));
-      });
     });
   });
-
-module.exports = { expInfo };

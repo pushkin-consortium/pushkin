@@ -25,9 +25,6 @@
     "build": "mkdir -p build && cd src && zip -FS -r -q ../build/template.zip . -x \"*/node_modules/*\" -x \"*/build/*\"",
     "prepack": "cp ../../../LICENSE ."
   },
-  "jest": {
-    "testPathIgnorePatterns": ["/build/"]
-  },
   "dependencies": {
     "@babel/core": "^7.23.6",
     "@babel/preset-env": "^7.23.6",

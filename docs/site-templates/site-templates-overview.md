@@ -37,6 +37,10 @@ There is currently no way of automatically packaging up an existing custom site 
 
 In general, we encourage you to follow to the [contributor guidelines](../developers/contributions.md). Additionally, if you'd like to contribute a template, please consider how you can make it maximally general by parameterizing as many of your customizations as you can. Try to imagine what variations on your site would be relevant for other researchers and make it easy to implement those variations via changing configuration settings.
 
+## Automated Testing
+
+Pushkin site templates come with unit and integration tests using Jest and end-to-end tests using Playwright. See our page on [testing](../developers/testing.md) for more information on how to run these tests and extend them for your own site.
+
 ## Customizing sites
 
 ### About Page

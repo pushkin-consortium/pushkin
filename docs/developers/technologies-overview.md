@@ -32,3 +32,4 @@ Below is a non-exhaustive list of technologies in the Pushkin stack. Depending o
 - **Babel:** Compiles the JavaScript used in the Pushkin project to ensure browser compatibility. This means having the ability to use modern JavaScript without losing accessibility for visitors on older browsers.
 - **Auth0:** The service used for authorization to enable logins for site visitors.
 - **Jest:** A JavaScript testing framework. The Pushkin team uses Jest in development of Pushkin packages and templates, but users can also add it to their Pushkin sites and develop their own tests.
+- **Playwright:** A tool for end-to-end testing, i.e. testing the site as a whole, including the front end, back end, and database. Pushkin sites come set up to run end-to-end tests using [Playwright](https://playwright.dev/). Pushkin developers also run end-to-end tests as an additional layer of testing for contributions.
