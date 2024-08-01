@@ -42,6 +42,8 @@ Pushkin site templates contain a folder of end-to-end tests (`src/e2e/`) and a c
 
 Note that while Jest test files are organized alongside source files, end-to-end tests are located in `e2e/` directories at the top level of the site and each experiment. Jest is configured to ignore test files in `e2e/` directories, so that the two testing systems remain separate.
 
+End-to-end tests for experiment templates make use of jsPsych [simulation mode](https://www.jspsych.org/v7/overview/simulation) to run the experiment without any user input. You may also find it convenient to use simulation mode for manual testing when developing experiments. You can access an experiment in simulation mode by adding the URL parameter `simulate=true` to the experiment URL. For manual testing, you'll probably also want to add the additional URL parameter `mode=visual` to see the experiment as it runs. Note that only jsPsych plugins that have simulation mode will run as such, if you use a plugin that doesn't have simulation mode, the experiment will stop at that point and require user input.
+
 ### For pushkin repo development
 
 It's important to note first that end-to-end tests are only relevant for running sites. You cannot run Playwright tests on source code in the development environment like you can with Jest tests. Nevertheless, we've tried to setup end-to-end testing so that contributors and users can utilize it in a similar way as with Jest tests.

@@ -83,8 +83,18 @@ class quizComponent extends React.Component {
     // Run in simulation mode if the appropriate URL parameter is set
     // and the site is deployed in debug mode
     if (params.get("simulate") === "true" && process.env.DEBUG) {
-      // Add simulation options to insert "simulationMode" data field
-      jsPsych.simulate(timeline);
+      // Get the simulation mode: "data-only" (default) or "visual"
+      const mode = params.get("mode") || "data-only";
+      // Insert data fields indicating simulation mode
+      const simulationOptions = {
+        default: {
+          data: {
+            simulation: true,
+            mode: mode,
+          },
+        },
+      };
+      jsPsych.simulate(timeline, mode, simulationOptions);
     } else {
       jsPsych.run(timeline);
     }
