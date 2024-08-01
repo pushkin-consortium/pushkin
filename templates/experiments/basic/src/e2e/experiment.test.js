@@ -149,12 +149,15 @@ test.describe("Completing the experiment in simulation mode", () => {
   // Skip this describe block if no simulation mode available
   test.skip(() => !expInfo.simulationMode, "Simulation mode not available");
   // These vars need to be accessible to before/after hooks and tests
-  const stimulusResponseRequests = [];
+  let stimulusResponseRequests = [];
   let userResults;
   let db;
   let dbUserResults;
   let dbStimulusResponses;
   test.beforeEach(async ({ page }) => {
+    // Clear the stimulusResponseRequests array
+    // In some contexts (especially CI) this array seems to get polluted with data from other tests
+    stimulusResponseRequests = [];
     // Set up listeners for the tabulateAndPostResults request and response
     const tabulateRequestPromise = page.waitForRequest(
       `/api/${expInfo.shortName}/tabulateAndPostResults`,
