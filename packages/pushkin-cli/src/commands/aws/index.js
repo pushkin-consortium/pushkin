@@ -16,7 +16,7 @@ import { fromIni } from "@aws-sdk/credential-provider-ini";
 import { ACMClient, ListCertificatesCommand } from "@aws-sdk/client-acm";
 import { Route53Client, ListResourceRecordSetsCommand, ChangeResourceRecordSetsCommand } from "@aws-sdk/client-route-53";
 
-myRegion = "us-east-1" //set as default. may want this to be a parameter somewhere that can be changed.
+const myRegion = "us-east-1" //set as default. may want this to be a parameter somewhere that can be changed.
 
 const exec = util.promisify(require('child_process').exec);
 const mkdir = util.promisify(require('fs').mkdir);
