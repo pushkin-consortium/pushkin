@@ -1,0 +1,11 @@
+{
+  "overrides": [
+    {
+      "test": "./packages/pushkin-cli",
+      "presets": ["@babel/preset-env"],
+      "targets": {
+        "node": "12.0"
+      }
+    }
+  ]
+}

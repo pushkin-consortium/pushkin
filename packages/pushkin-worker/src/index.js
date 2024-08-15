@@ -143,7 +143,7 @@ class DefaultHandler {
 			stimGroups: `${dbTablePrefix}_stimulusGroups`,
 			stimGroupStim: `${dbTablePrefix}_stimulusGroupStimuli`
 		};
-		console.log(`setting up main db connection with ${JSON.stringify(connection)}`)
+		console.log(`setting up main db connection with user: ${connection.user}, database: ${connection.database}, host: ${connection.host}`)
 		this.knexInfo = { 
 			client: 'pg', 
 			version: '11',
@@ -166,7 +166,14 @@ class DefaultHandler {
 		} catch (error) {
 			console.error(`Problem with simple select from transaction DB: ${error}`)
 		}
-		console.log(`checking logging: ${JSON.stringify(transactionOps)}`)
+		console.log(`checking logging: ${JSON.stringify({
+			tableName: transactionOps.tableName,
+			connection: {
+				host: transactionOps.connection.host,
+				user: transactionOps.connection.user,
+				database: transactionOps.connection.database
+			}
+		})}`)
 		this.logging = transactionOps ? true : false;
 		if (this.logging) {
 			try {

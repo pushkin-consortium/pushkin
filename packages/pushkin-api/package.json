@@ -27,6 +27,15 @@
     ],
     "author": "L3",
     "license": "MIT",
+    "homepage": "https://pushkin-consortium.github.io/pushkin",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/pushkin-consortium/pushkin.git",
+        "directory": "packages/pushkin-api"
+    },
+    "bugs": {
+        "url": "https://github.com/pushkin-consortium/pushkin/issues"
+    },
     "devDependencies": {
         "@babel/cli": "^7.22.10",
         "@babel/core": "^7.22.10",
@@ -35,11 +44,11 @@
         "babel-eslint": "^10.1.0",
         "babel-jest": "^29.6.3",
         "eslint": "^8.47.0",
-        "supertest": "^4.0.2"
+        "supertest": "^7.0.0"
     },
     "dependencies": {
         "amqplib": "^0.10.3",
-        "cookie-session": "^2.0.0-beta.3",
+        "cookie-session": "^2.1.0",
         "cors": "^2.8.5",
         "express": "^4.19.2",
         "regenerator-runtime": "^0.14.0",

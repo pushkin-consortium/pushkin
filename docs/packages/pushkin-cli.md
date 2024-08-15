@@ -57,6 +57,19 @@ pushkin i site <options>
 
 **Options:**
 
+Except for the `--verbose` and `--help` flags, the other options for `install site` are intended to allow the command to be run without the need for interactive prompts, which is useful for automating site creation.
+
+- template: `--template <template_name>` allows you to specify a published site template from the command line instead of choosing interactively.
+    - Use the full name of the package as published on npm, e.g. `@pushkin-templates/site-basic`.
+    - This option is incompatible with the `--path` option.
+    - If you do not specify a version of the template with the `--release` option, the version tagged `latest` will be used by default.
+
+- path: `--path <path/to/template>` allows you to specify the absolute path to a local site template from the command line instead of entering it interactively.
+    - This option is incompatible with the `--template` and `--release` options.
+
+- release: `--release <version_or_tag>` allows you to specify the release number or tag of a published site template from the command line instead of entering it interactively.
+    - This option is incompatible with the `--path` option.
+
 - verbose: `-v` or `--verbose` shows additional console output during the installation process which may be helpful for debugging.
 
 - help: `-h` or `--help` displays the command's help information.
@@ -93,6 +106,30 @@ pushkin i exp <options>
 ```
 
 **Options:**
+
+Except for the `--verbose` and `--help` flags, the other options for `install experiment` are intended to allow the command to be run without the need for interactive prompts, which is useful for automating site creation.
+
+- expName: `--expName <experiment_name>` allows you to specify a name for the experiment from the command line instead of entering it interactively.
+
+- template: `--template <template_name>` allows you to specify a published experiment template from the command line instead of choosing interactively.
+    - Use the full name of the package as published on npm, e.g. `@pushkin-templates/exp-basic`.
+    - This option is incompatible with the `--path` option.
+    - If you do not specify a version of the template with the `--release` option, the version tagged `latest` will be used by default.
+
+- path: `--path <path/to/template>` allows you to specify the absolute path to a local experiment template from the command line instead of entering it interactively.
+    - This option is incompatible with the `--template` and `--release` options.
+
+- release: `--release <version_or_tag>` allows you to specify the release number or tag of a published experiment template from the command line instead of entering it interactively.
+    - This option is incompatible with the `--path` option.
+
+- expImport: `--expImport <path/to/experiment>` allows you to specify a path to a jsPsych experiment which you'd like to import into the basic experiment template.
+    - Just like importing a jsPsych experiment interactively, this option is only applicable to the basic experiment template.
+    - This option is implied `false` if you use the `--template`, `--path`, or `--release` flags. If you're using any of those flags and want to import a jsPsych experiment, you must use the `--expImport` option; there will not be an interactive prompt.
+
+- all: `-a <source>` or `--all <source>` installs all available experiment templates from a given source in a single command. The source can be either `latest` or the path to the experiment templates folder of a local clone of the `pushkin` repo. This option facilitates automated and manual testing procedures in which you want to test an update's effect on all templates.
+    - If running `--all latest`, the latest version of all experiment templates under the `@pushkin-templates` scope will be installed from npm. The names of the experiments will be the template name minus `@pushkin-templates/exp-` with `_latest` appended.
+    - If running `-all <path>`, the development versions of templates from the local `pushkin` repo will be used. The path must end in `pushkin/templates/experiments`. The names of the experiments will be the names of the directories in the experiment templates folder with `_path` appended.
+    - This option is incompatible with all other options except `--verbose`.
 
 - verbose: `-v` or `--verbose` shows additional console output during the installation process which may be helpful for debugging.
 
@@ -231,6 +268,42 @@ Performs a complete reset of local Docker, including containers, volumes, and th
 ```
 pushkin armageddon
 ```
+
+### use-dev
+
+Substitutes a local development version of the specified Pushkin utility package(s) (`pushkin-api`, `pushkin-client`, and/or `pushkin-worker`). You can also use this same command to revert to the previously used published version of the package (see the `--revert` option below).
+
+**Syntax**
+
+```
+pushkin use-dev api client worker --path <path/to/packages>
+```
+
+**Arguments**
+
+Add the Pushkin utility packages for which you want to substitute a local development version as arguments. The `pushkin-` prefix is optional when specifying these packages, so `pushkin use-dev pushkin-client` and `pushkin use-dev client` are equivalent.
+
+**Options**
+
+- path: `-p` or `--path <path/to/packages>` is required to specify the absolute path to the `packages` directory in your local clone of the `pushkin` repo. This path must end with "pushkin/packages". This option is required in all cases, except when reverting to a published version with the `--revert` option (in which case, `--path` is invalid).
+
+- experiments: `-e` or `--experiments <experiments>` allows you to specify for which experiment(s) you want to use a dev version of `pushkin-worker`. Enter the experiments' short names (i.e. the names of the directories in `/experiments`) following the option flag, e.g. `-e exp1 exp2 exp3`.
+    - Only workers can be experiment-specific; therefore the command `pushkin use-dev api client worker -p <path> -e <exp1_of_3>` will change the worker for one of three experiments, but `pushkin-api` and `pushkin-client` for the entire site.
+    - If this option is not used, `pushkin use-dev worker` updates all experiments' workers.
+    - This option is invalid if used without `worker` or `pushkin-worker` as an argument.
+
+- update: `-u` or `--update` allows you to push additional local updates to the specified Pushkin utility package(s) in your site. For this command to work, you must already be using a local development version of all the specified packages (it is basically a wrapper around `yalc push`).
+    - You don't need to use this option to update development versions; it may just run incrementally faster. For instance, if you're already using a local development version of `pushkin-api` and now want to do the same for `pushkin-client`, `pushkin use-dev api client -p <path>` will update your site with any changes made to `pushkin-api` and add the local version of `pushkin-client`.
+
+- revert: `--revert` undoes the changes to your site that are otherwise implemented by the `use-dev` command. It subsitutes the previously used published version of the specified package(s).
+    - In order for this option to function correctly, you must have originally installed the development version(s) with the `use-dev` command (rather than manually).
+    - The `--revert` option uses a file in the particular site component directory called `.<package>-revert-version` to store the previously used published version of the package. This file is written when you run `use-dev` normally, but reverting will fail if it doesn't exist.
+
+- verbose: `-v` or `--verbose` shows additional console output which may be helpful for debugging.
+
+**Details**
+
+The `use-dev` command essentially automates the manual procedure described [here](../developers/getting-started-on-development.md#using-yalc-with-pushkin-utility-packages) for using development versions of Pushkin utility packages. The one additional thing it does is to write files called `.<package>-revert-version` to the relevant compenent directories of your site to store the previously used published version of that package. This file enables you to revert to the published version using the `--revert` option.
 
 ### help
 

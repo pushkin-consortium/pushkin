@@ -40,18 +40,16 @@ export const initSite = async (verbose) => {
     if (verbose) console.log("Setting up site package");
     await exec(`${pacMan} init -yp && ${pacMan} add --dev jest`); // Add Jest here too
     // Edit package.json
-    const packageJson = JSON.parse(fs.readFileSync('package.json'), 'utf8');
+    const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
     delete packageJson.main;
     packageJson.name = 'pushkin-site';
-    // Set up for Jest tests
-    packageJson.scripts = { "test": "jest" };
-    packageJson.jest = { "testPathIgnorePatterns": ["/node_modules/", "/.yalc/", "/build/"] };
-    fs.writeFileSync('babel.config.js', `module.exports = {presets: ['@babel/preset-env']};`);
+    packageJson.scripts = {test: "jest"};
     // Write the updated package.json
     fs.writeFileSync('package.json', JSON.stringify(packageJson, null, 2));
-  } catch (error) {
-    console.error('Error setting up site package:', error);
-  }
+    } catch (error) {
+      console.error('Error setting up site package:', error);
+    }
+
 }
 
 /**
