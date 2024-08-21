@@ -18,7 +18,7 @@ Out of the box, the basic site template supports limited component and integrati
 
 Note that you must run `pushkin prep` before running tests in order for new experiments and/or changes to existing experiments to be picked up by the tests.
 
-To learn more about how Pushkin uses Jest, please see the relevant documentation [here](../developers/testing.md#jest).
+To learn more about how Pushkin uses Jest, please see the relevant documentation [here](../developers/testing.md#jest-unitintegration-testing).
 
 ### Component tests
 
@@ -60,4 +60,4 @@ Pushkin sites also come set up to run end-to-end tests using [Playwright](https:
 
 These tests differ from Jest tests since they actually interact with your local test site. Therefore, in order to run end-to-end tests, your site must first be started using `pushkin start`. You can then run Playwright tests using `yarn test:e2e`.
 
-To learn more about end-to-end testing for Pushkin sites, please see the relevant documentation [here](../developers/testing.md#playwright).
+To learn more about end-to-end testing for Pushkin sites, please see the relevant documentation [here](../developers/testing.md#playwright-end-to-end-testing).
