@@ -5,4 +5,4 @@
 "@pushkin-templates/exp-basic": minor
 ---
 
-Added support for jsPsych visual simulation mode. Navigating to `http://localhost/quizzes/<exp-name>?simulate=true&mode=visual` will launch the experiment in visual simulation mode.
+Added support for jsPsych simulation mode for both automated end-to-end testing and manual testing. To demo this feature, navigate to `http://localhost/quizzes/<exp-name>?simulate=true&mode=visual` to launch the experiment in visual simulation mode.
