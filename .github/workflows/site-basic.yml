@@ -1,10 +1,18 @@
 name: E2E tests for basic site template
 
 on:
-  workflow_dispatch:
   push:
     branches:
-      - actions-testing
+      - main
+    paths:
+      - 'packages/**'
+      - 'templates/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'packages/**'
+      - 'templates/**'
 
 jobs:
   site-test:
