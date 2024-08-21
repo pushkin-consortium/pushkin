@@ -55,7 +55,7 @@ export const initSite = async (verbose) => {
     if (verbose) console.log("Setting up site package");
     // Set up site package and add testing dependencies
     await exec(
-      `${pacMan} init -yp && ${pacMan} add --dev @playwright/test @types/node jest js-yaml knex pg`,
+      `yarn init -yp && yarn add --dev @playwright/test @types/node jest js-yaml knex pg && yarn playwright install --with-deps`,
     );
     // Edit package.json
     const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));

@@ -46,11 +46,6 @@ jobs:
             sleep 5
           done
       
-      - name: Install Playwright browsers
-        run: |
-          cd testing
-          npx playwright install --with-deps
-      
       - name: Run end-to-end tests
         run: |
           yarn test:e2e
