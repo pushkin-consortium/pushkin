@@ -14,7 +14,7 @@ function getRandomKey() {
 }
 
 /**
- * Get connect to the Pushkin database
+ * Connect to the Pushkin database
  * @returns {knex} A connection to the Pushkin database
  */
 function connectToDB() {

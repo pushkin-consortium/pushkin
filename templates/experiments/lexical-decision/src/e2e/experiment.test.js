@@ -4,7 +4,7 @@ const { expInfo } = require("./expInfo");
 const { pushkinConfig } = require("../../../e2e/siteInfo");
 
 /**
- * Get connect to the Pushkin database
+ * Connect to the Pushkin database
  * @returns {knex} A connection to the Pushkin database
  */
 function connectToDB() {
