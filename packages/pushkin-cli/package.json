@@ -40,7 +40,7 @@
     "got": "^11.5.1",
     "graceful-fs": "^4.2.11",
     "inquirer": "^7.3.2",
-    "js-yaml": "^3.14.0",
+    "js-yaml": "^4.1.0",
     "knex": "^2.4.2",
     "pg": "^8.11.0",
     "regenerator-runtime": "^0.13.5",
