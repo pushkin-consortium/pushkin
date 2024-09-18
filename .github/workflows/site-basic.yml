@@ -1,0 +1,66 @@
+name: E2E tests for basic site template
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/**'
+      - 'templates/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'packages/**'
+      - 'templates/**'
+
+jobs:
+  site-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Docker Compose
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build packages
+        run: yarn workspaces run build
+
+      - name: Setup and start a basic Pushkin site
+        run: |
+          export PATH="$(yarn global bin):$PATH"
+          yarn global add yalc
+          yarn test:e2e:setup basic
+
+      - name: Wait for site to start
+        run: |
+          # Wait up to a minute
+          for i in {1..12}
+          do
+            if curl --output /dev/null --silent --head --fail http://localhost:80; then
+              break
+            fi
+            echo 'Waiting for the server to start...'
+            sleep 5
+          done
+      
+      - name: Run end-to-end tests
+        run: |
+          yarn test:e2e
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: testing/playwright-report/
+          retention-days: 30

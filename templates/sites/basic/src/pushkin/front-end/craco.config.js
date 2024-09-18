@@ -1,4 +1,5 @@
-const { codespaces, codespaceName } = require('./src/.env.js');
+const { DefinePlugin } = require('webpack');
+const { debug, codespaces, codespaceName } = require('./src/.env.js');
 const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
 
 const maybe_modify_test = test => {
@@ -25,7 +26,10 @@ module.exports = {
         new NodePolyfillPlugin({
           excludeAliases: ['console'],
         }),
-      ]
+        new DefinePlugin({
+          'process.env.DEBUG': JSON.stringify(debug),
+        }),
+      ],
     },
     configure: (webpackConfig, {env, paths}) => {
 

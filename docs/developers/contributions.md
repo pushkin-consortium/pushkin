@@ -36,7 +36,7 @@ We welcome contributions of any scope. To facilitate a smooth integration into t
     1. Installing the ESLint extension for your IDE (e.g. [ESLint for VSCode](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint)) and not adding any code with new lint problems
     2. If you're sufficiently confident, correcting lint problems in the files you're working on
     3. If you're sufficiently confident, editing the ESLint configuration file in the root of the monorepo to account for the needs of the package or template you're working on
-    4. **Not** commiting code with lint-disabling comments, as this doesn't help us update the lint configuration to be maximally helpful (if you think disabling linting for a particular line/block is absolutely necessary, please discuss it with Pushkin maintainers)
+    4. **Not** commiting code with lint-disabling comments, as this doesn't help us update the lint configuration to be maximally useful (if you think disabling linting for a particular line/block is absolutely necessary, please discuss it with Pushkin maintainers)
 
 ### Contributing to the documentation
 

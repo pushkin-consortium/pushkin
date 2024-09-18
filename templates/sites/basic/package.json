@@ -21,9 +21,9 @@
     "build/*"
   ],
   "scripts": {
-    "test": "jest",
     "build": "mkdir -p build && cd src && zip -FS -r -q ../build/template.zip . -x \"*/node_modules/*\" -x \"*/build/*\" && cd .. && zip -u -q build/template.zip jest.config.js babel.config.js",
-    "prepack": "cp ../../../LICENSE ."
+    "prepack": "cp ../../../LICENSE .",
+    "test": "jest"
   },
   "devDependencies": {
     "@reduxjs/toolkit": "^2.2.2",

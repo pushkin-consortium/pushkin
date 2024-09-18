@@ -638,10 +638,10 @@ const handleInstall = async (templateType, options, verbose) => {
         {
           type: "input",
           name: "templatePath",
-          message: `What is the absolute path to your ${templateType} template?`,
+          message: `What is the path to your ${templateType} template?`,
         },
       ]);
-      templatePath = templatePathPrompt.templatePath;
+      templatePath = path.resolve(templatePathPrompt.templatePath);
     }
     // Check that the path exists
     if (!fs.existsSync(templatePath)) {
@@ -732,18 +732,8 @@ const handleInstall = async (templateType, options, verbose) => {
 
   // If the user is installing the basic experiment template, ask if they want to import a jsPsych experiment.html
   if (templateType === "experiment" && templateName === "@pushkin-templates/exp-basic") {
-    // Check if the options object has the expImport property
-    if (Object.prototype.hasOwnProperty.call(options, "expImport")) {
-      if (options.expImport) {
-        // The property will be true if they supplied a path through the command line
-        importExp = true;
-        expHtmlPath = options.expImport;
-      } else {
-        // If the user supplied flags to use a local or published template,
-        // The expImport flag will be false
-        importExp = false;
-      }
-    } else {
+    // Check if the options object has the expImport property (even if false)
+    if (options.expImport === undefined) {
       // If the expImport flag is undefined run interactively
       const importExpPrompt = await inquirer.prompt([
         {
@@ -759,10 +749,20 @@ const handleInstall = async (templateType, options, verbose) => {
           {
             type: "input",
             name: "expHtmlPath",
-            message: "What is the absolute path to your experiment.html?",
+            message: "What is the path to your experiment.html?",
           },
         ]);
         expHtmlPath = expHtmlPathPrompt.expHtmlPath;
+      }
+    } else {
+      if (options.expImport) {
+        // The property will be true if they supplied a path through the command line
+        importExp = true;
+        expHtmlPath = options.expImport;
+      } else {
+        // If the user supplied flags to use a local or published template,
+        // the expImport flag will be false
+        importExp = false;
       }
     }
     if (importExp) {
@@ -772,6 +772,8 @@ const handleInstall = async (templateType, options, verbose) => {
         console.error("Invalid file path to jsPsych experiment; please try again.");
         process.exit(1);
       } else {
+        // Handle relative paths
+        expHtmlPath = path.resolve(expHtmlPath);
         // If the path looks valid, try to import the jsPsych experiment.html
         const expHtmlPlugins = getJsPsychPlugins(expHtmlPath, verbose);
         // If you wanted to add a feature to ask the user if there are additional plugins they want,
@@ -1470,28 +1472,36 @@ async function main() {
         );
         process.exit(1);
       }
+      // Basic checking of the path option
+      if (options.path) {
+        if (!fs.existsSync(options.path) || !fs.lstatSync(options.path).isDirectory()) {
+          console.error(`Error: The path ${options.path} is not a valid directory`);
+          process.exit(1);
+        }
+      }
       if (options.all) {
         // Pre-processing for the --all option
+        const allPath = path.resolve(options.all);
         let optionsToPass = []; // This will be an array of options objects to be passed to handleInstall()
         let templateList;
         // Check whether the source is a valid local path
         if (
-          fs.existsSync(options.all) &&
-          fs.lstatSync(options.all).isDirectory() &&
-          options.all.endsWith("pushkin/templates/experiments")
+          fs.existsSync(allPath) &&
+          fs.lstatSync(allPath).isDirectory() &&
+          allPath.endsWith("pushkin/templates/experiments")
         ) {
-          templateList = fs.readdirSync(options.all);
+          templateList = fs.readdirSync(allPath);
           templateList.forEach((template) => {
             // Check that the supplied path contains only directories
-            if (!fs.lstatSync(path.join(options.all, template)).isDirectory()) {
-              console.error(`Error: The path ${options.all} contains non-directory files`);
+            if (!fs.lstatSync(path.join(allPath, template)).isDirectory()) {
+              console.error(`Error: The path ${allPath} contains non-directory files`);
               process.exit(1);
             }
             // Add the options array needed to install that template
             optionsToPass.push({
               // Add "_path" to the expName to avoid name conflicts with exps installed with `--all latest`
               expName: template + "_path",
-              templatePath: path.join(options.all, template),
+              templatePath: path.join(allPath, template),
               expImport: false, // Blocks jsPsych experiment import prompt for basic template
             });
           });
@@ -1533,7 +1543,7 @@ async function main() {
             {
               expName: options.expName,
               templateName: options.template,
-              templatePath: options.path,
+              templatePath: options.path ? path.resolve(options.path) : options.path,
               templateVersion: options.release,
               expImport: options.expImport,
             },
@@ -1613,6 +1623,7 @@ async function main() {
     )
     .option("-v, --verbose", "Output extra debugging info")
     .action((packages, options) => {
+      const packagesPath = options.path ? path.resolve(options.path) : undefined;
       // Make sure we're in the root of the site directory
       moveToProjectRoot();
       // Make sure there are no DS_Store files
@@ -1620,9 +1631,9 @@ async function main() {
       // Check that the path is valid
       if (!options.revert) {
         if (
-          !fs.existsSync(options.path) ||
-          !fs.lstatSync(options.path).isDirectory() ||
-          !options.path.endsWith("pushkin/packages")
+          !fs.existsSync(packagesPath) ||
+          !fs.lstatSync(packagesPath).isDirectory() ||
+          !packagesPath.endsWith("pushkin/packages")
         ) {
           console.error("The specified path is invalid; it must end with 'pushkin/packages'.");
           process.exit(1);
@@ -1655,7 +1666,7 @@ async function main() {
       // Integrate the dev package(s) into the site
       handleUseDev(
         packageList,
-        options.path,
+        packagesPath,
         options.experiments,
         options.update,
         options.revert,
