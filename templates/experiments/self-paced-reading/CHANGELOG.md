@@ -1,5 +1,19 @@
 # @pushkin-templates/exp-self-paced-reading
 
+## 6.2.0
+
+### Minor Changes
+
+- [#354](https://github.com/pushkin-consortium/pushkin/pull/354) [`468998f`](https://github.com/pushkin-consortium/pushkin/commit/468998f94396c12e72b7478d35864707e8017120) Thanks [@jessestorbeck](https://github.com/jessestorbeck)! - Added support for jsPsych simulation mode for both automated end-to-end testing and manual testing. To demo this feature, navigate to `http://localhost/quizzes/<exp-name>?simulate=true&mode=visual` to launch the experiment in visual simulation mode.
+
+- [#354](https://github.com/pushkin-consortium/pushkin/pull/354) [`7504ca0`](https://github.com/pushkin-consortium/pushkin/commit/7504ca0385d90d5e1a17824fea294b8b3f179730) Thanks [@jessestorbeck](https://github.com/jessestorbeck)! - Added end-to-end testing with [Playwright](https://playwright.dev/) to site and experiment templates, plus minor additions to the CLI's site template installation process.
+
+### Patch Changes
+
+- [#347](https://github.com/pushkin-consortium/pushkin/pull/347) [`329c560`](https://github.com/pushkin-consortium/pushkin/commit/329c560454b5f139dbafab3a2693180061bb44a4) Thanks [@jessestorbeck](https://github.com/jessestorbeck)! - Bumped pushkin-worker to 3.0.2 in experiment templates' worker component
+
+- [#347](https://github.com/pushkin-consortium/pushkin/pull/347) [`5a71392`](https://github.com/pushkin-consortium/pushkin/commit/5a71392a5adf03be41ae3c286db52aeac2264c8a) Thanks [@jessestorbeck](https://github.com/jessestorbeck)! - Removed console.logging of potentially sensitive information like passwords
+
 ## 6.1.0
 
 ### Minor Changes

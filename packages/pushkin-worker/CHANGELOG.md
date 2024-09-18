@@ -1,5 +1,13 @@
 # pushkin-worker
 
+## 3.0.3
+
+### Patch Changes
+
+- [#347](https://github.com/pushkin-consortium/pushkin/pull/347) [`5a71392`](https://github.com/pushkin-consortium/pushkin/commit/5a71392a5adf03be41ae3c286db52aeac2264c8a) Thanks [@jessestorbeck](https://github.com/jessestorbeck)! - Removed console.logging of potentially sensitive information like passwords
+
+- [#347](https://github.com/pushkin-consortium/pushkin/pull/347) [`53bc2bf`](https://github.com/pushkin-consortium/pushkin/commit/53bc2bf40eadbfde8a657678c70bd4f57442bef2) Thanks [@jessestorbeck](https://github.com/jessestorbeck)! - Add additional package info to package.json so npm pages display links to GitHub and docs
+
 ## 3.0.2
 
 ### Patch Changes

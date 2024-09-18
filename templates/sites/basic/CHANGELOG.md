@@ -1,5 +1,17 @@
 # @pushkin-templates/site-basic
 
+## 1.1.0
+
+### Minor Changes
+
+- [#347](https://github.com/pushkin-consortium/pushkin/pull/347) [`029c3d3`](https://github.com/pushkin-consortium/pushkin/commit/029c3d30baff0df8108e854e7bc4d856be7942e7) Thanks [@jessestorbeck](https://github.com/jessestorbeck)! - Set up a test suite for the site template (thanks due primarily to @hunterschep), plus minor modifications to the CLI to run tests after the user has installed the site template and experiments.
+
+- [#354](https://github.com/pushkin-consortium/pushkin/pull/354) [`7504ca0`](https://github.com/pushkin-consortium/pushkin/commit/7504ca0385d90d5e1a17824fea294b8b3f179730) Thanks [@jessestorbeck](https://github.com/jessestorbeck)! - Added end-to-end testing with [Playwright](https://playwright.dev/) to site and experiment templates, plus minor additions to the CLI's site template installation process.
+
+### Patch Changes
+
+- [#347](https://github.com/pushkin-consortium/pushkin/pull/347) [`5a71392`](https://github.com/pushkin-consortium/pushkin/commit/5a71392a5adf03be41ae3c286db52aeac2264c8a) Thanks [@jessestorbeck](https://github.com/jessestorbeck)! - changed hard coded key into a randomly generated encrypted key
+
 ## 1.0.1
 
 ### Patch Changes
