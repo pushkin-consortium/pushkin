@@ -1,5 +1,15 @@
 # pushkin-api
 
+## 1.6.3
+
+### Patch Changes
+
+- [#347](https://github.com/pushkin-consortium/pushkin/pull/347) [`4504643`](https://github.com/pushkin-consortium/pushkin/commit/45046432432d45cc492c4aa35378f388f34cb5a0) Thanks [@jessestorbeck](https://github.com/jessestorbeck)! - Bump supertest to ^7.0.0 and cookie-session to ^2.1.0
+
+- [#347](https://github.com/pushkin-consortium/pushkin/pull/347) [`5a71392`](https://github.com/pushkin-consortium/pushkin/commit/5a71392a5adf03be41ae3c286db52aeac2264c8a) Thanks [@jessestorbeck](https://github.com/jessestorbeck)! - changed hard coded key into a randomly generated encrypted key
+
+- [#347](https://github.com/pushkin-consortium/pushkin/pull/347) [`53bc2bf`](https://github.com/pushkin-consortium/pushkin/commit/53bc2bf40eadbfde8a657678c70bd4f57442bef2) Thanks [@jessestorbeck](https://github.com/jessestorbeck)! - Add additional package info to package.json so npm pages display links to GitHub and docs
+
 ## 1.6.2
 
 ### Patch Changes

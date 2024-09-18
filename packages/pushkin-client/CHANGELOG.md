@@ -1,5 +1,11 @@
 # pushkin-client
 
+## 1.7.4
+
+### Patch Changes
+
+- [#347](https://github.com/pushkin-consortium/pushkin/pull/347) [`53bc2bf`](https://github.com/pushkin-consortium/pushkin/commit/53bc2bf40eadbfde8a657678c70bd4f57442bef2) Thanks [@jessestorbeck](https://github.com/jessestorbeck)! - Add additional package info to package.json so npm pages display links to GitHub and docs
+
 ## 1.7.3
 
 ### Patch Changes
