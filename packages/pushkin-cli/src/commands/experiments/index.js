@@ -111,9 +111,12 @@ export const setupPushkinExp = async (longName, shortName, expDir, rootDir, verb
   }
   // Allow the long name to be used in the config (before this it will be the same as the short name)
   expConfig.experimentName = longName;
+  // Update exp config file with db password from main config
+  const pushkinYaml = jsYaml.load(fs.readFileSync(path.join(rootDir, "pushkin.yaml")));
+  expConfig.worker.service.environment.DB_PASS = pushkinYaml.databases.localtestdb.pass;
 
   try {
-    fs.writeFileSync(path.join(expDir, 'config.yaml'), jsYaml.safeDump(expConfig), 'utf8');
+    fs.writeFileSync(path.join(expDir, 'config.yaml'), jsYaml.dump(expConfig), 'utf8');
   } catch (e) {
     console.error("Unable to update config.yaml");
     throw e
@@ -127,7 +130,7 @@ export const setupPushkinExp = async (longName, shortName, expDir, rootDir, verb
   const composeFileLoc = path.join(path.join(rootDir, 'pushkin'), 'docker-compose.dev.yml');
   let compFile;
   try { 
-    compFile = jsYaml.safeLoad(fs.readFileSync(composeFileLoc), 'utf8'); 
+    compFile = jsYaml.load(fs.readFileSync(composeFileLoc), 'utf8'); 
     if (verbose) console.log("Loaded main docker compose file");
   } catch (e) { 
     console.error("Failed to load main docker compose file: ", e);
@@ -143,7 +146,7 @@ export const setupPushkinExp = async (longName, shortName, expDir, rootDir, verb
   serviceContent.labels = { ...(serviceContent.labels || {}), isPushkinWorker: true };
   compFile.services[workerName] = serviceContent;
   try {
-    fs.writeFileSync(composeFileLoc, jsYaml.safeDump(compFile), 'utf8');
+    fs.writeFileSync(composeFileLoc, jsYaml.dump(compFile), 'utf8');
   } catch (e) { 
     console.error("Failed to create new compose file", e); 
     process.exit()
@@ -322,7 +325,7 @@ export function removeExpWorkers(experiments, verbose) {
     if (verbose) console.log(`Removing deleted experiments' workers from docker-compose file`);
     const dockerComposePath = path.join(process.cwd(), 'pushkin/docker-compose.dev.yml');
     // Read in the docker-compose file
-    const dockerCompose = jsYaml.safeLoad(fs.readFileSync(dockerComposePath, 'utf8'));
+    const dockerCompose = jsYaml.load(fs.readFileSync(dockerComposePath, 'utf8'));
     experiments.forEach((exp) => {
       const workerName = exp.toLowerCase().concat('_worker');
       if (dockerCompose.services[workerName]) {
@@ -333,7 +336,7 @@ export function removeExpWorkers(experiments, verbose) {
       }
     });
     // Return the promise to write the updated docker-compose file
-    return fs.promises.writeFile(dockerComposePath, jsYaml.safeDump(dockerCompose));
+    return fs.promises.writeFile(dockerComposePath, jsYaml.dump(dockerCompose));
   } catch (e) {
     console.error("Error updating docker-compose file", e);
     throw e;
@@ -354,7 +357,7 @@ export function updateExpConfig(experimentPath, properties, verbose) {
     if (verbose) console.log('Updating config file for', experimentName);
     // Read in the experiment's config file and set the 'archived' flag to true
     const configPath = path.join(experimentPath, 'config.yaml');
-    const config = jsYaml.safeLoad(fs.readFileSync(configPath, 'utf8'));
+    const config = jsYaml.load(fs.readFileSync(configPath, 'utf8'));
     // In verbose mode, tell the user if any of the keys are already set to the specified value
     if (verbose) {
       Object.keys(properties).forEach((key) => {
@@ -365,7 +368,7 @@ export function updateExpConfig(experimentPath, properties, verbose) {
     }
     // Add/update the specified key-value pair(s)
     Object.assign(config, properties);
-    return fs.promises.writeFile(configPath, jsYaml.safeDump(config));
+    return fs.promises.writeFile(configPath, jsYaml.dump(config));
   } catch (e) {
     console.error(`Failed to update config file for ${experimentName}`, e);
     throw e;

@@ -33,8 +33,8 @@ import {
   setupPushkinExp,
   updateExpConfig,
 } from "./commands/experiments/index.js";
-import { prep, setEnv } from "./commands/prep/index.js";
-import { setupdb, setupTestTransactionsDB } from "./commands/setupdb/index.js";
+import { prep, setEnv, updatePasswords } from "./commands/prep/index.js";
+import { setupdb, setupTestTransactionsDB, securePasswords } from "./commands/setupdb/index.js";
 import { initSite, setupPushkinSite } from "./commands/sites/index.js";
 
 import pacMan from "./pMan.js"; //which package manager is available?
@@ -58,7 +58,7 @@ const loadConfig = (configFile) => {
   // could add some validation to make sure everything expected in the config is there
   return new Promise((resolve, reject) => {
     try {
-      resolve(jsYaml.safeLoad(fs.readFileSync(configFile, "utf8")));
+      resolve(jsYaml.load(fs.readFileSync(configFile, "utf8")));
     } catch (e) {
       console.error(`Pushkin config file missing, error: ${e}`);
       process.exit(1);
@@ -69,7 +69,7 @@ const loadConfig = (configFile) => {
 const updateS3 = async () => {
   let awsName, useIAM;
   try {
-    let awsResources = jsYaml.safeLoad(
+    let awsResources = jsYaml.load(
       fs.readFileSync(path.join(process.cwd(), "awsResources.js"), "utf8"),
     );
     awsName = awsResources.awsName;
@@ -865,8 +865,10 @@ const handleInstall = async (templateType, options, verbose) => {
     await setupPushkinSite(verbose);
     if (verbose) console.log("Finished setting up site template files");
     // Set up the transactions database
-    if (verbose) console.log("setting up transactions db");
+    if (verbose) console.log("Setting up transactions db");
     await setupTestTransactionsDB(verbose); // Not distributed with sites since it's the same for all of them.
+    if (verbose) console.log("Overwriting DB passwords with secure defaults");
+    securePasswords();
   } else {
     // templateType === "experiment"
     if (verbose) console.log("Setting up experiment template files");
@@ -1046,7 +1048,7 @@ const handleRemove = async (experiments, mode, force, verbose) => {
   // Make sure we're in the root of the site directory
   moveToProjectRoot();
   // Load the pushkin.yaml file
-  const config = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), "pushkin.yaml"), "utf8"));
+  const config = jsYaml.load(fs.readFileSync(path.join(process.cwd(), "pushkin.yaml"), "utf8"));
   // Get the path to the experiments directory
   const expDir = path.join(process.cwd(), config.experimentsDir);
   // Check that the experiments directory exists
@@ -1748,7 +1750,7 @@ async function main() {
           }
           config.DockerHubID = answers.ID;
           try {
-            fs.writeFileSync(path.join(process.cwd(), "pushkin.yaml"), jsYaml.safeDump(config));
+            fs.writeFileSync(path.join(process.cwd(), "pushkin.yaml"), jsYaml.dump(config));
           } catch (e) {
             console.error("Unable to rewrite pushkin.yaml.");
             console.error(e);
@@ -1795,6 +1797,13 @@ async function main() {
         }
       } catch (e) {
         console.error("Problem setting front-end environment variable:", e);
+        process.exit(1);
+      }
+      try {
+        if (options.verbose) console.log("Updating database passwords");
+        await updatePasswords();
+      } catch (e) {
+        console.error("Unable to update database passwords", e);
         process.exit(1);
       }
       try {
