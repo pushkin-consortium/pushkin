@@ -39,6 +39,7 @@ export const initSite = async (verbose) => {
         "pushkin.yaml",
         ".docker",
         ".DS_Store",
+        ".vscode",
         "node_modules",
         "build",
         "test-results/",

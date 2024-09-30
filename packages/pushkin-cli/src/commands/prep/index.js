@@ -273,12 +273,16 @@ const prepWeb = async (expDir, expConfig, coreDir, verbose) => {
   }
 
   if (verbose) console.log(`Loaded web page for ${expConfig.experimentName} (${moduleName})`);
-  const modListAppendix = "{ fullName: `".concat(expConfig.experimentName).concat("`,")
-    .concat(`shortName: '${expConfig.shortName}', 
-    module: ${moduleName}, logo: '${expConfig.logo}', 
-    tagline: '${expConfig.tagline}', 
-    duration: '${expConfig.duration}', 
-    text: '${expConfig.text}' }`);
+  const modListAppendix = {
+    fullName: String(expConfig.experimentName),
+    shortName: String(expConfig.shortName),
+    module: String(moduleName),
+    results: expConfig.showExpResults ? String(moduleName) + "_results" : null,
+    logo: String(expConfig.logo),
+    tagline: String(expConfig.tagline),
+    duration: String(expConfig.duration),
+    text: String(expConfig.text),
+  };
 
   // move logo to assets folder
   fs.promises
@@ -595,15 +599,37 @@ export const prep = async (experimentsDir, coreDir, verbose) => {
   try {
     if (verbose) console.log("Writing out experiments.js");
     top = finalWebPages.map((include) => {
-      return `import ${include.moduleName} from '${include.moduleName}';\n`;
+      let importStatement = `import ${include.moduleName} from '${include.moduleName}';\n`;
+      if (include.listAppendix.results) {
+        importStatement += `import { ExpResults as ${include.listAppendix.results} } from '${include.moduleName}';\n`;
+      }
+      return importStatement;
     });
     top = top.join("");
+
+    /**
+     * Replacer function so module names are not quoted
+     * @param {string} key - The key of the object being stringified
+     * @param {string} value - The value of the object being stringified
+     * @returns {string} - The stringified value
+     */
+    const replacer = (key, value) => {
+      if (key === "module" || key === "results") {
+        return `__RAW__${value}__RAW__`; // Mark the value to remove quotes
+      }
+      return value;
+    };
+
     bottom = finalWebPages
       .map((include) => {
-        return `${include.listAppendix}\n`;
+        return JSON.stringify(include.listAppendix, replacer, 2);
       })
-      .join(",");
-    toWrite = top.concat(`export default [\n`).concat(bottom).concat(`];`);
+      .join(",\n");
+    toWrite = `${top}export default [\n${bottom}];`;
+
+    // Post-process the JSON string to remove quotes from marked values
+    toWrite = toWrite.replace(/"__RAW__(.*?)__RAW__"/g, "$1");
+
     fs.writeFileSync(path.join(coreDir, "front-end/src/experiments.js"), toWrite, "utf8");
   } catch (e) {
     console.error("Failed to include web pages in front end");
