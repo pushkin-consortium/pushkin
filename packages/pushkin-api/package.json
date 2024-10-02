@@ -29,9 +29,10 @@
     "devDependencies": {},
     "dependencies": {
         "amqplib": "^0.10.3",
+        "body-parser": "^1.20.3",
         "cookie-session": "^2.1.0",
         "cors": "^2.8.5",
-        "express": "^4.19.2",
+        "express": "^4.21.0",
         "regenerator-runtime": "^0.14.0",
         "uuid": "^9.0.0"
     }
