@@ -3,22 +3,12 @@
     "version": "1.6.3",
     "description": "The core Pushkin API module designed for interfacing between Pushkin clients and workers through RabbitMQ",
     "main": "build/index.js",
-    "jest": {
-        "transform": {
-            "^.+\\.[t|j]sx?$": "babel-jest"
-        },
-        "transformIgnorePatterns": [
-            "/node_modules/(?!(axios)/)",
-            "/node_modules/(?!(core-js)/)",
-            "\\.pnp\\.[^\\/]+$"
-        ]
-    },
     "files": [
         "build/*"
     ],
     "scripts": {
         "test": "jest",
-        "build": "babel src -d build",
+        "build": "babel --root-mode upward src -d build",
         "prepack": "cp ../../LICENSE ."
     },
     "keywords": [
@@ -36,16 +26,7 @@
     "bugs": {
         "url": "https://github.com/pushkin-consortium/pushkin/issues"
     },
-    "devDependencies": {
-        "@babel/cli": "^7.22.10",
-        "@babel/core": "^7.22.10",
-        "@babel/plugin-transform-async-to-generator": "^7.22.5",
-        "@babel/preset-env": "^7.22.10",
-        "babel-eslint": "^10.1.0",
-        "babel-jest": "^29.6.3",
-        "eslint": "^8.47.0",
-        "supertest": "^7.0.0"
-    },
+    "devDependencies": {},
     "dependencies": {
         "amqplib": "^0.10.3",
         "cookie-session": "^2.1.0",
