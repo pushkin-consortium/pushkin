@@ -46,6 +46,7 @@
     "regenerator-runtime": "^0.13.5",
     "replace-in-file": "^6.1.0",
     "shelljs": "^0.8.4",
-    "uuid": "^8.3.0"
+    "uuid": "^8.3.0",
+    "zx": "^8.1.8"
   }
 }

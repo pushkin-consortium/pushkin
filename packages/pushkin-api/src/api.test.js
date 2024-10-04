@@ -43,7 +43,6 @@ describe("ControllerBuilder", () => {
 
   test("setDefaultPasses, seven addings to passAlongs", () => {
     myController.setDefaultPasses(db_read_queue, db_write_queue, task_queue);
-    console.log(myController.passAlongs);
     expect(myController.passAlongs.length).toBe(8);
   });
 
