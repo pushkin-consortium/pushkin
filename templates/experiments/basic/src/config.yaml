@@ -1,4 +1,3 @@
-# v5.0.4
 experimentName: &fullName 'pushkintemplate'
 shortName: &shortName 'pushkintemplate' # This should be unique as its used for urls, etc.
 apiControllers: # The default export from each of these locations will be attached to a pushkin API

@@ -4,6 +4,16 @@ const { expInfo } = require("./expInfo");
 const { pushkinConfig } = require("../../../e2e/siteInfo");
 
 /**
+ * Get a random alphanumeric key
+ * @returns {string} A random alphanumeric key
+ */
+function getRandomKey() {
+  const keys = "abcdefghijklmnopqrstuvwxyz1234567890";
+  const randomIndex = Math.floor(Math.random() * keys.length);
+  return keys[randomIndex];
+}
+
+/**
  * Connect to the Pushkin database
  * @returns {knex} A connection to the Pushkin database
  */
@@ -63,6 +73,7 @@ test.describe("First trial data", () => {
   // Skip this describe block if data collection is paused
   test.skip(() => expInfo.paused, "Experiment is paused");
   // These vars need to be accessible to before/after hooks and tests
+  let randomKey;
   let trialTimeWeb;
   let trialData;
   let db;
@@ -74,8 +85,9 @@ test.describe("First trial data", () => {
     // Set up listeners for the stimulusResponse request and response
     const trialRequestPromise = page.waitForRequest(`/api/${expInfo.shortName}/stimulusResponse`);
     const trialResponsePromise = page.waitForResponse(`/api/${expInfo.shortName}/stimulusResponse`);
-    // Press space to complete the first trial
-    await page.keyboard.press(" ");
+    // Press a random key to complete the first trial
+    randomKey = getRandomKey();
+    await page.keyboard.press(randomKey);
     // Save this to compare to database time
     trialTimeWeb = Date.now();
     const trialRequest = await trialRequestPromise;
@@ -115,7 +127,7 @@ test.describe("First trial data", () => {
     expect(dbData.stimulus).toEqual(expect.any(String));
   });
   test("should have the correct key response", async () => {
-    expect(dbData.response.response).toBe(" ");
+    expect(dbData.response.response).toBe(randomKey);
   });
   test("should approximately match the time of the keypress on the site", async () => {
     const trialTimeDB = new Date(dbData.created_at).getTime();

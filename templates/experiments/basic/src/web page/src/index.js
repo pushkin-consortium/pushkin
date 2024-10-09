@@ -7,9 +7,12 @@ import jsPsychHtmlKeyboardResponse from "@jspsych/plugin-html-keyboard-response"
 import jsYaml from "js-yaml";
 const fs = require("fs");
 
-//stylin'
+// Styling and other configuration options
 import "./assets/experiment.css";
-
+// These are aesthetic settings for the experiment from options.js
+const expOptions = require("./options").default;
+// These are the config settings for the overall Pushkin experiment
+// from the config.yaml at the top level of the experiment
 const expConfig = jsYaml.load(fs.readFileSync("../config.yaml"), "utf8");
 
 const pushkin = new pushkinClient();
@@ -97,6 +100,12 @@ class quizComponent extends React.Component {
     }
 
     document.getElementById("jsPsychTarget").focus();
+
+    // Settings from config.js
+    document.getElementById("jsPsychTarget").style.color = expOptions.fontColor;
+    document.getElementById("jsPsychTarget").style.fontSize = expOptions.fontSize;
+    document.getElementById("jsPsychTarget").style.fontFamily = expOptions.fontFamily;
+
     this.setState({ loading: false });
   }
 

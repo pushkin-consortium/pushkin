@@ -2,14 +2,15 @@ const fs = require("fs");
 const jsYaml = require("js-yaml");
 const path = require("path");
 const stim = require("../web page/src/stim").default;
-const config = require("../web page/src/config").default;
+const expOptions = require("../web page/src/options").default;
 
 // Count the expected number of trials
 // Non-experimental trials (consent, instructions, etc.)
 const nonExpTrials = 4;
 // Experimental trials (and any other trials that are looped with experimental trials)
 // This number will always be at least stim.length * 2 because of fixation trials
-const expTrials = stim.length * (2 + config.correctiveFeedback + (config.responseType !== "2afc"));
+const expTrials =
+  stim.length * (2 + expOptions.correctiveFeedback + (expOptions.responseType !== "2afc"));
 // Total expected trials
 const trialCount = nonExpTrials + expTrials;
 
