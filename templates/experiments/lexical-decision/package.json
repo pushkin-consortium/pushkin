@@ -6,7 +6,7 @@
     "pushkin",
     "template"
   ],
-  "author": "L3",
+  "author": "AI4CommSci",
   "license": "MIT",
   "homepage": "https://pushkin-consortium.github.io/pushkin",
   "repository": {
@@ -23,6 +23,7 @@
   "scripts": {
     "test": "jest",
     "build": "mkdir -p build && cd src && zip -FS -r -q ../build/template.zip . -x \"*/node_modules/*\" -x \"*/build/*\"",
+    "copy-from-basic": "node template-sync/copy-from-basic.js",
     "prepack": "cp ../../../LICENSE ."
   }
 }

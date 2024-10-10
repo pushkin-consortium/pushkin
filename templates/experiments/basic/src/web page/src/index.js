@@ -101,7 +101,7 @@ class quizComponent extends React.Component {
 
     document.getElementById("jsPsychTarget").focus();
 
-    // Settings from config.js
+    // Settings from options.js
     document.getElementById("jsPsychTarget").style.color = expOptions.fontColor;
     document.getElementById("jsPsychTarget").style.fontSize = expOptions.fontSize;
     document.getElementById("jsPsychTarget").style.fontFamily = expOptions.fontFamily;
