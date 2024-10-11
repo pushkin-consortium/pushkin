@@ -2,9 +2,11 @@
   "private": true,
   "workspaces": [
     "packages/*",
-    "templates/*/*"
+    "templates/*/*",
+    "!templates/experiments/template-sync"
   ],
   "scripts": {
+    "copy-from-basic-exp": "node templates/experiments/template-sync/copy-from-basic.js",
     "docs:deploy": "poetry install --no-root && poetry run mike deploy -u --alias-type=redirect",
     "docs:serve": "poetry run mike serve",
     "prepare": "husky",

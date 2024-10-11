@@ -2,10 +2,6 @@
 
 const additions = [
   // The following files are not present in the basic template
-  "template-sync/compare-to-basic.test.js",
-  "template-sync/copy-from-basic.js",
-  "template-sync/template-diffs.js",
-  "template-sync/utils.js",
   "src/web page/src/consent.js",
   "src/web page/src/debrief.js",
   "src/web page/src/stim.js",
@@ -45,7 +41,6 @@ const modifications = [
       `"description": "A Pushkin experiment template`,
       `"directory": "templates/experiments/`,
       //`version:`, // Uncomment to allow version to differ
-      `"copy-from-basic": "node template-sync/copy-from-basic.js",`,
     ],
   },
   {
@@ -58,7 +53,18 @@ const modifications = [
       `const stim = require("../web page/src/stim").default;`,
       `const expOptions = require("../web page/src/options").default;`, // First line of multi-line diff
       `dataRows: `,
-      `simulationMode: `,
+    ],
+    // Specify exceptional diffs for specific templates
+    exceptions: [
+      {
+        template: "self-paced-reading",
+        diffs: [
+          `const stim = require("../web page/src/stim").default;`,
+          `const expOptions = require("../web page/src/options").default;`,
+          `dataRows: `,
+          `simulationMode: `,
+        ],
+      },
     ],
   },
   {

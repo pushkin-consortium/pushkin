@@ -2,15 +2,6 @@ const { fs, path } = require("zx");
 const ignore = require("ignore");
 const { diffLines } = require("diff");
 
-const basicDir = path.resolve(__dirname, "../../basic");
-const nonBasicDir = path.resolve(__dirname, "..");
-
-// Load .gitignore rules
-const gitignorePath = path.resolve(__dirname, "../../../../.gitignore"); // repo root .gitignore
-const gitignoreDir = path.dirname(gitignorePath);
-const gitignoreRules = fs.readFileSync(gitignorePath, "utf8");
-const ig = ignore().add(gitignoreRules);
-
 /**
  * Recursively list all files in an experiment template directory
  * @param {string} dir - directory to list files from
@@ -21,6 +12,9 @@ const ig = ignore().add(gitignoreRules);
  */
 const listFiles = (dir, templateDir, gitignoreDir, fileList = []) => {
   const files = fs.readdirSync(dir);
+  // Load .gitignore rules
+  const gitignoreRules = fs.readFileSync(path.resolve(gitignoreDir, ".gitignore"), "utf8");
+  const ig = ignore().add(gitignoreRules);
   files.forEach((file) => {
     const filePath = path.join(dir, file);
     const relativePath = path.relative(gitignoreDir, filePath);
@@ -82,4 +76,4 @@ const compareToBasic = (basicDir, nonBasicDir, gitignoreDir, subsetDir) => {
   return { additions, modifications, deletions };
 };
 
-module.exports = { basicDir, nonBasicDir, gitignoreDir, listFiles, compareToBasic };
+module.exports = { listFiles, compareToBasic };

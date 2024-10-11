@@ -1,8 +1,14 @@
-// Compares all template files to the basic template
+// Compares all files in non-basic templates to the basic template
 // Tests will fail is the differences are not permitted in template-diffs.js
 
-const { basicDir, nonBasicDir, gitignoreDir, compareToBasic } = require("./utils.js");
+const { fs, path } = require("zx");
+const { compareToBasic } = require("./utils.js");
 let { additions, modifications, deletions } = require("./template-diffs.js");
+
+const basicDir = path.resolve(__dirname, "../basic");
+const dirNames = fs.readdirSync(path.resolve(__dirname, ".."));
+const nonBasicDirNames = dirNames.filter((dir) => !["basic", "template-sync"].includes(dir));
+const gitignoreDir = path.resolve(__dirname, "../../.."); // Should be the repo root
 
 // For development purposes only, limit the comparison to a shared subdirectory
 let subsetDir;
@@ -16,9 +22,10 @@ if (subsetDir) {
   deletions = deletions.filter((file) => file.startsWith(subsetDir));
 }
 
-const comparison = compareToBasic(basicDir, nonBasicDir, gitignoreDir, subsetDir);
-
-describe("grammaticality-judgment template", () => {
+describe.each(nonBasicDirNames)("%s template", (nonBasicDirName) => {
+  // Get the full path to the non-basic template directory
+  const nonBasicDir = path.resolve(__dirname, "..", nonBasicDirName);
+  const comparison = compareToBasic(basicDir, nonBasicDir, gitignoreDir, subsetDir);
   test("should have all allowed additions", () => {
     const unexpectedMissing = additions.filter((file) => !comparison.additions.includes(file));
     expect(unexpectedMissing).toHaveLength(0);
@@ -42,7 +49,15 @@ describe("grammaticality-judgment template", () => {
         // If the expected modifications are specified, loop over them
         if (expectedMod.diffs) {
           const unexpectedNonDiffs = [];
-          expectedMod.diffs.forEach((expectedDiff) => {
+          let expectedDiffs;
+          if (expectedMod.exceptions?.some((exception) => exception.template === nonBasicDirName)) {
+            expectedDiffs = expectedMod.exceptions.find(
+              (exception) => exception.template === nonBasicDirName,
+            ).diffs;
+          } else {
+            expectedDiffs = expectedMod.diffs;
+          }
+          expectedDiffs.forEach((expectedDiff) => {
             // If the expected modification is not detected, add it to the unexpected non-diffs
             if (!fileMods.diffs.some((detectedDiff) => detectedDiff.value.includes(expectedDiff))) {
               unexpectedNonDiffs.push(expectedDiff);
@@ -78,8 +93,18 @@ describe("grammaticality-judgment template", () => {
             .filter((detectedDiff) => detectedDiff.added || detectedDiff.removed)
             .forEach((detectedDiff) => {
               // If the detected modification is not allowed, add it to the unexpected diffs
+              let expectedDiffs;
               if (
-                !fileMods.diffs.some((expectedDiff) => detectedDiff.value.includes(expectedDiff))
+                fileMods.exceptions?.some((exception) => exception.template === nonBasicDirName)
+              ) {
+                expectedDiffs = fileMods.exceptions.find(
+                  (exception) => exception.template === nonBasicDirName,
+                ).diffs;
+              } else {
+                expectedDiffs = fileMods.diffs;
+              }
+              if (
+                !expectedDiffs.some((expectedDiff) => detectedDiff.value.includes(expectedDiff))
               ) {
                 unexpectedDiffs.push(detectedDiff);
               }
