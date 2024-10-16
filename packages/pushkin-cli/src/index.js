@@ -1493,20 +1493,24 @@ async function main() {
           allPath.endsWith("pushkin/templates/experiments")
         ) {
           templateList = fs.readdirSync(allPath);
-          templateList.forEach((template) => {
-            // Check that the supplied path contains only directories
-            if (!fs.lstatSync(path.join(allPath, template)).isDirectory()) {
-              console.error(`Error: The path ${allPath} contains non-directory files`);
-              process.exit(1);
-            }
-            // Add the options array needed to install that template
-            optionsToPass.push({
-              // Add "_path" to the expName to avoid name conflicts with exps installed with `--all latest`
-              expName: template + "_path",
-              templatePath: path.join(allPath, template),
-              expImport: false, // Blocks jsPsych experiment import prompt for basic template
+          templateList
+            // Don't include the template-sync directory, since it's not actually a template
+            .filter((template) => template !== "template-sync")
+            // Loop over the exp template directories
+            .forEach((template) => {
+              // Check that the supplied path contains only directories
+              if (!fs.lstatSync(path.join(allPath, template)).isDirectory()) {
+                console.error(`Error: The path ${allPath} contains non-directory files`);
+                process.exit(1);
+              }
+              // Add the options array needed to install that template
+              optionsToPass.push({
+                // Add "_path" to the expName to avoid name conflicts with exps installed with `--all latest`
+                expName: template + "_path",
+                templatePath: path.join(allPath, template),
+                expImport: false, // Blocks jsPsych experiment import prompt for basic template
+              });
             });
-          });
         } else if (options.all === "latest") {
           templateList = await getTemplates("pushkin-templates", "experiment", options.verbose);
           console.log(templateList);

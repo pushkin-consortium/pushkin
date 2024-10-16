@@ -39,7 +39,7 @@ const copyFiles = () => {
     const nonBasicFile = path.resolve(nonBasicDir, file);
     fs.copyFileSync(basicFile, nonBasicFile);
   });
-}
+};
 
 console.log(`Copying files from basic exp template to ${path.basename(nonBasicDir)} template...`);
 copyFiles();

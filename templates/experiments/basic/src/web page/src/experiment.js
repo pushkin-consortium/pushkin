@@ -12,6 +12,7 @@ export function createTimeline(jsPsych) {
   const hello_trial = {
     type: jsPsychHtmlKeyboardResponse,
     stimulus: "Hello, world!",
+    data: { use_for_summary_stat: true },
   };
 
   timeline.push(hello_trial);
