@@ -18,6 +18,13 @@ const modifications = [
     // Differences won't be predictable, since this is auto-generated
     file: "src/web page/yarn.lock",
     diffs: undefined,
+    // Specify exceptional diffs for specific templates
+    exceptions: [
+      {
+        template: "lexical-decision",
+        diffs: [], // Empty array means no diffs are allowed for the exceptional template file
+      },
+    ],
   },
   {
     // Diffs will be annoying to capture, as the experiment should differ significantly from basic
@@ -54,7 +61,6 @@ const modifications = [
       `const expOptions = require("../web page/src/options").default;`, // First line of multi-line diff
       `dataRows: `,
     ],
-    // Specify exceptional diffs for specific templates
     exceptions: [
       {
         template: "self-paced-reading",
@@ -78,6 +84,12 @@ const modifications = [
     // as long as they were alphabetized after jsPsych packages but before any shared packages
     // This seems unlikely though, so this simple rule should suffice
     diffs: [`"@jspsych`],
+    exceptions: [
+      {
+        template: "lexical-decision",
+        diffs: [],
+      },
+    ],
   },
   {
     file: "src/web page/src/options.js",

@@ -205,7 +205,11 @@ test.describe("Completing the experiment in simulation mode", () => {
     expect(stimulusResponseRequests).toHaveLength(expInfo.dataRows);
   });
   test("should trigger the expected tabulateAndPostResults request", async () => {
-    expect(userResults).toEqual({ user_id: expect.any(String), experiment: expInfo.longName });
+    expect(userResults).toEqual({
+      user_id: expect.any(String),
+      experiment: expInfo.longName,
+      summary_stat: expect.any(Number),
+    });
   });
   test("should produce data with the correct length", async () => {
     expect(dbStimulusResponses).toHaveLength(expInfo.dataRows);

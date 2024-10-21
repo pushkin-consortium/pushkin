@@ -1056,7 +1056,7 @@
     "@jridgewell/resolve-uri" "^3.1.0"
     "@jridgewell/sourcemap-codec" "^1.4.14"
 
-"@jspsych/plugin-html-keyboard-response@^1.1.2":
+"@jspsych/plugin-html-keyboard-response@^1.1.3":
   version "1.1.3"
   resolved "https://registry.yarnpkg.com/@jspsych/plugin-html-keyboard-response/-/plugin-html-keyboard-response-1.1.3.tgz#11601ca9dc2f45ba198ea89579a6b2e01c8fce00"
   integrity sha512-QlItqZRJJSYROvAVQzUlujjgcqFNimKTIoHu5qVM/HP2oJ1HLB4cQlWcntdwGeNBQGqDgFq8PBKBFCLvC/hFNg==

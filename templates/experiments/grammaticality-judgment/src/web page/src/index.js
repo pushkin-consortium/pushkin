@@ -1,8 +1,10 @@
 import React from "react";
-import pushkinClient from "pushkin-client";
+import { Link } from 'react-router-dom';
+import PushkinClient from "pushkin-client";
 import { initJsPsych } from "jspsych";
 import { connect } from "react-redux";
 import { createTimeline } from "./experiment";
+import ExpResults from "./results";
 import jsPsychHtmlKeyboardResponse from "@jspsych/plugin-html-keyboard-response";
 import jsYaml from "js-yaml";
 const fs = require("fs");
@@ -15,7 +17,7 @@ const expOptions = require("./options").default;
 // from the config.yaml at the top level of the experiment
 const expConfig = jsYaml.load(fs.readFileSync("../config.yaml"), "utf8");
 
-const pushkin = new pushkinClient();
+const pushkin = new PushkinClient();
 
 const mapStateToProps = (state) => {
   return {
@@ -54,7 +56,15 @@ class quizComponent extends React.Component {
 
     const jsPsych = initJsPsych({
       display_element: document.getElementById("jsPsychTarget"),
-      on_finish: this.endExperiment.bind(this),
+      on_finish: (data) => {
+        let summary_stat = null;
+        if (expConfig.calculateExpResults) {
+          summary_stat = Math.round(
+            data.filter({ use_for_summary_stat: true }).select("rt").mean(),
+          );
+        }
+        this.endExperiment(summary_stat);
+      },
       on_data_update: (data) => {
         // Only call saveStimulusResponse if data collection is not paused
         if (!expConfig.dataPaused) {
@@ -109,7 +119,7 @@ class quizComponent extends React.Component {
     this.setState({ loading: false });
   }
 
-  async endExperiment() {
+  async endExperiment(summary_stat) {
     // If data collection is paused, add an ending note and don't save their completion to the users table
     if (expConfig.dataPaused) {
       document.getElementById("jsPsychTarget").innerHTML =
@@ -117,19 +127,31 @@ class quizComponent extends React.Component {
         <p>Data collection is currently paused. No data were saved.</p>`;
     } else {
       document.getElementById("jsPsychTarget").innerHTML = "<p>Processing...</p>";
-      await pushkin.tabulateAndPostResults(this.props.userID, expConfig.experimentName);
+      await pushkin.tabulateAndPostResults(
+        this.props.userID,
+        expConfig.experimentName,
+        summary_stat,
+      );
+      // Show thank you message or link to experiment results, if enabled
       document.getElementById("jsPsychTarget").innerHTML = "<p>Thank you for participating!</p>";
     }
+    this.setState({ experimentComplete: true });
   }
 
   render() {
+    const currentPath = window.location.pathname;
+    const resultsPath = `${currentPath}/results`;
     return (
       <div>
         {this.state.loading && <h1>Loading...</h1>}
         <div id="jsPsychTarget" />
+        {this.state.experimentComplete &&
+          expConfig.calculateExpResults &&
+          expConfig.showExpResults && <Link to={resultsPath}>Click to see your results!</Link>}
       </div>
     );
   }
 }
 
+export { ExpResults };
 export default connect(mapStateToProps)(quizComponent);

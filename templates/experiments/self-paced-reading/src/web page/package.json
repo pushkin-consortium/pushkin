@@ -14,7 +14,7 @@
   "license": "MIT",
   "dependencies": {
     "@jspsych-contrib/plugin-self-paced-reading": "^2.0.0",
-    "@jspsych/plugin-html-keyboard-response": "^1.1.2",
+    "@jspsych/plugin-html-keyboard-response": "^1.1.3",
     "build-if-changed": "^1.5.5",
     "js-yaml": "^4.1.0",
     "jspsych": "^7.3.4",

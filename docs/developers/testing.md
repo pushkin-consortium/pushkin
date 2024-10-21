@@ -23,6 +23,98 @@ yarn workspace <workspace-name> test
 
 Improving test coverage is a priority for Pushkin, so we will happily receive pull requests for additional tests. If you're contributing to some other aspect of the codebase, we ask that you try to add appropriate tests to cover your updates (see our guide to [contributions](./contributions.md) for more).
 
+#### Template synchronization
+
+Pushkin experiment templates by necessity share a substantial amount of code across templates. Rather than trying to handle duplicated code with a more complicated build system, we've opted for the more flexible and simple solution of preserving the full version of each template in the monorepo; however, this introduces the potential for shared code across templates to get out of sync. Because all the current non-basic experiment templates are based on the basic template, we avoid this issue with a suite of tests that checks that the non-basic templates are in sync with the basic template. These tests can be found in the `/templates/experiments/template-sync` directory.
+
+Because of this test suite, if you modify an experiment template, you may need to modify all other templates and/or the `template-sync` tests in order for tests to pass. The tests work by comparing all the non-basic template files to the basic template files and checking whether any differences are allowed in `template-sync/template-diffs.js`. This file exports objects that capture all allowed and required differences between the non-basic templates and the basic template. The `additions` and `deletions` objects are fairly self-explanatory: these are the files that are added or removed in the non-basic templates relative to the basic.
+
+The `modifications` object contains an array of objects corresponding to files that are modified in the non-basic templates. Each object has a `diffs` property which is either `undefined` of an array of strings. If `diffs` is `undefined`, the non-basic files can differ from the basic file in any way. If `diffs` is an array of strings, each string corresponds to a line or group of lines that are different in the non-basic files. If the line is deleted or added relative the the basic file, the string can be the entire line. If the line is modified, the string should be a shared substring of the two lines. For example, compare these excerpts from two files from the basic and grammaticality-judgment templates:
+
+```js title="basic/src/web page/src/options.js"
+const expOptions = {
+  fontColor: "black",
+  fontSize: "20px",
+  fontFamily: "'Open Sans', 'Arial', sans-serif",
+};
+```
+
+```js title="grammaticality-judgment/src/web page/src/options.js"
+const expOptions = {
+  fontColor: "black",
+  fontSize: "20px",
+  fontFamily: "'Open Sans', 'Arial', sans-serif",
+  correctiveFeedback: true,
+  // Options for responseType are:
+  // - "2afc" for a 2-alternative forced choice
+  // - "likert" for a likert scale
+  // - "slider" for a 0-100 sliding scale
+  responseType: "2afc",
+};
+```
+
+Because the non-basic file adds lines beginning with `correctiveFeedback: true,`, the `modifications` object for that file looks like:
+
+```js title="template-sync/template-diffs.js"
+{
+  file: "src/web page/src/options.js",
+  diffs: [`correctiveFeedback: true,`],
+},
+```
+
+For another example, compare the list of dependencies in the web components of the basic and grammaticality-judgment templates:
+
+```json title="basic/src/web page/package.json"
+"dependencies": {
+  "@jspsych/plugin-html-keyboard-response": "^1.1.3",
+  "build-if-changed": "^1.5.5",
+  "js-yaml": "^4.1.0",
+  "jspsych": "^7.3.4",
+  "pushkin-client": "^1.7.1",
+  "react": "^18.2.0",
+  "react-router-dom": "^5.2.0"
+},
+```
+
+```json title="grammaticality-judgment/src/web page/package.json"
+"dependencies": {
+  "@jspsych/plugin-html-keyboard-response": "^1.1.3",
+  "@jspsych/plugin-html-slider-response": "^1.1.2",
+  "@jspsych/plugin-survey-likert": "^1.1.2",
+  "build-if-changed": "^1.5.5",
+  "js-yaml": "^4.1.0",
+  "jspsych": "^7.3.4",
+  "pushkin-client": "^1.7.1",
+  "react": "^18.2.0",
+  "react-router-dom": "^5.2.0"
+},
+```
+
+Because we want to allow non-basic templates to add any additional jsPsych plugins (but no other dependencies should differ), the object for this file in `template-diffs.js` looks like:
+
+```js title="template-sync/template-diffs.js"
+{
+  file: "src/web page/package.json",
+  diffs: [`"@jspsych`],
+  exceptions: [
+    {
+      template: "lexical-decision",
+      diffs: [],
+    },
+  ],
+},
+```
+
+Any additional jsPsych plugin (whether it's from `@jspsych` or `@jspsych-contrib`) will produce a diff containing `"@jspsych`. There's an exceptional diff here as well for the lexical-decision template, which doesn't use any plugins not present in the basic template. Thus this file won't actually differ for that template.
+
+Finally, to help developers keep duplicated files in sync across templates, the repo has a package script that copies files from the basic template to one of the non-basic templates. To use this script, run:
+
+```
+yarn copy-from-basic-exp <template-name>
+```
+
+This script will only copy files that are **not** listed in `template-sync/template-diffs.js`. Thus if you want to copy files from `basic` to `grammaticality-judgment`, you can run `yarn copy-from-basic-exp grammaticality-judgment`.
+
 ### For user site development
 
 Pushkin sites come pre-configured to run Jest tests. Tests enter your site from two sources:

@@ -45,6 +45,13 @@ describe.each(nonBasicDirNames)("%s template", (nonBasicDirName) => {
       // If the file was not detected as modified, add it to the unexpected duplicates
       if (!fileMods) {
         unexpectedDuplicates.push(expectedMod);
+        // Unless the file has exceptional diffs with an empty array
+        if (
+          expectedMod.exceptions?.find((exception) => exception.template === nonBasicDirName).diffs
+            .length === 0
+        ) {
+          unexpectedDuplicates.pop();
+        }
       } else {
         // If the expected modifications are specified, loop over them
         if (expectedMod.diffs) {
