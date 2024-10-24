@@ -147,6 +147,16 @@ export function createTimeline(jsPsych) {
       return results + debrief + "<p>Press spacebar to finish.</p>";
     },
     choices: [" "],
+    // Add a summary statistic to the data object of the last trial
+    // if you want to use it for showing participants their results
+    on_finish: function(data) {
+      // summary_stat will be the mean reaction time for correct "yes" responses in this case
+      data.summary_stat = jsPsych.data
+        .get()
+        .filter({ both_words: true, correct: true })
+        .select("rt")
+        .mean();
+    },
   };
 
   timeline.push(data_summary);

@@ -57,12 +57,7 @@ class quizComponent extends React.Component {
     const jsPsych = initJsPsych({
       display_element: document.getElementById("jsPsychTarget"),
       on_finish: (data) => {
-        let summary_stat = null;
-        if (expConfig.calculateExpResults) {
-          summary_stat = Math.round(
-            data.filter({ use_for_summary_stat: true }).select("rt").mean(),
-          );
-        }
+        const summary_stat = data.last(1).values()[0].summary_stat;
         this.endExperiment(summary_stat);
       },
       on_data_update: (data) => {
@@ -132,8 +127,8 @@ class quizComponent extends React.Component {
         expConfig.experimentName,
         summary_stat,
       );
-      // Show thank you message or link to experiment results, if enabled
-      document.getElementById("jsPsychTarget").innerHTML = "<p>Thank you for participating!</p>";
+      // Hide the jsPsychTarget div after experiment completion
+      document.getElementById("jsPsychTarget").style.display = "none";
     }
     this.setState({ experimentComplete: true });
   }
@@ -145,9 +140,10 @@ class quizComponent extends React.Component {
       <div>
         {this.state.loading && <h1>Loading...</h1>}
         <div id="jsPsychTarget" />
-        {this.state.experimentComplete &&
-          expConfig.calculateExpResults &&
-          expConfig.showExpResults && <Link to={resultsPath}>Click to see your results!</Link>}
+        {this.state.experimentComplete && <p>Thank you for participating!</p>}
+        {this.state.experimentComplete && expConfig.showResults && (
+          <Link to={resultsPath}>Click to see your results!</Link>
+        )}
       </div>
     );
   }

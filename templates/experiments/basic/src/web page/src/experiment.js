@@ -12,7 +12,11 @@ export function createTimeline(jsPsych) {
   const hello_trial = {
     type: jsPsychHtmlKeyboardResponse,
     stimulus: "Hello, world!",
-    data: { use_for_summary_stat: true },
+    // Add a summary statistic to the data object of the last trial
+    // if you want to use it for showing participants their results
+    on_finish: function(data) {
+      data.summary_stat = Math.round(jsPsych.data.get().select("rt").mean());
+    },
   };
 
   timeline.push(hello_trial);

@@ -202,11 +202,9 @@ You may find it useful to include information about your experiment here that ca
 * `tagline`: This is the description that shows when a quiz is shared via social media/email.
 * `duration`: The average length of the experiment to give users an idea of the time commitment.
 
-#### calculateExpResults and showExpResults
+#### showResults
 
-These boolean properties determine whether the experiment will calculate and show feedback to participants based on their experiment results. If `calculateExpResults` is true, the experiment will calculate a summary statistic to be written to the `userResults` table. Otherwise, the summary statistic will be null. If `showExpResults` is true, the participant will see a link their results at the end of the experiment (specified in `results.js`).
-
-`calculateExpResults` must be true for `showExpResults` to be true, but it is possible to have `calculateExpResults` be true and `showExpResults` be false. In this case, the summary statistic will be calculated and written to the `userResults` table, but the participant will not see their results at the end of the experiment.
+If `showResults` is true, the participant will see a link to their results at the end of the experiment (specified in `results.js`). If false, the participant will see only a thank you message.
 
 ### Worker Component, Migrations, and Seeds
 

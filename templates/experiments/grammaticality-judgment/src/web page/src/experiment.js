@@ -276,13 +276,24 @@ export function createTimeline(jsPsych) {
 
       // Show results and debrief
       return (
-        `<p>You were correct on ${correctTotal} of ${total} sentences!
-                Your average response time was ${Math.round(mean_rt)} milliseconds.</p>` +
+        `<p>You were correct on ${correctTotal} of ${total} sentences!</p>` +
+        `<p>Your average correct response time was ${Math.round(mean_rt)} milliseconds.</p>` +
         debrief +
         "<p>Press spacebar to finish.</p>"
       );
     },
     choices: [" "],
+    // Add a summary statistic to the data object of the last trial
+    // if you want to use it for showing participants their results
+    on_finish: function(data) {
+      // summary_stat will be the proportion of correct responses in this case
+      const correctTotal = jsPsych.data
+        .get()
+        .filter({ responseType: "2afc", correct: true })
+        .count();
+      const total = jsPsych.data.get().filter({ responseType: "2afc" }).count();
+      data.summary_stat = correctTotal / total;
+    },
   };
 
   // Push procedure to timeline based on config responseType setting
