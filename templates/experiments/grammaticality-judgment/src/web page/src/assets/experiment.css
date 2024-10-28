@@ -5,16 +5,6 @@
   font-weight: bolder;
 }
 
-.correct {
-  color: green;
-  border-color: green;
-}
-
-.incorrect {
-  color: red;
-  border-color: red;
-}
-
 /* Fixation box styling */
 .fixation {
   border: 2px solid black;
@@ -34,4 +24,14 @@
 }
 .fixation p.bottom {
   bottom: 0px;
+}
+
+.correct {
+  color: green;
+  border-color: green;
+}
+
+.incorrect {
+  color: red;
+  border-color: red;
 }

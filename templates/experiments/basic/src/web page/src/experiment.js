@@ -15,7 +15,7 @@ export function createTimeline(jsPsych) {
     // Add a summary statistic to the data object of the last trial
     // if you want to use it for showing participants their results
     on_finish: function(data) {
-      data.summary_stat = Math.round(jsPsych.data.get().select("rt").mean());
+      data.summary_stat = jsPsych.data.get().select("rt").mean();
     },
   };
 

@@ -1,5 +1,5 @@
 import React from "react";
-import { Link } from 'react-router-dom';
+import { Link } from "react-router-dom";
 import PushkinClient from "pushkin-client";
 import { initJsPsych } from "jspsych";
 import { connect } from "react-redux";
@@ -7,7 +7,7 @@ import { createTimeline } from "./experiment";
 import ExpResults from "./results";
 import jsPsychHtmlKeyboardResponse from "@jspsych/plugin-html-keyboard-response";
 import jsYaml from "js-yaml";
-const fs = require("fs");
+import fs from "fs";
 
 // Styling and other configuration options
 import "./assets/experiment.css";

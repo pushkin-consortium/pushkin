@@ -21,8 +21,7 @@ export function createTimeline(jsPsych) {
   // A welcome page that displays the consent text from consent.js
   var welcome = {
     type: jsPsychHtmlKeyboardResponse,
-    stimulus: consent + "<p>Press spacebar to continue.</p>",
-    choices: [" "],
+    stimulus: consent + "<p>Press any key to continue.</p>",
   };
 
   timeline.push(welcome);

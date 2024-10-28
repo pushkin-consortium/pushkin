@@ -28,8 +28,7 @@ export function createTimeline(jsPsych) {
   // Welcome/consent page
   const welcome = {
     type: jsPsychHtmlKeyboardResponse,
-    stimulus: consent + "<p>Press spacebar to continue.</p>",
-    choices: [" "],
+    stimulus: consent + "<p>Press any key to continue.</p>",
   };
 
   timeline.push(welcome);

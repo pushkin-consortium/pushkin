@@ -277,7 +277,7 @@ const prepWeb = async (expDir, expConfig, coreDir, verbose) => {
     fullName: String(expConfig.experimentName),
     shortName: String(expConfig.shortName),
     module: String(moduleName),
-    results: expConfig.showExpResults ? String(moduleName) + "_results" : null,
+    results: expConfig.showResults ? String(moduleName) + "_results" : null,
     logo: String(expConfig.logo),
     tagline: String(expConfig.tagline),
     duration: String(expConfig.duration),

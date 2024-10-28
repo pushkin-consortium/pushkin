@@ -78,6 +78,10 @@ const modifications = [
     diffs: [`test("should have the 'Hello, world!' stimulus", async () => {`],
   },
   {
+    file: "src/web page/src/options.js",
+    diffs: [`correctiveFeedback: true,`],
+  },
+  {
     file: "src/web page/package.json",
     // Allow jsPsych plugins/extensions to differ (will permit diffs beginning with "@jspsych-contrib" too)
     // Theoretically, this rule could allow other packages to be added/removed,
@@ -92,8 +96,23 @@ const modifications = [
     ],
   },
   {
-    file: "src/web page/src/options.js",
-    diffs: [`correctiveFeedback: true,`],
+    file: "src/web page/src/results.js",
+    diffs: [`<h2>You `],
+    exceptions: [
+      {
+        template: "grammaticality-judgment",
+        diffs: [
+          `const percentileRank = `,
+          `const summary_stat = `,
+          `<h2>You `,
+          `than {percentileRank}% of {totalRows} other people who completed this`,
+        ],
+      },
+      {
+        template: "self-paced-reading",
+        diffs: [],
+      },
+    ],
   },
 ];
 

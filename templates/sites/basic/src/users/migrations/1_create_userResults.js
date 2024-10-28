@@ -3,7 +3,7 @@ exports.up = function (knex) {
     table.increments("id").primary();
     table.string("user_id").references("user_id").inTable("pushkin_users").notNullable();
     table.string("experiment").notNullable();
-    table.integer("summary_stat").nullable();
+    table.float("summary_stat").nullable();
     table.json("results").notNullable();
     table.timestamp("created_at").notNullable();
     table.timestamp("updated_at");

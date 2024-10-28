@@ -1,0 +1,20 @@
+.icon-grid {
+  display: grid;
+  justify-content: center;
+  align-items: center;
+  margin-top: 20px;
+  gap: 5px; 
+}
+
+.icon-container {
+  width: 48px; /* Adjust size as needed */
+  height: 48px; /* Adjust size as needed */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.icon {
+  width: 100%; /* Make icon fill the container */
+  height: 100%; /* Make icon fill the container */
+}

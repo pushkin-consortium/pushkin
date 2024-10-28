@@ -252,26 +252,27 @@ class DefaultHandler {
     if (!data.experiment) throw new Error("getPercentileRank got invalid experiment");
     const user_id = data.user_id;
     const experiment = data.experiment;
+    let summary_stat;
+    let totalRows;
     let percentileRank;
     console.log(`Calculating percentile rank for user ${user_id} in experiment ${experiment}`);
     try {
-      const summary_stat = await this.pg_main(this.tables.userResults)
+      summary_stat = await this.pg_main(this.tables.userResults)
+        .select("summary_stat")
         .where("experiment", experiment)
         .where("user_id", user_id)
-        .select("summary_stat")
         // Get the latest summary_stat for this user
         .orderBy("created_at", "desc")
         .first()
         .then((row) => {
           return row.summary_stat;
         });
-
-      const totalRows = await this.pg_main(this.tables.userResults)
+      totalRows = await this.pg_main(this.tables.userResults)
         .where("experiment", experiment)
         .where("user_id", "<>", user_id)
         .count("*")
         .then((count) => {
-          return count[0].count;
+          return parseInt(count[0].count, 10); // Convert the count to an integer (otherwise it's a string)
         });
       const lessThanRows = await this.pg_main(this.tables.userResults)
         .where("experiment", experiment)
@@ -279,13 +280,13 @@ class DefaultHandler {
         .where("summary_stat", "<=", summary_stat)
         .count("*")
         .then((count) => {
-          return count[0].count;
+          return parseInt(count[0].count, 10); // Convert the count to an integer (otherwise it's a string)
         });
       percentileRank = (lessThanRows / totalRows) * 100;
     } catch (error) {
       console.error("Error calculating percentile rank:", error);
     }
-    return percentileRank.toFixed(2); //round to 2 decimal places
+    return { percentileRank, summary_stat, totalRows };
   }
 
   async startExperiment(sessId, data, params) {
