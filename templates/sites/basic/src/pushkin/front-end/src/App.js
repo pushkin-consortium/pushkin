@@ -1,28 +1,28 @@
 // Import react
-import React from 'react';
-import { Route, Switch } from 'react-router-dom';
+import React from "react";
+import { Route, Switch } from "react-router-dom";
 
 //import custom front-end stuff
 //import logo from './logo.svg';
-import 'bootstrap/dist/css/bootstrap.min.css';
-import './App.css';
+import "bootstrap/dist/css/bootstrap.min.css";
+import "./App.css";
 
 //import page components
-import Header from './components/Layout/Header';
-import Footer from './components/Layout/Footer';
-import TakeQuiz from './components/Quizzes/TakeQuiz';
-import Results from './components/Quizzes/Results';
+import Header from "./components/Layout/Header";
+import Footer from "./components/Layout/Footer";
+import TakeQuiz from "./components/Quizzes/TakeQuiz";
+import Results from "./components/Quizzes/Results";
 
 //import pages
-import HomePage from './pages/Home';
-import FindingsPage from './pages/Findings';
-import AboutPage from './pages/About';
-import FeedbackPage from './pages/Feedback';
+import HomePage from "./pages/Home";
+import FindingsPage from "./pages/Findings";
+import AboutPage from "./pages/About";
+import FeedbackPage from "./pages/Feedback";
 
 function App() {
   return (
     <>
-      <div className="App" style={{ minHeight: '100vh', position: 'relative' }}>
+      <div className="App" style={{ minHeight: "100vh", position: "relative" }}>
         <Header />
         <Switch>
           <Route exact path="/">
@@ -57,7 +57,7 @@ function App() {
             <TakeQuiz />
           </Route>
         </Switch>
-        <div style={{ height: '150px', marginTop: '3rem' }}></div>
+        <div style={{ height: "150px", marginTop: "3rem" }}></div>
         <Footer />
       </div>
     </>

@@ -1,8 +1,8 @@
-import React from 'react';
-import { useParams } from 'react-router-dom';
-import { connect } from 'react-redux';
-import experiments from '../../experiments.js';
-import { CONFIG } from '../../config';
+import React from "react";
+import { useParams } from "react-router-dom";
+import { connect } from "react-redux";
+import experiments from "../../experiments.js";
+import { CONFIG } from "../../config";
 
 const expObject = {};
 experiments.forEach((exp) => {
