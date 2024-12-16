@@ -465,7 +465,11 @@ const getTemplates = async (scope, templateType, verbose) => {
   if (verbose) console.log(`Fetching available ${templateType} templates`);
   try {
     // Search with npm API for all packages under given scope (250 is max number of results; 20 is default limit)
-    response = await got(`https://registry.npmjs.org/-/v1/search?text=scope:${scope}&size=250`); // Allowing for flexibility in scope, in case we ever do a pushkin-contrib scope or similar
+    // npm API scope search seems to be broken as of 12/11/2024; using keywords as a workaround
+    const keywords = scope.replace(/-/g, "+");
+    response = await got(
+      `https://registry.npmjs.org/-/v1/search?text=keywords:${keywords}&size=250`,
+    ); // Allowing for flexibility in scope, in case we ever do a pushkin-contrib scope or similar
     body = JSON.parse(response.body);
     body.objects.forEach((searchResult) => {
       let template = searchResult.package.name;

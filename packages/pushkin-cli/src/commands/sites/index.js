@@ -63,6 +63,7 @@ export const initSite = async (verbose) => {
     };
     const devDepsArray = Object.entries(devDeps).map(([key, value]) => `${key}@${value}`);
     await $`yarn init -yp`;
+    await $`yarn set version 1.22.22`;
     await $`yarn add --dev ${devDepsArray}`;
     await $`yarn playwright install --with-deps`;
     // Edit package.json
