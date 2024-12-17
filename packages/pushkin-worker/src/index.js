@@ -289,6 +289,28 @@ class DefaultHandler {
     return { percentileRank, summary_stat, totalRows };
   }
 
+  async getExpData(sessId, data) {
+    if (!sessId) throw new Error("getPercentileRank got invalid session id");
+    if (!data.user_id) throw new Error("getPercentileRank got invalid userID");
+    if (!data.experiment) throw new Error("getPercentileRank got invalid experiment");
+    const user_id = data.user_id;
+    const experiment = data.experiment;
+    let expData;
+    console.log(`Getting data for user ${user_id} in experiment ${experiment}`);
+    try {
+      expData = await this.pg_main(this.tables.stimResp)
+        .select("response")
+        .where("user_id", user_id)
+        .orderBy("created_at", "asc")
+        .then((rows) => {
+          return rows.map((row) => row.response);
+        });
+    } catch (error) {
+      console.error("Error getting user data:", error);
+    }
+    return expData;
+  }
+
   async startExperiment(sessId, data, params) {
     if (!sessId) throw new Error("startExperiment got invalid session id");
     if (!data.user_id) throw new Error("startExperiment got invalid userID");
@@ -389,6 +411,7 @@ class DefaultHandler {
       "insertMetaResponse",
       "tabulateAndPostResults",
       "getPercentileRank",
+      "getExpData",
     ];
     return methods;
   }

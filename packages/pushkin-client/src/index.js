@@ -55,6 +55,16 @@ export default class Pushkin {
     });
   }
 
+  getExpData(userID, experiment) {
+    const postData = {
+      user_id: userID,
+      experiment,
+    };
+    return this.con.post("/getExpData", postData).then((res) => {
+      return res.data.resData;
+    });
+  }
+
   prepExperimentRun(userID) {
     const postData = {
       user_id: userID,
