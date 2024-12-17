@@ -36,7 +36,7 @@
     "commander": "^11.1.0",
     "core-js": "^3.6.5",
     "corejs": "^1.0.0",
-    "docker-compose": "^0.23.5",
+    "docker-compose": "^1.1.0",
     "got": "^11.5.1",
     "graceful-fs": "^4.2.11",
     "inquirer": "^7.3.2",
