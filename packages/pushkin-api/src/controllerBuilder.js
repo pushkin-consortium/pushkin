@@ -29,6 +29,7 @@ export default class ControllerBuilder {
     this.setPass("/tabulateAndPostResults", "tabulateAndPostResults", taskQueue, "post");
     this.setPass("/getPercentileRank", "getPercentileRank", readQueue, "post");
     this.setPass("/getExpData", "getExpData", readQueue, "post");
+    this.setPass("/getModelPrediction", "getModelPrediction", taskQueue, "post");
     this.setPass("/startExperiment", "startExperiment", taskQueue, "post");
     this.setPass("/getStimuli", "getStimuli", readQueue, "post");
     this.setPass("/insertMetaResponse", "insertMetaResponse", writeQueue, "post");

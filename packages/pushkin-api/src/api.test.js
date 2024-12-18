@@ -43,7 +43,7 @@ describe("ControllerBuilder", () => {
 
   test("setDefaultPasses, seven addings to passAlongs", () => {
     myController.setDefaultPasses(db_read_queue, db_write_queue, task_queue);
-    expect(myController.passAlongs.length).toBe(9);
+    expect(myController.passAlongs.length).toBe(10);
   });
 
   const api = new pushkin.API(3000, "amqp://localhost:5672");
