@@ -2,6 +2,9 @@ import "core-js/stable";
 import "regenerator-runtime/runtime";
 import amqp from "amqplib";
 import knex from "knex";
+import path from "path";
+import { PythonShell } from "python-shell";
+
 const trim = (s, len) => (s.length > len ? s.substring(0, len) : s);
 
 const mysql_real_escape_string = (str) => {
@@ -314,19 +317,48 @@ class DefaultHandler {
   async getModelPrediction(sessId, data) {
     if (!sessId) throw new Error("getModelPrediction got invalid session id");
     if (!data.modelInput) throw new Error("getModelPrediction got invalid modelInput");
-    const user_id = data.user_id;
-    const experiment = data.experiment;
     const modelInput = data.modelInput;
     let modelPrediction;
-    console.log(`Getting model prediction for user ${user_id} in experiment ${experiment}`);
+    console.log(`Getting model prediction`);
     try {
-      // Call the model
-      modelPrediction = modelInput; //stub
+      const modelPath = path.resolve(process.cwd(), "model.py");
+      const options = {
+        mode: "json",
+        pythonOptions: ["-u"],
+        scriptPath: path.dirname(modelPath),
+        args: [JSON.stringify({ modelInput })],
+      };
+      modelPrediction = await new Promise((resolve, reject) => {
+        PythonShell.run(path.basename(modelPath), options, function (err, results) {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(results[0].prediction);
+          }
+        });
+      });
     } catch (error) {
       console.error("Error getting model prediction:", error);
+      throw error;
     }
     return modelPrediction;
   }
+
+  // OLD CODE TO GO BACK TO
+  // async getModelPrediction(sessId, data) {
+  //   if (!sessId) throw new Error("getModelPrediction got invalid session id");
+  //   if (!data.modelInput) throw new Error("getModelPrediction got invalid modelInput");
+  //   const modelInput = data.modelInput;
+  //   let modelPrediction;
+  //   console.log(`Getting model prediction`);
+  //   try {
+  //     // Call the model
+  //     modelPrediction = modelInput; //stub
+  //   } catch (error) {
+  //     console.error("Error getting model prediction:", error);
+  //   }
+  //   return modelPrediction;
+  // }
 
   async startExperiment(sessId, data, params) {
     if (!sessId) throw new Error("startExperiment got invalid session id");
