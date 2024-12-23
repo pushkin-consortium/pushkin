@@ -239,7 +239,7 @@ test.describe("Completing the experiment in simulation mode", () => {
   });
   test("should navigate to and test the results page after simulation", async ({ page }) => {
     // Click the link to see results
-    await page.click('text=Click to see your results!');
+    await page.click("text=Click to see your results!");
 
     // Check that the results page displays the loading message initially
     const loadingMessage = await page.locator("h1");
@@ -255,7 +255,7 @@ test.describe("Completing the experiment in simulation mode", () => {
           totalRows: 100,
           summary_stat: 5000,
         }),
-      })
+      }),
     );
 
     // Reload the page to trigger the API call
@@ -267,7 +267,7 @@ test.describe("Completing the experiment in simulation mode", () => {
 
     const resultsText = await page.locator("p");
     await expect(resultsText).toHaveText(
-      "You were faster than 25.00% of 100 other people who completed this experiment!"
+      "You were faster than 25.00% of 100 other people who completed this experiment!",
     );
   });
 });
@@ -283,12 +283,12 @@ test.describe("Results page in simulation mode", () => {
     await page.goto(`/quizzes/${expInfo.shortName}?simulate=true`);
 
     // Wait for the experiment to finish
-    await page.waitForSelector('text=Click to see your results!');
+    await page.waitForSelector("text=Click to see your results!");
   });
 
   test("should display the correct results", async ({ page }) => {
     // Click the link to see results
-    await page.click('text=Click to see your results!');
+    await page.click("text=Click to see your results!");
 
     // Wait for the results to load
     await page.waitForSelector("h1");
@@ -312,15 +312,19 @@ test.describe("Results page in simulation mode", () => {
       const partialShade = (percentageRank % iconCount) / iconCount;
 
       // Wait for animation to complete
-      await page.waitForTimeout(5000); 
+      await page.waitForTimeout(5000);
 
       // Check the number of fully shaded icons
-      const fullyShadedIcons = await page.locator("svg stop[stop-color='blue'] animate[from='0'][to='1']");
+      const fullyShadedIcons = await page.locator(
+        "svg stop[stop-color='blue'] animate[from='0'][to='1']",
+      );
       await expect(fullyShadedIcons).toHaveCount(shadedIcons);
 
       // Check the partial shading
       if (partialShade > 0) {
-        const partiallyShadedIcon = await page.locator(`svg stop[stop-color='blue'] animate[from='0'][to='${partialShade}']`);
+        const partiallyShadedIcon = await page.locator(
+          `svg stop[stop-color='blue'] animate[from='0'][to='${partialShade}']`,
+        );
         await expect(partiallyShadedIcon).toHaveCount(1);
       }
     } else {

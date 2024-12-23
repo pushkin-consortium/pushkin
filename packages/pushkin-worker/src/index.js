@@ -317,48 +317,25 @@ class DefaultHandler {
   async getModelPrediction(sessId, data) {
     if (!sessId) throw new Error("getModelPrediction got invalid session id");
     if (!data.modelInput) throw new Error("getModelPrediction got invalid modelInput");
+    if (!data.modelPath) throw new Error("getModelPrediction got invalid modelPath"); 
     const modelInput = data.modelInput;
-    let modelPrediction;
+    const modelPath = data.modelPath;
+    let modelOutput;
     console.log(`Getting model prediction`);
     try {
-      const modelPath = path.resolve(process.cwd(), "model.py");
       const options = {
         mode: "json",
-        pythonOptions: ["-u"],
-        scriptPath: path.dirname(modelPath),
         args: [JSON.stringify({ modelInput })],
+        scriptPath: process.cwd(),
       };
-      modelPrediction = await new Promise((resolve, reject) => {
-        PythonShell.run(path.basename(modelPath), options, function (err, results) {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(results[0].prediction);
-          }
-        });
-      });
+      const results = await PythonShell.run(modelPath, options);
+      modelOutput = results[0];
     } catch (error) {
       console.error("Error getting model prediction:", error);
       throw error;
     }
-    return modelPrediction;
+    return modelOutput;
   }
-
-  // OLD CODE TO GO BACK TO
-  // async getModelPrediction(sessId, data) {
-  //   if (!sessId) throw new Error("getModelPrediction got invalid session id");
-  //   if (!data.modelInput) throw new Error("getModelPrediction got invalid modelInput");
-  //   const modelInput = data.modelInput;
-  //   let modelPrediction;
-  //   console.log(`Getting model prediction`);
-  //   try {
-  //     // Call the model
-  //     modelPrediction = modelInput; //stub
-  //   } catch (error) {
-  //     console.error("Error getting model prediction:", error);
-  //   }
-  //   return modelPrediction;
-  // }
 
   async startExperiment(sessId, data, params) {
     if (!sessId) throw new Error("startExperiment got invalid session id");

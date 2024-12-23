@@ -65,8 +65,8 @@ export default class Pushkin {
     });
   }
 
-  getModelPrediction(modelInput) {
-    const postData = { modelInput };
+  getModelPrediction(modelInput, modelPath) {
+    const postData = { modelInput, modelPath };
     return this.con.post("/getModelPrediction", postData).then((res) => {
       return res.data.resData;
     });

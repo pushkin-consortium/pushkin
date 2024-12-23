@@ -40,7 +40,7 @@ const ExpResults = (props) => {
               const expData = await pushkin.getExpData(props.userID, expConfig.experimentName);
               // Input the key response from the latest trial
               const modelInput = expData.map((trial) => trial.response).slice(-1)[0];
-              const modelPrediction = await pushkin.getModelPrediction(modelInput);
+              const modelPrediction = await pushkin.getModelPrediction(modelInput, "model.py");
               setData(modelPrediction);
             } catch (err) {
               console.error("Error fetching model prediction data", err);
@@ -150,7 +150,7 @@ const ExpResults = (props) => {
       </Container>
     );
   } else if (expConfig.resultsType === "modelPrediction") {
-    if (!data) {
+    if (!data || !data.prediction) {
       return (
         <div>
           <Container className="mt-5 text-center">
@@ -163,7 +163,7 @@ const ExpResults = (props) => {
     return (
       <Container className="mt-5 text-center">
         <h1>Your results for {expConfig.experimentName}</h1>
-        <h2>Model prediction: You pressed {data}</h2>
+        <h2>Model prediction: You pressed "{data.prediction}"</h2>
       </Container>
     );
   }
