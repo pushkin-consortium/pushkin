@@ -36,7 +36,7 @@ test.describe("Results page in simulation mode", () => {
     // Check the results text
     const resultsText = await page.locator("p");
     const resultsTextContent = await resultsText.textContent();
-    const regex = /You were faster than (\d+\.\d+)% of (\d+) other people/;
+    const regex = /You scored higher than (\d+\.\d+)% of (\d+) other people/;
     const match = resultsTextContent.match(regex);
 
     if (match) {

@@ -280,7 +280,7 @@ class DefaultHandler {
       const lessThanRows = await this.pg_main(this.tables.userResults)
         .where("experiment", experiment)
         .where("user_id", "<>", user_id)
-        .where("summary_stat", "<=", summary_stat)
+        .where("summary_stat", "<", summary_stat)
         .count("*")
         .then((count) => {
           return parseInt(count[0].count, 10); // Convert the count to an integer (otherwise it's a string)
@@ -317,7 +317,7 @@ class DefaultHandler {
   async getModelPrediction(sessId, data) {
     if (!sessId) throw new Error("getModelPrediction got invalid session id");
     if (!data.modelInput) throw new Error("getModelPrediction got invalid modelInput");
-    if (!data.modelPath) throw new Error("getModelPrediction got invalid modelPath"); 
+    if (!data.modelPath) throw new Error("getModelPrediction got invalid modelPath");
     const modelInput = data.modelInput;
     const modelPath = data.modelPath;
     let modelOutput;

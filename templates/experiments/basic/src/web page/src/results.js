@@ -66,22 +66,22 @@ const ExpResults = (props) => {
   }
 
   if (expConfig.resultsType === "percentileRank") {
-    if (!data.percentileRank || !data.totalRows || !data.summary_stat) {
-      return (
-        <div>
-          <Container className="mt-5 text-center">
-            <h1>Oops! Something went wrong {":("}</h1>
-          </Container>
-        </div>
-      );
-    }
-
     if (data.totalRows === 0) {
       return (
         <div>
           <Container className="mt-5 text-center">
             <h1>Results aren't available for {expConfig.experimentName} yet!</h1>
             <h2>Check back later or try another experiment.</h2>
+          </Container>
+        </div>
+      );
+    }
+
+    if (!data.percentileRank || !data.totalRows || !data.summary_stat) {
+      return (
+        <div>
+          <Container className="mt-5 text-center">
+            <h1>Oops! Something went wrong {":("}</h1>
           </Container>
         </div>
       );

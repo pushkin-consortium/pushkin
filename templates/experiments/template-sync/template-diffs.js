@@ -55,6 +55,20 @@ const modifications = [
     diffs: [`# @pushkin-templates/exp-`, `A Pushkin experiment template containing`],
   },
   {
+    file: "src/config.yaml",
+    diffs: [`showResults: `],
+    exceptions: [
+      {
+        template: "grammaticality-judgment",
+        diffs: [],
+      },
+      {
+        template: "lexical-decision",
+        diffs: [],
+      },
+    ],
+  },
+  {
     file: "src/e2e/expInfo.js",
     diffs: [
       `const stim = require("../web page/src/stim").default;`,
@@ -76,6 +90,20 @@ const modifications = [
   {
     file: "src/e2e/experiment.test.js",
     diffs: [`test("should have the 'Hello, world!' stimulus", async () => {`],
+  },
+  {
+    file: "src/e2e/results.test.js",
+    diffs: [`const regex = /You`],
+    exceptions: [
+      {
+        template: "lexical-decision",
+        diffs: [],
+      },
+      {
+        template: "self-paced-reading",
+        diffs: [],
+      },
+    ],
   },
   {
     file: "src/web page/src/options.js",

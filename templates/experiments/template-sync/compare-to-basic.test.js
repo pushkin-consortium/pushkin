@@ -47,7 +47,7 @@ describe.each(nonBasicDirNames)("%s template", (nonBasicDirName) => {
         unexpectedDuplicates.push(expectedMod);
         // Unless the file has exceptional diffs with an empty array
         if (
-          expectedMod.exceptions?.find((exception) => exception.template === nonBasicDirName).diffs
+          expectedMod.exceptions?.find((exception) => exception.template === nonBasicDirName)?.diffs
             .length === 0
         ) {
           unexpectedDuplicates.pop();

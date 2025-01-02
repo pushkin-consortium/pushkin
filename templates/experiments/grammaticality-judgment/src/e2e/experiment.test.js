@@ -233,4 +233,38 @@ test.describe("Completing the experiment in simulation mode", () => {
     // User ID in the userResults table should match tabulateAndPostResults request
     expect(dbUserResults.user_id).toBe(userResults.user_id);
   });
+  test("should produce the expected results page", async ({ page }) => {
+    // Click the link to see results
+    await page.click("text=Click to see your results!");
+
+    // Check that the results page displays the loading message initially
+    const loadingMessage = await page.locator("h1");
+    await expect(loadingMessage).toHaveText("Loading...");
+
+    // Mock the API response to simulate data being available
+    await page.route("**/api/results", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          percentileRank: 75,
+          totalRows: 100,
+          summary_stat: 5000,
+        }),
+      }),
+    );
+
+    // Reload the page to trigger the API call
+    await page.reload();
+
+    // Check that the correct results header is displayed
+    const resultsHeader = await page.locator("h1");
+    let expectedHeader;
+    if (expInfo.showResults) {
+      expectedHeader = `Your results for ${expInfo.longName}`;
+    } else {
+      expectedHeader = "Sorry, results are not available for this experiment.";
+    }
+    await expect(resultsHeader).toHaveText(expectedHeader);
+  });
 });
