@@ -166,6 +166,12 @@ const ExpResults = (props) => {
         <h2>Model prediction: You pressed "{data.prediction}"</h2>
       </Container>
     );
+  } else {
+    return (
+      <div>
+        <h1>Invalid results type in experiment config</h1>
+      </div>
+    );
   }
 };
 

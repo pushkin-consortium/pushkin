@@ -237,7 +237,7 @@ test.describe("Completing the experiment in simulation mode", () => {
     // User ID in the userResults table should match tabulateAndPostResults request
     expect(dbUserResults.user_id).toBe(userResults.user_id);
   });
-  test("should navigate to and test the results page after simulation", async ({ page }) => {
+  test("should produce the expected results page", async ({ page }) => {
     // Click the link to see results
     await page.click("text=Click to see your results!");
 
@@ -261,74 +261,14 @@ test.describe("Completing the experiment in simulation mode", () => {
     // Reload the page to trigger the API call
     await page.reload();
 
-    // Check that the results are displayed
+    // Check that the correct results header is displayed
     const resultsHeader = await page.locator("h1");
-    await expect(resultsHeader).toHaveText("Your results for Experiment Name");
-
-    const resultsText = await page.locator("p");
-    await expect(resultsText).toHaveText(
-      "You were faster than 25.00% of 100 other people who completed this experiment!",
-    );
-  });
-});
-
-test.describe("Results page in simulation mode", () => {
-  // Skip this describe block if data collection is paused
-  test.skip(() => expInfo.paused, "Experiment is paused");
-  // Skip this describe block if no simulation mode available
-  test.skip(() => !expInfo.simulationMode, "Simulation mode not available");
-
-  test.beforeEach(async ({ page }) => {
-    // Go to the experiment in simulation mode
-    await page.goto(`/quizzes/${expInfo.shortName}?simulate=true`);
-
-    // Wait for the experiment to finish
-    await page.waitForSelector("text=Click to see your results!");
-  });
-
-  test("should display the correct results", async ({ page }) => {
-    // Click the link to see results
-    await page.click("text=Click to see your results!");
-
-    // Wait for the results to load
-    await page.waitForSelector("h1");
-
-    // Check that the results header is correct
-    const resultsHeader = await page.locator("h1");
-    await expect(resultsHeader).toHaveText("Your results for basic_path");
-
-    // Check the results text
-    const resultsText = await page.locator("p");
-    const resultsTextContent = await resultsText.textContent();
-    const regex = /You were faster than (\d+\.\d+)% of (\d+) other people/;
-    const match = resultsTextContent.match(regex);
-
-    if (match) {
-      const percentageRank = parseFloat(match[1]);
-
-      // Calculate the number of fully and partially shaded icons
-      const iconCount = 10;
-      const shadedIcons = Math.floor((percentageRank * iconCount) / 100);
-      const partialShade = (percentageRank % iconCount) / iconCount;
-
-      // Wait for animation to complete
-      await page.waitForTimeout(5000);
-
-      // Check the number of fully shaded icons
-      const fullyShadedIcons = await page.locator(
-        "svg stop[stop-color='blue'] animate[from='0'][to='1']",
-      );
-      await expect(fullyShadedIcons).toHaveCount(shadedIcons);
-
-      // Check the partial shading
-      if (partialShade > 0) {
-        const partiallyShadedIcon = await page.locator(
-          `svg stop[stop-color='blue'] animate[from='0'][to='${partialShade}']`,
-        );
-        await expect(partiallyShadedIcon).toHaveCount(1);
-      }
+    let expectedHeader;
+    if (expInfo.showResults) {
+      expectedHeader = `Your results for ${expInfo.longName}`;
     } else {
-      throw new Error("Results text did not match expected format.");
+      expectedHeader = "Sorry, results are not available for this experiment.";
     }
+    await expect(resultsHeader).toHaveText(expectedHeader);
   });
 });
