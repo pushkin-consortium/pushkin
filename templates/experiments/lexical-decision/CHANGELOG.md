@@ -1,5 +1,11 @@
 # @pushkin-templates/exp-lexical-decision
 
+## 6.3.0
+
+### Minor Changes
+
+- [#359](https://github.com/pushkin-consortium/pushkin/pull/359) [`44d9667`](https://github.com/pushkin-consortium/pushkin/commit/44d9667138989717ac13f9f5144e236386ccc3d3) Thanks [@jessestorbeck](https://github.com/jessestorbeck)! - All Pushkin templates have been updated to support post-experiment feedback to participants. There are now two options users can specify for the `resultsType` parameter the in the experiment's `config.yaml`: `'percentileRank'` and `'modelPrediction'`. Percentile rank feedback displays the participant's percentile rank in the experiment based on the summary statistic specified in the `experiment.js` file. Model prediction feedback is currently a stub, but can be easily extended to utilize any Python model to make predictions based on the participant's data. See the [overview of experiment templates](https://pushkin-consortium.github.io/pushkin/latest/exp-templates/exp-templates-overview/) in the documentation for more details.
+
 ## 6.2.0
 
 ### Minor Changes

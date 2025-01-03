@@ -1,6 +1,6 @@
 {
   "name": "@pushkin-templates/exp-self-paced-reading",
-  "version": "6.2.0",
+  "version": "6.3.0",
   "description": "A Pushkin experiment template containing a jsPsych self-paced-reading timeline.",
   "keywords": [
     "pushkin",

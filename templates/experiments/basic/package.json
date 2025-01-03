@@ -1,6 +1,6 @@
 {
   "name": "@pushkin-templates/exp-basic",
-  "version": "6.2.0",
+  "version": "6.3.0",
   "description": "A Pushkin experiment template containing a 'Hello, world!' jsPsych timeline. This should probably be your starting point for creating a custom experiment.",
   "keywords": [
     "pushkin",

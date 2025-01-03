@@ -1,5 +1,17 @@
 # pushkin-cli
 
+## 4.2.1
+
+### Patch Changes
+
+- [#359](https://github.com/pushkin-consortium/pushkin/pull/359) [`649cb8f`](https://github.com/pushkin-consortium/pushkin/commit/649cb8f526b978929dda9aeed641a10c76898936) Thanks [@jessestorbeck](https://github.com/jessestorbeck)! - Upgraded docker-compose to ^1.1.0. This means it's using [Docker Compose V2](https://docs.docker.com/compose/releases/migrate/). You might have to update Docker Desktop if you haven't done so in a while. Nothing seems to have broken as far as Pushkin goes in the switch from Compose V1 to V2, but it's possible bugs could arise from this.
+
+- [#359](https://github.com/pushkin-consortium/pushkin/pull/359) [`44d9667`](https://github.com/pushkin-consortium/pushkin/commit/44d9667138989717ac13f9f5144e236386ccc3d3) Thanks [@jessestorbeck](https://github.com/jessestorbeck)! - Fixed a bug caused by changes to the npm API which prevented the CLI from fetching the names of available Pushkin templates.
+
+- [#359](https://github.com/pushkin-consortium/pushkin/pull/359) [`cdbabe9`](https://github.com/pushkin-consortium/pushkin/commit/cdbabe9c9b2c0f7338c473566cac4cf5939e01b3) Thanks [@jessestorbeck](https://github.com/jessestorbeck)! - Upgrade to js-yaml 4
+
+- [#359](https://github.com/pushkin-consortium/pushkin/pull/359) [`cdbabe9`](https://github.com/pushkin-consortium/pushkin/commit/cdbabe9c9b2c0f7338c473566cac4cf5939e01b3) Thanks [@jessestorbeck](https://github.com/jessestorbeck)! - Fix propogation of DB passwords from main `pushkin.yaml`. Passwords are now made secure by default during `install site`.
+
 ## 4.2.0
 
 ### Minor Changes

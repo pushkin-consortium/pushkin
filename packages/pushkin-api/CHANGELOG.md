@@ -1,5 +1,17 @@
 # pushkin-api
 
+## 1.7.0
+
+### Minor Changes
+
+- [#359](https://github.com/pushkin-consortium/pushkin/pull/359) [`44d9667`](https://github.com/pushkin-consortium/pushkin/commit/44d9667138989717ac13f9f5144e236386ccc3d3) Thanks [@jessestorbeck](https://github.com/jessestorbeck)! - Pushkin helper packages have been updated to support new API endpoints for showing experiment feedback to participants. The client methods of interest which are used in the experiment's results page are:
+
+  - `getPercentileRank(userID, experiment)` for fetching the percentile rank of a participant in an experiment
+  - `getExpData(userID, experiment)` for fetching all of a participant's data for an experiment
+  - `getModelPrediction(modelInput, modelPath)` for fetching a prediction from a Python model in the experiment's worker component
+
+  See the description of the `results.js` file in the [overview of experiment templates](https://pushkin-consortium.github.io/pushkin/latest/exp-templates/exp-templates-overview/) for more details.
+
 ## 1.6.3
 
 ### Patch Changes
