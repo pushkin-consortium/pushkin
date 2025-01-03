@@ -1,6 +1,6 @@
 {
   "name": "pushkin-cli",
-  "version": "4.2.0",
+  "version": "4.2.1",
   "description": "A CLI for automating basic Pushkin tasks",
   "main": "build/index.js",
   "files": [
