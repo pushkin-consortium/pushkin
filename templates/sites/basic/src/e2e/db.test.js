@@ -4,7 +4,15 @@ const { connectToDB, getTableNames, getColumnNames } = require("./utils");
 // The expected tables and columns in the database (minus experiment tables)
 const tables = {
   pushkin_users: ["user_id", "created_at", "updated_at"],
-  pushkin_userResults: ["id", "user_id", "experiment", "results", "created_at", "updated_at"],
+  pushkin_userResults: [
+    "id",
+    "user_id",
+    "experiment",
+    "summary_stat",
+    "results",
+    "created_at",
+    "updated_at",
+  ],
   pushkin_userMeta: ["id", "user_id", "metaQuestion", "metaResponse", "created_at", "updated_at"],
   knex_migrations: ["id", "name", "batch", "migration_time"],
   knex_migrations_lock: ["index", "is_locked"],

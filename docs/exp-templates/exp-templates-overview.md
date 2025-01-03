@@ -113,17 +113,21 @@ There is currently no way of automatically packaging up an existing custom exper
 
 In general, we encourage you to follow to the [contributor guidelines](../developers/contributions.md). Additionally, if you'd like to contribute a template, please consider how you can make it maximally general by parameterizing as many of your customizations as you can. Try to imagine what variations on your experiment would be relevant for other researchers and make it easy to implement those variations via changing configuration settings.
 
-## Automated Testing
+## Automated testing
 
 Pushkin experiment templates come with unit tests using Jest and end-to-end tests using Playwright. See our page on [testing](../developers/testing.md) for more information on how to run these tests and extend them for your own site.
 
-## Experiment Component Structure
+### Template synchronization (for developers)
+
+The `/templates/experiments/template-sync` directory of the monorepo contains a suite of tests that make sure that the various non-basic experiment templates are in sync with the basic template. For a description of how these tests work, see our page on [testing](../developers/testing.md#template-synchronization).
+
+## Experiment component structure
 
 From the perspective of the web server, a Pushkin experiment involves a number of distinct elements. There is the HTML/JavaScript for the stimulus display and response recording (i.e. the “front end”); there is the database, where data are stored; there is the worker, which handles reading from and writing to the database (plus potentially many other behind-the-scenes tasks!). Finally, there is the API, which communicates between the front end and the worker.
 
 For convenience, all the code is kept in the experiments folder as defined in `pushkin.yaml`. The CLI command [`prep`](../packages/pushkin-cli.md#prep) automagically redistributes this code where it needs to go.
 
-### Experiment Config.yaml Files
+### Experiment config.yaml files
 
 The config.yaml file provides information to the rest of Pushkin about the experiment. Below is a sample of what one might look like (after being installed into your site).
 
@@ -153,50 +157,58 @@ URL this controller’s endpoint will be available at. The full path is `/api/<m
 
 Path relative to the config file where the CLI will look for this module.
 
-#### name
+##### name
 
 Used in logs.
 
 #### worker
 
-#### location
+##### location
 
 Path relative to the config file where the CLI will look for this module.
 
-#### service
+##### service
 
 This section is appended to Pushkin’s core Docker Compose file. Note that message-queue is a requirement. If you’re not using the local test database, `test_db` is not necessary. Database connection credentials should be unique to every user. The defaults are shown here for the testing database.
 
-### webPage
+#### webPage
 
-#### location
+##### location
 
 Path relative to the config file where the CLI will look for this module.
 
-### migrations
+#### migrations
 
-#### location
+##### location
 
 Path relative to the config file where the CLI will look for these files.
 
-### seeds
+#### seeds
 
-#### location
+##### location
 
 Path relative to the config file the CLI will look for these files. If you aren’t seeding a database table, set this to `''`. Otherwise, if the folder pointed to by `location` is empty, database setup will fail.
 
-### database
+#### database
 
 A reference to a key defined in the core Pushkin config file. Experiments can share databases. The CLI will use this database to migrate and seed experiment data files. It is not used as connection information for any of the modules running the experiment, since these may or may not be inside containers and cannot use the same connection details as the CLI.
 
-### logo, text, tagline, duration, other
+#### logo, text, tagline, duration
 
-You may find it useful to include information about your experiment here that can be used by `front-end` to describe the experiment to potential subjects. For instance, the default pushkin site template uses:
+You may find it useful to include information about your experiment here that can be used by `front-end` to describe the experiment to potential subjects. For instance, the basic site template uses:
 
 * `logo`: Image to be used as the logo for the experiment. The logo images should be stored in `pushkin/front-end/src/assets/images/quiz`.
 * `text`: The experiment description to be displayed for users to determine what quiz to play.
 * `tagline`: This is the description that shows when a quiz is shared via social media/email.
 * `duration`: The average length of the experiment to give users an idea of the time commitment.
+
+#### showResults
+
+If `showResults` is true, the participant will see a link to their results at the end of the experiment (specified in `results.js`). If false, the participant will see only a thank you message.
+
+#### resultsType
+
+If `showResults` is true, `resultsType` specifies the type of results that will be shown to the participant. Currently, the two options for `resultsType` are `'percentileRank'` and `'modelPrediction'`. Percentile rank feedback is currently set up for all experiment templates except the self-paced reading template. It works by querying the `userResults` table in the database and calculating the user's percentile rank in the particular experiment based on the summary statistic (which is specified in the `experiment.js` file). Model prediction feedback is currently set up as a stub in all templates. It works by passing participant data to a Python script located in the experiment's worker component. Currently, this script just returns the key which was pressed on the last trial of the experiment. This is just a placeholder for more complex Python model that could be used to make predictions based on any data from the experiment. For more information, see sections below on the [worker component](#experiment-worker-component) and [results.js](#resultsjs).
 
 ### Worker Component, Migrations, and Seeds
 
@@ -205,6 +217,8 @@ You may find it useful to include information about your experiment here that ca
 Workers handle the most complex aspect of a Pushkin experiment and different types of experiments could need workers with very different functionalities. Pushkin provides a simple template to start with.
 
 The job of a worker is to receive messages via RabbitMQ that (usually) come from an API controller. It looks up the appropriate information in the database and returns it to the requester. Workers are also the component that is responsible for implementing machine learning, as having direct access to this data allows it to make live, dynamic decisions during an experiment like what stimuli to serve next or predictions about a subject’s next answers.
+
+If you want to implement experiment feedback using a machine learning model, you can do so by editing the `model.py` script (currently just a stub) in the experiment's worker component (`src/worker/model.py`). This script will execute when the experiment's results page calls the client method `getModelPrediction`, taking the model input and the name of the script as arguments. If your model relies on additional files or dependencies, make sure to add them to the worker's Dockerfile, e.g. by copying them into the container or installing them via pip.
 
 #### Experiment Migrations
 
@@ -220,100 +234,44 @@ Pushkin uses [knex](https://knexjs.org/) to facilitate moving data into an exper
 
 This houses the front-end component of an experiment. Each experiment's web page package (as defined in its `package.json` file) is locally published by the CLI and attached to the core website. Web page components are named using the experiment's `shortName` (defined in the experiment’s `config.yaml` file), plus `_web`. Pushkin uses React for the front end. Experiment web pages are mounted as React components and given the full size of the window under the header and navigation bar.
 
-### Recommended Structure
+At a minimum, the `web page/src` folder needs to contain an `index.js` file that includes all your experiment code. Technically, you don't even have to use jsPsych to implement your experiment. However, we recommend building on top of an [experiment template](../exp-templates/exp-templates-overview.md).
 
-At a minimum, the `web page/src` folder needs to contain an `index.js` file that includes all your experiment code. Technically, you don't even have to use jsPsych to implement your experiment. However, we recommend building on top of an [experiment template](../exp-templates/exp-templates-overview.md). The `src` folder in experiment templates contains both `index.js` and `experiment.js` files. `experiment.js`, contains a function `createTimeline()`, within which you construct a jsPsych timeline just as you would for a standard jsPsych experiment; `createTimeline()` is then exported to `index.js`. The core functionality of interest is here:
+#### `experiment.js`
 
-```js
-  async startExperiment() {
-    this.setState({ experimentStarted: true });
+The `experiment.js` file contains a function `createTimeline()`, within which you construct a jsPsych timeline just as you would for a standard jsPsych experiment; `createTimeline()` is then exported to `index.js`.
 
-    await pushkin.connect(this.props.api);
+#### `index.js`
 
-    // If data collection for the experiment is paused, make sure their userID doesn't get saved
-    if (expConfig.dataPaused) {
-      console.log(
-        "Data collection for this experiment is currently paused. No data will be saved.",
-      );
-    } else {
-      // Wait until userID is not null (necessary for correct data logging in the users and userResults tables)
-      // Remove this when a better solution is found (see https://github.com/pushkin-consortium/pushkin/issues/352)
-      while (!this.props.userID) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      }
-      await pushkin.prepExperimentRun(this.props.userID);
-    }
+The `quizComponent` in `index.js` is a React component that wraps the jsPsych timeline. It provides two main methods `startExperiment()` and `endExperiment()`. `startExperiment()` is called when the component mounts, and it initializes the jsPsych timeline among other related tasks. A code chunk worth noting is the `on_data_update` property when initializing jsPsych, which calls `pushkin.saveStimulusResponse(data)`. This uses a helper function from `pushkin-client` to save data each time the jsPsych [on_data_update callback](https://www.jspsych.org/7.3/overview/events/#on_data_update) is triggered (i.e. at the end of each trial). Saving data after each trial is generally good practice, as opposed to sending all the data at the end of the experiment. The `endExperiment()` method is called when the timeline finishes. Assuming data collection isn't paused, this will call `pushkin.endExperiment()`, which will send summary data to the `userResults `database table.
 
-    const jsPsych = initJsPsych({
-      display_element: document.getElementById("jsPsychTarget"),
-      on_finish: this.endExperiment.bind(this),
-      on_data_update: (data) => {
-        // Only call saveStimulusResponse if data collection is not paused
-        if (!expConfig.dataPaused) {
-          pushkin.saveStimulusResponse(data);
-        }
-      },
-    });
+When your site is running in local debug mode, you can run the experiment in jsPsych's [simulation mode](https://www.jspsych.org/v7/overview/simulation) (both the data-only and visual variants). To use simulation mode, add the URL parameters `simulate=true` and `mode=[data-only|visual]` to the URL of your experiment (the `mode` parameter is optional and will default to `data-only`). If you want to pass in any additional experiment-level [simulation options](https://www.jspsych.org/v7/overview/simulation/#experiment-level-options), you can do so by adding them to the `simulationOptions` object.
 
-    jsPsych.data.addProperties({ user_id: this.props.userID }); //See https://www.jspsych.org/core_library/jspsych-data/#jspsychdataaddproperties
+#### `results.js`
 
-    const timeline = createTimeline(jsPsych);
+If you're experiment is configured in `config.yaml` to show participants their results, `results.js` is where you define the React component to provide participants with feedback on their results. The experiment's config file currently accepts two types of results feedback: `'percentileRank'` and `'modelPrediction'`. This parameter setting is reflected in `results.js` with different logic for each type.
 
-    // If data collection for the experiment is paused, insert a confirmation trial notifying the participant
-    if (expConfig.dataPaused) {
-      const dataPausedTrial = {
-        type: jsPsychHtmlKeyboardResponse,
-        stimulus: `<p>Data collection for this experiment is currently paused.</p>
-          <p>You can still view the experiment, but your data will <strong>not</strong> be saved.</p>
-          <p>Press any key to continue.</p>`,
-      };
-      timeline.unshift(dataPausedTrial);
-    }
+If you want to use model prediction feedback, you will most likely want to edit the `useEffect` hook in this file by manipulating the data returned by this line:
 
-    // Get URL parameters
-    const params = new URLSearchParams(window.location.search);
-    // Run in simulation mode if the appropriate URL parameter is set
-    // and the site is deployed in debug mode
-    if (params.get("simulate") === "true" && process.env.DEBUG) {
-      // Get the simulation mode: "data-only" (default) or "visual"
-      const mode = params.get("mode") || "data-only";
-      // Insert data fields indicating simulation mode
-      const simulationOptions = {
-        default: {
-          data: {
-            simulation: true,
-            mode: mode,
-          },
-        },
-      };
-      jsPsych.simulate(timeline, mode, simulationOptions);
-    } else {
-      jsPsych.run(timeline);
-    }
-
-    document.getElementById("jsPsychTarget").focus();
-    this.setState({ loading: false });
-  }
-
-  async endExperiment() {
-    // If data collection is paused, add an ending note and don't save their completion to the users table
-    if (expConfig.dataPaused) {
-      document.getElementById("jsPsychTarget").innerHTML =
-        `<p>Thank you for your interest in this experiment!</p>
-        <p>Data collection is currently paused. No data were saved.</p>`;
-    } else {
-      document.getElementById("jsPsychTarget").innerHTML = "<p>Processing...</p>";
-      await pushkin.tabulateAndPostResults(this.props.userID, expConfig.experimentName);
-      document.getElementById("jsPsychTarget").innerHTML = "<p>Thank you for participating!</p>";
-    }
-  }
+```javascript
+const expData = await pushkin.getExpData(props.userID, expConfig.experimentName);
 ```
 
-A line of code worth noting is `on_data_update: (data) => pushkin.saveStimulusResponse(data)`. This uses a helper function from `pushkin-client` to save data each time the jsPsych [on_data_update callback](https://www.jspsych.org/7.3/overview/events/#on_data_update) is triggered (i.e. at the end of each trial). Saving data after each trial is generally good practice, as opposed to sending all the data at the end of the experiment. You could write this behavior into the timeline itself, but this helper function saves some typing.
+This will retrieve all the data for that user for the particular experiment. You can then manipulate the data into whatever format you need to pass as input to your model in this line:
 
-When your site is running in local debug mode, you can run the experiment in jsPsych's [simulation mode](https://www.jspsych.org/v7/overview/simulation) (both the data-only and visual variants). To use simulation mode, add the URL parameters `simulate=true` and `mode=[data-only|visual]` to the URL of your experiment (`mode` is optional and will default to `data-only`). If you want to pass in any additional experiment-level [simulation options](https://www.jspsych.org/v7/overview/simulation/#experiment-level-options), you can do so by adding them to the `simulationOptions` object.
+```javascript
+const modelPrediction = await pushkin.getModelPrediction(modelInput, "model.py");
+```
 
-Finally, when the timeline finishes, `endExperiment()` will be called. In the current experiment templates, this simply adds a "Thank you for participating" message. [Current templates](#currently-available-experiment-templates) besides the basic template include some simple feedback which is specified _inside_ the jsPsych timeline; however, one might have reasons for integrating more complex feedback into `endExperiment()`.
+After using `setData` to add the model prediction to the state, you can then use it in the JSX to display the model prediction to the participant:
+
+```javascript
+return (
+  <Container className="mt-5 text-center">
+    <h1>Your results for {expConfig.experimentName}</h1>
+    <h2>Model prediction: {data.prediction}</h2>
+  </Container>
+);
+```
 
 #### Assets
 

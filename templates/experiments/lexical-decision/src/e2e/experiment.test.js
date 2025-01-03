@@ -4,6 +4,16 @@ const { expInfo } = require("./expInfo");
 const { pushkinConfig } = require("../../../e2e/siteInfo");
 
 /**
+ * Get a random alphanumeric key
+ * @returns {string} A random alphanumeric key
+ */
+function getRandomKey() {
+  const keys = "abcdefghijklmnopqrstuvwxyz1234567890";
+  const randomIndex = Math.floor(Math.random() * keys.length);
+  return keys[randomIndex];
+}
+
+/**
  * Connect to the Pushkin database
  * @returns {knex} A connection to the Pushkin database
  */
@@ -63,6 +73,7 @@ test.describe("First trial data", () => {
   // Skip this describe block if data collection is paused
   test.skip(() => expInfo.paused, "Experiment is paused");
   // These vars need to be accessible to before/after hooks and tests
+  let randomKey;
   let trialTimeWeb;
   let trialData;
   let db;
@@ -74,8 +85,9 @@ test.describe("First trial data", () => {
     // Set up listeners for the stimulusResponse request and response
     const trialRequestPromise = page.waitForRequest(`/api/${expInfo.shortName}/stimulusResponse`);
     const trialResponsePromise = page.waitForResponse(`/api/${expInfo.shortName}/stimulusResponse`);
-    // Press space to complete the first trial
-    await page.keyboard.press(" ");
+    // Press a random key to complete the first trial
+    randomKey = getRandomKey();
+    await page.keyboard.press(randomKey);
     // Save this to compare to database time
     trialTimeWeb = Date.now();
     const trialRequest = await trialRequestPromise;
@@ -115,7 +127,7 @@ test.describe("First trial data", () => {
     expect(dbData.stimulus).toEqual(expect.any(String));
   });
   test("should have the correct key response", async () => {
-    expect(dbData.response.response).toBe(" ");
+    expect(dbData.response.response).toBe(randomKey);
   });
   test("should approximately match the time of the keypress on the site", async () => {
     const trialTimeDB = new Date(dbData.created_at).getTime();
@@ -193,7 +205,11 @@ test.describe("Completing the experiment in simulation mode", () => {
     expect(stimulusResponseRequests).toHaveLength(expInfo.dataRows);
   });
   test("should trigger the expected tabulateAndPostResults request", async () => {
-    expect(userResults).toEqual({ user_id: expect.any(String), experiment: expInfo.longName });
+    expect(userResults).toEqual({
+      user_id: expect.any(String),
+      experiment: expInfo.longName,
+      summary_stat: expect.any(Number),
+    });
   });
   test("should produce data with the correct length", async () => {
     expect(dbStimulusResponses).toHaveLength(expInfo.dataRows);
@@ -216,5 +232,39 @@ test.describe("Completing the experiment in simulation mode", () => {
     expect(dbStimulusResponses[0].user_id).toBe(userResults.user_id);
     // User ID in the userResults table should match tabulateAndPostResults request
     expect(dbUserResults.user_id).toBe(userResults.user_id);
+  });
+  test("should produce the expected results page", async ({ page }) => {
+    // Click the link to see results
+    await page.click("text=Click to see your results!");
+
+    // Check that the results page displays the loading message initially
+    const loadingMessage = await page.locator("h1");
+    await expect(loadingMessage).toHaveText("Loading...");
+
+    // Mock the API response to simulate data being available
+    await page.route("**/api/results", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          percentileRank: 75,
+          totalRows: 100,
+          summary_stat: 5000,
+        }),
+      }),
+    );
+
+    // Reload the page to trigger the API call
+    await page.reload();
+
+    // Check that the correct results header is displayed
+    const resultsHeader = await page.locator("h1");
+    let expectedHeader;
+    if (expInfo.showResults) {
+      expectedHeader = `Your results for ${expInfo.longName}`;
+    } else {
+      expectedHeader = "Sorry, results are not available for this experiment.";
+    }
+    await expect(resultsHeader).toHaveText(expectedHeader);
   });
 });

@@ -8,14 +8,14 @@
   ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "babel src -d build",
+    "build": "babel --root-mode upward src -d build",
     "prepack": "cp ../../LICENSE ."
   },
   "keywords": [
     "pushkin",
     "worker"
   ],
-  "author": "L3",
+  "author": "AI4CommSci",
   "license": "MIT",
   "homepage": "https://pushkin-consortium.github.io/pushkin",
   "repository": {
@@ -26,19 +26,13 @@
   "bugs": {
     "url": "https://github.com/pushkin-consortium/pushkin/issues"
   },
-  "devDependencies": {
-    "@babel/cli": "^7.7.4",
-    "@babel/core": "^7.7.4",
-    "@babel/plugin-syntax-export-default-from": "^7.7.4",
-    "@babel/preset-env": "^7.7.4",
-    "babel-eslint": "^10.0.3",
-    "eslint": "^7.5.0"
-  },
+  "devDependencies": {},
   "dependencies": {
     "amqplib": "^0.10.3",
     "core-js": "^3.23.3",
     "knex": "^2.4.2",
     "pg": "^8.11.0",
+    "python-shell": "^5.0.0",
     "regenerator-runtime": "^0.13.3"
   }
 }

@@ -1,18 +1,23 @@
 import React from "react";
-import pushkinClient from "pushkin-client";
+import { Link } from "react-router-dom";
+import PushkinClient from "pushkin-client";
 import { initJsPsych } from "jspsych";
 import { connect } from "react-redux";
 import { createTimeline } from "./experiment";
+import ExpResults from "./results";
 import jsPsychHtmlKeyboardResponse from "@jspsych/plugin-html-keyboard-response";
 import jsYaml from "js-yaml";
-const fs = require("fs");
+import fs from "fs";
 
-//stylin'
+// Styling and other configuration options
 import "./assets/experiment.css";
-
+// These are aesthetic settings for the experiment from options.js
+const expOptions = require("./options").default;
+// These are the config settings for the overall Pushkin experiment
+// from the config.yaml at the top level of the experiment
 const expConfig = jsYaml.load(fs.readFileSync("../config.yaml"), "utf8");
 
-const pushkin = new pushkinClient();
+const pushkin = new PushkinClient();
 
 const mapStateToProps = (state) => {
   return {
@@ -51,7 +56,10 @@ class quizComponent extends React.Component {
 
     const jsPsych = initJsPsych({
       display_element: document.getElementById("jsPsychTarget"),
-      on_finish: this.endExperiment.bind(this),
+      on_finish: (data) => {
+        const summary_stat = data.last(1).values()[0].summary_stat;
+        this.endExperiment(summary_stat);
+      },
       on_data_update: (data) => {
         // Only call saveStimulusResponse if data collection is not paused
         if (!expConfig.dataPaused) {
@@ -97,10 +105,16 @@ class quizComponent extends React.Component {
     }
 
     document.getElementById("jsPsychTarget").focus();
+
+    // Settings from options.js
+    document.getElementById("jsPsychTarget").style.color = expOptions.fontColor;
+    document.getElementById("jsPsychTarget").style.fontSize = expOptions.fontSize;
+    document.getElementById("jsPsychTarget").style.fontFamily = expOptions.fontFamily;
+
     this.setState({ loading: false });
   }
 
-  async endExperiment() {
+  async endExperiment(summary_stat) {
     // If data collection is paused, add an ending note and don't save their completion to the users table
     if (expConfig.dataPaused) {
       document.getElementById("jsPsychTarget").innerHTML =
@@ -108,19 +122,32 @@ class quizComponent extends React.Component {
         <p>Data collection is currently paused. No data were saved.</p>`;
     } else {
       document.getElementById("jsPsychTarget").innerHTML = "<p>Processing...</p>";
-      await pushkin.tabulateAndPostResults(this.props.userID, expConfig.experimentName);
-      document.getElementById("jsPsychTarget").innerHTML = "<p>Thank you for participating!</p>";
+      await pushkin.tabulateAndPostResults(
+        this.props.userID,
+        expConfig.experimentName,
+        summary_stat,
+      );
+      // Hide the jsPsychTarget div after experiment completion
+      document.getElementById("jsPsychTarget").style.display = "none";
     }
+    this.setState({ experimentComplete: true });
   }
 
   render() {
+    const currentPath = window.location.pathname;
+    const resultsPath = `${currentPath}/results`;
     return (
       <div>
         {this.state.loading && <h1>Loading...</h1>}
         <div id="jsPsychTarget" />
+        {this.state.experimentComplete && <p>Thank you for participating!</p>}
+        {this.state.experimentComplete && expConfig.showResults && (
+          <Link to={resultsPath}>Click to see your results!</Link>
+        )}
       </div>
     );
   }
 }
 
+export { ExpResults };
 export default connect(mapStateToProps)(quizComponent);

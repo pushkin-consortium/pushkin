@@ -3,11 +3,9 @@ const babelPlugin = require("@babel/eslint-plugin");
 const globals = require("globals");
 const js = require("@eslint/js");
 const prettierRecommended = require("eslint-plugin-prettier/recommended");
-/* eslint-disable-next-line no-unused-vars */
 const onlyWarn = require("eslint-plugin-only-warn");
 // Use the above temporarily while we're sorting out our eslint config
 // eslintPluginOnlyWarn is a plugin that sets all rules to "warn" instead of "error"
-// It's active in the config without the var being used, hence the eslint-disable-next-line
 const jsdoc = require("eslint-plugin-jsdoc");
 const react = require("eslint-plugin-react");
 const jest = require("eslint-plugin-jest");
@@ -35,6 +33,7 @@ const monorepoConfig = {
   plugins: {
     jsdoc,
     jest,
+    onlyWarn,
   },
   rules: {
     ...js.configs.recommended.rules,

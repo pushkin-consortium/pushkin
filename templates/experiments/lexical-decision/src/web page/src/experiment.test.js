@@ -38,24 +38,24 @@ describe("createTimeline", () => {
   });
 
   // These tests may fail if the user customizes the template
-  describe("Experiment config options", () => {
+  describe("Experiment options", () => {
     const feedbackOptions = [true, false];
     // Testing feedback options for successful completion and data collection
     for (const feedback of feedbackOptions) {
       test(`produce expected data when feedback=${feedback}`, async () => {
         // Reset the module registry
-        // This is necessary because the original config.js will be cached
+        // This is necessary because the original options.js will be cached
         jest.resetModules();
-        // Mock config.js with the various feedback/response options
+        // Mock options.js with the various feedback/response options
         // doMock seems to be necessary (vs. mock) for scope reasons
-        jest.doMock("./config", () => {
-          const originalConfig = jest.requireActual("./config");
+        jest.doMock("./options", () => {
+          const originalOptions = jest.requireActual("./options");
           return {
-            ...originalConfig,
+            ...originalOptions,
             correctiveFeedback: feedback, // mocked correctiveFeedback
           };
         });
-        // Now re-import createTimeline so it gets the mocked config.js object
+        // Now re-import createTimeline so it gets the mocked options.js object
         const { createTimeline } = require("./experiment");
 
         // Check that the timeline runs and finishes with expected data

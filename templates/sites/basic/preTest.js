@@ -5,7 +5,7 @@ const execSync = require("child_process").execSync;
 const buildExpWebComponents = () => {
   // Make a list of all experiment templates
   let expTemplates = fs.readdirSync(path.join(__dirname, "../../experiments"));
-  expTemplates = expTemplates.filter((dir) => dir !== ".DS_Store");
+  expTemplates = expTemplates.filter((dir) => ![".DS_Store", "template-sync"].includes(dir));
 
   // Create an array of objects to mock a typical experiments.js file
   const expsJsArray = expTemplates.map((exp) => {

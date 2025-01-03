@@ -29,3 +29,5 @@ logo: logo512.png
 text: Enter your experiment description here.
 tagline: Be a citizen scientist! Try this quiz.
 duration: ''
+showResults: true
+resultsType: 'percentileRank'

@@ -8,7 +8,9 @@ const expInfo = {
   shortName: expConfig.shortName,
   archived: expConfig.archived,
   paused: expConfig.dataPaused,
-  simulationMode: true,
+  simulationMode: true, // Do all jsPsych plugins used have simulation mode?
+  showResults: expConfig.showResults,
+  resultsType: expConfig.resultsType,
   dataRows: 1,
 };
 

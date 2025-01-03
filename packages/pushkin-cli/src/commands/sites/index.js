@@ -1,12 +1,6 @@
-import fs from "graceful-fs";
-import util from "util";
 import path from "path";
-//import * as compose from 'docker-compose'
-const exec = util.promisify(require("child_process").exec);
-import { execSync } from 'child_process'; // eslint-disable-line
+import { $, fs } from "zx";
 import { updatePushkinJs, setEnv } from "../prep/index.js";
-const shell = require("shelljs");
-import pacMan from "../../pMan.js"; //which package manager is available?
 
 /**
  * Sets up a new Pushkin site as a private Node package so site and experiment templates can be added as dependencies.
@@ -39,6 +33,7 @@ export const initSite = async (verbose) => {
         "pushkin.yaml",
         ".docker",
         ".DS_Store",
+        ".vscode",
         "node_modules",
         "build",
         "test-results/",
@@ -54,9 +49,23 @@ export const initSite = async (verbose) => {
     // Create the package.json
     if (verbose) console.log("Setting up site package");
     // Set up site package and add testing dependencies
-    await exec(
-      `yarn init -yp && yarn add --dev @playwright/test @types/node jest js-yaml knex pg && yarn playwright install --with-deps`,
-    );
+    const devDeps = {
+      "@babel/core": "^7.23.6",
+      "@babel/preset-env": "^7.23.6",
+      "@babel/preset-react": "^7.23.3",
+      "@playwright/test": "^1.47.2",
+      "@types/node": "^22.7.4",
+      jest: "^29.7.0",
+      "jest-environment-jsdom": "^29.7.0",
+      "js-yaml": "^4.1.0",
+      knex: "^3.1.0",
+      pg: "^8.13.0",
+    };
+    const devDepsArray = Object.entries(devDeps).map(([key, value]) => `${key}@${value}`);
+    await $`yarn init -yp`;
+    await $`yarn set version 1.22.22`;
+    await $`yarn add --dev ${devDepsArray}`;
+    await $`yarn playwright install --with-deps`;
     // Edit package.json
     const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
     delete packageJson.main;
@@ -82,11 +91,11 @@ export const promiseFolderInit = async (initDir, component, verbose) => {
     console.log(`Installing dependencies for ${component}`);
   }
   try {
-    await exec(pacMan.concat(" --mutex network install"), { cwd: path.join(initDir, component) });
+    await $({ cwd: path.join(initDir, component) })`yarn --mutex network install`;
     if (verbose) console.log(`Building ${component}`);
     updatePushkinJs(verbose); //synchronous
     if (verbose) console.log(`Building front end`);
-    await exec(pacMan.concat(" --mutex network run build"), { cwd: path.join(initDir, component) });
+    await $({ cwd: path.join(initDir, component) })`yarn --mutex network run build`;
     if (verbose) console.log(`${component} is built`);
   } catch (e) {
     console.error(`Problem installing dependencies for ${component}`);
@@ -102,7 +111,11 @@ export const promiseFolderInit = async (initDir, component, verbose) => {
  */
 export const setupPushkinSite = async (verbose) => {
   if (verbose) console.log("--verbose flag set inside setupPushkinSite()");
-  shell.rm("-rf", "__MACOSX"); // fs doesn't have a stable direct removal function yet
+  try {
+    await fs.remove("__MACOSX");
+  } catch (e) {
+    console.error("Problem removing __MACOSX file:", e);
+  }
   setEnv(true, verbose); // synchronous; sets `debug` env var to true
   return new Promise((resolve, reject) => {
     // Move/rename pushkin.yaml and config.js in their proper locations

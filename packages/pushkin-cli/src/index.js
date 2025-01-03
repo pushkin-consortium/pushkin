@@ -33,8 +33,8 @@ import {
   setupPushkinExp,
   updateExpConfig,
 } from "./commands/experiments/index.js";
-import { prep, setEnv } from "./commands/prep/index.js";
-import { setupdb, setupTestTransactionsDB } from "./commands/setupdb/index.js";
+import { prep, setEnv, updatePasswords } from "./commands/prep/index.js";
+import { setupdb, setupTestTransactionsDB, securePasswords } from "./commands/setupdb/index.js";
 import { initSite, setupPushkinSite } from "./commands/sites/index.js";
 
 import pacMan from "./pMan.js"; //which package manager is available?
@@ -58,7 +58,7 @@ const loadConfig = (configFile) => {
   // could add some validation to make sure everything expected in the config is there
   return new Promise((resolve, reject) => {
     try {
-      resolve(jsYaml.safeLoad(fs.readFileSync(configFile, "utf8")));
+      resolve(jsYaml.load(fs.readFileSync(configFile, "utf8")));
     } catch (e) {
       console.error(`Pushkin config file missing, error: ${e}`);
       process.exit(1);
@@ -69,7 +69,7 @@ const loadConfig = (configFile) => {
 const updateS3 = async () => {
   let awsName, useIAM;
   try {
-    let awsResources = jsYaml.safeLoad(
+    let awsResources = jsYaml.load(
       fs.readFileSync(path.join(process.cwd(), "awsResources.js"), "utf8"),
     );
     awsName = awsResources.awsName;
@@ -465,7 +465,11 @@ const getTemplates = async (scope, templateType, verbose) => {
   if (verbose) console.log(`Fetching available ${templateType} templates`);
   try {
     // Search with npm API for all packages under given scope (250 is max number of results; 20 is default limit)
-    response = await got(`https://registry.npmjs.org/-/v1/search?text=scope:${scope}&size=250`); // Allowing for flexibility in scope, in case we ever do a pushkin-contrib scope or similar
+    // npm API scope search seems to be broken as of 12/11/2024; using keywords as a workaround
+    const keywords = scope.replace(/-/g, "+");
+    response = await got(
+      `https://registry.npmjs.org/-/v1/search?text=keywords:${keywords}&size=250`,
+    ); // Allowing for flexibility in scope, in case we ever do a pushkin-contrib scope or similar
     body = JSON.parse(response.body);
     body.objects.forEach((searchResult) => {
       let template = searchResult.package.name;
@@ -865,8 +869,10 @@ const handleInstall = async (templateType, options, verbose) => {
     await setupPushkinSite(verbose);
     if (verbose) console.log("Finished setting up site template files");
     // Set up the transactions database
-    if (verbose) console.log("setting up transactions db");
+    if (verbose) console.log("Setting up transactions db");
     await setupTestTransactionsDB(verbose); // Not distributed with sites since it's the same for all of them.
+    if (verbose) console.log("Overwriting DB passwords with secure defaults");
+    securePasswords();
   } else {
     // templateType === "experiment"
     if (verbose) console.log("Setting up experiment template files");
@@ -1046,7 +1052,7 @@ const handleRemove = async (experiments, mode, force, verbose) => {
   // Make sure we're in the root of the site directory
   moveToProjectRoot();
   // Load the pushkin.yaml file
-  const config = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), "pushkin.yaml"), "utf8"));
+  const config = jsYaml.load(fs.readFileSync(path.join(process.cwd(), "pushkin.yaml"), "utf8"));
   // Get the path to the experiments directory
   const expDir = path.join(process.cwd(), config.experimentsDir);
   // Check that the experiments directory exists
@@ -1491,20 +1497,24 @@ async function main() {
           allPath.endsWith("pushkin/templates/experiments")
         ) {
           templateList = fs.readdirSync(allPath);
-          templateList.forEach((template) => {
-            // Check that the supplied path contains only directories
-            if (!fs.lstatSync(path.join(allPath, template)).isDirectory()) {
-              console.error(`Error: The path ${allPath} contains non-directory files`);
-              process.exit(1);
-            }
-            // Add the options array needed to install that template
-            optionsToPass.push({
-              // Add "_path" to the expName to avoid name conflicts with exps installed with `--all latest`
-              expName: template + "_path",
-              templatePath: path.join(allPath, template),
-              expImport: false, // Blocks jsPsych experiment import prompt for basic template
+          templateList
+            // Don't include the template-sync directory, since it's not actually a template
+            .filter((template) => template !== "template-sync")
+            // Loop over the exp template directories
+            .forEach((template) => {
+              // Check that the supplied path contains only directories
+              if (!fs.lstatSync(path.join(allPath, template)).isDirectory()) {
+                console.error(`Error: The path ${allPath} contains non-directory files`);
+                process.exit(1);
+              }
+              // Add the options array needed to install that template
+              optionsToPass.push({
+                // Add "_path" to the expName to avoid name conflicts with exps installed with `--all latest`
+                expName: template + "_path",
+                templatePath: path.join(allPath, template),
+                expImport: false, // Blocks jsPsych experiment import prompt for basic template
+              });
             });
-          });
         } else if (options.all === "latest") {
           templateList = await getTemplates("pushkin-templates", "experiment", options.verbose);
           console.log(templateList);
@@ -1748,7 +1758,7 @@ async function main() {
           }
           config.DockerHubID = answers.ID;
           try {
-            fs.writeFileSync(path.join(process.cwd(), "pushkin.yaml"), jsYaml.safeDump(config));
+            fs.writeFileSync(path.join(process.cwd(), "pushkin.yaml"), jsYaml.dump(config));
           } catch (e) {
             console.error("Unable to rewrite pushkin.yaml.");
             console.error(e);
@@ -1795,6 +1805,13 @@ async function main() {
         }
       } catch (e) {
         console.error("Problem setting front-end environment variable:", e);
+        process.exit(1);
+      }
+      try {
+        if (options.verbose) console.log("Updating database passwords");
+        await updatePasswords();
+      } catch (e) {
+        console.error("Unable to update database passwords", e);
         process.exit(1);
       }
       try {
