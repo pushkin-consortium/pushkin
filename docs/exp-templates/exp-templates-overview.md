@@ -206,6 +206,10 @@ You may find it useful to include information about your experiment here that ca
 
 If `showResults` is true, the participant will see a link to their results at the end of the experiment (specified in `results.js`). If false, the participant will see only a thank you message.
 
+#### resultsType
+
+If `showResults` is true, `resultsType` specifies the type of results that will be shown to the participant. Currently, the two options for `resultsType` are `'percentileRank'` and `'modelPrediction'`. Percentile rank feedback is currently set up for all experiment templates except the self-paced reading template. It works by querying the `userResults` table in the database and calculating the user's percentile rank in the particular experiment based on the summary statistic (which is specified in the `experiment.js` file). Model prediction feedback is currently set up as a stub in all templates. It works by passing participant data to a Python script located in the experiment's worker component. Currently, this script just returns the key which was pressed on the last trial of the experiment. This is just a placeholder for more complex Python model that could be used to make predictions based on any data from the experiment. For more information, see sections below on the [worker component](#experiment-worker-component) and [results.js](#resultsjs).
+
 ### Worker Component, Migrations, and Seeds
 
 #### Experiment Worker Component
@@ -213,6 +217,8 @@ If `showResults` is true, the participant will see a link to their results at th
 Workers handle the most complex aspect of a Pushkin experiment and different types of experiments could need workers with very different functionalities. Pushkin provides a simple template to start with.
 
 The job of a worker is to receive messages via RabbitMQ that (usually) come from an API controller. It looks up the appropriate information in the database and returns it to the requester. Workers are also the component that is responsible for implementing machine learning, as having direct access to this data allows it to make live, dynamic decisions during an experiment like what stimuli to serve next or predictions about a subject’s next answers.
+
+If you want to implement experiment feedback using a machine learning model, you can do so by editing the `model.py` script (currently just a stub) in the experiment's worker component (`src/worker/model.py`). This script will execute when the experiment's results page calls the client method `getModelPrediction`, taking the model input and the name of the script as arguments. If your model relies on additional files or dependencies, make sure to add them to the worker's Dockerfile, e.g. by copying them into the container or installing them via pip.
 
 #### Experiment Migrations
 
@@ -242,7 +248,30 @@ When your site is running in local debug mode, you can run the experiment in jsP
 
 #### `results.js`
 
-If you're experiment is configured in `config.yaml` to calculate and show results, `results.js` is where you define the React component to provide participants with feedback on their results. As a default, this component gets the user's percentile rank in the experiment based on the summary statistic in the `userResults` table.
+If you're experiment is configured in `config.yaml` to show participants their results, `results.js` is where you define the React component to provide participants with feedback on their results. The experiment's config file currently accepts two types of results feedback: `'percentileRank'` and `'modelPrediction'`. This parameter setting is reflected in `results.js` with different logic for each type.
+
+If you want to use model prediction feedback, you will most likely want to edit the `useEffect` hook in this file by manipulating the data returned by this line:
+
+```javascript
+const expData = await pushkin.getExpData(props.userID, expConfig.experimentName);
+```
+
+This will retrieve all the data for that user for the particular experiment. You can then manipulate the data into whatever format you need to pass as input to your model in this line:
+
+```javascript
+const modelPrediction = await pushkin.getModelPrediction(modelInput, "model.py");
+```
+
+After using `setData` to add the model prediction to the state, you can then use it in the JSX to display the model prediction to the participant:
+
+```javascript
+return (
+  <Container className="mt-5 text-center">
+    <h1>Your results for {expConfig.experimentName}</h1>
+    <h2>Model prediction: {data.prediction}</h2>
+  </Container>
+);
+```
 
 #### Assets
 
