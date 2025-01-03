@@ -663,9 +663,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#config-options" class="md-nav__link">
+  <a href="#configuration-options" class="md-nav__link">
     <span class="md-ellipsis">
-      Config options
+      Configuration options
     </span>
   </a>
   
@@ -700,9 +700,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#modifying-configjs" class="md-nav__link">
+  <a href="#modifying-optionsjs" class="md-nav__link">
     <span class="md-ellipsis">
-      Modifying config.js
+      Modifying options.js
     </span>
   </a>
   
@@ -1257,9 +1257,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#config-options" class="md-nav__link">
+  <a href="#configuration-options" class="md-nav__link">
     <span class="md-ellipsis">
-      Config options
+      Configuration options
     </span>
   </a>
   
@@ -1294,9 +1294,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#modifying-configjs" class="md-nav__link">
+  <a href="#modifying-optionsjs" class="md-nav__link">
     <span class="md-ellipsis">
-      Modifying config.js
+      Modifying options.js
     </span>
   </a>
   
@@ -1341,8 +1341,8 @@
 <div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pushkin i exp
 </span></code></pre></div>
 <p>Name the experiment and select the main Pushkin distribution. Select <code>@pushkin-templates/exp-self-paced-reading</code> from the list of available templates and choose which version you want (the latest is typically recommended).</p>
-<h2 id="config-options">Config options</h2>
-<p>In the experiment's <code>/web page/src</code> direrectory, you'll find the config file <code>config.js</code> (note that this is different from the <code>config.yaml</code> file in the root of the experiment). Here you'll find some options which change the behavior of the experiment:</p>
+<h2 id="configuration-options">Configuration options</h2>
+<p>In the experiment's <code>/web page/src</code> direrectory, you'll find the config file <code>options.js</code>. Here you'll find some options which change the behavior of the experiment:</p>
 <ul>
 <li><strong><code>fontColor</code>:</strong> the color for experiment text (see note below for details)</li>
 <li><strong><code>fontSize</code>:</strong> the size for experiment text (see note below for details)</li>
@@ -1398,19 +1398,21 @@
 </span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>├── web page
 </span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>└── worker
 </span></code></pre></div>
-<p>In order to customize your self-paced reading experiment, you will need to access two files, <code>config.js</code> and <code>stim.js</code>. These files can be found in <code>web page/src/</code>, a directory that looks like this:</p>
+<p>In order to customize your self-paced reading experiment, you will need to access two files, <code>options.js</code> and <code>stim.js</code>. These files can be found in <code>web page/src/</code>, a directory that looks like this:</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>src
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>├── assets
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>├── config.js
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>├── consent.js
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>├── debrief.js
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>├── experiment.js
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>├── consent.js
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>├── debrief.js
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>├── experiment.js
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>├── experiment.test.js
 </span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>├── index.js
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>└── stim.js
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>├── options.js
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>├── results.js
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>└── stim.js
 </span></code></pre></div>
-<h3 id="modifying-configjs">Modifying <code>config.js</code></h3>
-<p>This file controls the aesthetics of your experiment, including font color, font size, and font family. If you wanted to set the font color to <code>blue</code>, set the font size to <code>36px</code>, and set the font family to a serif font such as Palatino Linotype, you would modify <code>config.js</code> as follows:</p>
-<div class="language-javascript highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kd">const</span><span class="w"> </span><span class="nx">experimentConfig</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<h3 id="modifying-optionsjs">Modifying <code>options.js</code></h3>
+<p>This file controls the aesthetics of your experiment, including font color, font size, and font family. If you wanted to set the font color to <code>blue</code>, set the font size to <code>36px</code>, and set the font family to a serif font such as Palatino Linotype, you would modify <code>options.js</code> as follows:</p>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kd">const</span><span class="w"> </span><span class="nx">expOptions</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nx">fontColor</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;blue&quot;</span><span class="p">,</span>
 </span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nx">fontSize</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;36px&quot;</span><span class="p">,</span>
 </span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="nx">fontFamily</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;&#39;Palatino Linotype&#39;, Palatino, serif&quot;</span><span class="p">,</span>
@@ -1418,10 +1420,10 @@
 </span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">  </span><span class="nx">correctiveFeedback</span><span class="o">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="c1">// Only relevant if comprehension is set to true</span>
 </span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="p">};</span>
 </span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="k">export</span><span class="w"> </span><span class="k">default</span><span class="w"> </span><span class="nx">experimentConfig</span><span class="p">;</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="k">export</span><span class="w"> </span><span class="k">default</span><span class="w"> </span><span class="nx">expOptions</span><span class="p">;</span>
 </span></code></pre></div>
 <p>You'll notice that <code>'Palatino Linotype'</code> is not <code>fontFamily</code>'s only specification. This is because it's important to list backup fonts in case your preferred font can't be loaded. You can read more about this practice <a href="https://discuss.codecademy.com/t/how-many-fallback-fonts-should-i-have/363586">here</a> and see other CSS font combination ideas <a href="https://www.w3schools.com/cssref/css_websafe_fonts.asp">here</a>.</p>
-<p>Note that any font-related changes you make to <code>config.js</code> will not affect the font in the actual self-paced reading trials. To modify that font (and other plugin parameters), you will need to edit the trial in <code>experiment.js</code>. See the <a href="https://github.com/jspsych/jspsych-contrib/blob/main/packages/plugin-self-paced-reading/docs/jspsych-self-paced-reading.md">plugin documentation</a> for details.</p>
+<p>Note that any font-related changes you make to <code>options.js</code> will not affect the font in the actual self-paced reading trials. To modify that font (and other plugin parameters), you will need to edit the trial in <code>experiment.js</code>. See the <a href="https://github.com/jspsych/jspsych-contrib/blob/main/packages/plugin-self-paced-reading/docs/jspsych-self-paced-reading.md">plugin documentation</a> for details.</p>
 <p>You can run <code>pushkin prep</code> and <code>pushkin start</code> to see your changes.</p>
 <h3 id="modifying-stimjs">Modifying <code>stim.js</code></h3>
 <p>This file controls the self-paced reading sentences and comprehension questions (if relevant) presented to participants. Create a new table of sentences and comprehension questions for your experiment, with your comprehension questions in a three-element array (i.e. <code>['&lt;question&gt;', '&lt;correct answer&gt;', '&lt;incorrect answer&gt;']</code>). Then use a table-to-JSON converter such as <a href="https://tableconvert.com/">this one</a> to format it correctly for jsPsych and paste the array into the <code>stim.js</code> file.</p>
