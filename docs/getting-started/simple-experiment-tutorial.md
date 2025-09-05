@@ -51,7 +51,7 @@ From the jsPsych code [above](#initial-jspsych-code), copy everything between `c
 
 ## Importing plugins
 
-In the jsPsych code [above](#initial-code), plugins are loaded with `<script>` tags. In a Pushkin experiment, plugins are loaded with `import` statements. The basic template already includes the `html-keyboard-response` plugin as a dependency, so no additional modifications are needed. If you wanted to add additional jsPsych plugins to this experiment, you would use additional `import` statements in the same format described in the [overview of experiment templates](../exp-templates/exp-templates-overview.md#adding-additional-jspsych-plugins).
+In the jsPsych code [above](#initial-jspsych-code), plugins are loaded with `<script>` tags. In a Pushkin experiment, plugins are loaded with `import` statements. The basic template already includes the `html-keyboard-response` plugin as a dependency, so no additional modifications are needed. If you wanted to add additional jsPsych plugins to this experiment, you would use additional `import` statements in the same format described in the [overview of experiment templates](../exp-templates/exp-templates-overview.md#adding-additional-jspsych-plugins).
 
 ## Moving the stimuli
 
@@ -67,7 +67,7 @@ Then we need to import `stimArray` into `experiment.js` by adding the following 
 import stimArray from './stim';
 ```
 
-## Moving the CSS styling
+## Moving CSS styling
 
 The experiment [above](#initial-jspsych-code) relies on CSS styling from `<link>` and `<style>` tags to display the experiment correctly. This styling needs be moved to `/experiments/lexdec/web page/src/assets/experiment.css` in order to style your Pushkin experiment. The new CSS file will look like this:
 

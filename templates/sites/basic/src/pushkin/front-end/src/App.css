@@ -1,7 +1,7 @@
 @font-face {
   font-family: 'slabo';
   src: local('slabo'),
-  url('./assets/fonts/Slabo27px-Regular.ttf') format('truetype');
+    url('./assets/fonts/Slabo27px-Regular.ttf') format('truetype');
 }
 
 body {

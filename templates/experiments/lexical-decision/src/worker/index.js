@@ -26,8 +26,6 @@ const transactionOps = {
 	}
 }
 
-console.log(connection);
-
 const worker = new pWorker(options);
 worker.init()
 	.then(() => {

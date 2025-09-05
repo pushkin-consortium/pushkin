@@ -55,7 +55,7 @@ const publishToDocker = async (DHID, rebuiltWorkers) => {
   //note: don't need to rebuild server, because we use S3
   let docker_compose
   try {
-    docker_compose = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'pushkin/docker-compose.dev.yml'), 'utf8'));
+    docker_compose = jsYaml.load(fs.readFileSync(path.join(process.cwd(), 'pushkin/docker-compose.dev.yml'), 'utf8'));
   } catch(e) {
     console.error('Failed to load the docker-compose. That is extremely odd.')
     throw e
@@ -398,9 +398,9 @@ const deployFrontEnd = async (projName, awsName, useIAM, myDomain, myCertificate
     
     console.log(`Updating awsResources with cloudfront info`)
     try {
-      let awsResources = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
+      let awsResources = jsYaml.load(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
       awsResources.cloudFrontId = theCloud.Id
-      fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
+      fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.dump(awsResources), 'utf8');
     } catch (e) {
       console.error(`Unable to update awsResources.js`)
       console.error(e)
@@ -437,7 +437,7 @@ const getOAC = async (useIAM) => {
 
   let awsResources
   try {
-    awsResources = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
+    awsResources = jsYaml.load(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
   } catch (e) {
     console.error(`Unable to read awsResources.js. That's strange.`)
     console.error(e)
@@ -463,7 +463,7 @@ const getOAC = async (useIAM) => {
   if (needOAC) {
     awsResources.OAC = await createOAC(useIAM);
     try {
-      fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');  
+      fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.dump(awsResources), 'utf8');  
     } catch (error) {
       console.error(`Can't write to awsResources.js. That's strange.`)
       throw error
@@ -484,7 +484,7 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
     let pushkinConfig
     try {
       temp = await fs.promises.readFile(path.join(process.cwd(), 'pushkin.yaml'), 'utf8')
-      pushkinConfig = jsYaml.safeLoad(temp)
+      pushkinConfig = jsYaml.load(temp)
     } catch (e) {
       console.error(`Couldn't load pushkin.yaml`)
       throw e;
@@ -556,7 +556,21 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
 
   let needDB = await doINeedDB(dbName, dbType, useIAM)
   if (needDB) {
-    dbPassword = Math.random().toString() //Pick random password for database
+    // Function to generate a secure random password
+    const generateSecurePassword = () => {
+      const length = 12; 
+      const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+';
+      let password = '';
+      
+      for (let i = 0; i < length; i++) {
+          const randomIndex = crypto.randomInt(0, charset.length);
+          password += charset[randomIndex];
+      }
+      
+      return password;
+    };
+
+    dbPassword = generateSecurePassword() //Pick random password for database
     let myDBConfig = JSON.parse(JSON.stringify(dbConfig));
     myDBConfig.DBName = dbName
     myDBConfig.DBInstanceIdentifier = dbName
@@ -595,13 +609,13 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
     //Updating list of AWS resources
     console.log('Updated awsResources with db information')
     try {
-      let awsResources = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
+      let awsResources = jsYaml.load(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
       if (awsResources && awsResources.dbs) {
         awsResources.dbs.push(dbName)
       } else {
         awsResources.dbs = [dbName]
       }
-      fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
+      fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.dump(awsResources), 'utf8');
     } catch (e) {
       console.error(`Unable to update awsResources.js`)
       console.error(e)
@@ -624,7 +638,7 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
     let pushkinConfig
     try {
       temp = await fs.promises.readFile(path.join(process.cwd(), 'pushkin.yaml'), 'utf8')
-      pushkinConfig = jsYaml.safeLoad(temp)
+      pushkinConfig = jsYaml.load(temp)
     } catch (e) {
       console.error(`Couldn't load pushkin.yaml`)
       throw e;
@@ -638,7 +652,7 @@ const getDBInfo = async () => {
   let pushkinConfig
   try {
     temp = await fs.promises.readFile(path.join(process.cwd(), 'pushkin.yaml'), 'utf8')
-    pushkinConfig = jsYaml.safeLoad(temp)
+    pushkinConfig = jsYaml.load(temp)
   } catch (e) {
     console.error(`Couldn't load pushkin.yaml`)
     throw e;
@@ -691,7 +705,7 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs, ECS
       if (x > 0) {
         try {
           console.log(`Writing ECS task list ${name}`)
-          await fs.promises.writeFile(path.join(process.cwd(), 'ECStasks', yaml), jsYaml.safeDump(task), 'utf8');
+          await fs.promises.writeFile(path.join(process.cwd(), 'ECStasks', yaml), jsYaml.dump(task), 'utf8');
         } catch (e) {
           console.error(`Unable to write ${yaml}`)
           console.error(`Had hoped to write :\n`, task)
@@ -716,9 +730,9 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs, ECS
 
     console.log(`Updated awsResources with ECS information`)
     try {
-      let awsResources = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
+      let awsResources = jsYaml.load(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
       awsResources.ECSName = ECSName
-      fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
+      fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.dump(awsResources), 'utf8');
     } catch (e) {
       console.error(`Unable to update awsResources.js`)
       console.error(e)
@@ -745,7 +759,7 @@ const ecsTaskCreator = async (projName, awsName, useIAM, DHID, completedDBs, ECS
 
   let docker_compose
   try {
-    docker_compose = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'pushkin/docker-compose.dev.yml'), 'utf8'));
+    docker_compose = jsYaml.load(fs.readFileSync(path.join(process.cwd(), 'pushkin/docker-compose.dev.yml'), 'utf8'));
   } catch(e) {
     console.error('Failed to load the docker-compose. That is extremely odd.')
     throw e
@@ -991,7 +1005,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
         "ecs_network_mode": "host"
       }
      }
-    await fs.promises.writeFile(path.join(process.cwd(), 'ECStasks/ecs-params.yml'), jsYaml.safeDump(ecsParams), 'utf8')
+    await fs.promises.writeFile(path.join(process.cwd(), 'ECStasks/ecs-params.yml'), jsYaml.dump(ecsParams), 'utf8')
   } catch (e) {
     console.error(`Unable to create ecs-params.yml`)
     throw e
@@ -1069,9 +1083,9 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
 
   try {
     console.log(`Updating awsResources.js with load balancer info`)
-    let awsResources = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
+    let awsResources = jsYaml.load(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
     awsResources.loadBalancerName = loadBalancerName
-    fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
+    fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.dump(awsResources), 'utf8');
   } catch (e) {
     console.error(`Unable to update awsResources.js`)
     console.error(e)
@@ -1095,9 +1109,9 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
   const targGroupARN = JSON.parse(tempMakeTargetGroup.stdout).TargetGroups[0].TargetGroupArn
   try {
     console.log(`Updating awsResources.js with target group info`)
-    let awsResources = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
+    let awsResources = jsYaml.load(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
     awsResources.targGroupARN = targGroupARN
-    fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
+    fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.dump(awsResources), 'utf8');
   } catch (e) {
     console.error(`Unable to update awsResources.js`)
     console.error(e)
@@ -1258,7 +1272,7 @@ const recordDBs = async(dbDone) => {
   let stdOut;
   try {
     stdOut = await fs.promises.readFile(path.join(process.cwd(), 'pushkin.yaml'), 'utf8')
-    pushkinConfig = jsYaml.safeLoad(stdOut)
+    pushkinConfig = jsYaml.load(stdOut)
   } catch (e) {
     console.error(`Couldn't load pushkin.yaml`)
     throw e
@@ -1279,7 +1293,7 @@ const recordDBs = async(dbDone) => {
     pushkinConfig.productionDBs[mainDB.type] = mainDB;
   }
   try {
-    stdOut = await fs.promises.writeFile(path.join(process.cwd(), 'pushkin.yaml'), jsYaml.safeDump(pushkinConfig), 'utf8')
+    stdOut = await fs.promises.writeFile(path.join(process.cwd(), 'pushkin.yaml'), jsYaml.dump(pushkinConfig), 'utf8')
     console.log(`Successfully updated pushkin.yaml with databases.`)
   } catch(e) {
     throw e
@@ -1293,7 +1307,7 @@ const rebuildWorker = async function(exp){
   let stdOut;
   try {
     stdOut = await fs.promises.readFile(path.join(process.cwd(), 'pushkin.yaml'), 'utf8')
-    pushkinConfig = jsYaml.safeLoad(stdOut)
+    pushkinConfig = jsYaml.load(stdOut)
   } catch (e) {
     console.error(`Couldn't load pushkin.yaml`)
     throw e
@@ -1404,7 +1418,7 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
   let pushkinConfig
   try {
     temp = await fs.promises.readFile(path.join(process.cwd(), 'pushkin.yaml'), 'utf8')
-    pushkinConfig = jsYaml.safeLoad(temp)
+    pushkinConfig = jsYaml.load(temp)
   } catch (e) {
     console.error(`Couldn't load pushkin.yaml`)
     throw e
@@ -1452,7 +1466,7 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
   pushkinConfig.info.projName = projName
   pushkinConfig.info.awsName = awsName
   try {
-    await fs.promises.writeFile(path.join(process.cwd(), 'pushkin.yaml'), jsYaml.safeDump(pushkinConfig), 'utf8')
+    await fs.promises.writeFile(path.join(process.cwd(), 'pushkin.yaml'), jsYaml.dump(pushkinConfig), 'utf8')
     console.log(`Successfully updated pushkin.yaml with custom domain.`)
     updatePushkinJs()
   } catch(e) {
@@ -1559,7 +1573,7 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
 
   await Promise.all([deployedFrontEnd, setupTransactionsTable, ranMigrations, apiForwarded])
 
-  await fs.promises.writeFile(path.join(process.cwd(), 'pushkin.yaml'), jsYaml.safeDump(pushkinConfig), 'utf8')
+  await fs.promises.writeFile(path.join(process.cwd(), 'pushkin.yaml'), jsYaml.dump(pushkinConfig), 'utf8')
 
   return
 }
@@ -1579,7 +1593,7 @@ export async function nameProject(projName) {
   awsResources.awsName = temp
   //use regular expressions to remove underscores from project name
   try {
-    stdOut = fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
+    stdOut = fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.dump(awsResources), 'utf8');
   } catch(e) {
     console.error(`Could not write to the pushkin CLI's AWS config file. This is a very strange error. Please contact the dev team.`)
     throw e
@@ -1587,7 +1601,7 @@ export async function nameProject(projName) {
 
   console.log("Resetting db info")
   try {
-    pushkinConfig = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'pushkin.yaml'), 'utf8'))
+    pushkinConfig = jsYaml.load(fs.readFileSync(path.join(process.cwd(), 'pushkin.yaml'), 'utf8'))
   } catch (e) {
     console.error(`Couldn't load pushkin.yaml`)
     throw e;
@@ -1601,7 +1615,7 @@ export async function nameProject(projName) {
       // Leave port and user in place, since those are unlikely to change
     })    
     try {
-      fs.promises.writeFile(path.join(process.cwd(), 'pushkin.yaml'), jsYaml.safeDump(pushkinConfig), 'utf8')
+      fs.promises.writeFile(path.join(process.cwd(), 'pushkin.yaml'), jsYaml.dump(pushkinConfig), 'utf8')
     } catch (e) {
       console.error(`Couldn't save pushkin.yaml`)
       throw e;
@@ -1662,14 +1676,14 @@ export async function addIAM(iam) {
   let temp
   let awsResources
   try {
-    awsResources = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
+    awsResources = jsYaml.load(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
   } catch(e) {
     console.error(`Could not read the pushkin CLI's AWS config file. This is a very strange error. Please contact the dev team.`)
     throw e
   }
   awsResources.iam = iam;
   try {
-    fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
+    fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.dump(awsResources), 'utf8');
   } catch(e) {
     console.error(`Could not write to the pushkin CLI's AWS config file. This is a very strange error. Please contact the dev team.`)
     throw e
@@ -2284,9 +2298,9 @@ const deleteCloudFront = async (useIAM, projName, killTag) => {
               console.error(e)
             }
             try {
-              let awsResources = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
+              let awsResources = jsYaml.load(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
               awsResources.cloudFrontId = null
-              fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
+              fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.dump(awsResources), 'utf8');
             } catch (e) {
               console.error(`Unable to update awsResources.js`)
               console.error(e)
@@ -2310,7 +2324,7 @@ const deleteResourceRecords = async (useIAM, killTag, projName) => {
   let pushkinConfig
   try {
     temp = await fs.promises.readFile(path.join(process.cwd(), 'pushkin.yaml'), 'utf8')
-    pushkinConfig = jsYaml.safeLoad(temp)
+    pushkinConfig = jsYaml.load(temp)
   } catch (e) {
     console.error(`Couldn't load pushkin.yaml`)
     throw e;
@@ -2403,9 +2417,9 @@ const deleteOACs = async (useIAM, deletedCloudFront, killTag) => {
       }
       console.log(`Updating awsResources with cloudfront info`)
       try {
-        let awsResources = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
+        let awsResources = jsYaml.load(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
         awsResources.OAC = null
-        fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
+        fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.dump(awsResources), 'utf8');
       } catch (e) {
         console.error(`Unable to update awsResources.js`)
         console.error(e)
@@ -2524,7 +2538,7 @@ export const awsArmageddon = async (useIAM, killType) => {
 
   let temp, awsResources
   try {
-    awsResources = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
+    awsResources = jsYaml.load(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
   } catch (e) {
     console.error(`Unable to load awsResources.js`)
   }    
@@ -2630,7 +2644,7 @@ export const awsArmageddon = async (useIAM, killType) => {
     }
   });
   try {
-    await fs.promises.writeFile(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResourcesNull), 'utf8');
+    await fs.promises.writeFile(path.join(process.cwd(), 'awsResources.js'), jsYaml.dump(awsResourcesNull), 'utf8');
   } catch (e) {
     console.error(`Unable to update awsResources.js`)
     console.error(e)
@@ -2699,7 +2713,7 @@ export const createAutoScale = async (useIAM, projName) => {
 
   console.log('Reading config information to configure autoscaling and alarms')
   try {
-    let awsResources = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
+    let awsResources = jsYaml.load(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
     ECSName = awsResources.ECSName
     targGroupARN = awsResources.targGroupARN
     loadBalancerName = awsResources.loadBalancerName
@@ -2712,7 +2726,7 @@ export const createAutoScale = async (useIAM, projName) => {
   let alarmTransactionHigh = JSON.parse(JSON.stringify(alarmRDSHigh))
   try {
     let temp = await fs.promises.readFile(path.join(process.cwd(), 'pushkin.yaml'), 'utf8')
-    let config = jsYaml.safeLoad(temp)
+    let config = jsYaml.load(temp)
     alarmMainHigh.Dimensions.Value = config.productionDBs.Main.name
     alarmTransactionHigh.Dimensions.Value = config.productionDBs.Transaction.name
     useEmail = config.info.email
@@ -2829,11 +2843,11 @@ export const createAutoScale = async (useIAM, projName) => {
 
   console.log(`Updating awsResources with autoscaling info`)
   try {
-    let awsResources = jsYaml.safeLoad(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
+    let awsResources = jsYaml.load(fs.readFileSync(path.join(process.cwd(), 'awsResources.js'), 'utf8'));
     awsResources.alarmUp = alarmUp
     awsResources.alarmDown = alarmDown
     awsResources.policyARN = policyARN
-    fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.safeDump(awsResources), 'utf8');
+    fs.writeFileSync(path.join(process.cwd(), 'awsResources.js'), jsYaml.dump(awsResources), 'utf8');
   } catch (e) {
     console.error(`Unable to update awsResources.js`)
     throw e
