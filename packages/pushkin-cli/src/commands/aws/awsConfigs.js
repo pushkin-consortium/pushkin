@@ -206,9 +206,9 @@ export const dbConfig = {
     "DBName": "FUBAR",
     "DBInstanceIdentifier": "FUBAR1234",
     "AllocatedStorage": 20,
-    "DBInstanceClass": "db.t2.micro",
+    "DBInstanceClass": "db.t3.micro",
     "Engine": "postgres",
-    "EngineVersion": "11",
+    "EngineVersion": "15",
     "MasterUsername": "postgres",
     "VpcSecurityGroupIds": [
         "FUBAR"
