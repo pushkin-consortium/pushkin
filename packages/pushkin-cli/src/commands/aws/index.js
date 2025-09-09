@@ -42,8 +42,8 @@ const exec = util.promisify(require("child_process").exec);
 const mkdir = util.promisify(require("fs").mkdir);
 
 /**
- *
- * @param useIAM
+ * Check if the IAM user is configured on the AWS SDK
+ * @param {any} useIAM - The IAM user to check
  */
 export const checkIAMUser = async (useIAM) => {
   const sts = new STSClient({
@@ -61,9 +61,10 @@ export const checkIAMUser = async (useIAM) => {
 };
 
 /**
- *
- * @param DHID
- * @param rebuiltWorkers
+ * Publish Docker images to DockerHub
+ * @param {string} DHID - The DockerHub ID
+ * @param {Promise} rebuiltWorkers - A promise that resolves when the workers are rebuilt
+ * @returns {Promise} - A promise that resolves when the images are published
  */
 const publishToDocker = async (DHID, rebuiltWorkers) => {
   console.log("Publishing images to DockerHub");
@@ -98,8 +99,9 @@ const publishToDocker = async (DHID, rebuiltWorkers) => {
   }
 
   /**
-   *
-   * @param s
+   * Push a worker to DockerHub
+   * @param {string} s - The service name
+   * @returns {Promise<string>} - A promise that resolves when the worker is pushed
    */
   const pushWorkers = async (s) => {
     const service = docker_compose.services[s];
@@ -122,16 +124,18 @@ const publishToDocker = async (DHID, rebuiltWorkers) => {
     try {
       return exec(`docker push ${DHID}/${service.image}`);
     } catch (e) {
+      console.error(`Unable to push image ${service.image}`);
       throw e;
     }
   };
 
-  rebuiltWorkers = await rebuiltWorkers; //can't push until these are built
+  await rebuiltWorkers; //can't push until these are built
 
   let pushedWorkers;
   try {
     pushedWorkers = Object.keys(docker_compose.services).map(pushWorkers);
   } catch (e) {
+    console.log(`Unable to push worker images to DockerHub`);
     throw e;
   }
 
@@ -139,8 +143,9 @@ const publishToDocker = async (DHID, rebuiltWorkers) => {
 };
 
 /**
- *
- * @param projName
+ * Build the project front-end
+ * @param {string} projName - The project name
+ * @returns {Promise} - A promise that resolves when the front-end is built
  */
 const buildFE = function (projName) {
   return new Promise((resolve, reject) => {
@@ -157,7 +162,7 @@ const buildFE = function (projName) {
     let buildCmd;
     if (packageJson.dependencies["build-if-changed"] == null) {
       console.log(
-        modName,
+        projName,
         " does not have build-if-changed installed. Recommend installation for faster runs of prep.",
       );
       buildCmd = pacMan.concat(" --mutex network run build");
