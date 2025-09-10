@@ -549,7 +549,7 @@ const deployFrontEnd = async (
 
   if (myDomain != "default") {
     try {
-      makeRecordSet(myDomain, myDomain, projName, useIAM);
+      makeRecordSet(myDomain, projName, useIAM, theCloud);
     } catch (e) {
       throw e;
     }
