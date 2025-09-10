@@ -207,14 +207,13 @@ export const syncS3 = async (awsName, useIAM) => {
 
 /**
  * This function is called from within deployFrontEnd(). It creates four Route53 DNS records for the specified domainName for the CloudFront distribution created in deployFrontEnd().
- * @param {string} hostedZoneId - The hosted zone ID
  * @param {string} domainName - The domain name
  * @param {string} projName - The project name
  * @param {string} useIAM - The IAM profile to use
  * @param {object} theCloud - The CloudFront distribution object
  * @returns {Promise} - A promise that resolves when the record set is created or updated
  */
-const makeRecordSet = async (hostedZoneId, domainName, projName, useIAM, theCloud) => {
+const makeRecordSet = async (domainName, projName, useIAM, theCloud) => {
   const route53 = new Route53Client({
     region: myRegion,
     credentials: fromIni({ profile: useIAM.iam }),
@@ -224,7 +223,7 @@ const makeRecordSet = async (hostedZoneId, domainName, projName, useIAM, theClou
 
   try {
     const data = await route53.send(
-      new ListHostedZonesByNameCommand({ DNSName: domainName, hostedZoneId: hostedZoneId }),
+      new ListHostedZonesByNameCommand({ DNSName: domainName, hostedZoneId: zoneID }),
     );
     if (data.HostedZones.length === 0) {
       console.error(`No hostedzone found for ${domainName}`);
@@ -429,7 +428,7 @@ const deployFrontEnd = async (
     }
   }
 
-  builtFrontEnd = await builtFrontEnd; //need this before we sync!
+  await builtFrontEnd; //need this before we sync!
   let syncMe;
   try {
     syncMe = syncS3(awsName, useIAM);
@@ -550,7 +549,7 @@ const deployFrontEnd = async (
 
   if (myDomain != "default") {
     try {
-      makeRecordSet(myDomain, useIAM, projName, theCloud);
+      makeRecordSet(myDomain, myDomain, projName, useIAM);
     } catch (e) {
       throw e;
     }
