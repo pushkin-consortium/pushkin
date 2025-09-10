@@ -32,6 +32,7 @@ import { fromIni } from "@aws-sdk/credential-provider-ini";
 import { ACMClient, ListCertificatesCommand } from "@aws-sdk/client-acm";
 import {
   Route53Client,
+  ListHostedZonesByNameCommand,
   ListResourceRecordSetsCommand,
   ChangeResourceRecordSetsCommand,
 } from "@aws-sdk/client-route-53";
@@ -99,9 +100,9 @@ const publishToDocker = async (DHID, rebuiltWorkers) => {
   }
 
   /**
-   * Push a worker to DockerHub
+   * Push workers to DockerHub
    * @param {string} s - The service name
-   * @returns {Promise<string>} - A promise that resolves when the worker is pushed
+   * @returns {Promise<string>} - A promise that resolves when the workers of the service is pushed
    */
   const pushWorkers = async (s) => {
     const service = docker_compose.services[s];
@@ -187,9 +188,10 @@ const buildFE = function (projName) {
 };
 
 /**
- *
- * @param awsName
- * @param useIAM
+ * Sync the local build with the S3 bucket
+ * @param {string} awsName - The S3 bucket name
+ * @param {string} useIAM - The IAM profile to use
+ * @returns {Promise} - A promise that resolves when the sync is complete
  */
 export const syncS3 = async (awsName, useIAM) => {
   console.log("Syncing files to bucket");
@@ -204,13 +206,15 @@ export const syncS3 = async (awsName, useIAM) => {
 };
 
 /**
- *
- * @param hostedZoneId
- * @param domainName
- * @param recordType
- * @param recordValue
+ * This function is called from within deployFrontEnd(). It creates four Route53 DNS records for the specified domainName for the CloudFront distribution created in deployFrontEnd().
+ * @param {string} hostedZoneId - The hosted zone ID
+ * @param {string} domainName - The domain name
+ * @param {string} projName - The project name
+ * @param {string} useIAM - The IAM profile to use
+ * @param {object} theCloud - The CloudFront distribution object
+ * @returns {Promise} - A promise that resolves when the record set is created or updated
  */
-const makeRecordSet = async (hostedZoneId, domainName, recordType, recordValue) => {
+const makeRecordSet = async (hostedZoneId, domainName, projName, useIAM, theCloud) => {
   const route53 = new Route53Client({
     region: myRegion,
     credentials: fromIni({ profile: useIAM.iam }),
@@ -219,14 +223,16 @@ const makeRecordSet = async (hostedZoneId, domainName, recordType, recordValue) 
   let zoneID;
 
   try {
-    const data = await route53.send(new ListHostedZonesByNameCommand({ DNSName: myDomain }));
+    const data = await route53.send(
+      new ListHostedZonesByNameCommand({ DNSName: domainName, hostedZoneId: hostedZoneId }),
+    );
     if (data.HostedZones.length === 0) {
-      console.error(`No hostedzone found for ${myDomain}`);
-      throw new Error(`No hostedzone found for ${myDomain}`);
+      console.error(`No hostedzone found for ${domainName}`);
+      throw new Error(`No hostedzone found for ${domainName}`);
     }
     zoneID = data.HostedZones[0].Id.split("/hostedzone/")[1];
   } catch (e) {
-    console.error(`Unable to retrieve hostedzone for ${myDomain}`);
+    console.error(`Unable to retrieve hostedzone for ${domainName}`);
     throw e;
   }
 
@@ -237,12 +243,12 @@ const makeRecordSet = async (hostedZoneId, domainName, recordType, recordValue) 
     const data = await route53.send(new ListResourceRecordSetsCommand({ HostedZoneId: zoneID }));
     existingRecords = data.ResourceRecordSets;
   } catch (e) {
-    console.error(`Unable to list resource record sets for ${myDomain}`);
+    console.error(`Unable to list resource record sets for ${domainName}`);
     throw e;
   }
 
   if (existingRecords.length > 0) {
-    console.log(`Deleting existing resource record sets for ${myDomain}`);
+    console.log(`Deleting existing resource record sets for ${domainName}`);
     const changes = existingRecords.map((record) => ({
       Action: "DELETE",
       ResourceRecordSet: record,
@@ -256,25 +262,25 @@ const makeRecordSet = async (hostedZoneId, domainName, recordType, recordValue) 
         }),
       );
     } catch (e) {
-      console.error(`Unable to delete resource record sets for ${myDomain}`);
+      console.error(`Unable to delete resource record sets for ${domainName}: ${e}`);
     }
   }
 
-  // set up recordset variable
   /**
-   *
-   * @param name
-   * @param dnsName
-   * @param type
-   * @param setIdentifier
+   * Creates a recordset change object for the DNS record
+   * @param name - The DNS record name users will access
+   * @param dnsName - The DNS name of the CloudFront distribution
+   * @param type - The DNS record type (A or AAAA)
+   * @param setIdentifier - The set identifier for the record
+   * @returns {object} - The change object
    */
   const createChange = (name, dnsName, type, setIdentifier) => ({
     Action: "UPSERT",
     ResourceRecordSet: {
       Name: name,
       Type: type,
-      Region: myRegion,
       SetIdentifier: setIdentifier,
+      Region: myRegion,
       AliasTarget: {
         HostedZoneId: "Z2FDTNDATAQYW2",
         DNSName: dnsName,
@@ -286,16 +292,16 @@ const makeRecordSet = async (hostedZoneId, domainName, recordType, recordValue) 
   let recordSet = {
     Comment: "",
     Changes: [
-      createChange(myDomain, theCloud.DomainName, "A", projName),
-      createChange(myDomain, theCloud.DomainName, "AAAA", projName),
-      createChange(`www.${myDomain}`, theCloud.DomainName, "A", projName),
-      createChange(`www.${myDomain}`, theCloud.DomainName, "AAAA", projName),
+      createChange(domainName, theCloud.DomainName, "A", projName),
+      createChange(domainName, theCloud.DomainName, "AAAA", projName),
+      createChange(`www.${domainName}`, theCloud.DomainName, "A", projName),
+      createChange(`www.${domainName}`, theCloud.DomainName, "AAAA", projName),
     ],
   };
 
   /**
-   *
-   * @param zoneID
+   * Waits for all resource record sets to be deleted for a given hosted zone
+   * @param zoneID - The hosted zone ID
    */
   const waitForRecordSetDeletion = async (zoneID) => {
     while (true) {
@@ -360,16 +366,16 @@ const makeRecordSet = async (hostedZoneId, domainName, recordType, recordValue) 
   let returnVal;
 
   try {
-    console.log(`Creating resource record sets for ${myDomain}`);
+    console.log(`Creating resource record sets for ${domainName}`);
     returnVal = await route53.send(
       new ChangeResourceRecordSetsCommand({
         HostedZoneId: zoneID,
         ChangeBatch: recordSet,
       }),
     );
-    console.log(`Updated record set for ${myDomain}.`);
+    console.log(`Updated record set for ${domainName}.`);
   } catch (e) {
-    console.error(`Unable to create resource record set for ${myDomain}`);
+    console.error(`Unable to create resource record set for ${domainName}`);
     throw e;
   }
 
