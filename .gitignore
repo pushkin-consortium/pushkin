@@ -93,3 +93,7 @@ test-results/
 playwright-report/
 blob-report/
 playwright/.cache/
+
+# CLAUDE files
+CLAUDE.local.md
+CLAUDE/*

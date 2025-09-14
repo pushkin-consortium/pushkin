@@ -46,7 +46,7 @@ const version = require("../package.json").version;
 program.version(version);
 
 const moveToProjectRoot = () => {
-  // better checking to make sure this is indeed a pushkin project would be goodf
+  // better checking to make sure this is indeed a pushkin project would be good
   while (process.cwd() != path.parse(process.cwd()).root) {
     if (fs.existsSync(path.join(process.cwd(), "pushkin.yaml"))) return;
     process.chdir("..");

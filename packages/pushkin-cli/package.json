@@ -29,10 +29,10 @@
   "bugs": {
     "url": "https://github.com/pushkin-consortium/pushkin/issues"
   },
-  "devDependencies": {},
   "dependencies": {
     "@aws-sdk/client-acm": "^3.454.0",
     "@aws-sdk/client-route-53": "^3.552.0",
+    "@aws-sdk/client-s3": "^3.884.0",
     "@aws-sdk/client-sts": "^3.454.0",
     "@aws-sdk/credential-provider-ini": "^3.451.0",
     "adm-zip": "^0.4.16",

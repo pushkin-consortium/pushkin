@@ -26,7 +26,8 @@ import { migrateTransactionsDB, runMigrations, getMigrations } from "../setupdb/
 import { updatePushkinJs, readConfig } from "../prep/index.js";
 import inquirer from "inquirer";
 import { kill } from "process";
-//Importing AWS SDK components
+import crypto from "crypto";
+import { S3Client, ListBucketsCommand } from "@aws-sdk/client-s3";
 import { STSClient, GetCallerIdentityCommand } from "@aws-sdk/client-sts";
 import { fromIni } from "@aws-sdk/credential-provider-ini";
 import { ACMClient, ListCertificatesCommand } from "@aws-sdk/client-acm";
@@ -117,13 +118,15 @@ const publishToDocker = async (DHID, rebuiltWorkers) => {
 
     console.log(`Pushkin ${s}`);
     try {
-      execSync(`docker tag ${service.image} ${DHID}/${service.image}:latest`);
+      const imageName = service.image.split(":")[0];
+      execSync(`docker tag ${service.image} ${DHID}/${imageName}:latest`);
     } catch (e) {
       console.error(`Unable to tag image ${service.image}`);
       throw e;
     }
     try {
-      return exec(`docker push ${DHID}/${service.image}`);
+      const imageName = service.image.split(":")[0];
+      return exec(`docker push ${DHID}/${imageName}:latest`);
     } catch (e) {
       console.error(`Unable to push image ${service.image}`);
       throw e;
@@ -267,10 +270,10 @@ const makeRecordSet = async (domainName, projName, useIAM, theCloud) => {
 
   /**
    * Creates a recordset change object for the DNS record
-   * @param name - The DNS record name users will access
-   * @param dnsName - The DNS name of the CloudFront distribution
-   * @param type - The DNS record type (A or AAAA)
-   * @param setIdentifier - The set identifier for the record
+   * @param {string} name - The DNS record name users will access
+   * @param {string} dnsName - The DNS name of the CloudFront distribution
+   * @param {string} type - The DNS record type (A or AAAA)
+   * @param {string} setIdentifier - The set identifier for the record
    * @returns {object} - The change object
    */
   const createChange = (name, dnsName, type, setIdentifier) => ({
@@ -382,38 +385,43 @@ const makeRecordSet = async (domainName, projName, useIAM, theCloud) => {
 };
 
 /**
- *
- * @param projName
- * @param awsName
- * @param useIAM
- * @param myDomain
- * @param myCertificate
- * @param builtFrontEnd
+ * Deploys the front-end to S3 and CloudFront
+ * @param {string} projName - The Pushkin project name
+ * @param {string} awsName - The AWS resource name
+ * @param {string} useIAM - The IAM role to use
+ * @param {string} domainName - The domain name
+ * @param {string} myCertificate - The SSL certificate
+ * @param {string} builtFrontEnd - The built front-end assets
+ * @returns
  */
 const deployFrontEnd = async (
   projName,
   awsName,
   useIAM,
-  myDomain,
+  domainName,
   myCertificate,
   builtFrontEnd,
 ) => {
   let temp;
 
+  const s3 = new S3Client({
+    region: myRegion,
+  });
   console.log(`Checking to see if bucket ${awsName} already exists.`);
   let bucketExists = false;
   try {
-    temp = await exec(`aws s3api list-buckets --profile ${useIAM}`);
+    const listBucketsCommand = new ListBucketsCommand({});
+    const response = await s3.send(listBucketsCommand);
+    response.Buckets.forEach((b) => {
+      if (b.Name == awsName) {
+        bucketExists = true;
+        console.log(`Bucket exists. Skipping create.`);
+      }
+    });
   } catch (e) {
     console.error(`Problem listing aws s3 buckets for your account`);
     throw e;
   }
-  JSON.parse(temp.stdout).Buckets.forEach((b) => {
-    if (b.Name == awsName) {
-      bucketExists = true;
-      console.log(`Bucket exists. Skipping create.`);
-    }
-  });
 
   let OAC = getOAC(useIAM); //this will create if necessary. Returns OAC as promise.
   let ACLarn = makeACL(useIAM); //this will create if necessary. Returns ACLID as promise.
@@ -451,7 +459,7 @@ const deployFrontEnd = async (
       let tempCheck = false;
       try {
         tempCheck = d.Origins.Items[0].Id == awsName;
-      } catch (e) {
+      } catch (e) { //eslint-disable-line
         // Probably not a fully created cloudfront distribution.
         // Probably can ignore this.
         console.warn(
@@ -493,10 +501,10 @@ const deployFrontEnd = async (
     myCloudFront.DistributionConfig.Origins.Items[0].DomainName =
       awsName.concat(".s3.amazonaws.com");
     myCloudFront.Tags.Items[0].Value = projName;
-    if (myDomain != "default") {
+    if (domainName != "default") {
       // set up DNS
       myCloudFront.DistributionConfig.Aliases.Quantity = 2;
-      myCloudFront.DistributionConfig.Aliases.Items = [myDomain, "www.".concat(myDomain)];
+      myCloudFront.DistributionConfig.Aliases.Items = [domainName, "www.".concat(domainName)];
       myCloudFront.DistributionConfig.ViewerCertificate.CloudFrontDefaultCertificate = false;
       myCloudFront.DistributionConfig.ViewerCertificate.ACMCertificateArn = myCertificate;
       myCloudFront.DistributionConfig.ViewerCertificate.SSLSupportMethod = "sni-only";
@@ -547,10 +555,11 @@ const deployFrontEnd = async (
     }
   }
 
-  if (myDomain != "default") {
+  if (domainName != "default") {
     try {
-      makeRecordSet(myDomain, projName, useIAM, theCloud);
+      makeRecordSet(domainName, projName, useIAM, theCloud);
     } catch (e) {
+      console.error(`Unable to create or update record set for ${domainName}`);
       throw e;
     }
   }
@@ -562,13 +571,15 @@ const deployFrontEnd = async (
 };
 
 /**
- *
- * @param useIAM
+ * Create the Access Control List if it doesn't already exist
+ * @param {string} useIAM - The IAM profile to use
+ * @returns {Promise<string>} - The ACL ARN
  */
 const getOAC = async (useIAM) => {
   /**
-   *
-   * @param useIAM
+   * Creates the Origin Access Control
+   * @param {string} useIAM - The IAM profile to use
+   * @returns {Promise<string>} - The OAC ID
    */
   const createOAC = async (useIAM) => {
     let temp;
@@ -604,9 +615,8 @@ const getOAC = async (useIAM) => {
     console.log(`No origin access control. Creating.`);
     needOAC = true;
   } else {
-    let temp;
     try {
-      temp = await exec(
+      await exec(
         `aws cloudfront get-origin-access-control --id ${awsResources.OAC} --profile ${useIAM}`,
       );
     } catch (e) {
@@ -634,12 +644,13 @@ const getOAC = async (useIAM) => {
 };
 
 /**
- *
- * @param dbType
- * @param securityGroupID
- * @param projName
- * @param awsName
- * @param useIAM
+ * Create the Access Control List if it doesn't already exist
+ * @param {string} dbType - The type of database (e.g., 'postgres', 'mysql')
+ * @param {string} securityGroupID - The security group ID for the database
+ * @param {string} projName - The project name
+ * @param {string} awsName - The AWS resource name
+ * @param {string} useIAM - The IAM profile to use
+ * @returns {Promise<object>} - The database connection details
  */
 const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
   console.log(`Handling ${dbType} database.`);
@@ -647,10 +658,11 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
   dbName = projName.concat(dbType).replace(/[^A-Za-z0-9]/g, "");
 
   /**
-   *
-   * @param dbName
-   * @param dbType
-   * @param useIAM
+   * Determine if a new database is needed
+   * @param {string} dbName - The name of the database
+   * @param {string} dbType - The type of database (e.g., 'postgres', 'mysql')
+   * @param {string} useIAM - The IAM profile to use
+   * @returns {Promise<boolean>} - Whether a new database is needed
    */
   const doINeedDB = async (dbName, dbType, useIAM) => {
     //First, check pushkin.yaml -- do we have a database already?
@@ -700,7 +712,7 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
         }
         if (pushkinConfig.productionDBs[dbType].user != retrievedDBInfo.MasterUsername) {
           sameParams = false;
-          console.warn;
+          console.warn("\x1b[31m%s\x1b[0m", `Database user on RDS does not match pushkin.yaml`);
         }
         //if (pushkinConfig.productionDBs[dbType].pass != FUBAR) {sameParams = false} //No way to check the password; assume if rest is correct, that's still correct
         if (pushkinConfig.productionDBs[dbType].port != retrievedDBInfo.Endpoint.Port) {
@@ -737,11 +749,10 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
         throw e;
       }
       let foundDB = false;
-      let retrievedDBInfo;
+
       JSON.parse(stdOut.stdout).DBInstances.forEach((db) => {
         if (db.DBInstanceIdentifier == dbName.toLowerCase()) {
           foundDB = true;
-          retrievedDBInfo = db;
         }
       });
       if (foundDB) {
@@ -760,9 +771,9 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
 
   let needDB = await doINeedDB(dbName, dbType, useIAM);
   if (needDB) {
-    // Function to generate a secure random password
     /**
-     *
+     * Function to generate a secure random password
+     * @returns {string} - A secure random password
      */
     const generateSecurePassword = () => {
       const length = 12;
@@ -871,7 +882,8 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
 };
 
 /**
- *
+ * Retrieve database connection information from pushkin.yaml
+ * @returns {Promise<object>} - The database connection details
  */
 const getDBInfo = async () => {
   let temp;
@@ -898,31 +910,19 @@ const getDBInfo = async () => {
   } else {
     throw new Error(`Error finding production DBs in pushkin.yaml`);
   }
-
-  return dbsByType;
 };
 
 /**
- *
- * @param projName
- * @param awsName
- * @param useIAM
- * @param DHID
- * @param completedDBs
- * @param ECSName
- * @param targGroupARN
+ * Create ECS tasks for the API and workers
+ * @param {string} projName - The name of the project
+ * @param {boolean} useIAM - Whether to use IAM roles
+ * @param {string} DHID - The DataHub ID
+ * @param {Array} completedDBs - The list of completed databases
+ * @param {string} ECSName - The name of the ECS cluster
+ * @param {string} targGroupARN - The target group ARN
+ * @returns {Promise} - A promise that resolves when the ECS tasks are created
  */
-const ecsTaskCreator = async (
-  projName,
-  awsName,
-  useIAM,
-  DHID,
-  completedDBs,
-  ECSName,
-  targGroupARN,
-) => {
-  let mkTaskDir;
-  let temp;
+const ecsTaskCreator = async (projName, useIAM, DHID, completedDBs, ECSName, targGroupARN) => {
   try {
     if (fs.existsSync(path.join(process.cwd(), "ECStasks"))) {
       //nothing
@@ -936,16 +936,18 @@ const ecsTaskCreator = async (
   }
 
   /**
-   *
-   * @param yaml
-   * @param task
-   * @param name
-   * @param port
-   * @param targGroupARN
+   * Create and deploy an ECS task using ecs-cli compose
+   * @param {string} yaml - The name of the YAML file to create
+   * @param {object} task - The ECS task definition
+   * @param {string} name - The name of the ECS service
+   * @param {number} port - The port for the ECS service
+   * @param {string} targGroupARN - The target group ARN for the ECS service
+   * @returns {Promise} - A promise that resolves when the ECS task is created
    */
   const ecsCompose = async (yaml, task, name, port = 0, targGroupARN = false) => {
     /**
-     *
+     * Wait for the ECS cluster to have registered container instances
+     * @returns {Promise} - A promise that resolves when the ECS cluster is ready
      */
     const wait = async () => {
       //Sometimes, I really miss loops
@@ -1047,83 +1049,76 @@ const ecsTaskCreator = async (
   }
 
   let workerList = [];
-  try {
-    Object.keys(docker_compose.services).forEach((s) => {
-      if (
-        docker_compose.services[s].labels != null &&
-        docker_compose.services[s].labels.isPushkinWorker
-      ) {
-        workerList.push(s);
-      }
-    });
-  } catch (e) {
-    throw e;
-  }
+  Object.keys(docker_compose.services).forEach((s) => {
+    if (
+      docker_compose.services[s].labels != null &&
+      docker_compose.services[s].labels.isPushkinWorker
+    ) {
+      workerList.push(s);
+    }
+  });
 
   console.log(`ECS task creation waiting on DBs`);
-  temp = await completedDBs; //Next part won't run if DBs aren't done
+  await completedDBs; //Next part won't run if DBs aren't done
   const dbInfoByTask = await getDBInfo();
 
   let composedRabbit;
   let composedAPI;
   let composedWorkers;
-  try {
-    composedRabbit = ecsCompose("rabbitTask.yml", myRabbitTask, "message-queue");
-    composedRabbit = ecsCompose("apiTask.yml", apiTask, "api", 80, targGroupARN);
-    composedWorkers = workerList.map((w) => {
-      const yaml = w.concat(".yml");
-      const name = w;
-      let task = {};
-      let expName = w.split("_worker")[0];
-      task.version = workerTask.version;
-      task.services = {};
-      task.services[w] = workerTask.services["EXPERIMENT_NAME"];
-      task.services[w].image = `${DHID}/${w}:latest`;
-      task.services[w].logging.options["awslogs-group"] = `ecs/${projName}`;
-      task.services[w].logging.options["awslogs-stream-prefix"] = `ecs/${w}/${projName}`;
-      //Note that "DB_USER", "DB_NAME", "DB_PASS", "DB_URL" are redundant with "DB_SMARTURL"
-      //For simplicity, newer versions of pushkin-worker will expect DB_SMARTURL
-      //However, existing deploys won't have that. So both sets of information are maintained
-      //for backwards compatibility, at least for the time being.
-      task.services[w].environment = {
-        AMQP_ADDRESS: rabbitAddress,
-        DB_HOST: dbInfoByTask["Main"].endpoint,
-        DB_USER: dbInfoByTask["Main"].username,
-        DB_DB: dbInfoByTask["Main"].name,
-        DB_PASS: dbInfoByTask["Main"].password,
-        DB_URL: dbInfoByTask["Main"].endpoint,
-        //"TRANS_URL": `postgres://${dbInfoByTask['Transaction'].username}:${dbInfoByTask['Transaction'].password}@${dbInfoByTask['Transaction'].endpoint}:/${dbInfoByTask['Transaction'].port}/${dbInfoByTask['Transaction'].name}`
-        TRANS_HOST: dbInfoByTask["Transaction"].endpoint,
-        TRANS_USER: dbInfoByTask["Transaction"].username,
-        TRANS_DB: dbInfoByTask["Transaction"].name,
-        TRANS_PASS: dbInfoByTask["Transaction"].password,
-        TRANS_URL: dbInfoByTask["Transaction"].endpoint,
-      };
-      return ecsCompose(yaml, task, name);
-    });
-  } catch (e) {
-    throw e;
-  }
+  composedRabbit = ecsCompose("rabbitTask.yml", myRabbitTask, "message-queue");
+  composedRabbit = ecsCompose("apiTask.yml", apiTask, "api", 80, targGroupARN);
+  composedWorkers = workerList.map((w) => {
+    const yaml = w.concat(".yml");
+    const name = w;
+    let task = {};
+    let expName = w.split("_worker")[0];
+    task.version = workerTask.version;
+    task.services = {};
+    task.services[w] = workerTask.services["EXPERIMENT_NAME"];
+    task.services[w].image = `${DHID}/${w}:latest`;
+    task.services[w].logging.options["awslogs-group"] = `ecs/${projName}`;
+    task.services[w].logging.options["awslogs-stream-prefix"] = `ecs/${w}/${projName}`;
+    //Note that "DB_USER", "DB_NAME", "DB_PASS", "DB_URL" are redundant with "DB_SMARTURL"
+    //For simplicity, newer versions of pushkin-worker will expect DB_SMARTURL
+    //However, existing deploys won't have that. So both sets of information are maintained
+    //for backwards compatibility, at least for the time being.
+    task.services[w].environment = {
+      AMQP_ADDRESS: rabbitAddress,
+      DB_HOST: dbInfoByTask["Main"].endpoint,
+      DB_USER: dbInfoByTask["Main"].username,
+      DB_DB: dbInfoByTask["Main"].name,
+      DB_PASS: dbInfoByTask["Main"].password,
+      DB_URL: dbInfoByTask["Main"].endpoint,
+      //"TRANS_URL": `postgres://${dbInfoByTask['Transaction'].username}:${dbInfoByTask['Transaction'].password}@${dbInfoByTask['Transaction'].endpoint}:/${dbInfoByTask['Transaction'].port}/${dbInfoByTask['Transaction'].name}`
+      TRANS_HOST: dbInfoByTask["Transaction"].endpoint,
+      TRANS_USER: dbInfoByTask["Transaction"].username,
+      TRANS_DB: dbInfoByTask["Transaction"].name,
+      TRANS_PASS: dbInfoByTask["Transaction"].password,
+      TRANS_URL: dbInfoByTask["Transaction"].endpoint,
+    };
+    return ecsCompose(yaml, task, name);
+  });
 
   return Promise.all([composedRabbit, composedAPI, composedWorkers]);
 };
 
 /**
- *
- * @param projName
- * @param awsName
- * @param useIAM
- * @param DHID
- * @param completedDBs
- * @param myCertificate
+ * Set up ECS cluster and related resources
+ * @param {string} projName - The name of the project
+ * @param {string} awsName - The name of the AWS account
+ * @param {boolean} useIAM - Whether to use IAM roles
+ * @param {string} DHID - The Docker Hub ID
+ * @param {Promise} completedDBs - A promise that resolves when the databases are set up
+ * @param {string} myCertificate - The certificate for the project
+ * @returns {Promise} - A promise that resolves when the ECS setup is complete
  */
 const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertificate) => {
   console.log(`Starting ECS setup`);
   let temp;
 
   /**
-   *
-   * @param useIAM
+   * Create an SSH key pair
+   * @param {boolean} useIAM - Whether to use IAM roles
    */
   const makeSSH = async (useIAM) => {
     let keyPairs;
@@ -1245,11 +1240,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
     console.log(`Security group 'foundECSGroup' already exists. Skipping create.`);
     ecsSecurityGroupID = foundECSGroup;
   } else {
-    try {
-      madeECSGroup = makeECSGroup(useIAM, projName); //start this process early. Will use much later.
-    } catch (e) {
-      throw e;
-    }
+    madeECSGroup = makeECSGroup(useIAM, projName); //start this process early. Will use much later.
   }
 
   //need one subnet per availability zone in region. Region is based on region for the profile.
@@ -1871,11 +1862,12 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
   try {
     myCertificate = await chooseCertificate(useIAM); //Waiting because otherwise input query gets buried
   } catch (e) {
+    console.error(`Unable to choose certificate.`);
     throw e;
   }
 
   console.log(`Looks good!`);
-  process.exit();
+  // process.exit();
 
   /**
    *
