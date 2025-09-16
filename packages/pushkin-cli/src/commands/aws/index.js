@@ -37,6 +37,15 @@ import {
   ListResourceRecordSetsCommand,
   ChangeResourceRecordSetsCommand,
 } from "@aws-sdk/client-route-53";
+import {
+  RDSClient,
+  DescribeDBInstancesCommand,
+  CreateDBInstanceCommand,
+  ModifyDBInstanceCommand,
+  DeleteDBInstanceCommand,
+  DescribeDBSnapshotsCommand,
+  waitUntilDBInstanceAvailable,
+} from "@aws-sdk/client-rds";
 
 const myRegion = "us-east-1"; //set as default. may want this to be a parameter somewhere that can be changed.
 
@@ -44,8 +53,20 @@ const exec = util.promisify(require("child_process").exec);
 const mkdir = util.promisify(require("fs").mkdir);
 
 /**
+ * Helper function to create RDS client
+ * @param {*} useIAM - The IAM user to use
+ * @returns {RDSClient} - The RDS client
+ */
+const createRDSClient = (useIAM) => {
+  return new RDSClient({
+    region: myRegion,
+    credentials: fromIni({ profile: useIAM }),
+  });
+};
+
+/**
  * Check if the IAM user is configured on the AWS SDK
- * @param {any} useIAM - The IAM user to check
+ * @param {*} useIAM - The IAM user to check
  */
 export const checkIAMUser = async (useIAM) => {
   const sts = new STSClient({
@@ -686,15 +707,19 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
       );
       //check whether it's fully configured in RDS
       //First, check to see if database exists
+      let dbInstances;
       try {
-        stdOut = await exec(`aws rds describe-db-instances --profile ${useIAM}`);
+        const rdsClient = createRDSClient(useIAM);
+        const command = new DescribeDBInstancesCommand({});
+        const response = await rdsClient.send(command);
+        dbInstances = response.DBInstances;
       } catch (e) {
         console.error(`Unable to get list of RDS databases`);
         throw e;
       }
       let foundDB = false;
       let retrievedDBInfo;
-      JSON.parse(stdOut.stdout).DBInstances.forEach((db) => {
+      dbInstances.forEach((db) => {
         if (db.DBInstanceIdentifier == dbName.toLowerCase()) {
           foundDB = true;
           retrievedDBInfo = db;
@@ -742,15 +767,19 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
         return true;
       }
     } else {
+      let dbInstances;
       try {
-        stdOut = await exec(`aws rds describe-db-instances --profile ${useIAM}`);
+        const rdsClient = createRDSClient(useIAM);
+        const command = new DescribeDBInstancesCommand({});
+        const response = await rdsClient.send(command);
+        dbInstances = response.DBInstances;
       } catch (e) {
         console.error(`Unable to get list of RDS databases`);
         throw e;
       }
       let foundDB = false;
 
-      JSON.parse(stdOut.stdout).DBInstances.forEach((db) => {
+      dbInstances.forEach((db) => {
         if (db.DBInstanceIdentifier == dbName.toLowerCase()) {
           foundDB = true;
         }
@@ -777,8 +806,7 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
      */
     const generateSecurePassword = () => {
       const length = 12;
-      const charset =
-        "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+";
+      const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!#$%^&*()-_=+";
       let password = "";
 
       for (let i = 0; i < length; i++) {
@@ -796,13 +824,11 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
     myDBConfig.VpcSecurityGroupIds = [securityGroupID];
     myDBConfig.MasterUserPassword = dbPassword;
     myDBConfig.Tags[0].Value = projName;
+
     try {
-      stdOut = await exec(
-        `aws rds create-db-instance --cli-input-json '`
-          .concat(JSON.stringify(myDBConfig))
-          .concat(`' --profile `)
-          .concat(useIAM),
-      );
+      const rdsClient = createRDSClient(useIAM);
+      const command = new CreateDBInstanceCommand(myDBConfig);
+      await rdsClient.send(command);
     } catch (e) {
       console.error(`Unable to create database ${dbType}`);
       throw e;
@@ -814,8 +840,13 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
     try {
       // should hang until instance is available
       console.log(`Waiting for ${dbType} to spool up. This may take a while...`);
-      stdOut = await exec(
-        `aws rds wait db-instance-available --db-instance-identifier ${dbName} --profile ${useIAM}`,
+      const rdsClient = createRDSClient(useIAM);
+      await waitUntilDBInstanceAvailable(
+        {
+          client: rdsClient,
+          maxWaitTime: 1200, // 20 minutes timeout
+        },
+        { DBInstanceIdentifier: dbName },
       );
       console.log(`${dbType} is spooled up!`);
     } catch (e) {
@@ -825,10 +856,9 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
 
     let dbEndpoint;
     try {
-      stdOut = await exec(
-        `aws rds describe-db-instances --db-instance-identifier ${dbName} --profile ${useIAM}`,
-      );
-      dbEndpoint = JSON.parse(stdOut.stdout);
+      const rdsClient = createRDSClient(useIAM);
+      const command = new DescribeDBInstancesCommand({ DBInstanceIdentifier: dbName });
+      dbEndpoint = await rdsClient.send(command);
     } catch (e) {
       console.error(`Problem getting ${dbType} endpoint.`);
       throw e;
@@ -1817,10 +1847,21 @@ const chooseCertificate = async (useIAM) => {
   let certificates;
   try {
     const response = await acm.send(new ListCertificatesCommand({}));
+    console.log(`Found ${response.CertificateSummaryList.length} total certificates`);
+
+    // Show all certificates for debugging
+    response.CertificateSummaryList.forEach((cert) => {
+      console.log(
+        `Certificate: ${cert.DomainName}, Status: ${cert.Status}, ARN: ${cert.CertificateArn}`,
+      );
+    });
+
     certificates = response.CertificateSummaryList.reduce((acc, c) => {
-      acc[c.DomainName] = c.CertificateArn;
+      acc[`${c.DomainName} (Status: ${c.Status})`] = c.CertificateArn;
       return acc;
     }, {});
+
+    console.log(`Found ${Object.keys(certificates).length} total certificates`);
   } catch (e) {
     console.error(`Unable to get list of SSL certificates`);
     throw e;
@@ -1833,7 +1874,8 @@ const chooseCertificate = async (useIAM) => {
       name: "certificate",
       choices: Object.keys(certificates),
       default: 0,
-      message: "Which SSL certificate would you like to use for your site?",
+      message:
+        "Which SSL certificate would you like to use for your site? (Note: Only ISSUED certificates work for ALB)",
     },
   ]);
 
