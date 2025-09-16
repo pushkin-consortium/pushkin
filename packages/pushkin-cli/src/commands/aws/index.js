@@ -2150,10 +2150,7 @@ const makeACL = async (useIAM) => {
     let temp;
     try {
       temp = await exec(
-        `aws wafv2 create-web-acl --name pushkinACL --scope CLOUDFRONT --default-action Allow={}) --profile ${useIAM} --rules `
-          .concat(JSON.stringify(pushkinACL.Rules))
-          .concat(" --visibility-config ")
-          .concat(JSON.stringify(pushkinACL.VisibilityConfig)),
+        `aws wafv2 create-web-acl --name pushkinACL --scope CLOUDFRONT --default-action Allow={} --profile ${useIAM} --rules '${JSON.stringify(pushkinACL.Rules)}' --visibility-config '${JSON.stringify(pushkinACL.VisibilityConfig)}'`,
       );
     } catch (e) {
       console.error(`Unable to create ACL`);
