@@ -27,7 +27,7 @@ import { updatePushkinJs, readConfig } from "../prep/index.js";
 import inquirer from "inquirer";
 import { kill } from "process";
 import crypto from "crypto";
-import { S3Client, ListBucketsCommand } from "@aws-sdk/client-s3";
+import { S3Client, ListBucketsCommand, CreateBucketCommand } from "@aws-sdk/client-s3";
 import { STSClient, GetCallerIdentityCommand } from "@aws-sdk/client-sts";
 import { fromIni } from "@aws-sdk/credential-provider-ini";
 import { ACMClient, ListCertificatesCommand } from "@aws-sdk/client-acm";
@@ -46,6 +46,12 @@ import {
   DescribeDBSnapshotsCommand,
   waitUntilDBInstanceAvailable,
 } from "@aws-sdk/client-rds";
+import {
+  CloudFrontClient,
+  ListDistributionsCommand,
+  CreateInvalidationCommand,
+  CreateDistributionWithTagsCommand,
+} from "@aws-sdk/client-cloudfront";
 
 const myRegion = "us-east-1"; //set as default. may want this to be a parameter somewhere that can be changed.
 
@@ -423,10 +429,9 @@ const deployFrontEnd = async (
   myCertificate,
   builtFrontEnd,
 ) => {
-  let temp;
-
   const s3 = new S3Client({
     region: myRegion,
+    credentials: fromIni({ profile: useIAM.iam }),
   });
   console.log(`Checking to see if bucket ${awsName} already exists.`);
   let bucketExists = false;
@@ -450,7 +455,7 @@ const deployFrontEnd = async (
   if (!bucketExists) {
     console.log("Bucket does not yet exist. Creating s3 bucket");
     try {
-      await exec(`aws s3 mb s3://`.concat(awsName).concat(` --profile `).concat(useIAM));
+      const response = await s3.send(new CreateBucketCommand({ Bucket: awsName }));
     } catch (e) {
       console.error("Problem creating bucket for front-end");
       throw e;
@@ -468,15 +473,20 @@ const deployFrontEnd = async (
 
   let myCloud, theCloud;
   console.log(`Checking for CloudFront distribution`);
+  let distributions;
   let distributionExists = false;
+  const cloudFrontClient = new CloudFrontClient({
+    region: myRegion,
+    credentials: fromIni({ profile: useIAM.iam }),
+  });
   try {
-    temp = await exec(`aws cloudfront list-distributions --profile ${useIAM}`);
+    distributions = await cloudFrontClient.send(new ListDistributionsCommand({}));
   } catch (e) {
     console.error(`Unable to get list of cloudfront distributions`);
     throw e;
   }
-  if (temp.stdout != "") {
-    JSON.parse(temp.stdout).DistributionList.Items.forEach((d) => {
+  if (distributions.DistributionList.Items.length > 0) {
+    distributions.DistributionList.Items.forEach((d) => {
       let tempCheck = false;
       try {
         tempCheck = d.Origins.Items[0].Id == awsName;
@@ -500,9 +510,18 @@ const deployFrontEnd = async (
         );
         //because the next step is only sometimes run, and because it is very fast, it was simpler to do an 'await' then do asynchronously
         try {
-          exec(
-            `aws cloudfront create-invalidation --distribution-id ${d.Id} --paths "/*" --profile ${useIAM}`,
-          ); //this will finish when it finishes. No hurry.
+          cloudFrontClient.send(
+            new CreateInvalidationCommand({
+              DistributionId: d.Id,
+              InvalidationBatch: {
+                CallerReference: Date.now().toString(),
+                Paths: {
+                  Quantity: 1,
+                  Items: ["/*"],
+                },
+              },
+            }),
+          );
         } catch (e) {
           console.error(`Unable to update cloudfront cache`);
           throw e;
@@ -532,12 +551,18 @@ const deployFrontEnd = async (
       myCloudFront.DistributionConfig.ViewerCertificate.MinimumProtocolVersion = "TLSv1.2_2019";
     }
     try {
-      myCloud = await exec(
-        `aws cloudfront create-distribution-with-tags --distribution-config-with-tags '`
-          .concat(JSON.stringify(myCloudFront))
-          .concat(`' --profile ${useIAM}`),
+      myCloud = await cloudFrontClient.send(
+        new CreateDistributionWithTagsCommand({
+          DistributionConfigWithTags: {
+            credentials: useIAM.iam,
+            DistributionConfig: myCloudFront.DistributionConfig,
+            Tags: {
+              Items: myCloudFront.Tags.Items,
+            },
+          },
+        }),
       );
-      theCloud = JSON.parse(myCloud.stdout).Distribution;
+      theCloud = myCloud.Distribution;
     } catch (e) {
       console.log("Could not set up cloudfront.");
       throw e;
