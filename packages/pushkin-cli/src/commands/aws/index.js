@@ -52,6 +52,16 @@ import {
   CreateInvalidationCommand,
   CreateDistributionWithTagsCommand,
 } from "@aws-sdk/client-cloudfront";
+import {
+  ECSClient,
+  ListClustersCommand,
+  DescribeClustersCommand,
+  ListTasksCommand,
+  StopTaskCommand,
+  ListServicesCommand,
+  DeleteServiceCommand,
+  DeleteClusterCommand,
+} from "@aws-sdk/client-ecs";
 
 const myRegion = "us-east-1"; //set as default. may want this to be a parameter somewhere that can be changed.
 
@@ -67,6 +77,18 @@ const createRDSClient = (useIAM) => {
   return new RDSClient({
     region: myRegion,
     credentials: fromIni({ profile: useIAM }),
+  });
+};
+
+/**
+ * Helper function to create ECS client
+ * @param {*} useIAM - The IAM user to use
+ * @returns {ECSClient} - The ECS client
+ */
+const createECSClient = (useIAM) => {
+  return new ECSClient({
+    region: myRegion,
+    credentials: fromIni({ profile: useIAM.iam }),
   });
 };
 
@@ -1006,17 +1028,19 @@ const ecsTaskCreator = async (projName, useIAM, DHID, completedDBs, ECSName, tar
      */
     const wait = async () => {
       //Sometimes, I really miss loops
-      let x = await exec(
-        `aws ecs describe-clusters --profile ${useIAM} --clusters ${ECSName}`,
-      ).then(
-        (x) => {
-          let y = JSON.parse(x.stdout).clusters[0];
-          return y.registeredContainerInstancesCount;
-        },
-        (err) => {
-          console.error(err);
-        },
-      );
+      let x;
+      try {
+        const ecsClient = createECSClient(useIAM);
+        const describeClustersResponse = await ecsClient.send(
+          new DescribeClustersCommand({
+            clusters: [ECSName],
+          }),
+        );
+        x = describeClustersResponse.clusters[0].registeredContainerInstancesCount;
+      } catch (err) {
+        console.error(err);
+        x = 0;
+      }
       if (x > 0) {
         try {
           console.log(`Writing ECS task list ${name}`);
@@ -2377,7 +2401,9 @@ const deleteCluster = async (deletedStack, useIAM, killTag, projName, awsResourc
   let clustersToKill = [];
   let temp;
   try {
-    temp = await exec(`aws ecs list-clusters --profile ${useIAM}`);
+    const ecsClient = createECSClient(useIAM);
+    const listClustersResponse = await ecsClient.send(new ListClustersCommand({}));
+    temp = { stdout: JSON.stringify({ clusterArns: listClustersResponse.clusterArns }) };
   } catch (e) {
     console.error(`Unable to list ECS clusters.\n` + e);
     throw e;
@@ -2395,15 +2421,21 @@ const deleteCluster = async (deletedStack, useIAM, killTag, projName, awsResourc
       "\x1b[31m%s\x1b[0m",
       `Only nuking clusters associated with this project. Full list of clusters includes:`,
     );
-    console.warn("\x1b[31m%s\x1b[0m", c);
+    console.warn("\x1b[31m%s\x1b[0m", runningClusters);
     if (awsResources && !awsResources.ECSName) {
       awsResources.ECSName = projName.replace(/[^A-Za-z0-9]/g, ""); //won't be permanent. Doesn't matter.
     }
     let clusterDescription;
     try {
-      clusterDescription = await exec(
-        `aws ecs describe-clusters --clusters ${awsResources.ECSName} --profile ${useIAM}`,
+      const ecsClient = createECSClient(useIAM);
+      const describeClustersResponse = await ecsClient.send(
+        new DescribeClustersCommand({
+          clusters: [awsResources.ECSName],
+        }),
       );
+      clusterDescription = {
+        stdout: JSON.stringify({ clusters: describeClustersResponse.clusters }),
+      };
     } catch (e) {
       console.warn(
         "\x1b[31m%s\x1b[0m",
@@ -2442,7 +2474,13 @@ const deleteCluster = async (deletedStack, useIAM, killTag, projName, awsResourc
     clustersToKill.map(async (c) => {
       let aTaskToKill;
       try {
-        aTaskToKill = await exec(`aws ecs list-tasks --cluster ${c} --profile ${useIAM}`);
+        const ecsClient = createECSClient(useIAM);
+        const listTasksResponse = await ecsClient.send(
+          new ListTasksCommand({
+            cluster: c,
+          }),
+        );
+        aTaskToKill = { stdout: JSON.stringify({ taskArns: listTasksResponse.taskArns }) };
       } catch (e) {
         console.error(`Unable to list tasks for cluster ${c}.`);
         throw e;
@@ -2451,9 +2489,15 @@ const deleteCluster = async (deletedStack, useIAM, killTag, projName, awsResourc
       let killedTasks;
       if (tasksToKill.length > 0) {
         killedTasks = Promise.all(
-          tasksToKill.map((t) => {
+          tasksToKill.map(async (t) => {
             console.log(`killing task: ` + t);
-            return exec(`aws ecs stop-task --cluster ${c} --task ${t} --profile ${useIAM}`);
+            const ecsClient = createECSClient(useIAM);
+            return await ecsClient.send(
+              new StopTaskCommand({
+                cluster: c,
+                task: t,
+              }),
+            );
           }),
         );
       }
@@ -2463,7 +2507,13 @@ const deleteCluster = async (deletedStack, useIAM, killTag, projName, awsResourc
       while (true) {
         let aTaskToKill;
         try {
-          aTaskToKill = await exec(`aws ecs list-tasks --cluster ${c} --profile ${useIAM}`);
+          const ecsClient = createECSClient(useIAM);
+          const listTasksResponse = await ecsClient.send(
+            new ListTasksCommand({
+              cluster: c,
+            }),
+          );
+          aTaskToKill = { stdout: JSON.stringify({ taskArns: listTasksResponse.taskArns }) };
         } catch (e) {
           console.error(`Unable to list tasks for cluster ${c}.`);
           throw e;
@@ -2491,9 +2541,15 @@ const deleteCluster = async (deletedStack, useIAM, killTag, projName, awsResourc
         let aServiceToDelete;
 
         try {
-          aServiceToDelete = await exec(
-            `aws ecs list-services --cluster ${clusterName} --profile ${useIAM}`,
+          const ecsClient = createECSClient(useIAM);
+          const listServicesResponse = await ecsClient.send(
+            new ListServicesCommand({
+              cluster: clusterName,
+            }),
           );
+          aServiceToDelete = {
+            stdout: JSON.stringify({ serviceArns: listServicesResponse.serviceArns }),
+          };
         } catch (e) {
           console.error(`Unable to list services for cluster ${clusterName}.`);
           throw e;
@@ -2503,10 +2559,15 @@ const deleteCluster = async (deletedStack, useIAM, killTag, projName, awsResourc
 
         if (servicesToDelete.length > 0) {
           deletedServices = Promise.all(
-            servicesToDelete.map((s) => {
+            servicesToDelete.map(async (s) => {
               console.log(`deleting service: ` + s);
-              return exec(
-                `aws ecs delete-service --cluster ${clusterName} --service ${s} --force --profile ${useIAM}`,
+              const ecsClient = createECSClient(useIAM);
+              return await ecsClient.send(
+                new DeleteServiceCommand({
+                  cluster: clusterName,
+                  service: s,
+                  force: true,
+                }),
               );
             }),
           );
@@ -2517,9 +2578,15 @@ const deleteCluster = async (deletedStack, useIAM, killTag, projName, awsResourc
         while (true) {
           let servicesList;
           try {
-            servicesList = await exec(
-              `aws ecs list-services --cluster ${clusterName} --profile ${useIAM}`,
+            const ecsClient = createECSClient(useIAM);
+            const listServicesResponse = await ecsClient.send(
+              new ListServicesCommand({
+                cluster: clusterName,
+              }),
             );
+            servicesList = {
+              stdout: JSON.stringify({ serviceArns: listServicesResponse.serviceArns }),
+            };
           } catch (e) {
             console.error(`Unable to list services for cluster ${clusterName}.`);
             throw e;
@@ -2546,7 +2613,12 @@ const deleteCluster = async (deletedStack, useIAM, killTag, projName, awsResourc
   let killedClusters = clustersToKill.map(async (c) => {
     console.log(`Deleting ECS Cluster ${c}.`);
     try {
-      temp = exec(`aws ecs delete-cluster --profile ${useIAM} --cluster ${c}`);
+      const ecsClient = createECSClient(useIAM);
+      temp = await ecsClient.send(
+        new DeleteClusterCommand({
+          cluster: c,
+        }),
+      );
     } catch (e) {
       console.error(`Unable to delete cluster ${c}.`);
       console.error(e);
@@ -3498,9 +3570,10 @@ export async function awsList(useIAM) {
   if (JSON.parse(temp.stdout).DBInstances.length > 0) {
     console.log("DBInstances:\n", JSON.parse(temp.stdout).DBInstances);
   }
-  temp = await exec(`aws ecs describe-clusters --profile ${useIAM}`);
-  if (JSON.parse(temp.stdout).clusters.length > 0) {
-    console.log("ECS Clusters:\n", JSON.parse(temp.stdout).clusters);
+  const ecsClient = createECSClient(useIAM);
+  const describeClustersResponse = await ecsClient.send(new DescribeClustersCommand({}));
+  if (describeClustersResponse.clusters.length > 0) {
+    console.log("ECS Clusters:\n", describeClustersResponse.clusters);
   }
   temp = await exec(`aws ec2 describe-security-groups --profile ${useIAM}`);
   JSON.parse(temp.stdout).SecurityGroups.forEach((g) => {
