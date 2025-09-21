@@ -15,19 +15,24 @@ import {
   apiTask,
   workerTask,
   changeSet,
-  corsPolicy,
-  disableCloudfront,
   alarmRAMHigh,
   alarmCPUHigh,
   alarmRDSHigh,
   scalingPolicyTargets,
 } from "./awsConfigs.js";
-import { migrateTransactionsDB, runMigrations, getMigrations } from "../setupdb/index.js";
+import { runMigrations, getMigrations } from "../setupdb/index.js";
 import { updatePushkinJs, readConfig } from "../prep/index.js";
 import inquirer from "inquirer";
-import { kill } from "process";
 import crypto from "crypto";
-import { S3Client, ListBucketsCommand, CreateBucketCommand, PutBucketPolicyCommand, DeleteBucketCommand, ListObjectsV2Command, DeleteObjectsCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  ListBucketsCommand,
+  CreateBucketCommand,
+  PutBucketPolicyCommand,
+  DeleteBucketCommand,
+  ListObjectsV2Command,
+  DeleteObjectsCommand,
+} from "@aws-sdk/client-s3";
 import { STSClient, GetCallerIdentityCommand } from "@aws-sdk/client-sts";
 import { fromIni } from "@aws-sdk/credential-provider-ini";
 import { ACMClient, ListCertificatesCommand } from "@aws-sdk/client-acm";
@@ -95,6 +100,18 @@ import {
   DescribeSubnetsCommand,
   DescribeVpcsCommand,
 } from "@aws-sdk/client-ec2";
+import {
+  CloudFormationClient,
+  ListStacksCommand,
+  DeleteStackCommand,
+  DescribeStacksCommand,
+} from "@aws-sdk/client-cloudformation";
+import {
+  CloudWatchLogsClient,
+  CreateLogGroupCommand,
+  PutRetentionPolicyCommand,
+} from "@aws-sdk/client-cloudwatch-logs";
+import { WAFV2Client, ListWebACLsCommand, CreateWebACLCommand } from "@aws-sdk/client-wafv2";
 
 const myRegion = "us-east-1"; //set as default. may want this to be a parameter somewhere that can be changed.
 
@@ -125,6 +142,11 @@ const createS3Client = (useIAM) => {
   });
 };
 
+/**
+ * Helper function to create Elastic Load Balancing v2 client
+ * @param {*} useIAM - The IAM user to use
+ * @returns {ElasticLoadBalancingV2Client} - The ELBv2 client
+ */
 const createELBv2Client = (useIAM) => {
   return new ElasticLoadBalancingV2Client({
     region: myRegion,
@@ -168,7 +190,6 @@ const createRoute53DomainsClient = (useIAM) => {
   });
 };
 
-
 /**
  * Helper function to create ECS client
  * @param {*} useIAM - The IAM user to use
@@ -190,6 +211,42 @@ const createEC2Client = (useIAM) => {
   return new EC2Client({
     region: myRegion,
     credentials: fromIni({ profile: useIAM.iam }),
+  });
+};
+
+/**
+ * Helper function to create CloudFormation client
+ * @param {*} useIAM - The IAM user to use
+ * @returns {CloudFormationClient} - The CloudFormation client
+ */
+const createCloudFormationClient = (useIAM) => {
+  return new CloudFormationClient({
+    region: myRegion,
+    credentials: fromIni({ profile: useIAM }),
+  });
+};
+
+/**
+ * Helper function to create CloudWatch Logs client
+ * @param {*} useIAM - The IAM user to use
+ * @returns {CloudWatchLogsClient} - The CloudWatch Logs client
+ */
+const createCloudWatchLogsClient = (useIAM) => {
+  return new CloudWatchLogsClient({
+    region: myRegion,
+    credentials: fromIni({ profile: useIAM }),
+  });
+};
+
+/**
+ * Helper function to create WAFv2 client
+ * @param {*} useIAM - The IAM user to use
+ * @returns {WAFV2Client} - The WAFv2 client
+ */
+const createWAFv2Client = (useIAM) => {
+  return new WAFV2Client({
+    region: myRegion,
+    credentials: fromIni({ profile: useIAM }),
   });
 };
 
@@ -791,9 +848,7 @@ const getOAC = async (useIAM) => {
   } else {
     try {
       const cloudFrontClient = createCloudFrontClient(useIAM);
-      await cloudFrontClient.send(
-        new GetOriginAccessControlCommand({ Id: awsResources.OAC }),
-      );
+      await cloudFrontClient.send(new GetOriginAccessControlCommand({ Id: awsResources.OAC }));
     } catch (e) {
       console.log(e);
       console.log(`Huh. I can't find that OAC. Making a new one.`);
@@ -1167,7 +1222,7 @@ const ecsTaskCreator = async (projName, useIAM, DHID, completedDBs, ECSName, tar
           let balancerCommand =
             targGroupARN ?
               `--target-groups "targetGroupArn=${targGroupARN},containerName=${name},containerPort=${port}"`
-            : "";
+              : "";
           let composeCommand =
             `ecs-cli compose -f ${yaml} -p ${yaml.split(".")[0]} service up --ecs-profile ${useIAM} --cluster-config ${ECSName} --scheduling-strategy DAEMON `.concat(
               balancerCommand,
@@ -1941,23 +1996,50 @@ const forwardAPIWrapper = async (configuredECS, useIAM, projName, myDomain, depl
 };
 
 /**
- *
- * @param useIAM
- * @param projName
+ * Handle security groups
+ * @param {*} useIAM - The IAM role to use
+ * @param {*} projName - The project name
+ * @returns {Promise<string>} - The security group ID for the database group
  */
 const handleSecurityGroups = async (useIAM, projName) => {
   /**
-   *
-   * @param useIAM
-   * @param projName
+   * Create security group for databases
+   * @param {*} useIAM - The IAM role to use
+   * @param {*} projName - The project name
+   * @returns {Promise<string>} - The security group ID for the database group
    */
   const createDatabaseGroup = async (useIAM, projName) => {
-    let SGCreate = `aws ec2 create-security-group --group-name DatabaseGroup --description "For connecting to databases" --tag-specifications 'ResourceType=security-group,Tags=[{Key=PUSHKIN,Value=${projName}}]' --profile ${useIAM}`;
-    let SGRule = `aws ec2 authorize-security-group-ingress --group-name DatabaseGroup --ip-permissions IpProtocol=tcp,FromPort=5432,ToPort=5432,Ipv6Ranges='[{CidrIpv6=::/0}]',IpRanges='[{CidrIp=0.0.0.0/0}]' --profile ${useIAM}`;
+    const ec2Client = createEC2Client(useIAM);
     let stdOut;
     try {
-      stdOut = await exec(SGCreate);
-      execSync(SGRule);
+      const createSGResponse = await ec2Client.send(
+        new CreateSecurityGroupCommand({
+          GroupName: "DatabaseGroup",
+          Description: "For connecting to databases",
+          TagSpecifications: [
+            {
+              ResourceType: "security-group",
+              Tags: [{ Key: "PUSHKIN", Value: projName }],
+            },
+          ],
+        }),
+      );
+      stdOut = { stdout: JSON.stringify({ GroupId: createSGResponse.GroupId }) };
+
+      await ec2Client.send(
+        new AuthorizeSecurityGroupIngressCommand({
+          GroupName: "DatabaseGroup",
+          IpPermissions: [
+            {
+              IpProtocol: "tcp",
+              FromPort: 5432,
+              ToPort: 5432,
+              Ipv6Ranges: [{ CidrIpv6: "::/0" }],
+              IpRanges: [{ CidrIp: "0.0.0.0/0" }],
+            },
+          ],
+        }),
+      );
     } catch (e) {
       console.error(`Failed to create security group for databases`);
       throw e;
@@ -1979,15 +2061,13 @@ const handleSecurityGroups = async (useIAM, projName) => {
     throw e;
   }
   let foundDBGroup;
-  let madeDBGroup;
   JSON.parse(temp.stdout).SecurityGroups.forEach((g) => {
     if (g.GroupName == "DatabaseGroup") {
       foundDBGroup = g.GroupId;
     }
   });
 
-  return new Promise((resolve, reject) => {
-    let securityGroupID;
+  return new Promise((resolve) => {
     if (foundDBGroup) {
       console.log(`Database security group already exists. Skipping creation.`);
       resolve(foundDBGroup);
@@ -1996,12 +2076,12 @@ const handleSecurityGroups = async (useIAM, projName) => {
       resolve(createDatabaseGroup(useIAM, projName));
     }
   });
-  console.error(`Shouldn't ever get to this line.`);
 };
 
 /**
- *
- * @param dbDone
+ * Record databases in pushkin.yaml
+ * @param {*} dbDone - A promise that resolves when the databases are set up
+ * @returns {Promise<object>} - The updated pushkin configuration
  */
 const recordDBs = async (dbDone) => {
   const returnedPromises = await dbDone; //initializedTransactionsDB must be first in this list
@@ -2041,6 +2121,7 @@ const recordDBs = async (dbDone) => {
     );
     console.log(`Successfully updated pushkin.yaml with databases.`);
   } catch (e) {
+    console.error(`Couldn't write updated pushkin.yaml`);
     throw e;
   }
 
@@ -2088,17 +2169,22 @@ const rebuildWorker = async function (exp) {
 };
 
 /**
- *
- * @param useIAM
- * @param projName
+ * Create CloudWatch log group for ECS
+ * @param {*} useIAM - The IAM role to use
+ * @param {string} projName - The project name
+ * @returns {Promise<void>} - A promise that resolves when the log group is created
  */
 const createLogGroup = async (useIAM, projName) => {
   //Log group for ECS
   let stdOut;
   try {
-    stdOut = await exec(
-      `aws logs create-log-group --log-group-name ecs/${projName} --profile ${useIAM}`,
+    const cloudWatchLogsClient = createCloudWatchLogsClient(useIAM);
+    await cloudWatchLogsClient.send(
+      new CreateLogGroupCommand({
+        logGroupName: `ecs/${projName}`,
+      }),
     );
+    stdOut = { stdout: "" };
   } catch (e) {
     if (e.message.includes("already exists")) {
       console.warn(
@@ -2112,9 +2198,14 @@ const createLogGroup = async (useIAM, projName) => {
     }
   }
   try {
-    stdOut = await exec(
-      `aws logs put-retention-policy --log-group-name ecs/${projName} --retention-in-days 7 --profile ${useIAM}`,
+    const cloudWatchLogsClient = createCloudWatchLogsClient(useIAM);
+    await cloudWatchLogsClient.send(
+      new PutRetentionPolicyCommand({
+        logGroupName: `ecs/${projName}`,
+        retentionInDays: 7,
+      }),
     );
+    stdOut = { stdout: "" };
   } catch (e) {
     console.error(`Unable to set retention policy for ECS log group`);
     throw e;
@@ -2122,8 +2213,9 @@ const createLogGroup = async (useIAM, projName) => {
 };
 
 /**
- *
- * @param completedDBs
+ * Handle database migrations
+ * @param {Promise<object>} completedDBs - A promise that resolves to the completed databases
+ * @returns {Promise<Map>} - A promise that resolves to a map of databases to their migration status
  */
 const migrationsWrapper = async (completedDBs) => {
   console.log(`Handling main table migrations`);
@@ -2139,7 +2231,7 @@ const migrationsWrapper = async (completedDBs) => {
 };
 
 /**
- *
+ * Handle transaction table setup
  * @param completedDBs
  */
 const setupTransactionsWrapper = async (completedDBs) => {
@@ -2492,7 +2584,11 @@ const makeACL = async (useIAM) => {
     let ACLarn;
     let temp;
     try {
-      temp = await exec(`aws wafv2 list-web-acls --scope CLOUDFRONT --profile ${useIAM}`);
+      const wafv2Client = createWAFv2Client(useIAM);
+      const listWebACLsResponse = await wafv2Client.send(
+        new ListWebACLsCommand({ Scope: "CLOUDFRONT" }),
+      );
+      temp = { stdout: JSON.stringify({ WebACLs: listWebACLsResponse.WebACLs }) };
     } catch (e) {
       console.error(`Unable to get list of ACLs`);
       throw e;
@@ -2518,9 +2614,17 @@ const makeACL = async (useIAM) => {
   if (!ACLarn) {
     let temp;
     try {
-      temp = await exec(
-        `aws wafv2 create-web-acl --name pushkinACL --scope CLOUDFRONT --default-action Allow={} --profile ${useIAM} --rules '${JSON.stringify(pushkinACL.Rules)}' --visibility-config '${JSON.stringify(pushkinACL.VisibilityConfig)}'`,
+      const wafv2Client = createWAFv2Client(useIAM);
+      const createWebACLResponse = await wafv2Client.send(
+        new CreateWebACLCommand({
+          Name: "pushkinACL",
+          Scope: "CLOUDFRONT",
+          DefaultAction: { Allow: {} },
+          Rules: pushkinACL.Rules,
+          VisibilityConfig: pushkinACL.VisibilityConfig,
+        }),
       );
+      temp = { stdout: JSON.stringify({ Summary: createWebACLResponse.Summary }) };
     } catch (e) {
       console.error(`Unable to create ACL`);
       throw e;
@@ -2579,7 +2683,9 @@ const deleteStack = async (useIAM, killTag) => {
     let stacksToDelete = [];
     let stackList;
     try {
-      stackList = await exec(`aws cloudformation list-stacks --profile ${useIAM}`);
+      const cloudFormationClient = createCloudFormationClient(useIAM);
+      const listStacksResponse = await cloudFormationClient.send(new ListStacksCommand({}));
+      stackList = { stdout: JSON.stringify({ StackSummaries: listStacksResponse.StackSummaries }) };
     } catch (e) {
       console.error(`Unable to list cloudformation stacks`);
       throw e;
@@ -2625,9 +2731,8 @@ const deleteStack = async (useIAM, killTag) => {
       stacksToDelete.map(async (s) => {
         console.log(`Deleting stack ${s}`);
         try {
-          return await exec(
-            `aws cloudformation delete-stack --stack-name ${s} --profile ${useIAM}`,
-          );
+          const cloudFormationClient = createCloudFormationClient(useIAM);
+          return await cloudFormationClient.send(new DeleteStackCommand({ StackName: s }));
         } catch (e) {
           console.warn(
             "\x1b[31m%s\x1b[0m",
@@ -2919,7 +3024,9 @@ const dbsToDeleteFunc = async (useIAM, killTag, awsResources) => {
   try {
     const rdsClient = createRDSClient(useIAM);
     const describeDBInstancesResponse = await rdsClient.send(new DescribeDBInstancesCommand({}));
-    respDBList = { stdout: JSON.stringify({ DBInstances: describeDBInstancesResponse.DBInstances }) };
+    respDBList = {
+      stdout: JSON.stringify({ DBInstances: describeDBInstancesResponse.DBInstances }),
+    };
   } catch (e) {
     console.error(`Unable to list databases`);
     throw e;
@@ -2963,7 +3070,9 @@ const deleteDatabases = async (dbs, useIAM, killTag) => {
         const describeDBInstancesResponse = await rdsClient.send(
           new DescribeDBInstancesCommand({ DBInstanceIdentifier: db }),
         );
-        temp = Buffer.from(JSON.stringify({ DBInstances: describeDBInstancesResponse.DBInstances }));
+        temp = Buffer.from(
+          JSON.stringify({ DBInstances: describeDBInstancesResponse.DBInstances }),
+        );
       } catch (e) {
         console.warn(
           "\x1b[31m%s\x1b[0m",
@@ -3041,7 +3150,9 @@ const deleteDatabases = async (dbs, useIAM, killTag) => {
             const describeDBInstancesResponse = await rdsClient.send(
               new DescribeDBInstancesCommand({ DBInstanceIdentifier: db }),
             );
-            dbStatus = { stdout: JSON.stringify({ DBInstances: describeDBInstancesResponse.DBInstances }) };
+            dbStatus = {
+              stdout: JSON.stringify({ DBInstances: describeDBInstancesResponse.DBInstances }),
+            };
           } catch (e) {
             console.error(`Unable to get information about ${db}`);
             console.error(e);
@@ -3093,7 +3204,9 @@ const deleteDatabases = async (dbs, useIAM, killTag) => {
         let temp;
         try {
           const rdsClient = createRDSClient(useIAM);
-          const describeDBInstancesResponse = await rdsClient.send(new DescribeDBInstancesCommand({}));
+          const describeDBInstancesResponse = await rdsClient.send(
+            new DescribeDBInstancesCommand({}),
+          );
           temp = JSON.stringify({ DBInstances: describeDBInstancesResponse.DBInstances });
         } catch (e) {
           console.error(`Unable to get list of databases`);
@@ -3131,8 +3244,12 @@ const deleteLoadBalancer = async (useIAM, killTag) => {
   let temp;
   try {
     const elbv2Client = createELBv2Client(useIAM);
-    const describeLoadBalancersResponse = await elbv2Client.send(new DescribeLoadBalancersCommand({}));
-    temp = { stdout: JSON.stringify({ LoadBalancers: describeLoadBalancersResponse.LoadBalancers }) };
+    const describeLoadBalancersResponse = await elbv2Client.send(
+      new DescribeLoadBalancersCommand({}),
+    );
+    temp = {
+      stdout: JSON.stringify({ LoadBalancers: describeLoadBalancersResponse.LoadBalancers }),
+    };
   } catch (e) {
     console.warn(
       "\x1b[31m%s\x1b[0m",
@@ -3192,7 +3309,9 @@ const deleteLoadBalancer = async (useIAM, killTag) => {
             const describeListenersResponse = await elbv2Client.send(
               new DescribeListenersCommand({ LoadBalancerArn: loadBalancerName }),
             );
-            describedListeners = { stdout: JSON.stringify({ Listeners: describeListenersResponse.Listeners }) };
+            describedListeners = {
+              stdout: JSON.stringify({ Listeners: describeListenersResponse.Listeners }),
+            };
           } catch (e) {
             console.error(`Unable to list listeners for load balancer ${loadBalancerName}.`);
             throw e;
@@ -3244,18 +3363,21 @@ const deleteCloudFront = async (useIAM, projName, killTag) => {
   try {
     const cloudFrontClient = createCloudFrontClient(useIAM);
     const listDistributionsResponse = await cloudFrontClient.send(new ListDistributionsCommand({}));
-    tempDists = { stdout: JSON.stringify({ DistributionList: listDistributionsResponse.DistributionList }) };
+    tempDists = {
+      stdout: JSON.stringify({ DistributionList: listDistributionsResponse.DistributionList }),
+    };
   } catch (e) {
     console.error(`Unable to get list of cloudfront distributions`);
     throw e;
   }
-  if (!tempDists.stdout) {
+  const parsedDists = JSON.parse(tempDists.stdout);
+  if (!parsedDists.DistributionList || !parsedDists.DistributionList.Items || parsedDists.DistributionList.Items.length === 0) {
     console.log(`No cloudfront distributions found. Skipping.`);
     return true;
   } else {
     //found something
     let distributions = [];
-    for (const d of JSON.parse(tempDists.stdout).DistributionList.Items) {
+    for (const d of parsedDists.DistributionList.Items) {
       if (killTag) {
         //check whether this is tagged to our project
         let tempTagCheck;
@@ -3290,8 +3412,12 @@ const deleteCloudFront = async (useIAM, projName, killTag) => {
       let temp;
       try {
         const cloudFrontClient = createCloudFrontClient(useIAM);
-        const listDistributionsResponse = await cloudFrontClient.send(new ListDistributionsCommand({}));
-        temp = { stdout: JSON.stringify({ DistributionList: listDistributionsResponse.DistributionList }) };
+        const listDistributionsResponse = await cloudFrontClient.send(
+          new ListDistributionsCommand({}),
+        );
+        temp = {
+          stdout: JSON.stringify({ DistributionList: listDistributionsResponse.DistributionList }),
+        };
       } catch (e) {
         console.error(`Unable to get list of cloudfront distributions`);
         throw e;
@@ -3475,7 +3601,9 @@ const deleteResourceRecords = async (useIAM, killTag, projName) => {
     const listHostedZonesResponse = await route53Client.send(
       new ListHostedZonesByNameCommand({ DNSName: myDomain }),
     );
-    listedHostedZones = { stdout: JSON.stringify({ HostedZones: listHostedZonesResponse.HostedZones }) };
+    listedHostedZones = {
+      stdout: JSON.stringify({ HostedZones: listHostedZonesResponse.HostedZones }),
+    };
   } catch (e) {
     console.error(`Unable to retrieve hostedzone for ${myDomain}`);
     throw e;
@@ -3506,7 +3634,11 @@ const deleteResourceRecords = async (useIAM, killTag, projName) => {
     const listResourceRecordSetsResponse = await route53Client.send(
       new ListResourceRecordSetsCommand({ HostedZoneId: zoneID }),
     );
-    tempRRList = { stdout: JSON.stringify({ ResourceRecordSets: listResourceRecordSetsResponse.ResourceRecordSets }) };
+    tempRRList = {
+      stdout: JSON.stringify({
+        ResourceRecordSets: listResourceRecordSetsResponse.ResourceRecordSets,
+      }),
+    };
   } catch (e) {
     console.error(`Unable to retrieve resource records for ${myDomain}`);
     throw e;
@@ -3546,7 +3678,9 @@ const deleteOACs = async (useIAM, deletedCloudFront, killTag) => {
   try {
     const cloudFrontClient = createCloudFrontClient(useIAM);
     const listOACResponse = await cloudFrontClient.send(new ListOriginAccessControlsCommand({}));
-    temp = { stdout: JSON.stringify({ OriginAccessControlList: listOACResponse.OriginAccessControlList }) };
+    temp = {
+      stdout: JSON.stringify({ OriginAccessControlList: listOACResponse.OriginAccessControlList }),
+    };
   } catch (e) {
     console.error(`Unable to get list of origin access controls`);
     throw e;
@@ -3606,7 +3740,13 @@ const deleteTargetGroup = async (useIAM, deletedLoadBalancer) => {
   await deletedLoadBalancer;
   let getTargetGroups;
   try {
-    getTargetGroups = await exec(`aws elbv2 describe-target-groups --profile ${useIAM}`);
+    const elbv2Client = createELBv2Client(useIAM);
+    const describeTargetGroupsResponse = await elbv2Client.send(
+      new DescribeTargetGroupsCommand({}),
+    );
+    getTargetGroups = {
+      stdout: JSON.stringify({ TargetGroups: describeTargetGroupsResponse.TargetGroups }),
+    };
   } catch (e) {
     console.error(`Unable to list target groups`);
     throw e;
@@ -3618,9 +3758,8 @@ const deleteTargetGroup = async (useIAM, deletedLoadBalancer) => {
     return Promise.all(
       targetGroups.map(async (tg) => {
         try {
-          await exec(
-            `aws elbv2 describe-target-groups --target-group-arns ${tg} --profile ${useIAM}`,
-          );
+          const elbv2Client = createELBv2Client(useIAM);
+          await elbv2Client.send(new DescribeTargetGroupsCommand({ TargetGroupArns: [tg] }));
         } catch (e) {
           console.warn(
             "\x1b[31m%s\x1b[0m",
@@ -3628,11 +3767,9 @@ const deleteTargetGroup = async (useIAM, deletedLoadBalancer) => {
           );
           return true;
         }
-        let aDeletedTargetGroup;
         try {
-          aDeletedTargetGroup = exec(
-            `aws elbv2 delete-target-group --target-group-arn ${tg} --profile ${useIAM}`,
-          );
+          const elbv2Client = createELBv2Client(useIAM);
+          await elbv2Client.send(new DeleteTargetGroupCommand({ TargetGroupArn: tg }));
         } catch (e) {
           console.error(`Unable to delete associated target group`);
           console.error(e);
@@ -3685,7 +3822,7 @@ const deleteBucket = async (useIAM, killTag, awsResources, deletedCloudFront) =>
               const deleteParams = {
                 Bucket: b.Name,
                 Delete: {
-                  Objects: listResponse.Contents.map(obj => ({ Key: obj.Key })),
+                  Objects: listResponse.Contents.map((obj) => ({ Key: obj.Key })),
                 },
               };
               await s3Client.send(new DeleteObjectsCommand(deleteParams));
@@ -3734,9 +3871,9 @@ const deleteSecurityGroups = async (useIAM, killTag, deletedDBs) => {
       console.log(`No security group ${g}.`);
       return true;
     }
-    let temp;
     try {
-      temp = exec(`aws ec2 delete-security-group --group-name ${g} --profile ${useIAM}`);
+      const ec2Client = createEC2Client(useIAM);
+      await ec2Client.send(new DeleteSecurityGroupCommand({ GroupName: g }));
     } catch (e) {
       console.warn(
         "\x1b[31m%s\x1b[0m",
@@ -3745,7 +3882,7 @@ const deleteSecurityGroups = async (useIAM, killTag, deletedDBs) => {
       console.warn("\x1b[31m%s\x1b[0m", e);
       return true;
     }
-    return temp;
+    return true;
   };
 
   let groupsToDelete = [];
@@ -3963,7 +4100,9 @@ export async function awsList(useIAM) {
     }
   });
   const elbv2Client = createELBv2Client(useIAM);
-  const describeLoadBalancersResponse = await elbv2Client.send(new DescribeLoadBalancersCommand({}));
+  const describeLoadBalancersResponse = await elbv2Client.send(
+    new DescribeLoadBalancersCommand({}),
+  );
   temp = { stdout: JSON.stringify({ LoadBalancers: describeLoadBalancersResponse.LoadBalancers }) };
   if (JSON.parse(temp.stdout).LoadBalancers.length > 0) {
     console.log("Load Balancers:\n", JSON.parse(temp.stdout).LoadBalancers);
@@ -3976,11 +4115,15 @@ export async function awsList(useIAM) {
   }
   const cloudFrontClient = createCloudFrontClient(useIAM);
   const listDistributionsResponse = await cloudFrontClient.send(new ListDistributionsCommand({}));
-  temp = { stdout: JSON.stringify({ DistributionList: listDistributionsResponse.DistributionList }) };
+  temp = {
+    stdout: JSON.stringify({ DistributionList: listDistributionsResponse.DistributionList }),
+  };
   if (temp.stdout != "") {
     console.log("CloudFront Distributions:\n", JSON.parse(temp.stdout));
   }
-  temp = await exec(`aws cloudformation describe-stacks --profile ${useIAM}`);
+  const cloudFormationClient = createCloudFormationClient(useIAM);
+  const describeStacksResponse = await cloudFormationClient.send(new DescribeStacksCommand({}));
+  temp = { stdout: JSON.stringify({ Stacks: describeStacksResponse.Stacks }) };
   if (JSON.parse(temp.stdout).Stacks.length > 0) {
     console.log("Cloudformation Stacks:\n", JSON.parse(temp.stdout).Stacks);
   }
