@@ -37,6 +37,7 @@ import {
   ListResourceRecordSetsCommand,
   ChangeResourceRecordSetsCommand,
 } from "@aws-sdk/client-route-53";
+import { Route53DomainsClient, ListDomainsCommand } from "@aws-sdk/client-route-53-domains";
 import {
   RDSClient,
   DescribeDBInstancesCommand,
@@ -51,6 +52,13 @@ import {
   ListDistributionsCommand,
   CreateInvalidationCommand,
   CreateDistributionWithTagsCommand,
+  GetOriginAccessControlCommand,
+  ListTagsForResourceCommand,
+  GetDistributionConfigCommand,
+  DeleteDistributionCommand,
+  GetDistributionCommand,
+  ListOriginAccessControlsCommand,
+  DeleteOriginAccessControlCommand,
 } from "@aws-sdk/client-cloudfront";
 import {
   ElasticLoadBalancingV2Client,
@@ -64,7 +72,6 @@ import {
   DescribeTargetGroupsCommand,
   DeleteTargetGroupCommand,
 } from "@aws-sdk/client-elastic-load-balancing-v2";
-import { ElasticLoadBalancingClient, DescribeLoadBalancersCommand as DescribeLoadBalancersV1Command } from "@aws-sdk/client-elastic-load-balancing";
 import {
   ECSClient,
   ListClustersCommand,
@@ -115,6 +122,14 @@ const createS3Client = (useIAM) => {
     credentials: fromIni({ profile: useIAM }),
   });
 };
+
+const createELBv2Client = (useIAM) => {
+  return new ElasticLoadBalancingV2Client({
+    region: myRegion,
+    credentials: fromIni({ profile: useIAM }),
+  });
+};
+
 
 /**
  * Helper function to create ECS client
@@ -1672,8 +1687,16 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
 
   let madeBalancer;
   try {
-    madeBalancer = exec(
-      `aws elbv2 create-load-balancer --name ${loadBalancerName} --type application --scheme internet-facing --subnets ${subnets.join(" ")} --security-groups ${BalancerSecurityGroupID} --tags '[{"Key":"PUSHKIN","Value":"${projName}"}]' --profile ${useIAM}`,
+    const elbv2Client = createELBv2Client(useIAM);
+    madeBalancer = elbv2Client.send(
+      new CreateLoadBalancerCommand({
+        Name: loadBalancerName,
+        Type: "application",
+        Scheme: "internet-facing",
+        Subnets: subnets,
+        SecurityGroups: [BalancerSecurityGroupID],
+        Tags: [{ Key: "PUSHKIN", Value: projName }],
+      }),
     );
   } catch (e) {
     console.error(`Unable to create application load balancer`);
@@ -1682,14 +1705,20 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
 
   let tempMakeTargetGroup;
   try {
-    tempMakeTargetGroup = await exec(
-      `aws elbv2 create-target-group --name ${loadBalancerName.concat("Targets").slice(0, 32)} --protocol HTTP --port 80 --vpc-id ${myVPC} --profile ${useIAM}`,
+    const elbv2Client = createELBv2Client(useIAM);
+    tempMakeTargetGroup = await elbv2Client.send(
+      new CreateTargetGroupCommand({
+        Name: loadBalancerName.concat("Targets").slice(0, 32),
+        Protocol: "HTTP",
+        Port: 80,
+        VpcId: myVPC,
+      }),
     );
   } catch (e) {
     console.error(`Unable to create target group`);
     throw e;
   }
-  const targGroupARN = JSON.parse(tempMakeTargetGroup.stdout).TargetGroups[0].TargetGroupArn;
+  const targGroupARN = tempMakeTargetGroup.TargetGroups[0].TargetGroupArn;
   try {
     console.log(`Updating awsResources.js with target group info`);
     let awsResources = jsYaml.load(
@@ -1707,13 +1736,24 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
   }
 
   let aMadeBalancer = await madeBalancer; //need this for the next step
-  const balancerARN = JSON.parse(aMadeBalancer.stdout).LoadBalancers[0].LoadBalancerArn;
-  const balancerEndpoint = JSON.parse(aMadeBalancer.stdout).LoadBalancers[0].DNSName;
-  const balancerZone = JSON.parse(aMadeBalancer.stdout).LoadBalancers[0].CanonicalHostedZoneId;
+  const balancerARN = aMadeBalancer.LoadBalancers[0].LoadBalancerArn;
+  const balancerEndpoint = aMadeBalancer.LoadBalancers[0].DNSName;
+  const balancerZone = aMadeBalancer.LoadBalancers[0].CanonicalHostedZoneId;
   let madeListener;
   try {
-    madeListener = await exec(
-      `aws elbv2 create-listener --load-balancer-arn ${balancerARN} --protocol HTTP --port 80  --default-actions Type=forward,TargetGroupArn=${targGroupARN} --profile ${useIAM}`,
+    const elbv2Client = createELBv2Client(useIAM);
+    madeListener = await elbv2Client.send(
+      new CreateListenerCommand({
+        LoadBalancerArn: balancerARN,
+        Protocol: "HTTP",
+        Port: 80,
+        DefaultActions: [
+          {
+            Type: "forward",
+            TargetGroupArn: targGroupARN,
+          },
+        ],
+      }),
     );
   } catch (e) {
     console.error(`Unable to create listener`);
@@ -1722,8 +1762,20 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
 
   let addedHTTPS;
   try {
-    addedHTTPS = exec(
-      `aws elbv2 create-listener --load-balancer-arn ${balancerARN} --protocol HTTPS --port 443 --certificates CertificateArn=${myCertificate} --default-actions Type=forward,TargetGroupArn=${targGroupARN} --profile ${useIAM}`,
+    const elbv2Client = createELBv2Client(useIAM);
+    addedHTTPS = elbv2Client.send(
+      new CreateListenerCommand({
+        LoadBalancerArn: balancerARN,
+        Protocol: "HTTPS",
+        Port: 443,
+        Certificates: [{ CertificateArn: myCertificate }],
+        DefaultActions: [
+          {
+            Type: "forward",
+            TargetGroupArn: targGroupARN,
+          },
+        ],
+      }),
     );
     console.log(`Added HTTPS to load balancer`);
   } catch (e) {
@@ -3029,7 +3081,9 @@ const deleteLoadBalancer = async (useIAM, killTag) => {
   //FUBAR Need to killize this
   let temp;
   try {
-    temp = await exec(`aws elbv2 describe-load-balancers --profile ${useIAM}`);
+    const elbv2Client = createELBv2Client(useIAM);
+    const describeLoadBalancersResponse = await elbv2Client.send(new DescribeLoadBalancersCommand({}));
+    temp = { stdout: JSON.stringify({ LoadBalancers: describeLoadBalancersResponse.LoadBalancers }) };
   } catch (e) {
     console.warn(
       "\x1b[31m%s\x1b[0m",
@@ -3055,9 +3109,11 @@ const deleteLoadBalancer = async (useIAM, killTag) => {
         let temp;
 
         try {
-          temp = await exec(
-            `aws elbv2 describe-listeners --load-balancer-arn ${loadBalancerName} --profile ${useIAM}`,
+          const elbv2Client = createELBv2Client(useIAM);
+          const describeListenersResponse = await elbv2Client.send(
+            new DescribeListenersCommand({ LoadBalancerArn: loadBalancerName }),
           );
+          temp = { stdout: JSON.stringify({ Listeners: describeListenersResponse.Listeners }) };
         } catch (e) {
           console.error(`Unable to list listeners for load balancer ${loadBalancerName}.`);
           throw e;
@@ -3066,23 +3122,28 @@ const deleteLoadBalancer = async (useIAM, killTag) => {
         listenersToDelete = JSON.parse(temp.stdout).Listeners.map((l) => l.ListenerArn);
 
         if (listenersToDelete.length > 0) {
+          const elbv2Client = createELBv2Client(useIAM);
           deletedListeners = Promise.all(
-            listenersToDelete.map((l) => {
+            listenersToDelete.map(async (l) => {
               console.log(`deleting listener: ` + l);
-              return exec(`aws elbv2 delete-listener --listener-arn ${l} --profile ${useIAM}`);
+              return await elbv2Client.send(new DeleteListenerCommand({ ListenerArn: l }));
             }),
           );
         }
 
-        deletedListeners = await deletedListeners;
+        if (deletedListeners.length > 0) {
+          await deletedListeners;
+        }
 
         // Wait for listeners to be deleted
         while (true) {
           let describedListeners;
           try {
-            describedListeners = await exec(
-              `aws elbv2 describe-listeners --load-balancer-arn ${loadBalancerName} --profile ${useIAM}`,
+            const elbv2Client = createELBv2Client(useIAM);
+            const describeListenersResponse = await elbv2Client.send(
+              new DescribeListenersCommand({ LoadBalancerArn: loadBalancerName }),
             );
+            describedListeners = { stdout: JSON.stringify({ Listeners: describeListenersResponse.Listeners }) };
           } catch (e) {
             console.error(`Unable to list listeners for load balancer ${loadBalancerName}.`);
             throw e;
@@ -3108,8 +3169,9 @@ const deleteLoadBalancer = async (useIAM, killTag) => {
 
       let deletedLoadBalancer;
       try {
-        deletedLoadBalancer = exec(
-          `aws elbv2 delete-load-balancer --load-balancer-arn ${b} --profile ${useIAM}`,
+        const elbv2Client = createELBv2Client(useIAM);
+        deletedLoadBalancer = await elbv2Client.send(
+          new DeleteLoadBalancerCommand({ LoadBalancerArn: b }),
         );
       } catch (e) {
         console.error(`Unable to delete load balancer ${b}`);
@@ -3118,7 +3180,7 @@ const deleteLoadBalancer = async (useIAM, killTag) => {
     }),
   );
 
-  return deletedLoadBalancer; //just to return something
+  return true;
 };
 
 /**
@@ -3821,9 +3883,11 @@ export async function awsList(useIAM) {
       console.log("Security Group:\n", g);
     }
   });
-  temp = await exec(`aws elb describe-load-balancers --profile ${useIAM}`);
-  if (JSON.parse(temp.stdout).LoadBalancerDescriptions.length > 0) {
-    console.log("Load Balancers:\n", JSON.parse(temp.stdout).LoadBalancerDescriptions);
+  const elbv2Client = createELBv2Client(useIAM);
+  const describeLoadBalancersResponse = await elbv2Client.send(new DescribeLoadBalancersCommand({}));
+  temp = { stdout: JSON.stringify({ LoadBalancers: describeLoadBalancersResponse.LoadBalancers }) };
+  if (JSON.parse(temp.stdout).LoadBalancers.length > 0) {
+    console.log("Load Balancers:\n", JSON.parse(temp.stdout).LoadBalancers);
   }
   const s3Client = createS3Client(useIAM);
   const listBucketsResponse = await s3Client.send(new ListBucketsCommand({}));
@@ -3888,10 +3952,11 @@ export const createAutoScale = async (useIAM, projName) => {
 
   let describedLoadBalancers;
   try {
-    let describedLoadBalancers = await exec(
-      `aws elbv2 describe-load-balancers --names ${loadBalancerName} --profile ${useIAM}`,
+    const elbv2Client = createELBv2Client(useIAM);
+    let describedLoadBalancers = await elbv2Client.send(
+      new DescribeLoadBalancersCommand({ Names: [loadBalancerName] }),
     );
-    balancerARN = JSON.parse(describedLoadBalancers.stdout).LoadBalancers[0].LoadBalancerArn;
+    balancerARN = describedLoadBalancers.LoadBalancers[0].LoadBalancerArn;
   } catch (e) {
     console.error(`Unable to find load balancer ARN`);
   }
