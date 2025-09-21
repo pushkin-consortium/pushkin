@@ -2788,7 +2788,9 @@ const dbsToDeleteFunc = async (useIAM, killTag, awsResources) => {
   let dbs = [];
   let respDBList;
   try {
-    respDBList = await exec(`aws rds describe-db-instances --profile ${useIAM}`);
+    const rdsClient = createRDSClient(useIAM);
+    const describeDBInstancesResponse = await rdsClient.send(new DescribeDBInstancesCommand({}));
+    respDBList = { stdout: JSON.stringify({ DBInstances: describeDBInstancesResponse.DBInstances }) };
   } catch (e) {
     console.error(`Unable to list databases`);
     throw e;
@@ -2824,13 +2826,15 @@ const deleteDatabases = async (dbs, useIAM, killTag) => {
     return true;
   }
   console.log(`Removing deletion protection from databases ${dbs}.`);
-  await Promise.all([
-    dbs.forEach((db) => {
+  await Promise.all(
+    dbs.map(async (db) => {
       let temp;
       try {
-        temp = execSync(
-          `aws rds describe-db-instances --db-instance-identifier ${db} --profile ${useIAM}`,
+        const rdsClient = createRDSClient(useIAM);
+        const describeDBInstancesResponse = await rdsClient.send(
+          new DescribeDBInstancesCommand({ DBInstanceIdentifier: db }),
         );
+        temp = Buffer.from(JSON.stringify({ DBInstances: describeDBInstancesResponse.DBInstances }));
       } catch (e) {
         console.warn(
           "\x1b[31m%s\x1b[0m",
@@ -2848,11 +2852,16 @@ const deleteDatabases = async (dbs, useIAM, killTag) => {
         dbs = tempFunc(dbs);
         return;
       }
-      return exec(
-        `aws rds modify-db-instance --db-instance-identifier ${db} --no-deletion-protection --apply-immediately --profile ${useIAM}`,
+      const rdsClient = createRDSClient(useIAM);
+      await rdsClient.send(
+        new ModifyDBInstanceCommand({
+          DBInstanceIdentifier: db,
+          DeletionProtection: false,
+          ApplyImmediately: true,
+        }),
       );
     }),
-  ]);
+  );
 
   console.log(`Deleting databases`);
 
@@ -2860,13 +2869,15 @@ const deleteDatabases = async (dbs, useIAM, killTag) => {
    *
    * @param dbId
    */
-  const checkDatabases = (dbId) => {
+  const checkDatabases = async (dbId) => {
     let temp;
     console.log(`Checking database ${dbId} for deletion protection`);
     try {
-      temp = execSync(
-        `aws rds describe-db-instances --db-instance-identifier ${dbId} --profile ${useIAM}`,
-      ).toString();
+      const rdsClient = createRDSClient(useIAM);
+      const describeDBInstancesResponse = await rdsClient.send(
+        new DescribeDBInstancesCommand({ DBInstanceIdentifier: dbId }),
+      );
+      temp = JSON.stringify({ DBInstances: describeDBInstancesResponse.DBInstances });
     } catch (e) {
       console.error(
         `Unable to get information for db ${dbId}. Possibly it was already deleted. Skipping`,
@@ -2897,9 +2908,11 @@ const deleteDatabases = async (dbs, useIAM, killTag) => {
           //check whether DB is already being deleted
           let dbStatus;
           try {
-            dbStatus = await exec(
-              `aws rds describe-db-instances --db-instance-identifier ${db} --profile ${useIAM}`,
+            const rdsClient = createRDSClient(useIAM);
+            const describeDBInstancesResponse = await rdsClient.send(
+              new DescribeDBInstancesCommand({ DBInstanceIdentifier: db }),
             );
+            dbStatus = { stdout: JSON.stringify({ DBInstances: describeDBInstancesResponse.DBInstances }) };
           } catch (e) {
             console.error(`Unable to get information about ${db}`);
             console.error(e);
@@ -2908,8 +2921,12 @@ const deleteDatabases = async (dbs, useIAM, killTag) => {
             let dbDeletionResponse;
             console.log(`Deleting database ${db}`);
             try {
-              dbDeletionResponse = exec(
-                `aws rds delete-db-instance --db-instance-identifier ${db} --skip-final-snapshot --profile ${useIAM}`,
+              const rdsClient = createRDSClient(useIAM);
+              dbDeletionResponse = rdsClient.send(
+                new DeleteDBInstanceCommand({
+                  DBInstanceIdentifier: db,
+                  SkipFinalSnapshot: true,
+                }),
               );
             } catch (e) {
               if (e.message.includes("already being deleted")) {
@@ -2943,10 +2960,12 @@ const deleteDatabases = async (dbs, useIAM, killTag) => {
       /**
        *
        */
-      const confirmDBDeleted = () => {
+      const confirmDBDeleted = async () => {
         let temp;
         try {
-          temp = execSync(`aws rds describe-db-instances --profile ${useIAM}`).toString();
+          const rdsClient = createRDSClient(useIAM);
+          const describeDBInstancesResponse = await rdsClient.send(new DescribeDBInstancesCommand({}));
+          temp = JSON.stringify({ DBInstances: describeDBInstancesResponse.DBInstances });
         } catch (e) {
           console.error(`Unable to get list of databases`);
           throw e;
@@ -3722,7 +3741,9 @@ export const awsArmageddon = async (useIAM, killType) => {
 export async function awsList(useIAM) {
   let temp;
 
-  temp = await exec(`aws rds describe-db-instances --profile ${useIAM}`);
+  const rdsClient = createRDSClient(useIAM);
+  const describeDBInstancesResponse = await rdsClient.send(new DescribeDBInstancesCommand({}));
+  temp = { stdout: JSON.stringify({ DBInstances: describeDBInstancesResponse.DBInstances }) };
   if (JSON.parse(temp.stdout).DBInstances.length > 0) {
     console.log("DBInstances:\n", JSON.parse(temp.stdout).DBInstances);
   }
@@ -3759,7 +3780,8 @@ export async function awsList(useIAM) {
   if (JSON.parse(temp.stdout).Stacks.length > 0) {
     console.log("Cloudformation Stacks:\n", JSON.parse(temp.stdout).Stacks);
   }
-  temp = await exec(`aws rds describe-db-snapshots --profile ${useIAM}`);
+  const describeDBSnapshotsResponse = await rdsClient.send(new DescribeDBSnapshotsCommand({}));
+  temp = { stdout: JSON.stringify({ DBSnapshots: describeDBSnapshotsResponse.DBSnapshots }) };
   if (JSON.parse(temp.stdout).DBSnapshots.length > 0) {
     console.log("DB Snapshots:\n", JSON.parse(temp.stdout).DBSnapshots);
   }
