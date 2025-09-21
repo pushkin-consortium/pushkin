@@ -52,6 +52,7 @@ import {
   ListDistributionsCommand,
   CreateInvalidationCommand,
   CreateDistributionWithTagsCommand,
+  CreateOriginAccessControlCommand,
   GetOriginAccessControlCommand,
   ListTagsForResourceCommand,
   GetDistributionConfigCommand,
@@ -59,6 +60,7 @@ import {
   GetDistributionCommand,
   ListOriginAccessControlsCommand,
   DeleteOriginAccessControlCommand,
+  UpdateDistributionCommand,
 } from "@aws-sdk/client-cloudfront";
 import {
   ElasticLoadBalancingV2Client,
@@ -125,6 +127,42 @@ const createS3Client = (useIAM) => {
 
 const createELBv2Client = (useIAM) => {
   return new ElasticLoadBalancingV2Client({
+    region: myRegion,
+    credentials: fromIni({ profile: useIAM }),
+  });
+};
+
+/**
+ * Helper function to create CloudFront client
+ * @param {*} useIAM - The IAM user to use
+ * @returns {CloudFrontClient} - The CloudFront client
+ */
+const createCloudFrontClient = (useIAM) => {
+  return new CloudFrontClient({
+    region: myRegion,
+    credentials: fromIni({ profile: useIAM }),
+  });
+};
+
+/**
+ * Helper function to create Route 53 client
+ * @param {*} useIAM - The IAM user to use
+ * @returns {Route53Client} - The Route 53 client
+ */
+const createRoute53Client = (useIAM) => {
+  return new Route53Client({
+    region: myRegion,
+    credentials: fromIni({ profile: useIAM }),
+  });
+};
+
+/**
+ * Helper function to create Route 53 Domains client
+ * @param {*} useIAM - The IAM user to use
+ * @returns {Route53DomainsClient} - The Route 53 Domains client
+ */
+const createRoute53DomainsClient = (useIAM) => {
+  return new Route53DomainsClient({
     region: myRegion,
     credentials: fromIni({ profile: useIAM }),
   });
@@ -718,11 +756,13 @@ const getOAC = async (useIAM) => {
   const createOAC = async (useIAM) => {
     let temp;
     try {
-      temp = await exec(
-        `aws cloudfront create-origin-access-control --origin-access-control-config '`
-          .concat(JSON.stringify(OriginAccessControl))
-          .concat(`' --profile ${useIAM}`),
+      const cloudFrontClient = createCloudFrontClient(useIAM);
+      const createOACResponse = await cloudFrontClient.send(
+        new CreateOriginAccessControlCommand({
+          OriginAccessControlConfig: OriginAccessControl,
+        }),
       );
+      temp = { stdout: JSON.stringify(createOACResponse) };
     } catch (error) {
       console.error(`Unable to create Origin Access Control`);
       throw error;
@@ -750,8 +790,9 @@ const getOAC = async (useIAM) => {
     needOAC = true;
   } else {
     try {
-      await exec(
-        `aws cloudfront get-origin-access-control --id ${awsResources.OAC} --profile ${useIAM}`,
+      const cloudFrontClient = createCloudFrontClient(useIAM);
+      await cloudFrontClient.send(
+        new GetOriginAccessControlCommand({ Id: awsResources.OAC }),
       );
     } catch (e) {
       console.log(e);
@@ -1832,9 +1873,11 @@ const forwardAPIWrapper = async (configuredECS, useIAM, projName, myDomain, depl
       console.log(`Retrieving hostedzone ID for ${myDomain}`);
       let zoneID;
       try {
-        temp = await exec(
-          `aws route53 list-hosted-zones-by-name --dns-name ${myDomain} --profile ${useIAM}`,
+        const route53Client = createRoute53Client(useIAM);
+        const listHostedZonesResponse = await route53Client.send(
+          new ListHostedZonesByNameCommand({ DNSName: myDomain }),
         );
+        temp = { stdout: JSON.stringify({ HostedZones: listHostedZonesResponse.HostedZones }) };
       } catch (e) {
         console.error(`Unable to retrieve hostedzone for ${myDomain}`);
         throw e;
@@ -1865,8 +1908,12 @@ const forwardAPIWrapper = async (configuredECS, useIAM, projName, myDomain, depl
       recordSet.Changes[0].ResourceRecordSet.AliasTarget.HostedZoneId = balancerZone;
       recordSet.Changes[0].ResourceRecordSet.SetIdentifier = projName;
       try {
-        await exec(
-          `aws route53 change-resource-record-sets --hosted-zone-id ${zoneID} --change-batch '${JSON.stringify(recordSet)}' --profile ${useIAM}`,
+        const route53Client = createRoute53Client(useIAM);
+        await route53Client.send(
+          new ChangeResourceRecordSetsCommand({
+            HostedZoneId: zoneID,
+            ChangeBatch: recordSet,
+          }),
         );
         console.log(`Updated record set for ${myDomain}.`);
       } catch (e) {
@@ -2197,7 +2244,9 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
     console.log("Choosing domain name for site");
     let temp;
     try {
-      temp = await exec(`aws route53domains list-domains --profile ${useIAM}`);
+      const route53DomainsClient = createRoute53DomainsClient(useIAM);
+      const listDomainsResponse = await route53DomainsClient.send(new ListDomainsCommand({}));
+      temp = { stdout: JSON.stringify({ Domains: listDomainsResponse.Domains }) };
     } catch (e) {
       console.error(`Unable to get list of SSL certificates`);
     }
@@ -3193,7 +3242,9 @@ const deleteCloudFront = async (useIAM, projName, killTag) => {
   // First, get list of distributions we need to delete
   let tempDists;
   try {
-    tempDists = await exec(`aws cloudfront list-distributions --profile ${useIAM}`);
+    const cloudFrontClient = createCloudFrontClient(useIAM);
+    const listDistributionsResponse = await cloudFrontClient.send(new ListDistributionsCommand({}));
+    tempDists = { stdout: JSON.stringify({ DistributionList: listDistributionsResponse.DistributionList }) };
   } catch (e) {
     console.error(`Unable to get list of cloudfront distributions`);
     throw e;
@@ -3204,19 +3255,21 @@ const deleteCloudFront = async (useIAM, projName, killTag) => {
   } else {
     //found something
     let distributions = [];
-    JSON.parse(tempDists.stdout).DistributionList.Items.forEach((d) => {
+    for (const d of JSON.parse(tempDists.stdout).DistributionList.Items) {
       if (killTag) {
         //check whether this is tagged to our project
         let tempTagCheck;
         try {
-          tempDists = execSync(
-            `aws cloudfront list-tags-for-resource --resource ${d.ARN} --profile ${useIAM}`,
-          ).toString();
+          const cloudFrontClient = createCloudFrontClient(useIAM);
+          const listTagsResponse = await cloudFrontClient.send(
+            new ListTagsForResourceCommand({ Resource: d.ARN }),
+          );
+          tempTagCheck = JSON.stringify({ Tags: listTagsResponse.Tags });
         } catch (e) {
           console.error(`Unable to get tags for cloudfront distribution ${d.ARN}`);
           throw e;
         }
-        JSON.parse(tempDists).Tags.Items.forEach((t) => {
+        JSON.parse(tempTagCheck).Tags.forEach((t) => {
           if ((t.Key == "PUSHKIN") & (t.Value == projName)) {
             distributions.push(d.Id);
           }
@@ -3225,7 +3278,7 @@ const deleteCloudFront = async (useIAM, projName, killTag) => {
         //kill them all
         distributions.push(d.Id);
       }
-    });
+    }
 
     /**
      *
@@ -3236,7 +3289,9 @@ const deleteCloudFront = async (useIAM, projName, killTag) => {
       let distributionReady = false;
       let temp;
       try {
-        temp = await exec(`aws cloudfront list-distributions --profile ${useIAM}`);
+        const cloudFrontClient = createCloudFrontClient(useIAM);
+        const listDistributionsResponse = await cloudFrontClient.send(new ListDistributionsCommand({}));
+        temp = { stdout: JSON.stringify({ DistributionList: listDistributionsResponse.DistributionList }) };
       } catch (e) {
         console.error(`Unable to get list of cloudfront distributions`);
         throw e;
@@ -3274,11 +3329,12 @@ const deleteCloudFront = async (useIAM, projName, killTag) => {
         let ETag;
         let aDistributionConfig;
         try {
-          aDistributionConfig = await exec(
-            `aws cloudfront get-distribution-config --id ${distId} --profile ${useIAM}`,
+          const cloudFrontClient = createCloudFrontClient(useIAM);
+          aDistributionConfig = await cloudFrontClient.send(
+            new GetDistributionConfigCommand({ Id: distId }),
           );
-          cloudConfig = JSON.parse(aDistributionConfig.stdout).DistributionConfig;
-          ETag = JSON.parse(aDistributionConfig.stdout).ETag;
+          cloudConfig = aDistributionConfig.DistributionConfig;
+          ETag = aDistributionConfig.ETag;
         } catch (e) {
           console.log(
             `Cannot find cloudfront distribution ${distId}. May have already been deleted. Skipping.`,
@@ -3296,17 +3352,19 @@ const deleteCloudFront = async (useIAM, projName, killTag) => {
         console.log(`Disabling cloudfront distribution ` + distId);
 
         let disableCloudFront;
-        let disableCommand = `aws cloudfront update-distribution \
-      --id ${distId} \
-      --if-match ${ETag} \
-      --distribution-config '${JSON.stringify(cloudConfig)}' --profile ${useIAM}`;
         try {
-          disableCloudFront = await exec(disableCommand);
+          const cloudFrontClient = createCloudFrontClient(useIAM);
+          disableCloudFront = await cloudFrontClient.send(
+            new UpdateDistributionCommand({
+              Id: distId,
+              IfMatch: ETag,
+              DistributionConfig: cloudConfig,
+            }),
+          );
         } catch (e) {
           console.error(
             `Possibly unable to disable cloudfront distribution ${distId}.\n Sometimes this throws errors but works anyway, so we'll continue and see what happens...\n`,
           );
-          console.log(`Tried :`, disableCommand);
         }
 
         return new Promise((resolve, reject) => {
@@ -3321,11 +3379,15 @@ const deleteCloudFront = async (useIAM, projName, killTag) => {
               console.log(`Cloudfront is disabled. Deleting.`);
               //Apparently the ETag changes after disabling? So we need to get it again.
               try {
-                aDistributionConfig = await exec(
-                  `aws cloudfront get-distribution-config --id ${distId} --profile ${useIAM}`,
+                const cloudFrontClient = createCloudFrontClient(useIAM);
+                const getDistributionConfigResponse = await cloudFrontClient.send(
+                  new GetDistributionConfigCommand({ Id: distId }),
                 );
-                cloudConfig = JSON.parse(aDistributionConfig.stdout).DistributionConfig;
-                ETag = JSON.parse(aDistributionConfig.stdout).ETag;
+                aDistributionConfig = await cloudFrontClient.send(
+                  new GetDistributionCommand({ Id: distId }),
+                );
+                cloudConfig = getDistributionConfigResponse.DistributionConfig;
+                ETag = getDistributionConfigResponse.ETag;
               } catch (e) {
                 console.log(
                   `Suddenly can't find cloudfront distribution ${distId}. Which is very strange, since we haven't deleted it yet. Skipping for now...`,
@@ -3334,18 +3396,21 @@ const deleteCloudFront = async (useIAM, projName, killTag) => {
               }
               //Armed with the new ETag, we can delete the distribution
               try {
-                await exec(
-                  `aws cloudfront delete-distribution --id ${distId} --if-match ${ETag} --profile ${useIAM}`,
+                const cloudFrontClient = createCloudFrontClient(useIAM);
+                await cloudFrontClient.send(
+                  new DeleteDistributionCommand({ Id: distId, IfMatch: ETag }),
                 );
               } catch (e) {
                 console.error(`Unable to delete cloudfront distribution`);
                 try {
-                  resolve(
-                    exec(`aws cloudfront get-distribution --id ${distId} --profile ${useIAM}`),
+                  const cloudFrontClient = createCloudFrontClient(useIAM);
+                  const getDistributionResponse = await cloudFrontClient.send(
+                    new GetDistributionCommand({ Id: distId }),
                   );
+                  resolve(getDistributionResponse);
                 } catch (e) {
                   console.error(e);
-                  if (JSON.parse(aDistributionConfig.stdout).Distribution.Status != "InProgress") {
+                  if (aDistributionConfig.Distribution.Status != "InProgress") {
                     console.error(
                       `Unable to delete cloudfront distribution. It may be worth running pushkin aws armageddon again.`,
                     );
@@ -3406,9 +3471,11 @@ const deleteResourceRecords = async (useIAM, killTag, projName) => {
   let zoneID;
   let listedHostedZones;
   try {
-    listedHostedZones = await exec(
-      `aws route53 list-hosted-zones-by-name --dns-name ${myDomain} --profile ${useIAM}`,
+    const route53Client = createRoute53Client(useIAM);
+    const listHostedZonesResponse = await route53Client.send(
+      new ListHostedZonesByNameCommand({ DNSName: myDomain }),
     );
+    listedHostedZones = { stdout: JSON.stringify({ HostedZones: listHostedZonesResponse.HostedZones }) };
   } catch (e) {
     console.error(`Unable to retrieve hostedzone for ${myDomain}`);
     throw e;
@@ -3435,9 +3502,11 @@ const deleteResourceRecords = async (useIAM, killTag, projName) => {
 
   let tempRRList;
   try {
-    tempRRList = await exec(
-      `aws route53 list-resource-record-sets --hosted-zone-id ${zoneID} --profile ${useIAM}`,
+    const route53Client = createRoute53Client(useIAM);
+    const listResourceRecordSetsResponse = await route53Client.send(
+      new ListResourceRecordSetsCommand({ HostedZoneId: zoneID }),
     );
+    tempRRList = { stdout: JSON.stringify({ ResourceRecordSets: listResourceRecordSetsResponse.ResourceRecordSets }) };
   } catch (e) {
     console.error(`Unable to retrieve resource records for ${myDomain}`);
     throw e;
@@ -3452,8 +3521,12 @@ const deleteResourceRecords = async (useIAM, killTag, projName) => {
     }
   });
   if (resourceRecords.ChangeBatch.Changes.length > 0) {
-    return exec(
-      `aws route53 change-resource-record-sets --cli-input-json '${JSON.stringify(resourceRecords)}' --profile ${useIAM}`,
+    const route53Client = createRoute53Client(useIAM);
+    return route53Client.send(
+      new ChangeResourceRecordSetsCommand({
+        HostedZoneId: resourceRecords.HostedZoneId,
+        ChangeBatch: resourceRecords.ChangeBatch,
+      }),
     );
   } else {
     return true;
@@ -3471,29 +3544,35 @@ const deleteOACs = async (useIAM, deletedCloudFront, killTag) => {
   deletedCloudFront = await deletedCloudFront;
   let temp;
   try {
-    temp = await exec(`aws cloudfront list-origin-access-controls --profile ${useIAM}`);
+    const cloudFrontClient = createCloudFrontClient(useIAM);
+    const listOACResponse = await cloudFrontClient.send(new ListOriginAccessControlsCommand({}));
+    temp = { stdout: JSON.stringify({ OriginAccessControlList: listOACResponse.OriginAccessControlList }) };
   } catch (e) {
     console.error(`Unable to get list of origin access controls`);
     throw e;
   }
   if (temp.stdout != "" && JSON.parse(temp.stdout).OriginAccessControlList.Items) {
-    JSON.parse(temp.stdout).OriginAccessControlList.Items.forEach((d) => {
+    for (const d of JSON.parse(temp.stdout).OriginAccessControlList.Items) {
       let etag;
-      let awsCommand = `aws cloudfront get-origin-access-control --id ${d.Id} --profile ${useIAM}`;
       try {
-        etag = execSync(awsCommand).toString();
+        const cloudFrontClient = createCloudFrontClient(useIAM);
+        const getOACResponse = await cloudFrontClient.send(
+          new GetOriginAccessControlCommand({ Id: d.Id }),
+        );
+        etag = getOACResponse.ETag;
       } catch (e) {
         console.error(`Unable to get etag for origin access control ${d.Id}`);
-        console.error(`This command failed: ${awsCommand}`);
         throw e;
       }
       let deleteOAC;
-      let deleteOACcommand = `aws cloudfront delete-origin-access-control --id ${d.Id} --if-match ${JSON.parse(etag).ETag} --profile ${useIAM}`;
       try {
-        deleteOAC = execSync(deleteOACcommand).toString();
+        const cloudFrontClient = createCloudFrontClient(useIAM);
+        deleteOAC = await cloudFrontClient.send(
+          new DeleteOriginAccessControlCommand({ Id: d.Id, IfMatch: etag }),
+        );
       } catch (e) {
         console.error(`Unable to delete origin access control ${d.Id}`);
-        console.error(`This command failed: ${deleteOACcommand}`);
+        console.error(`Failed to delete origin access control ${d.Id}`);
         console.error(e);
         throw e;
       }
@@ -3512,7 +3591,7 @@ const deleteOACs = async (useIAM, deletedCloudFront, killTag) => {
         console.error(`Unable to update awsResources.js`);
         console.error(e);
       }
-    });
+    }
   }
   return true;
 };
@@ -3895,7 +3974,9 @@ export async function awsList(useIAM) {
   if (JSON.parse(temp.stdout).Buckets.length > 0) {
     console.log("S3 Buckets:\n", JSON.parse(temp.stdout).Buckets);
   }
-  temp = await exec(`aws cloudfront list-distributions --profile ${useIAM}`);
+  const cloudFrontClient = createCloudFrontClient(useIAM);
+  const listDistributionsResponse = await cloudFrontClient.send(new ListDistributionsCommand({}));
+  temp = { stdout: JSON.stringify({ DistributionList: listDistributionsResponse.DistributionList }) };
   if (temp.stdout != "") {
     console.log("CloudFront Distributions:\n", JSON.parse(temp.stdout));
   }
