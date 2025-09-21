@@ -27,7 +27,7 @@ import { updatePushkinJs, readConfig } from "../prep/index.js";
 import inquirer from "inquirer";
 import { kill } from "process";
 import crypto from "crypto";
-import { S3Client, ListBucketsCommand, CreateBucketCommand } from "@aws-sdk/client-s3";
+import { S3Client, ListBucketsCommand, CreateBucketCommand, PutBucketPolicyCommand, DeleteBucketCommand, ListObjectsV2Command, DeleteObjectsCommand } from "@aws-sdk/client-s3";
 import { STSClient, GetCallerIdentityCommand } from "@aws-sdk/client-sts";
 import { fromIni } from "@aws-sdk/credential-provider-ini";
 import { ACMClient, ListCertificatesCommand } from "@aws-sdk/client-acm";
@@ -52,6 +52,19 @@ import {
   CreateInvalidationCommand,
   CreateDistributionWithTagsCommand,
 } from "@aws-sdk/client-cloudfront";
+import {
+  ElasticLoadBalancingV2Client,
+  CreateLoadBalancerCommand,
+  CreateTargetGroupCommand,
+  CreateListenerCommand,
+  DescribeLoadBalancersCommand,
+  DescribeListenersCommand,
+  DeleteListenerCommand,
+  DeleteLoadBalancerCommand,
+  DescribeTargetGroupsCommand,
+  DeleteTargetGroupCommand,
+} from "@aws-sdk/client-elastic-load-balancing-v2";
+import { ElasticLoadBalancingClient, DescribeLoadBalancersCommand as DescribeLoadBalancersV1Command } from "@aws-sdk/client-elastic-load-balancing";
 import {
   ECSClient,
   ListClustersCommand,
@@ -86,6 +99,18 @@ const mkdir = util.promisify(require("fs").mkdir);
  */
 const createRDSClient = (useIAM) => {
   return new RDSClient({
+    region: myRegion,
+    credentials: fromIni({ profile: useIAM }),
+  });
+};
+
+/**
+ * Helper function to create S3 client
+ * @param {*} useIAM - The IAM user to use
+ * @returns {S3Client} - The S3 client
+ */
+const createS3Client = (useIAM) => {
+  return new S3Client({
     region: myRegion,
     credentials: fromIni({ profile: useIAM }),
   });
@@ -271,6 +296,9 @@ const buildFE = function (projName) {
 export const syncS3 = async (awsName, useIAM) => {
   console.log("Syncing files to bucket");
   try {
+    // TODO: This aws s3 sync command needs to be migrated to SDK
+    // It requires implementing file upload functionality with PutObjectCommand
+    // and directory traversal to match the sync behavior
     return exec(`aws s3 sync build/ s3://${awsName} --profile ${useIAM}`, {
       cwd: path.join(process.cwd(), "pushkin/front-end"),
     });
@@ -617,12 +645,12 @@ const deployFrontEnd = async (
     policy.Statement[0].Resource = "arn:aws:s3:::".concat(awsName).concat("/*");
     policy.Statement[0].Condition.StringEquals["AWS:SourceArn"] = theCloud.ARN;
     try {
-      await exec(
-        `aws s3api put-bucket-policy --bucket `
-          .concat(awsName)
-          .concat(` --policy '`)
-          .concat(JSON.stringify(policy))
-          .concat(`' --profile ${useIAM}`),
+      const s3Client = createS3Client(useIAM);
+      await s3Client.send(
+        new PutBucketPolicyCommand({
+          Bucket: awsName,
+          Policy: JSON.stringify(policy),
+        }),
       );
     } catch (e) {
       console.error("Problem setting bucket permissions for front-end");
@@ -2956,7 +2984,7 @@ const deleteDatabases = async (dbs, useIAM, killTag) => {
    */
   const wait2 = async () => {
     //Sometimes, I really miss loops
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       /**
        *
        */
@@ -2974,7 +3002,7 @@ const deleteDatabases = async (dbs, useIAM, killTag) => {
       };
       let confirmedDeleted;
       try {
-        confirmedDeleted = confirmDBDeleted();
+        confirmedDeleted = await confirmDBDeleted();
       } catch (e) {
         throw e;
       }
@@ -3488,22 +3516,51 @@ const deleteBucket = async (useIAM, killTag, awsResources, deletedCloudFront) =>
   //FUBAR Need to killize this
   let buckets;
   try {
-    buckets = await exec(`aws s3api list-buckets --profile ${useIAM}`);
+    const s3Client = createS3Client(useIAM);
+    const listBucketsResponse = await s3Client.send(new ListBucketsCommand({}));
+    buckets = { stdout: JSON.stringify({ Buckets: listBucketsResponse.Buckets }) };
   } catch (e) {
     console.error(`Unable to list buckets`);
     throw e;
   }
   if (JSON.parse(buckets.stdout).Buckets.length > 0) {
-    return Promise.all([
-      JSON.parse(buckets.stdout).Buckets.forEach(async (b) => {
+    return Promise.all(
+      JSON.parse(buckets.stdout).Buckets.map(async (b) => {
         console.log(`Deleting s3 bucket ${b.Name}}`);
         try {
-          await exec(`aws s3 rb s3://${b.Name} --force --profile ${useIAM}`);
+          const s3Client = createS3Client(useIAM);
+          // List all objects in the bucket
+          let isTruncated = true;
+          let continuationToken;
+          while (isTruncated) {
+            const listParams = {
+              Bucket: b.Name,
+              ...(continuationToken && { ContinuationToken: continuationToken }),
+            };
+            const listResponse = await s3Client.send(new ListObjectsV2Command(listParams));
+
+            // Delete objects if any exist
+            if (listResponse.Contents && listResponse.Contents.length > 0) {
+              const deleteParams = {
+                Bucket: b.Name,
+                Delete: {
+                  Objects: listResponse.Contents.map(obj => ({ Key: obj.Key })),
+                },
+              };
+              await s3Client.send(new DeleteObjectsCommand(deleteParams));
+            }
+
+            isTruncated = listResponse.IsTruncated;
+            continuationToken = listResponse.NextContinuationToken;
+          }
+
+          // Delete the bucket
+          await s3Client.send(new DeleteBucketCommand({ Bucket: b.Name }));
         } catch (e) {
           console.warn(`Unable to delete s3 bucket ${awsResources.awsName}`);
         }
       }),
-    ]);
+    );
   } else {
     console.log(`No s3 bucket. Skipping.`);
     return true;
@@ -3768,7 +3825,9 @@ export async function awsList(useIAM) {
   if (JSON.parse(temp.stdout).LoadBalancerDescriptions.length > 0) {
     console.log("Load Balancers:\n", JSON.parse(temp.stdout).LoadBalancerDescriptions);
   }
-  temp = await exec(`aws s3api list-buckets --profile ${useIAM}`);
+  const s3Client = createS3Client(useIAM);
+  const listBucketsResponse = await s3Client.send(new ListBucketsCommand({}));
+  temp = { stdout: JSON.stringify({ Buckets: listBucketsResponse.Buckets }) };
   if (JSON.parse(temp.stdout).Buckets.length > 0) {
     console.log("S3 Buckets:\n", JSON.parse(temp.stdout).Buckets);
   }
