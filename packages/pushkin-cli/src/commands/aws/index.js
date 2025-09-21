@@ -62,6 +62,17 @@ import {
   DeleteServiceCommand,
   DeleteClusterCommand,
 } from "@aws-sdk/client-ecs";
+import {
+  EC2Client,
+  DescribeKeyPairsCommand,
+  CreateKeyPairCommand,
+  CreateSecurityGroupCommand,
+  AuthorizeSecurityGroupIngressCommand,
+  DescribeSecurityGroupsCommand,
+  DeleteSecurityGroupCommand,
+  DescribeSubnetsCommand,
+  DescribeVpcsCommand,
+} from "@aws-sdk/client-ec2";
 
 const myRegion = "us-east-1"; //set as default. may want this to be a parameter somewhere that can be changed.
 
@@ -87,6 +98,18 @@ const createRDSClient = (useIAM) => {
  */
 const createECSClient = (useIAM) => {
   return new ECSClient({
+    region: myRegion,
+    credentials: fromIni({ profile: useIAM.iam }),
+  });
+};
+
+/**
+ * Helper function to create EC2 client
+ * @param {*} useIAM - The IAM user to use
+ * @returns {EC2Client} - The EC2 client
+ */
+const createEC2Client = (useIAM) => {
+  return new EC2Client({
     region: myRegion,
     credentials: fromIni({ profile: useIAM.iam }),
   });
@@ -1060,7 +1083,7 @@ const ecsTaskCreator = async (projName, useIAM, DHID, completedDBs, ECSName, tar
           let balancerCommand =
             targGroupARN ?
               `--target-groups "targetGroupArn=${targGroupARN},containerName=${name},containerPort=${port}"`
-              : "";
+            : "";
           let composeCommand =
             `ecs-cli compose -f ${yaml} -p ${yaml.split(".")[0]} service up --ecs-profile ${useIAM} --cluster-config ${ECSName} --scheduling-strategy DAEMON `.concat(
               balancerCommand,
@@ -1203,7 +1226,9 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
     let keyPairs;
     let foundPushkinKeyPair = false;
     try {
-      keyPairs = await exec(`aws ec2 describe-key-pairs --profile ${useIAM}`);
+      const ec2Client = createEC2Client(useIAM);
+      const describeKeyPairsResponse = await ec2Client.send(new DescribeKeyPairsCommand({}));
+      keyPairs = { stdout: JSON.stringify({ KeyPairs: describeKeyPairsResponse.KeyPairs }) };
     } catch (e) {
       console.error(`Failed to get list of key pairs`);
     }
@@ -1220,9 +1245,14 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
       let keyPair;
       try {
         console.error(`Making SSH key`);
-        keyPair = await exec(
-          `aws ec2 create-key-pair --key-name my-pushkin-key-pair --query 'KeyMaterial' --profile ${useIAM} --output text > .pushkinKey`,
+        const ec2Client = createEC2Client(useIAM);
+        const createKeyPairResponse = await ec2Client.send(
+          new CreateKeyPairCommand({
+            KeyName: "my-pushkin-key-pair",
+          }),
         );
+        // Write the key material to file
+        await require("fs").promises.writeFile("pushkinKey", createKeyPairResponse.KeyMaterial);
         await exec(`chmod 400 .pushkinKey`);
       } catch (e) {
         console.error(`Problem creating AWS SSH key`);
@@ -1232,33 +1262,88 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
   };
 
   let madeSSH = makeSSH(useIAM);
-  //make security group for load balancer. Start this process early, though it doesn't take super long.
+
   /**
-   *
-   * @param useIAM
-   * @param projName
+   * make security group for load balancer. Start this process early, though it doesn't take super long.
+   * @param {any} useIAM -- The IAM role to use
+   * @param {string} projName -- The project name
+   * @returns {Promise<string>} - The project name
    */
   const makeBalancerGroup = async (useIAM, projName) => {
     console.log(`Creating security group for load balancer`);
-    let SGCreate = `aws ec2 create-security-group --group-name BalancerGroup --description "For the load balancer" --tag-specifications 'ResourceType=security-group,Tags=[{Key=PUSHKIN,Value=${projName}}]' --profile ${useIAM}`;
-    let SGRule1 = `aws ec2 authorize-security-group-ingress --group-name BalancerGroup --ip-permissions IpProtocol=tcp,FromPort=80,ToPort=80,Ipv6Ranges='[{CidrIpv6=::/0}]',IpRanges='[{CidrIp=0.0.0.0/0}]' --profile ${useIAM}`;
-    let SGRule2 = `aws ec2 authorize-security-group-ingress --group-name BalancerGroup --ip-permissions IpProtocol=tcp,FromPort=443,ToPort=443,Ipv6Ranges='[{CidrIpv6=::/0}]',IpRanges='[{CidrIp=0.0.0.0/0}]' --profile ${useIAM}`;
-    let stdOut;
+    let groupId;
     try {
-      stdOut = await exec(SGCreate);
-      await Promise.all([exec(SGRule1), exec(SGRule2)]);
+      const ec2Client = createEC2Client(useIAM);
+
+      // Create security group
+      const createSGResponse = await ec2Client.send(
+        new CreateSecurityGroupCommand({
+          GroupName: "BalancerGroup",
+          Description: "For the load balancer",
+          TagSpecifications: [
+            {
+              ResourceType: "security-group",
+              Tags: [
+                {
+                  Key: "PUSHKIN",
+                  Value: projName,
+                },
+              ],
+            },
+          ],
+        }),
+      );
+      groupId = createSGResponse.GroupId;
+
+      // Add rules for HTTP and HTTPS
+      await Promise.all([
+        ec2Client.send(
+          new AuthorizeSecurityGroupIngressCommand({
+            GroupName: "BalancerGroup",
+            IpPermissions: [
+              {
+                IpProtocol: "tcp",
+                FromPort: 80,
+                ToPort: 80,
+                IpRanges: [{ CidrIp: "0.0.0.0/0" }],
+                Ipv6Ranges: [{ CidrIpv6: "::/0" }],
+              },
+            ],
+          }),
+        ),
+        ec2Client.send(
+          new AuthorizeSecurityGroupIngressCommand({
+            GroupName: "BalancerGroup",
+            IpPermissions: [
+              {
+                IpProtocol: "tcp",
+                FromPort: 443,
+                ToPort: 443,
+                IpRanges: [{ CidrIp: "0.0.0.0/0" }],
+                Ipv6Ranges: [{ CidrIpv6: "::/0" }],
+              },
+            ],
+          }),
+        ),
+      ]);
     } catch (e) {
       console.error(`Failed to create security group for load balancer`);
       throw e;
     }
-    return JSON.parse(stdOut.stdout).GroupId; //remember security group in order to use later!
+    return groupId; //remember security group in order to use later!
   };
 
   let securityGroups;
   try {
-    securityGroups = await exec(`aws ec2 describe-security-groups --profile ${useIAM}`);
+    const ec2Client = createEC2Client(useIAM);
+    const describeSecurityGroupsResponse = await ec2Client.send(
+      new DescribeSecurityGroupsCommand({}),
+    );
+    securityGroups = {
+      stdout: JSON.stringify({ SecurityGroups: describeSecurityGroupsResponse.SecurityGroups }),
+    };
   } catch (e) {
-    console.error(`Failed to retried list of security groups from aws`);
+    console.error(`Failed to retrieve list of security groups from aws`);
     throw e;
   }
   let foundBalancerGroup = false;
@@ -1288,20 +1373,77 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
    */
   const makeECSGroup = async (useIAM, projName) => {
     console.log(`Creating security group for ECS cluster`);
-    let SGCreate = `aws ec2 create-security-group --group-name ECSGroup --description "For the ECS cluster" --tag-specifications 'ResourceType=security-group,Tags=[{Key=PUSHKIN,Value=${projName}}]' --profile ${useIAM}`;
-    let stdOut;
     let groupId;
     try {
-      stdOut = await exec(SGCreate);
-      groupId = JSON.parse(stdOut.stdout).GroupId; //remember security group in order to use later!
-      let SGRule1 = `aws ec2 authorize-security-group-ingress --group-id ${groupId} --ip-permissions IpProtocol=tcp,FromPort=80,ToPort=80,Ipv6Ranges='[{CidrIpv6=::/0}]',IpRanges='[{CidrIp=0.0.0.0/0}]' --profile ${useIAM}`;
-      let SGRule2 = `aws ec2 authorize-security-group-ingress --group-id ${groupId} --ip-permissions IpProtocol=tcp,FromPort=22,ToPort=22,Ipv6Ranges='[{CidrIpv6=::/0}]',IpRanges='[{CidrIp=0.0.0.0/0}]' --profile ${useIAM}`;
-      let SGRule3 = `aws ec2 authorize-security-group-ingress --group-id ${groupId} --ip-permissions IpProtocol=tcp,FromPort=1024,ToPort=65535,Ipv6Ranges='[{CidrIpv6=::/0}]',IpRanges='[{CidrIp=0.0.0.0/0}]' --profile ${useIAM}`;
-      //let SGRule4 = `aws ec2 authorize-security-group-egress --group-id ${groupId} --ip-permissions IpProtocol=-1,IpRanges='[{CidrIp=0.0.0.0/0}]' --profile ${useIAM}`
-      //await Promise.all([exec(SGRule1), exec(SGRule2), exec(SGRule3), exec(SGRule4)])
-      await Promise.all([exec(SGRule1), exec(SGRule2), exec(SGRule3)]);
+      const ec2Client = createEC2Client(useIAM);
+
+      const createSecurityGroupResponse = await ec2Client.send(
+        new CreateSecurityGroupCommand({
+          GroupName: "ECSGroup",
+          Description: "For the ECS cluster",
+          TagSpecifications: [
+            {
+              ResourceType: "security-group",
+              Tags: [
+                {
+                  Key: "PUSHKIN",
+                  Value: projName,
+                },
+              ],
+            },
+          ],
+        }),
+      );
+
+      groupId = createSecurityGroupResponse.GroupId;
+
+      // Add ingress rules
+      await Promise.all([
+        ec2Client.send(
+          new AuthorizeSecurityGroupIngressCommand({
+            GroupId: groupId,
+            IpPermissions: [
+              {
+                IpProtocol: "tcp",
+                FromPort: 80,
+                ToPort: 80,
+                IpRanges: [{ CidrIp: "0.0.0.0/0" }],
+                Ipv6Ranges: [{ CidrIpv6: "::/0" }],
+              },
+            ],
+          }),
+        ),
+        ec2Client.send(
+          new AuthorizeSecurityGroupIngressCommand({
+            GroupId: groupId,
+            IpPermissions: [
+              {
+                IpProtocol: "tcp",
+                FromPort: 22,
+                ToPort: 22,
+                IpRanges: [{ CidrIp: "0.0.0.0/0" }],
+                Ipv6Ranges: [{ CidrIpv6: "::/0" }],
+              },
+            ],
+          }),
+        ),
+        ec2Client.send(
+          new AuthorizeSecurityGroupIngressCommand({
+            GroupId: groupId,
+            IpPermissions: [
+              {
+                IpProtocol: "tcp",
+                FromPort: 1024,
+                ToPort: 65535,
+                IpRanges: [{ CidrIp: "0.0.0.0/0" }],
+                Ipv6Ranges: [{ CidrIpv6: "::/0" }],
+              },
+            ],
+          }),
+        ),
+      ]);
     } catch (e) {
-      console.error(`Failed to create security group for load balancer`);
+      console.error(`Failed to create security group for ECS cluster`);
       throw e;
     }
     return groupId;
@@ -1324,20 +1466,20 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
 
   //need one subnet per availability zone in region. Region is based on region for the profile.
   //Start this process early to use later.
-  const foundSubnets = new Promise((resolve, reject) => {
+  const foundSubnets = new Promise(async (resolve, reject) => {
     console.log(`Retrieving subnets for AWS zone`);
-    exec(`aws ec2 describe-subnets --profile ${useIAM}`)
-      .catch((e) => {
-        console.error(`Failed to retrieve available subnets.`);
-        reject(e);
-      })
-      .then((sns) => {
-        let subnets = {};
-        JSON.parse(sns.stdout).Subnets.forEach((subnet) => {
-          subnets[subnet.AvailabilityZone] = subnet.SubnetId;
-        });
-        resolve(subnets);
+    try {
+      const ec2Client = createEC2Client(useIAM);
+      const describeSubnetsResponse = await ec2Client.send(new DescribeSubnetsCommand({}));
+      let subnets = {};
+      describeSubnetsResponse.Subnets.forEach((subnet) => {
+        subnets[subnet.AvailabilityZone] = subnet.SubnetId;
       });
+      resolve(subnets);
+    } catch (e) {
+      console.error(`Failed to retrieve available subnets.`);
+      reject(e);
+    }
   });
 
   //CLI uses the default VPC by default. Retrieve the ID.
@@ -1347,15 +1489,16 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
    */
   const getVPC = async (useIAM) => {
     console.log("getting default VPC");
-    let temp;
+    let describeVpcsResponse;
     try {
-      temp = await exec(`aws ec2 describe-vpcs --profile ${useIAM}`);
+      const ec2Client = createEC2Client(useIAM);
+      describeVpcsResponse = await ec2Client.send(new DescribeVpcsCommand({}));
     } catch (e) {
       console.error(`Unable to find VPC`);
       throw e;
     }
     let useVPC;
-    JSON.parse(temp.stdout).Vpcs.forEach((v) => {
+    describeVpcsResponse.Vpcs.forEach((v) => {
       if (v.IsDefault == true) {
         useVPC = v.VpcId;
       }
@@ -1697,9 +1840,15 @@ const handleSecurityGroups = async (useIAM, projName) => {
 
   let temp;
   try {
-    temp = await exec(`aws ec2 describe-security-groups --profile ${useIAM}`);
+    const ec2Client = createEC2Client(useIAM);
+    const describeSecurityGroupsResponse = await ec2Client.send(
+      new DescribeSecurityGroupsCommand({}),
+    );
+    temp = {
+      stdout: JSON.stringify({ SecurityGroups: describeSecurityGroupsResponse.SecurityGroups }),
+    };
   } catch (e) {
-    console.error(`Failed to retried list of security groups from aws`);
+    console.error(`Failed to retrieve list of security groups from aws`);
     throw e;
   }
   let foundDBGroup;
@@ -3360,14 +3509,15 @@ const deleteSecurityGroups = async (useIAM, killTag, deletedDBs) => {
    */
   const deleteMyGroup = async (g, useIAM, killTag) => {
     console.log(`Deleting security group ${g}`);
-    let temp;
     try {
-      await exec(`aws ec2 describe-security-groups --group-names ${g} --profile ${useIAM}`);
+      const ec2Client = createEC2Client(useIAM);
+      await ec2Client.send(new DescribeSecurityGroupsCommand({ GroupNames: [g] }));
     } catch (e) {
       console.log(e);
       console.log(`No security group ${g}.`);
       return true;
     }
+    let temp;
     try {
       temp = exec(`aws ec2 delete-security-group --group-name ${g} --profile ${useIAM}`);
     } catch (e) {
@@ -3384,7 +3534,13 @@ const deleteSecurityGroups = async (useIAM, killTag, deletedDBs) => {
   let groupsToDelete = [];
   let tempGroupList;
   try {
-    tempGroupList = await exec(`aws ec2 describe-security-groups --profile ${useIAM}`);
+    const ec2Client = createEC2Client(useIAM);
+    const describeSecurityGroupsResponse = await ec2Client.send(
+      new DescribeSecurityGroupsCommand({}),
+    );
+    tempGroupList = {
+      stdout: JSON.stringify({ SecurityGroups: describeSecurityGroupsResponse.SecurityGroups }),
+    };
   } catch (e) {
     console.error(`Unable to list security groups`);
     throw e;
@@ -3575,7 +3731,13 @@ export async function awsList(useIAM) {
   if (describeClustersResponse.clusters.length > 0) {
     console.log("ECS Clusters:\n", describeClustersResponse.clusters);
   }
-  temp = await exec(`aws ec2 describe-security-groups --profile ${useIAM}`);
+  const ec2Client = createEC2Client(useIAM);
+  const describeSecurityGroupsResponse = await ec2Client.send(
+    new DescribeSecurityGroupsCommand({}),
+  );
+  temp = {
+    stdout: JSON.stringify({ SecurityGroups: describeSecurityGroupsResponse.SecurityGroups }),
+  };
   JSON.parse(temp.stdout).SecurityGroups.forEach((g) => {
     if (g.GroupName != "default") {
       console.log("Security Group:\n", g);
