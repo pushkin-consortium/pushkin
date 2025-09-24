@@ -2274,7 +2274,8 @@ const chooseCertificate = async (useIAM) => {
     });
 
     certificates = response.CertificateSummaryList.reduce((acc, c) => {
-      acc[`${c.DomainName} (Status: ${c.Status})`] = c.CertificateArn;
+      acc[`${c.DomainName} (Status: ${c.Status}) - ${c.CertificateArn.slice(-8)}`] =
+        c.CertificateArn;
       return acc;
     }, {});
 
@@ -2285,7 +2286,6 @@ const chooseCertificate = async (useIAM) => {
   }
 
   console.log(`Choosing...`);
-  console.log(Object.keys(certificates));
   const answers = await inquirer.prompt([
     {
       type: "list",
