@@ -668,7 +668,7 @@ const deployFrontEnd = async (
     console.error(`Unable to get list of cloudfront distributions`);
     throw e;
   }
-  if (distributions.DistributionList.Items.length > 0) {
+  if (distributions.DistributionList.Items && distributions.DistributionList.Items.length > 0) {
     distributions.DistributionList.Items.forEach((d) => {
       let tempCheck = false;
       try {
@@ -1032,7 +1032,7 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
     myDBConfig.DBInstanceIdentifier = dbName;
     myDBConfig.VpcSecurityGroupIds = [securityGroupID];
     myDBConfig.MasterUserPassword = dbPassword;
-    myDBConfig.Tags[0].Value = projName;
+    myDBConfig.Tags = [{ Key: "PUSHKIN", Value: projName }];
 
     try {
       const rdsClient = createRDSClient(useIAM);
@@ -2285,6 +2285,7 @@ const chooseCertificate = async (useIAM) => {
   }
 
   console.log(`Choosing...`);
+  console.log(Object.keys(certificates));
   const answers = await inquirer.prompt([
     {
       type: "list",
@@ -3371,7 +3372,11 @@ const deleteCloudFront = async (useIAM, projName, killTag) => {
     throw e;
   }
   const parsedDists = JSON.parse(tempDists.stdout);
-  if (!parsedDists.DistributionList || !parsedDists.DistributionList.Items || parsedDists.DistributionList.Items.length === 0) {
+  if (
+    !parsedDists.DistributionList ||
+    !parsedDists.DistributionList.Items ||
+    parsedDists.DistributionList.Items.length === 0
+  ) {
     console.log(`No cloudfront distributions found. Skipping.`);
     return true;
   } else {
