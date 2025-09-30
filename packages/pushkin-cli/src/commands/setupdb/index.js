@@ -7,8 +7,6 @@ import util from "util";
 import crypto from "crypto";
 const exec = util.promisify(require("child_process").exec);
 
-const shell = require("shelljs");
-
 /**
  * Overwrite DB passwords with secure randomly generated ones
  * @returns {void}

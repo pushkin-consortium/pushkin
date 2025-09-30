@@ -34,7 +34,7 @@ import {
   DeleteObjectsCommand,
 } from "@aws-sdk/client-s3";
 import { STSClient, GetCallerIdentityCommand } from "@aws-sdk/client-sts";
-import { fromIni } from "@aws-sdk/credential-provider-ini";
+import { fromIni } from "@aws-sdk/credential-providers";
 import { ACMClient, ListCertificatesCommand } from "@aws-sdk/client-acm";
 import {
   Route53Client,
@@ -81,6 +81,7 @@ import {
 } from "@aws-sdk/client-elastic-load-balancing-v2";
 import {
   ECSClient,
+  CreateClusterCommand,
   ListClustersCommand,
   DescribeClustersCommand,
   ListTasksCommand,
@@ -1047,30 +1048,73 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
     console.log(`Database ${dbType} created.`);
 
     try {
-      // should hang until instance is available
+      // Previously: should hang until instance is available
+      // Current change: try to wait for database to be available with a shorter timeout
       console.log(`Waiting for ${dbType} to spool up. This may take a while...`);
+      console.log(`${dbType}: Starting waitUntilDBInstanceAvailable with 20 mins timeout...`);
       const rdsClient = createRDSClient(useIAM);
+
+      const waitStart = Date.now();
       await waitUntilDBInstanceAvailable(
         {
           client: rdsClient,
           maxWaitTime: 1200, // 20 minutes timeout
+          minDelay: 10, // Check every 10 seconds
+          maxDelay: 20, // Maximum 20 seconds between checks
         },
         { DBInstanceIdentifier: dbName },
       );
-      console.log(`${dbType} is spooled up!`);
+      const waitTime = Math.round((Date.now() - waitStart) / 1000);
+      console.log(`${dbType} is spooled up after ${waitTime} seconds!`);
     } catch (e) {
-      console.error(`Problem waiting for ${dbType} to spool up.`);
-      throw e;
+      if (e.name === "TimeoutError" || e.message.includes("timeout")) {
+        console.warn(
+          `Warning: ${dbType} timed out after 20 minutes. Attempting to get database endpoint anyway...`,
+        );
+      } else {
+        console.warn(
+          `Warning: ${dbType} waitUntilDBInstanceAvailable failed with error. Attempting to get database endpoint anyway...`,
+        );
+        console.warn(`Wait error details:`, e.name, "-", e.message);
+      }
+      // Don't throw here - continue and try to get the database endpoint
     }
 
     let dbEndpoint;
-    try {
-      const rdsClient = createRDSClient(useIAM);
-      const command = new DescribeDBInstancesCommand({ DBInstanceIdentifier: dbName });
-      dbEndpoint = await rdsClient.send(command);
-    } catch (e) {
-      console.error(`Problem getting ${dbType} endpoint.`);
-      throw e;
+    let retryCount = 0;
+    const maxRetries = 3;
+
+    while (retryCount < maxRetries) {
+      try {
+        console.log(
+          `${dbType}: Attempting to get database endpoint (attempt ${retryCount + 1}/${maxRetries})...`,
+        );
+        const rdsClient = createRDSClient(useIAM);
+        const command = new DescribeDBInstancesCommand({ DBInstanceIdentifier: dbName });
+        dbEndpoint = await rdsClient.send(command);
+
+        // Check if we got a valid endpoint
+        if (dbEndpoint?.DBInstances?.[0]?.Endpoint?.Address) {
+          console.log(
+            `${dbType}: Successfully retrieved database endpoint: ${dbEndpoint.DBInstances[0].Endpoint.Address}`,
+          );
+          break;
+        } else {
+          throw new Error("Database endpoint not yet available");
+        }
+      } catch (e) {
+        retryCount++;
+        console.warn(`${dbType}: Attempt ${retryCount} failed to get endpoint:`, e.message);
+
+        if (retryCount >= maxRetries) {
+          console.error(`${dbType}: Failed to get database endpoint after ${maxRetries} attempts`);
+          throw e;
+        }
+
+        // Wait 30 seconds before retrying
+        console.log(`${dbType}: Waiting 30 seconds before retry...`);
+        await new Promise((resolve) => setTimeout(resolve, 30000));
+      }
     }
 
     //Updating list of AWS resources
@@ -1104,9 +1148,11 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
       port: myDBConfig.Port,
     };
 
+    console.log(`${dbType}: initDB function returning database object:`, newDB);
     return newDB;
   } else {
     //Already set up. Just return the info.
+    console.log(`${dbType}: Database already exists, returning existing config`);
     let temp;
     let pushkinConfig;
     try {
@@ -1116,6 +1162,10 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
       console.error(`Couldn't load pushkin.yaml`);
       throw e;
     }
+    console.log(
+      `${dbType}: Returning existing database config:`,
+      pushkinConfig.productionDBs[dbType],
+    );
     return pushkinConfig.productionDBs[dbType];
   }
 };
@@ -1134,7 +1184,7 @@ const getDBInfo = async () => {
     console.error(`Couldn't load pushkin.yaml`);
     throw e;
   }
-  if (Object.keys(pushkinConfig.productionDBs).length >= 2) {
+  if (pushkinConfig.productionDBs && Object.keys(pushkinConfig.productionDBs).length >= 2) {
     let dbsByType = {};
     Object.keys(pushkinConfig.productionDBs).forEach((d) => {
       dbsByType[pushkinConfig.productionDBs[d].type] = {
@@ -1147,6 +1197,8 @@ const getDBInfo = async () => {
     });
     return dbsByType;
   } else {
+    console.error(" section missing from pushkin.yaml");
+    console.error("This suggests database creation did not complete properly");
     throw new Error(`Error finding production DBs in pushkin.yaml`);
   }
 };
@@ -1188,22 +1240,49 @@ const ecsTaskCreator = async (projName, useIAM, DHID, completedDBs, ECSName, tar
      * Wait for the ECS cluster to have registered container instances
      * @returns {Promise} - A promise that resolves when the ECS cluster is ready
      */
+    let waitAttempts = 0;
+    const maxWaitAttempts = 30; // Wait up to 5 minutes (30 * 10 seconds)
     const wait = async () => {
-      //Sometimes, I really miss loops
+      waitAttempts++;
       let x;
+
       try {
+        console.log(
+          `Checking ECS cluster status for: "${ECSName}" (attempt ${waitAttempts}/${maxWaitAttempts})`,
+        );
         const ecsClient = createECSClient(useIAM);
         const describeClustersResponse = await ecsClient.send(
           new DescribeClustersCommand({
             clusters: [ECSName],
           }),
         );
-        x = describeClustersResponse.clusters[0].registeredContainerInstancesCount;
+
+        if (describeClustersResponse.clusters && describeClustersResponse.clusters.length > 0) {
+          x = describeClustersResponse.clusters[0].registeredContainerInstancesCount;
+          console.log(`ECS cluster has ${x} registered container instances`);
+        } else {
+          console.log(`ECS cluster "${ECSName}" not found or has no clusters`);
+          x = 0;
+        }
       } catch (err) {
-        console.error(err);
+        console.error(`Error checking ECS cluster "${ECSName}":`, err.message);
+        if (err.name === "SerializationException") {
+          console.error("SerializationException details:", {
+            clustername: ECSName,
+            type: typeof ECSName,
+            length: ECSName ? ECSName.length : "undefined",
+          });
+        }
         x = 0;
       }
-      if (x > 0) {
+
+      // Skip container instance requirement for now (transition to Fargate/modern deployment)
+      if (x > 0 || waitAttempts >= maxWaitAttempts) {
+        if (waitAttempts >= maxWaitAttempts) {
+          console.warn(
+            `Timed out waiting for EC2 container instances. Proceeding with deployment (this may indicate a transition to Fargate is needed).`,
+          );
+        }
         try {
           console.log(`Writing ECS task list ${name}`);
           await fs.promises.writeFile(
@@ -1235,7 +1314,17 @@ const ecsTaskCreator = async (projName, useIAM, DHID, completedDBs, ECSName, tar
         return compose;
       } else {
         console.log("Waiting for ECS to spool up...");
-        setTimeout(wait, 10000);
+        // Add a timeout to prevent infinite waiting - return a promise that resolves after delay
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            wait()
+              .then(resolve)
+              .catch((err) => {
+                console.error(err);
+                resolve(); // Ensure we resolve even on error to prevent hanging
+              });
+          }, 10000);
+        });
       }
     };
 
@@ -1752,8 +1841,28 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
   try {
     console.log("Launching ECS cluster");
     //Note that cluster is named here, although that should match the default anyway.
-    const ecsCommand = `ecs-cli up --force --keypair my-pushkin-key-pair --capability-iam --ecs-profile ${useIAM} --size 1 --instance-type t2.small --cluster ${ECSName} --security-group ${ecsSecurityGroupID} --vpc ${myVPC} --subnets ${subnets.join(" ")}`;
-    launchedECS = exec(ecsCommand);
+    // ecs-cli uses the deprecated Launch Configuration, which AWS is phasing out in favor of
+    // Launch Templates and Fargate over ECS EC2. However, as of this writing (2025-09) ecs-cli does not support Launch Templates.
+    // Switching to using AWS CLI in this branch, but opening up a new branch to try out migrating to AWS Copilot CLI
+    // Create ECS cluster using AWS SDK instead of deprecated ecs-cli
+    const ecsClient = createECSClient(useIAM);
+    try {
+      const createClusterResponse = await ecsClient.send(
+        new CreateClusterCommand({
+          clusterName: ECSName,
+          tags: [{ key: "PUSHKIN", value: projName }],
+        }),
+      );
+      console.log(`Created ECS cluster: ${ECSName}`);
+      launchedECS = Promise.resolve(); // Maintain compatibility with existing code
+    } catch (error) {
+      if (error.name === "ClusterAlreadyExistsException") {
+        console.log(`ECS cluster ${ECSName} already exists, continuing...`);
+        launchedECS = Promise.resolve();
+      } else {
+        throw error;
+      }
+    }
   } catch (e) {
     console.error(`Unable to launch cluster ${ECSName}.`);
     throw e;
@@ -1885,15 +1994,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
   let createdECSTasks;
   try {
     console.log("Creating ECS tasks");
-    createdECSTasks = ecsTaskCreator(
-      projName,
-      awsName,
-      useIAM,
-      DHID,
-      completedDBs,
-      ECSName,
-      targGroupARN,
-    );
+    createdECSTasks = ecsTaskCreator(projName, useIAM, DHID, completedDBs, ECSName, targGroupARN);
   } catch (e) {
     throw e;
   }
@@ -2084,48 +2185,74 @@ const handleSecurityGroups = async (useIAM, projName) => {
  * @returns {Promise<object>} - The updated pushkin configuration
  */
 const recordDBs = async (dbDone) => {
-  const returnedPromises = await dbDone; //initializedTransactionsDB must be first in this list
-  const transactionDB = returnedPromises[0]; //this is why it has to be first
-  const mainDB = returnedPromises[1]; //this is why it has to be second
+  console.log("recordDBs: Waiting for database promises to resolve...");
 
-  console.log(`Databases created. Adding to local config definitions.`);
-  let pushkinConfig;
-  let stdOut;
+  // Add timeout to prevent indefinite hanging (30 minutes)
+  const timeout = new Promise((_, reject) =>
+    setTimeout(
+      () => reject(new Error("Database recording timeout after 30 minutes")),
+      30 * 60 * 1000,
+    ),
+  );
+
   try {
-    stdOut = await fs.promises.readFile(path.join(process.cwd(), "pushkin.yaml"), "utf8");
-    pushkinConfig = jsYaml.load(stdOut);
-  } catch (e) {
-    console.error(`Couldn't load pushkin.yaml`);
-    throw e;
-  }
+    const returnedPromises = await Promise.race([dbDone, timeout]);
+    console.log("recordDBs: Database promises resolved, processing results...");
+    console.log("recordDBs: mainDB result:", returnedPromises[0]);
+    console.log("recordDBs: transactionDB result:", returnedPromises[1]);
 
-  // Would have made sense for local databases and production databases to be nested within 'databases'
-  // But poor planning prevents that. And we'd like to avoid breaking changes, so...
-  if (pushkinConfig.productionDBs == null) {
-    // initialize
-    pushkinConfig.productionDBs = {};
-  }
-  if (transactionDB) {
-    // false means it is preexisting, doesn't need to be updated
-    pushkinConfig.productionDBs[transactionDB.type] = transactionDB;
-  }
-  if (mainDB) {
-    // false means it is preexisting, doesn't need to be updated
-    pushkinConfig.productionDBs[mainDB.type] = mainDB;
-  }
-  try {
-    stdOut = await fs.promises.writeFile(
-      path.join(process.cwd(), "pushkin.yaml"),
-      jsYaml.dump(pushkinConfig),
-      "utf8",
-    );
-    console.log(`Successfully updated pushkin.yaml with databases.`);
-  } catch (e) {
-    console.error(`Couldn't write updated pushkin.yaml`);
-    throw e;
-  }
+    // Check if either database result is undefined
+    if (!returnedPromises[0] || !returnedPromises[1]) {
+      throw new Error(
+        "One or both databases returned undefined - database creation may have failed",
+      );
+    }
 
-  return pushkinConfig;
+    const mainDB = returnedPromises[0]; //this is why it has to be first
+    const transactionDB = returnedPromises[1]; //this is why it has to be second
+
+    console.log(`Databases created. Adding to local config definitions.`);
+    let pushkinConfig;
+    let stdOut;
+    try {
+      stdOut = await fs.promises.readFile(path.join(process.cwd(), "pushkin.yaml"), "utf8");
+      pushkinConfig = jsYaml.load(stdOut);
+    } catch (e) {
+      console.error(`Couldn't load pushkin.yaml`);
+      throw e;
+    }
+
+    // Would have made sense for local databases and production databases to be nested within 'databases'
+    // But poor planning prevents that. And we'd like to avoid breaking changes, so...
+    if (pushkinConfig.productionDBs == null) {
+      // initialize
+      pushkinConfig.productionDBs = {};
+    }
+    if (transactionDB) {
+      // false means it is preexisting, doesn't need to be updated
+      pushkinConfig.productionDBs[transactionDB.type] = transactionDB;
+    }
+    if (mainDB) {
+      // false means it is preexisting, doesn't need to be updated
+      pushkinConfig.productionDBs[mainDB.type] = mainDB;
+    }
+    try {
+      stdOut = await fs.promises.writeFile(
+        path.join(process.cwd(), "pushkin.yaml"),
+        jsYaml.dump(pushkinConfig),
+        "utf8",
+      );
+      console.log(`Successfully updated pushkin.yaml with databases.`);
+    } catch (e) {
+      console.error(`Couldn't write updated pushkin.yaml`);
+      throw e;
+    }
+
+    return pushkinConfig;
+  } catch (error) {
+    console.error("recordDBs: Error or timeout occurred:", error.message);
+    throw error;
+  }
 };
 
 /**
@@ -2392,7 +2519,9 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
 
   let initializedMainDB;
   try {
+    console.log(`Creating Main database promise...`);
     initializedMainDB = initDB("Main", securityGroupID, projName, awsName, useIAM);
+    console.log(`Main database initialization started`);
   } catch (e) {
     console.error(`Failed to initialize main database`);
     throw e;
@@ -2400,13 +2529,24 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
 
   let initializedTransactionDB;
   try {
+    console.log(`Creating Transaction database promise...`);
     initializedTransactionDB = initDB("Transaction", securityGroupID, projName, awsName, useIAM);
+    console.log(`Transaction database initialization started`);
   } catch (e) {
     console.error(`Failed to initialize transaction database`);
     throw e;
   }
 
-  const completedDBs = recordDBs(Promise.all([initializedMainDB, initializedTransactionDB]));
+  let completedDBs;
+  try {
+    console.log("Starting database recording process...");
+    console.log("Awaiting database initialization completion...");
+    completedDBs = await recordDBs(Promise.all([initializedMainDB, initializedTransactionDB]));
+    console.log("Database recording completed successfully");
+  } catch (e) {
+    console.error("Failed to record databases:", e);
+    throw e;
+  }
 
   const expDirs = fs.readdirSync(path.join(process.cwd(), pushkinConfig.experimentsDir));
   let rebuiltWorkers;
@@ -2454,14 +2594,21 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
   publishedToDocker = await publishedToDocker; //need this to configure ECS
   let configuredECS;
   try {
-    configuredECS = setupECS(projName, awsName, useIAM, DHID, completedDBs, myCertificate);
+    configuredECS = setupECS(
+      projName,
+      awsName,
+      useIAM,
+      DHID,
+      Promise.resolve(completedDBs),
+      myCertificate,
+    );
   } catch (e) {
     throw e;
   }
 
   let setupTransactionsTable;
   try {
-    setupTransactionsTable = setupTransactionsWrapper(completedDBs);
+    setupTransactionsTable = setupTransactionsWrapper(Promise.resolve(completedDBs));
   } catch (e) {
     console.error(`Unable to run migrations for transactions DB`);
     throw e;
@@ -2469,7 +2616,7 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
 
   let ranMigrations;
   try {
-    ranMigrations = migrationsWrapper(completedDBs);
+    ranMigrations = migrationsWrapper(Promise.resolve(completedDBs));
   } catch (e) {
     throw e;
   }
@@ -2492,9 +2639,28 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
     pushkinConfig.info.rootDomain = cloudDomain;
   }
 
-  pushkinConfig = await completedDBs;
+  pushkinConfig = completedDBs;
 
-  await Promise.all([deployedFrontEnd, setupTransactionsTable, ranMigrations, apiForwarded]);
+  console.log("DEBUG: Waiting for final operations to complete...");
+
+  // Add individual promise logging to identify hanging operations
+  console.log("DEBUG: Waiting for deployedFrontEnd...");
+  const resolvedFrontEnd = await deployedFrontEnd;
+  console.log("DEBUG: deployedFrontEnd resolved");
+
+  console.log("DEBUG: Waiting for setupTransactionsTable...");
+  const resolvedTransactions = await setupTransactionsTable;
+  console.log("DEBUG: setupTransactionsTable resolved");
+
+  console.log("DEBUG: Waiting for ranMigrations...");
+  const resolvedMigrations = await ranMigrations;
+  console.log("DEBUG: ranMigrations resolved");
+
+  console.log("DEBUG: Waiting for apiForwarded...");
+  const resolvedAPI = await apiForwarded;
+  console.log("DEBUG: apiForwarded resolved");
+
+  console.log("DEBUG: All final operations completed");
 
   await fs.promises.writeFile(
     path.join(process.cwd(), "pushkin.yaml"),
@@ -2547,7 +2713,7 @@ export async function nameProject(projName) {
     throw e;
   }
 
-  if (pushkinConfig.productionDbs) {
+  if (pushkinConfig.productionDBs) {
     Object.keys(pushkinConfig.productionDBs).forEach((db) => {
       pushkinConfig.productionDBs[db].name = null;
       pushkinConfig.productionDBs[db].host = null;
@@ -3391,16 +3557,21 @@ const deleteCloudFront = async (useIAM, projName, killTag) => {
           const listTagsResponse = await cloudFrontClient.send(
             new ListTagsForResourceCommand({ Resource: d.ARN }),
           );
-          tempTagCheck = JSON.stringify({ Tags: listTagsResponse.Tags });
+          // CloudFront returns Tags.Items, not Tags directly
+          const tags = listTagsResponse.Tags?.Items || [];
+          tempTagCheck = JSON.stringify({ Tags: tags });
         } catch (e) {
           console.error(`Unable to get tags for cloudfront distribution ${d.ARN}`);
-          throw e;
+          tempTagCheck = JSON.stringify({ Tags: [] });
         }
-        JSON.parse(tempTagCheck).Tags.forEach((t) => {
-          if ((t.Key == "PUSHKIN") & (t.Value == projName)) {
-            distributions.push(d.Id);
-          }
-        });
+        const parsedTags = JSON.parse(tempTagCheck);
+        if (parsedTags.Tags && Array.isArray(parsedTags.Tags)) {
+          parsedTags.Tags.forEach((t) => {
+            if ((t.Key == "PUSHKIN") & (t.Value == projName)) {
+              distributions.push(d.Id);
+            }
+          });
+        }
       } else {
         //kill them all
         distributions.push(d.Id);
@@ -3976,11 +4147,20 @@ export const awsArmageddon = async (useIAM, killType) => {
     //Nothing
   }
 
+  // Delete CloudFront first, then OACs (CloudFront must be deleted before OACs can be deleted)
   let deletedCloudFront;
   try {
     deletedCloudFront = deleteCloudFront(useIAM, projName, killTag);
   } catch (e) {
     //Nothing
+  }
+
+  let deletedOACs;
+  try {
+    deletedOACs = deleteOACs(useIAM, deletedCloudFront, killTag);
+  } catch (e) {
+    console.warn("\x1b[31m%s\x1b[0m", `Unable to delete origin access controls`);
+    console.warn("\x1b[31m%s\x1b[0m", e); // Don't fail the whole process for this
   }
 
   let deletedResourceRecords;
@@ -3989,14 +4169,6 @@ export const awsArmageddon = async (useIAM, killType) => {
   } catch (e) {
     console.warn("\x1b[31m%s\x1b[0m", `Unable to delete resource records`);
     console.warn("\x1b[31m%s\x1b[0m", e); //don't fail on this
-  }
-
-  let deletedOACs;
-  try {
-    deletedOACs = deleteOACs(useIAM, deletedCloudFront, killTag);
-  } catch (e) {
-    console.warn("\x1b[31m%s\x1b[0m", `Unable to delete origin access controls`);
-    throw e;
   }
 
   let deletedTargetGroup;

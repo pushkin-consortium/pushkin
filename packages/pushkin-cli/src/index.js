@@ -259,12 +259,12 @@ const handleViewConfig = async (what) => {
   moveToProjectRoot();
   let x = await ((what == "site") | !what ?
     loadConfig(path.join(process.cwd(), "pushkin.yaml"))
-  : "");
+    : "");
   let exps = fs.readdirSync(path.join(process.cwd(), "experiments"));
   let y = await Promise.all(
     exps.map(async (exp) => {
       return (await ((what == exp) | !what)) ?
-          loadConfig(path.join(process.cwd(), "experiments", exp, "config.yaml"))
+        loadConfig(path.join(process.cwd(), "experiments", exp, "config.yaml"))
         : "";
     }),
   );
@@ -916,7 +916,7 @@ const handleAWSInit = async (force) => {
 
   try {
     execSync("aws --version");
-  } catch(e) {
+  } catch (e) {
     console.error("Please install the AWS CLI before continuing.");
     process.exit();
   }
@@ -979,9 +979,9 @@ const handleAWSInit = async (force) => {
     console.error("Problem getting AWS IAM username.\n", e);
     process.exit();
   }
-  
+
   try {
-    checkIAMUser(useIAM)
+    checkIAMUser(useIAM);
   } catch (e) {
     console.error(
       `The IAM user ${useIAM.iam} is not configured on the AWS CLI. For more information see https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html`,
@@ -1693,6 +1693,7 @@ async function main() {
       `For working with AWS. Commands include:\n 
       init: initialize an AWS deployment.\n 
       update: update an AWS deployment.\n
+      kill: delete AWS resources of current project.\n
       armageddon: delete AWS resources created by Pushkin.\n
       list: list AWS resources created by Pushkin (and possibly others).`,
     )
@@ -1718,6 +1719,14 @@ async function main() {
           try {
             //await handleAWSUpdate();
             console.warn("\x1b[31m%s\x1b[0m", `Not currently implemented. Sorry.`);
+          } catch (e) {
+            console.error(e);
+            process.exit();
+          }
+          break;
+        case "kill":
+          try {
+            await handleAWSKill();
           } catch (e) {
             console.error(e);
             process.exit();
