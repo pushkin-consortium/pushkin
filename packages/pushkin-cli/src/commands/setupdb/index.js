@@ -144,6 +144,7 @@ export async function runMigrations(dbsToExps, coreDBs, verbose) {
           port: dbInfo.port,
           password: dbInfo.pass,
           database: dbInfo.name,
+          ssl: (dbInfo.host.includes('.rds.amazonaws.com') || (dbInfo.host !== 'localhost' && !dbInfo.host.includes('localhost'))) ? { rejectUnauthorized: false } : false,
         },
       };
       let pg;
