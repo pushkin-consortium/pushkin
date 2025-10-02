@@ -1,11 +1,10 @@
 /**
- * AWS Infrastructure Configuration Templates
+ * AWS Infrastructure Config Templates
  *
- * This file exports configuration objects used by aws/index.js to provision AWS resources.
+ * This file exports config objects used by aws/index.js to provision AWS resources.
  * All "FUBAR" placeholder values are replaced during deployment.
  *
  * Architecture Overview:
- *
  * Front-end (Static):
  * CloudFront (CDN) → S3 bucket: serves static (built) React front-end
  * └─ Protected by WAF: Web Application Firewall
@@ -19,21 +18,15 @@
  * User → CloudFront → React app → ALB → API → RabbitMQ → Workers → RDS
  *
  * Network Mode: Host networking (all containers share localhost on same EC2 instance)
- * @see index.js for deployment logic that uses these configurations
+ * @see index.js for deployment logic that uses these configs
  */
 
 // FRONT-END DELIVERY
 /**
- * AWS WAF Access Control List configuration for CloudFront.
- * Protects Pushkin site from common web exploits and malicious traffic by controlling access to the
- * CloudFront distribution.
- *
- * Rulesets (all AWS-managed):
- * 1. AmazonIpReputationList - Blocks IP addresses known to engage in malicious activities
- * 2. CommonRuleSet - Protects against common exploitation of vulnerabilities, e.g. those described
- * in OWASP Top 10; recommended for all web applications
- * 3. KnownBadInputsRuleSet - Blocks requests with patterns known to be malicious
- * @type {object} AWS WAFv2 WebACL configuration
+ * For creating ACL that protects Pushkin site from common web exploits and malicious traffic by
+ * controlling access to the CloudFront distribution.
+ * @see https://docs.aws.amazon.com/waf/latest/developerguide/aws-managed-rule-groups-list.html
+ * @type {object} AWS WAFv2 WebACL config
  */
 export const pushkinACL = {
   Name: "pushkinACL",
@@ -106,13 +99,9 @@ export const pushkinACL = {
 };
 
 /**
- * S3 bucket policy that allows CloudFront to access objects in the S3 bucket.
+ * Allows CloudFront to access objects in the S3 bucket.
  * This implements the "Origin Access Control" (OAC) security model where CloudFront
  * is the only entity allowed to serve files from the S3 bucket, preventing direct public access.
- *
- * Values that get replaced during deployment:
- * - Resource → actual bucket ARN from project's awsResources.js
- * - Condition.StringEquals."AWS:SourceArn" → actual CloudFront distribution ARN from project's awsResources.js
  * @type {object} S3 Bucket Policy document (IAM policy format)
  */
 export const policy = {
@@ -126,10 +115,10 @@ export const policy = {
         Service: "cloudfront.amazonaws.com",
       },
       Action: "s3:GetObject",
-      Resource: "arn:aws:s3:::example.com/*",
+      Resource: "FUBAR", // → S3 bucket full ARN
       Condition: {
         StringEquals: {
-          "AWS:SourceArn": "cloudfront",
+          "AWS:SourceArn": "FUBAR", // → CloudFront distribution ARN
         },
       },
     },
@@ -137,15 +126,13 @@ export const policy = {
 };
 
 /**
- * CORS (Cross-Origin Resource Sharing) policy for S3 bucket.
- * Would allow web browsers to make cross-origin requests to the S3 bucket.
+ * Allow web browsers to make cross-origin requests to the S3 bucket.
  * NOTE: Currently unused.
- * Kept for potential future use.
- * @type {object} S3 PutBucketCors configuration
+ * @type {object} S3 PutBucketCors config
  */
 export const corsPolicy = {
   Bucket: "",
-  CORSConfiguration: {
+  CORSConfig: {
     CORSRules: [
       {
         AllowedHeaders: ["Authorization"],
@@ -158,17 +145,21 @@ export const corsPolicy = {
 };
 
 /**
- * Configuration for CloudFront (the CDN for delivering the Pushkin site front-end)
- *
- * Values that get replaced during deployment:
- * - CallerReference → gets replaced with name of the S3 bucket
- * - Aliases → aliases for root domain and www subdomain get added if using custom domain
- * - Origins.Items[0].Id → S3 bucket name (awsName)
- * - Origins.Items[0].DomainName → S3 bucket domain (awsName + .s3.amazonaws.com)
- * - Origins.Items[0].OriginAccessControlId → OAC ID
- * - DefaultCacheBehavior.TargetOriginId → S3 bucket name (awsName)
- * - WebACLId → WAF ACL ARN
- * @type {object} CloudFront DistributionWithTags configuration
+ * Config for OAC that allows only CloudFront to access the S3 bucket, preventing direct
+ * public access to the bucket.
+ * @type {object} CloudFront CreateOriginAccessControl config
+ */
+export const OriginAccessControl = {
+  Name: "pushkinOAC",
+  Description: "Origin Access Control for Pushkin S3 bucket - restricts to CloudFront-only access",
+  SigningProtocol: "sigv4",
+  SigningBehavior: "always",
+  OriginAccessControlOriginType: "s3",
+};
+
+/**
+ * Config for CloudFront (the CDN for delivering the Pushkin site front-end).
+ * @type {object} CloudFront DistributionWithTags config
  */
 export const cloudFront = {
   Tags: {
@@ -180,8 +171,9 @@ export const cloudFront = {
     ],
   },
   DistributionConfig: {
-    CallerReference: "string",
+    CallerReference: "FUBAR", // → name of S3 bucket
     Aliases: {
+      // → root domain, www subdomain
       Quantity: 0,
     },
     DefaultRootObject: "index.html",
@@ -189,8 +181,8 @@ export const cloudFront = {
       Quantity: 1,
       Items: [
         {
-          Id: "bucket",
-          DomainName: "URL",
+          Id: "FUBAR", // → name of S3 bucket
+          DomainName: "FUBAR", // → S3 bucket domain
           OriginPath: "",
           CustomHeaders: {
             Quantity: 0,
@@ -203,7 +195,7 @@ export const cloudFront = {
           OriginShield: {
             Enabled: false,
           },
-          OriginAccessControlId: "OACID",
+          OriginAccessControlId: "FUBAR",
         },
       ],
     },
@@ -211,7 +203,7 @@ export const cloudFront = {
       Quantity: 0,
     },
     DefaultCacheBehavior: {
-      TargetOriginId: "bucket",
+      TargetOriginId: "FUBAR", // → name of S3 bucket
       TrustedSigners: {
         Enabled: false,
         Quantity: 0,
@@ -267,7 +259,7 @@ export const cloudFront = {
         Quantity: 0,
       },
     },
-    WebACLId: "ACLID",
+    WebACLId: "FUBAR",
     HttpVersion: "http2and3",
     IsIPV6Enabled: true,
     ContinuousDeploymentPolicyId: "",
@@ -277,25 +269,8 @@ export const cloudFront = {
 
 // BACK-END CONTAINER CONFIGS
 /**
- * Docker Compose task definition for the Pushkin API server.
- * The API handles HTTP requests from the front-end and communicates with experiment workers via RabbitMQ.
- *
- * Role in architecture:
- * - Receives API calls from the front-end
- * - Sends experiment tasks to RabbitMQ queues
- * - Queries databases for experiment data
- *
- * Configuration:
- * - Image: User's DockerHub image (built from pushkin/api directory)
- * - Memory limit: 128 MB
- * - Port 80: HTTP traffic (behind Application Load Balancer)
- * - Logging: CloudWatch Logs with awslogs driver
- *
- * Values that get replaced during deployment:
- * - image → DockerHub ID must be prepended
- * - AMQP_ADDRESS → RabbitMQ connection string with credentials
- * - awslogs-group → "ecs/" + project name
- * - awslogs-stream-prefix → "ecs/api" + project name
+ * Config for Pushkin API server, which handles HTTP requests from the front-end and
+ * communicates with experiment workers via RabbitMQ.
  * @type {object} Docker Compose v2 service definition
  */
 export const apiTask = {
@@ -314,9 +289,9 @@ export const apiTask = {
       logging: {
         driver: "awslogs",
         options: {
-          "awslogs-group": "FUBAR",
+          "awslogs-group": "FUBAR", // → "ecs/" + project name
           "awslogs-region": "us-east-1",
-          "awslogs-stream-prefix": "FUBAR",
+          "awslogs-stream-prefix": "FUBAR", // → "ecs/api" + project name
         },
       },
     },
@@ -324,30 +299,8 @@ export const apiTask = {
 };
 
 /**
- * Docker Compose task definition for RabbitMQ message queue.
- * RabbitMQ handles asynchronous communication between the API and experiment workers.
- *
- * Role in architecture:
- * - API sends experiment tasks to RabbitMQ queues
- * - Workers listen to their experiment's queue for tasks
- * - Workers send results back to the API via RabbitMQ
- *
- * Configuration:
- * - Image: Official RabbitMQ 3.7 with management UI
- * - Memory limit: 512 MB
- * - Ports exposed:
- * - 5672: AMQP protocol (message queue)
- * - 4369: Erlang port mapper (clustering)
- * - 15672: Management UI
- * - 25672: Erlang distribution (clustering)
- * - Logging: CloudWatch Logs with awslogs driver
- *
- * Values that get replaced during deployment:
- * - RABBITMQ_DEFAULT_USER → Username for RabbitMQ
- * - RABBITMQ_DEFAULT_PASS → Password for RabbitMQ
- * - RABBITMQ_ERLANG_COOKIE → Secret for clustering (not used in single-node setup)
- * - awslogs-group → "ecs/" + project name
- * - awslogs-stream-prefix: "ecs/rabbit" + project name
+ * Config for RabbitMQ message queue, which handles asynchronous communication between the
+ * API and experiment workers.
  * @type {object} Docker Compose v2 service definition
  */
 export const rabbitTask = {
@@ -365,9 +318,9 @@ export const rabbitTask = {
       logging: {
         driver: "awslogs",
         options: {
-          "awslogs-group": "FUBAR",
+          "awslogs-group": "FUBAR", // → "ecs/" + project name
           "awslogs-region": "us-east-1",
-          "awslogs-stream-prefix": "FUBAR",
+          "awslogs-stream-prefix": "FUBAR", // → "ecs/rabbit" + project name
         },
       },
     },
@@ -375,26 +328,8 @@ export const rabbitTask = {
 };
 
 /**
- * Docker Compose task definition for experiment worker containers.
+ * Config for experiment worker containers.
  * Each experiment gets its own worker that processes experiment-specific tasks.
- *
- * Role in architecture:
- * - Listens to a dedicated RabbitMQ queue for this experiment
- * - Processes experiment stimuli generation, data validation, etc.
- * - Writes results back to the RDS database
- *
- * Configuration:
- * - Image: User's DockerHub image (built from experiments/{exp}/worker directory)
- * - Memory limit: 128 MB per worker
- * - No exposed ports (internal communication via RabbitMQ only)
- * - Logging: CloudWatch Logs with awslogs driver
- *
- * Values that get replaced during deployment:
- * - EXPERIMENT_NAME → Short name of the experiment (used as service name)
- * - image → DockerHub ID and experiment name must be filled in
- * - AMQP_ADDRESS → RabbitMQ connection string with credentials
- * - awslogs-group → CloudWatch log group name
- * - awslogs-stream-prefix → "ecs" + worker name + project name
  * @type {object} Docker Compose v2 service definition template
  */
 export const workerTask = {
@@ -410,9 +345,9 @@ export const workerTask = {
       logging: {
         driver: "awslogs",
         options: {
-          "awslogs-group": "FUBAR",
+          "awslogs-group": "FUBAR", // → "ecs/" + project name
           "awslogs-region": "us-east-1",
-          "awslogs-stream-prefix": "FUBAR",
+          "awslogs-stream-prefix": "FUBAR", // → "ecs/" + worker name + project name
         },
       },
     },
@@ -421,29 +356,8 @@ export const workerTask = {
 
 // BACK-END DB
 /**
- * CloudFront Origin Access Control (OAC) configuration for securing S3 bucket access.
- * This configuration is used to create an OAC that allows CloudFront to access the S3 bucket,
- * preventing direct public access to the bucket.
- * @type {object} CloudFront CreateOriginAccessControl configuration
- */
-export const OriginAccessControl = {
-  Name: "pushkinOAC",
-  Description: "Origin Access Control for Pushkin S3 bucket - restricts to CloudFront-only access",
-  SigningProtocol: "sigv4",
-  SigningBehavior: "always",
-  OriginAccessControlOriginType: "s3",
-};
-
-/**
- * Configuration for PostgreSQL RDS (Relational Database Service) for storing experiment data.
- *
- * Values that get replaced during deployment:
- * - DBName → project name + dbType
- * - DBInstanceIdentifier → DBName
- * - VpcSecurityGroupIds → 3 security groups: Balancer group, ECS group and RDS group
- * - MasterUserPassword: secure password generated during initDB()
- * - Tags → value set to project name
- * @type {object} RDS CreateDBInstance configuration
+ * Config for PostgreSQL RDS (Relational Database Service) for storing experiment data.
+ * @type {object} RDS CreateDBInstance config
  */
 export const dbConfig = {
   DBName: "FUBAR",
@@ -453,7 +367,7 @@ export const dbConfig = {
   Engine: "postgres",
   EngineVersion: "15",
   MasterUsername: "postgres",
-  VpcSecurityGroupIds: ["FUBAR"],
+  VpcSecurityGroupIds: ["FUBAR"], // → 3 security groups: Balancer group, ECS group and RDS group
   MasterUserPassword: "FUBAR",
   BackupRetentionPeriod: 7,
   Port: 5432,
@@ -471,7 +385,7 @@ export const dbConfig = {
   Tags: [
     {
       Key: "PUSHKIN",
-      Value: "",
+      Value: "", // → project name
     },
   ],
 };
@@ -480,54 +394,37 @@ export const dbConfig = {
 /**
  * Route53 DNS record change set template for creating/updating A records.
  * Creates an alias record that points the user's domain to the CloudFront distribution.
- *
- * Configuration:
- * - Action: UPSERT (creates if doesn't exist, updates if it does)
- * - Type: A record (maps domain name to IPv4 address)
- * - AliasTarget: Points to CloudFront (not a direct IP address)
- * - HostedZoneId: Z2FDTNDATAQYW2 is the hosted zone for all CloudFront distributions
- *
- * Values that get replaced during deployment:
- * - Name → User's domain name
- * - DNSName → CloudFront distribution domain name
- * @type {object} Route53 ChangeResourceRecordSets Change configuration
+ * @type {object} Route53 ChangeResourceRecordSets Change config
  */
 export const changeSet = {
   Action: "UPSERT",
   ResourceRecordSet: {
-    Name: "DNS domain name",
+    Name: "FUBAR", // → User's domain name
     Type: "A",
     Region: "us-east-1",
     SetIdentifier: "PushkinSet",
     AliasTarget: {
       HostedZoneId: "Z2FDTNDATAQYW2",
-      DNSName: "",
+      DNSName: "FUBAR", // → CloudFront distribution domain name
       EvaluateTargetHealth: false,
     },
   },
 };
 
-
 // MONITORING
 /**
- * CloudWatch alarm configuration for monitoring high usage of CPU of ECS cluster.
+ * CloudWatch alarm config for monitoring high usage of CPU of ECS cluster.
  * Criterion: >60% for at last 2 out of the last 3 mins (checked every 5 minutes)
- * Sends email alert.
  * NOTE: Does not trigger auto-scaling. This is instead handled by AWS Target Tracking.
- *
- * Values that get replaced during deployment:
- * - Dimensions[0].Value → ECS Cluster name
- * - AlarmName → project shortname + "CPUHigh"
- * - AlarmActions → SNS topic ARNs for notifications
- * @type {object} CloudWatch PutMetricAlarm configuration
+ * @type {object} CloudWatch PutMetricAlarm config
  */
 
 export const alarmCPUHigh = {
-  AlarmName: "cpuHigh",
+  AlarmName: "cpuHigh", // → project name gets prepended
   AlarmDescription: "CPU Usage is too high",
   ActionsEnabled: true,
   OKActions: [""],
-  AlarmActions: [""],
+  AlarmActions: ["FUBAR"], // → SNS topic ARN
   InsufficientDataActions: [""],
   MetricName: "CPUUtilization",
   Namespace: "AWS/ECS",
@@ -549,23 +446,17 @@ export const alarmCPUHigh = {
 };
 
 /**
- * CloudWatch alarm configuration for monitoring high usage of RAM of ECS cluster.
+ * CloudWatch alarm config for monitoring high usage of RAM of ECS cluster.
  * Criterion: >60% for at least 2 of the last 3 mins (checked every 5 minutes)
- * Sends email alert.
  * NOTE: Does not trigger auto-scaling. This is instead handled by AWS Target Tracking.
- *
- * Values that get replaced during deployment:
- * - Dimensions[0].Value → name of the ECS Cluster
- * - AlarmName → project shortname + "CPUHigh"
- * - AlarmActions → SNS topic ARNs for notifications
- * @type {object} CloudWatch PutMetricAlarm configuration
+ * @type {object} CloudWatch PutMetricAlarm config
  */
 export const alarmRAMHigh = {
-  AlarmName: "alarmRAMHigh",
+  AlarmName: "alarmRAMHigh", // → project name gets prepended
   AlarmDescription: "Memory Usage is too high",
   ActionsEnabled: true,
   OKActions: [""],
-  AlarmActions: [""],
+  AlarmActions: ["FUBAR"], // → SNS topic ARN
   InsufficientDataActions: [""],
   MetricName: "MemoryUtilization",
   Namespace: "AWS/ECS",
@@ -587,13 +478,9 @@ export const alarmRAMHigh = {
 };
 
 /**
- * CloudWatch alarm configuration for monitoring high write latency of RDS instance.
+ * CloudWatch alarm config for monitoring high write latency of RDS instance.
  * Criterion: >500ms for 2 consecutive mins (checked every 5 minutes)
- * Sends email alert.
  * NOTE: Does not trigger auto-scaling.
- *
- * Values that get replaced during deployment:
- * - Dimensions[0].Value → DBInstanceIdentifier (same as DBName, project shortname + dbType)
  */
 export const alarmRDSWriteLatencyHigh = {
   AlarmName: "alarmRDSWriteLatencyHigh",
@@ -623,17 +510,12 @@ export const alarmRDSWriteLatencyHigh = {
 
 // AUTO-SCALING (currently unused)
 /**
- * Auto Scaling Launch Configuration for ECS cluster.
+ * Auto Scaling Launch Config for ECS cluster.
  * Would allow automatic scaling of ECS instances based on load.
- *
- * Values that get replaced during deployment:
- * - LaunchConfigurationName → generated launch config name with project shortname
- * - VPCZoneIdentifier → comma-separated list of subnet IDs in the VPC
- * - ServiceLinkedRoleARN → ARN of the AWS auto-scaling service role
- * @type {object} AutoScaling CreateLaunchConfiguration configuration
+ * @type {object} AutoScaling CreateLaunchConfiguration config
  */
 export const launchGroup = {
-  LaunchConfigurationName: "FUBAR",
+  LaunchConfigName: "FUBAR",
   MinSize: 2,
   MaxSize: 10,
   DesiredCapacity: 2,
