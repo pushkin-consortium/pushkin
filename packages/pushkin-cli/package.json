@@ -37,6 +37,7 @@
     "@aws-sdk/client-ec2": "^3.893.0",
     "@aws-sdk/client-ecs": "^3.893.0",
     "@aws-sdk/client-elastic-load-balancing-v2": "^3.893.0",
+    "@aws-sdk/client-iam": "^3.901.0",
     "@aws-sdk/client-rds": "^3.451.0",
     "@aws-sdk/client-route-53": "^3.552.0",
     "@aws-sdk/client-route-53-domains": "^3.552.0",

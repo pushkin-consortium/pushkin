@@ -17,7 +17,7 @@ import {
   changeSet,
   alarmRAMHigh,
   alarmCPUHigh,
-  alarmRDSHigh,
+  alarmRDSWriteLatencyHigh,
   scalingPolicyTargets,
 } from "./awsConfigs.js";
 import { runMigrations, getMigrations } from "../setupdb/index.js";
@@ -89,7 +89,17 @@ import {
   ListServicesCommand,
   DeleteServiceCommand,
   DeleteClusterCommand,
+  RegisterTaskDefinitionCommand,
+  CreateServiceCommand,
+  DescribeServicesCommand,
+  UpdateServiceCommand,
 } from "@aws-sdk/client-ecs";
+import {
+  IAMClient,
+  GetRoleCommand,
+  CreateRoleCommand,
+  AttachRolePolicyCommand,
+} from "@aws-sdk/client-iam";
 import {
   EC2Client,
   DescribeKeyPairsCommand,
@@ -210,6 +220,18 @@ const createECSClient = (useIAM) => {
  */
 const createEC2Client = (useIAM) => {
   return new EC2Client({
+    region: myRegion,
+    credentials: fromIni({ profile: useIAM.iam }),
+  });
+};
+
+/**
+ * Helper function to create IAM client
+ * @param {*} useIAM - The IAM user to use
+ * @returns {IAMClient} - The IAM client
+ */
+const createIAMClient = (useIAM) => {
+  return new IAMClient({
     region: myRegion,
     credentials: fromIni({ profile: useIAM.iam }),
   });
@@ -461,21 +483,34 @@ const makeRecordSet = async (domainName, projName, useIAM, theCloud) => {
   }
 
   if (existingRecords.length > 0) {
-    console.log(`Deleting existing resource record sets for ${domainName}`);
-    const changes = existingRecords.map((record) => ({
-      Action: "DELETE",
-      ResourceRecordSet: record,
-    }));
+    // Filter out NS and SOA records - these are required and cannot be deleted
+    const deletableRecords = existingRecords.filter(
+      (record) => record.Type !== "NS" && record.Type !== "SOA",
+    );
 
-    try {
-      await route53.send(
-        new ChangeResourceRecordSetsCommand({
-          HostedZoneId: zoneID,
-          ChangeBatch: { Changes: changes },
-        }),
+    if (deletableRecords.length > 0) {
+      console.log(
+        `Deleting ${deletableRecords.length} existing resource record sets for ${domainName}`,
       );
-    } catch (e) {
-      console.error(`Unable to delete resource record sets for ${domainName}: ${e}`);
+      const changes = deletableRecords.map((record) => ({
+        Action: "DELETE",
+        ResourceRecordSet: record,
+      }));
+
+      try {
+        await route53.send(
+          new ChangeResourceRecordSetsCommand({
+            HostedZoneId: zoneID,
+            ChangeBatch: { Changes: changes },
+          }),
+        );
+      } catch (e) {
+        console.error(`Unable to delete resource record sets for ${domainName}: ${e}`);
+      }
+    } else {
+      console.log(
+        `No deletable resource record sets found for ${domainName} (only NS and SOA records exist)`,
+      );
     }
   }
 
@@ -752,22 +787,6 @@ const deployFrontEnd = async (
       throw e;
     }
 
-    console.log("Setting bucket permissions");
-    policy.Statement[0].Resource = "arn:aws:s3:::".concat(awsName).concat("/*");
-    policy.Statement[0].Condition.StringEquals["AWS:SourceArn"] = theCloud.ARN;
-    try {
-      const s3Client = createS3Client(useIAM);
-      await s3Client.send(
-        new PutBucketPolicyCommand({
-          Bucket: awsName,
-          Policy: JSON.stringify(policy),
-        }),
-      );
-    } catch (e) {
-      console.error("Problem setting bucket permissions for front-end");
-      throw e;
-    }
-
     console.log(`Updating awsResources with cloudfront info`);
     try {
       let awsResources = jsYaml.load(
@@ -785,6 +804,24 @@ const deployFrontEnd = async (
     }
   }
 
+  // Always set bucket permissions (whether distribution is new or existing)
+  console.log("Setting bucket permissions");
+  policy.Statement[0].Resource = "arn:aws:s3:::".concat(awsName).concat("/*");
+  policy.Statement[0].Condition.StringEquals["AWS:SourceArn"] = theCloud.ARN;
+  try {
+    const s3Client = createS3Client(useIAM);
+    await s3Client.send(
+      new PutBucketPolicyCommand({
+        Bucket: awsName,
+        Policy: JSON.stringify(policy),
+      }),
+    );
+    console.log("Bucket permissions set successfully");
+  } catch (e) {
+    console.error("Problem setting bucket permissions for front-end");
+    throw e;
+  }
+
   if (domainName != "default") {
     try {
       makeRecordSet(domainName, projName, useIAM, theCloud);
@@ -797,7 +834,64 @@ const deployFrontEnd = async (
   await syncMe;
   console.log(`Finished syncing files`);
 
+  // Wait for CloudFront distribution to be fully deployed
+  await waitForCloudFrontDeployment(theCloud.Id, useIAM);
+
   return theCloud.DomainName;
+};
+
+/**
+ * Wait for CloudFront distribution to be fully deployed
+ * @param {string} distributionId - The CloudFront distribution ID
+ * @param {object} useIAM - The IAM profile to use
+ * @returns {Promise<void>}
+ */
+const waitForCloudFrontDeployment = async (distributionId, useIAM) => {
+  const cloudFrontClient = new CloudFrontClient({
+    region: myRegion,
+    credentials: fromIni({ profile: useIAM.iam }),
+  });
+
+  console.log(`\nWaiting for CloudFront distribution to be fully deployed...`);
+  console.log(`This can take 5-15 minutes. Checking status every 30 seconds.`);
+
+  let deployed = false;
+  let checkCount = 0;
+  const maxChecks = 40; // 40 checks * 30 seconds = 20 minutes max
+
+  while (!deployed && checkCount < maxChecks) {
+    try {
+      const response = await cloudFrontClient.send(
+        new GetDistributionCommand({ Id: distributionId }),
+      );
+
+      const status = response.Distribution.Status;
+      checkCount++;
+
+      if (status === "Deployed") {
+        deployed = true;
+        console.log(`\n✓ CloudFront distribution is now fully deployed and ready!`);
+      } else {
+        process.stdout.write(`.`); // Show progress without newline
+        await new Promise((resolve) => setTimeout(resolve, 30000)); // Wait 30 seconds
+      }
+    } catch (error) {
+      console.error(`\nError checking CloudFront status: ${error.message}`);
+      throw error;
+    }
+  }
+
+  if (!deployed) {
+    console.log(
+      `\n⚠ CloudFront distribution is still deploying after ${(maxChecks * 30) / 60} minutes.`,
+    );
+    console.log(`Your site may not be immediately accessible. Check the status with:`);
+    console.log(
+      `aws cloudfront get-distribution --id ${distributionId} --query 'Distribution.Status'`,
+    );
+  }
+
+  console.log(); // Add newline after progress dots
 };
 
 /**
@@ -1030,7 +1124,7 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
     dbPassword = generateSecurePassword(); //Pick random password for database
     let myDBConfig = JSON.parse(JSON.stringify(dbConfig));
     myDBConfig.DBName = dbName;
-    myDBConfig.DBInstanceIdentifier = dbName;
+    myDBConfig.DBInstanceIdentifier = dbName.toLowerCase();
     myDBConfig.VpcSecurityGroupIds = [securityGroupID];
     myDBConfig.MasterUserPassword = dbPassword;
     myDBConfig.Tags = [{ Key: "PUSHKIN", Value: projName }];
@@ -1204,6 +1298,65 @@ const getDBInfo = async () => {
 };
 
 /**
+ * Ensure ECS Task Execution Role exists, creating it if necessary
+ * @param {object} useIAM - IAM profile configuration
+ * @returns {Promise<string>} The ARN of the execution role
+ */
+const ensureECSTaskExecutionRole = async (useIAM) => {
+  const iamClient = createIAMClient(useIAM);
+  const roleName = "ecsTaskExecutionRole";
+
+  try {
+    // Try to get the existing role
+    const getRoleCommand = new GetRoleCommand({ RoleName: roleName });
+    const roleResponse = await iamClient.send(getRoleCommand);
+    console.log(`ECS Task Execution Role already exists: ${roleResponse.Role.Arn}`);
+    return roleResponse.Role.Arn;
+  } catch (error) {
+    if (error.name === "NoSuchEntity" || error.name === "NoSuchEntityException") {
+      // Role doesn't exist, create it
+      console.log(`Creating ECS Task Execution Role: ${roleName}`);
+
+      const assumeRolePolicyDocument = {
+        Version: "2012-10-17",
+        Statement: [
+          {
+            Effect: "Allow",
+            Principal: {
+              Service: "ecs-tasks.amazonaws.com",
+            },
+            Action: "sts:AssumeRole",
+          },
+        ],
+      };
+
+      const createRoleCommand = new CreateRoleCommand({
+        RoleName: roleName,
+        AssumeRolePolicyDocument: JSON.stringify(assumeRolePolicyDocument),
+        Description: "Allows ECS tasks to call AWS services on your behalf",
+      });
+
+      const createRoleResponse = await iamClient.send(createRoleCommand);
+      const roleArn = createRoleResponse.Role.Arn;
+
+      // Attach the managed policy for ECS task execution
+      const attachPolicyCommand = new AttachRolePolicyCommand({
+        RoleName: roleName,
+        PolicyArn: "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
+      });
+
+      await iamClient.send(attachPolicyCommand);
+      console.log(`Created and configured ECS Task Execution Role: ${roleArn}`);
+
+      return roleArn;
+    } else {
+      console.error(`Error checking for ECS Task Execution Role:`, error);
+      throw error;
+    }
+  }
+};
+
+/**
  * Create ECS tasks for the API and workers
  * @param {string} projName - The name of the project
  * @param {boolean} useIAM - Whether to use IAM roles
@@ -1211,9 +1364,20 @@ const getDBInfo = async () => {
  * @param {Array} completedDBs - The list of completed databases
  * @param {string} ECSName - The name of the ECS cluster
  * @param {string} targGroupARN - The target group ARN
+ * @param {Array<string>} subnets - Array of subnet IDs for Fargate tasks
+ * @param {string} ecsSecurityGroupID - Security group ID for Fargate tasks
  * @returns {Promise} - A promise that resolves when the ECS tasks are created
  */
-const ecsTaskCreator = async (projName, useIAM, DHID, completedDBs, ECSName, targGroupARN) => {
+const ecsTaskCreator = async (
+  projName,
+  useIAM,
+  DHID,
+  completedDBs,
+  ECSName,
+  targGroupARN,
+  subnets,
+  ecsSecurityGroupID,
+) => {
   try {
     if (fs.existsSync(path.join(process.cwd(), "ECStasks"))) {
       //nothing
@@ -1226,111 +1390,338 @@ const ecsTaskCreator = async (projName, useIAM, DHID, completedDBs, ECSName, tar
     throw e;
   }
 
-  /**
-   * Create and deploy an ECS task using ecs-cli compose
-   * @param {string} yaml - The name of the YAML file to create
-   * @param {object} task - The ECS task definition
-   * @param {string} name - The name of the ECS service
-   * @param {number} port - The port for the ECS service
-   * @param {string} targGroupARN - The target group ARN for the ECS service
-   * @returns {Promise} - A promise that resolves when the ECS task is created
-   */
-  const ecsCompose = async (yaml, task, name, port = 0, targGroupARN = false) => {
-    /**
-     * Wait for the ECS cluster to have registered container instances
-     * @returns {Promise} - A promise that resolves when the ECS cluster is ready
-     */
-    let waitAttempts = 0;
-    const maxWaitAttempts = 30; // Wait up to 5 minutes (30 * 10 seconds)
-    const wait = async () => {
-      waitAttempts++;
-      let x;
+  // Ensure ECS Task Execution Role exists and get its ARN
+  const executionRoleArn = await ensureECSTaskExecutionRole(useIAM);
 
-      try {
-        console.log(
-          `Checking ECS cluster status for: "${ECSName}" (attempt ${waitAttempts}/${maxWaitAttempts})`,
-        );
-        const ecsClient = createECSClient(useIAM);
-        const describeClustersResponse = await ecsClient.send(
-          new DescribeClustersCommand({
-            clusters: [ECSName],
+  /**
+   * Convert Docker Compose YAML to ECS Task Definition format
+   * @param {object} composeService - Single service from docker-compose YAML
+   * @param {string} family - Task definition family name
+   * @param {string} serviceName - Name of the service
+   * @param {string} executionRoleArn - ARN of the ECS task execution role
+   * @returns {object} ECS Task Definition parameters
+   */
+  const convertComposeToTaskDef = (composeService, family, serviceName, executionRoleArn) => {
+    // Parse memory limit (e.g., "512m" → 512)
+    const parseMemory = (mem) => {
+      if (!mem) return 512;
+      if (typeof mem === "number") return mem;
+      return parseInt(mem.toString().replace(/[^0-9]/g, ""));
+    };
+
+    // Fargate has specific CPU/Memory combinations
+    // Memory options: 512, 1024, 2048, 3072, 4096, etc.
+    const containerMemory = parseMemory(composeService.mem_limit);
+    const taskMemory = Math.max(512, containerMemory); // Fargate minimum is 512
+
+    // CPU must match memory (0.25 vCPU = 256 units)
+    // For 512 MB: 0.25 vCPU (256)
+    // For 1024 MB: 0.5 vCPU (512) or 1 vCPU (1024)
+    // For 2048 MB: 1 vCPU (1024) or 2 vCPU (2048)
+    const taskCPU =
+      taskMemory <= 512 ? "256"
+      : taskMemory <= 1024 ? "512"
+      : "1024";
+
+    // Parse port mappings - Fargate doesn't use hostPort in awsvpc mode
+    const portMappings = [];
+    if (composeService.ports) {
+      composeService.ports.forEach((portDef) => {
+        const [hostPort, containerPort] = portDef.split(":").map((p) => parseInt(p));
+        portMappings.push({
+          containerPort: containerPort || hostPort,
+          protocol: "tcp",
+          // Note: hostPort is not used in awsvpc network mode (Fargate requirement)
+        });
+      });
+    }
+
+    // Convert environment variables
+    const environment = [];
+    if (composeService.environment) {
+      Object.entries(composeService.environment).forEach(([name, value]) => {
+        environment.push({ name, value: String(value) });
+      });
+    }
+
+    // Build container definition
+    const containerDefinition = {
+      name: serviceName,
+      image: composeService.image,
+      memory: containerMemory,
+      essential: true,
+      portMappings,
+      environment,
+    };
+
+    // Add logging if specified
+    if (composeService.logging) {
+      containerDefinition.logConfiguration = {
+        logDriver: composeService.logging.driver,
+        options: composeService.logging.options,
+      };
+    }
+
+    return {
+      family,
+      containerDefinitions: [containerDefinition],
+      requiresCompatibilities: ["FARGATE"], // Using Fargate instead of EC2
+      networkMode: "awsvpc", // Required for Fargate
+      cpu: taskCPU, // Task-level CPU (required for Fargate)
+      memory: taskMemory.toString(), // Task-level memory (required for Fargate)
+      executionRoleArn, // Required for Fargate to pull images and write logs
+    };
+  };
+
+  /**
+   * Register an ECS task definition
+   * @param {object} taskDefParams - Task definition parameters
+   * @param {string} useIAM - IAM profile to use
+   * @returns {Promise<string>} Task definition ARN
+   */
+  const registerECSTaskDefinition = async (taskDefParams, useIAM) => {
+    const ecsClient = createECSClient(useIAM);
+
+    try {
+      const command = new RegisterTaskDefinitionCommand(taskDefParams);
+      const response = await ecsClient.send(command);
+      console.log(
+        `Registered task definition: ${response.taskDefinition.family}:${response.taskDefinition.revision}`,
+      );
+      return response.taskDefinition.taskDefinitionArn;
+    } catch (error) {
+      console.error(`Failed to register task definition ${taskDefParams.family}:`, error.message);
+      throw error;
+    }
+  };
+
+  /**
+   * Create an ECS service
+   * @param {string} serviceName - Name of the service
+   * @param {string} taskDefArn - Task definition ARN
+   * @param {string} clusterName - ECS cluster name
+   * @param {string} targetGroupArn - Optional target group ARN for load balancing
+   * @param {string} containerName - Container name for load balancer
+   * @param {number} containerPort - Container port for load balancer
+   * @param {Array<string>} subnets - Subnet IDs for Fargate tasks
+   * @param {string} securityGroup - Security group ID for Fargate tasks
+   * @param {string} useIAM - IAM profile to use
+   * @returns {Promise<object>} Service creation response
+   */
+  const createECSService = async (
+    serviceName,
+    taskDefArn,
+    clusterName,
+    targetGroupArn = null,
+    containerName = null,
+    containerPort = null,
+    subnets = [],
+    securityGroup = null,
+    useIAM,
+  ) => {
+    const ecsClient = createECSClient(useIAM);
+
+    // First check if service already exists
+    try {
+      const describeResponse = await ecsClient.send(
+        new DescribeServicesCommand({
+          cluster: clusterName,
+          services: [serviceName],
+        }),
+      );
+
+      const existingService = describeResponse.services?.[0];
+      if (existingService && existingService.status !== "INACTIVE") {
+        console.log(`Service ${serviceName} already exists, updating with new task definition...`);
+
+        // Update existing service with new task definition
+        const updateResponse = await ecsClient.send(
+          new UpdateServiceCommand({
+            cluster: clusterName,
+            service: serviceName,
+            taskDefinition: taskDefArn,
+            forceNewDeployment: true,
           }),
         );
 
-        if (describeClustersResponse.clusters && describeClustersResponse.clusters.length > 0) {
-          x = describeClustersResponse.clusters[0].registeredContainerInstancesCount;
-          console.log(`ECS cluster has ${x} registered container instances`);
-        } else {
-          console.log(`ECS cluster "${ECSName}" not found or has no clusters`);
-          x = 0;
-        }
-      } catch (err) {
-        console.error(`Error checking ECS cluster "${ECSName}":`, err.message);
-        if (err.name === "SerializationException") {
-          console.error("SerializationException details:", {
-            clustername: ECSName,
-            type: typeof ECSName,
-            length: ECSName ? ECSName.length : "undefined",
-          });
-        }
-        x = 0;
+        console.log(`Updated ECS service: ${serviceName}`);
+        return updateResponse.service;
+      }
+    } catch (error) {
+      // Service doesn't exist or other error - proceed to create
+      if (error.name !== "ServiceNotFoundException") {
+        console.log(`Note: Could not check for existing service: ${error.message}`);
+      }
+    }
+
+    // Service doesn't exist, create it
+    const serviceParams = {
+      cluster: clusterName,
+      serviceName,
+      taskDefinition: taskDefArn,
+      launchType: "FARGATE", // Using Fargate launch type
+      desiredCount: 1, // FARGATE uses REPLICA scheduling with desired count
+      deploymentConfiguration: {
+        maximumPercent: 200,
+        minimumHealthyPercent: 100,
+      },
+      // Fargate requires awsvpc network configuration
+      networkConfiguration: {
+        awsvpcConfiguration: {
+          subnets: subnets,
+          securityGroups: securityGroup ? [securityGroup] : [],
+          assignPublicIp: "ENABLED", // Required for pulling images from DockerHub
+        },
+      },
+    };
+
+    // Add load balancer configuration if provided
+    if (targetGroupArn && containerName && containerPort) {
+      serviceParams.loadBalancers = [
+        {
+          targetGroupArn,
+          containerName,
+          containerPort,
+        },
+      ];
+    }
+
+    try {
+      const command = new CreateServiceCommand(serviceParams);
+      const response = await ecsClient.send(command);
+      console.log(`Created ECS service: ${serviceName}`);
+      return response.service;
+    } catch (error) {
+      console.error(`\n\n========== ECS SERVICE CREATION ERROR ==========`);
+      console.error(`Service: ${serviceName}`);
+      console.error(`Error: ${error.name} - ${error.message}`);
+      if (error.$metadata) {
+        console.error(`HTTP Status: ${error.$metadata.httpStatusCode}`);
+      }
+      console.error(`\nService Parameters:`);
+      console.error(JSON.stringify(serviceParams, null, 2));
+      console.error(`================================================\n\n`);
+
+      // Also write to a debug file
+      const debugPath = path.join(process.cwd(), "ecs-service-error.json");
+      try {
+        fs.writeFileSync(
+          debugPath,
+          JSON.stringify(
+            {
+              serviceName,
+              error: {
+                name: error.name,
+                message: error.message,
+                metadata: error.$metadata,
+              },
+              serviceParams,
+            },
+            null,
+            2,
+          ),
+        );
+        console.error(`Debug info written to: ${debugPath}`);
+      } catch (e) {
+        // Ignore write errors
       }
 
-      // Skip container instance requirement for now (transition to Fargate/modern deployment)
-      if (x > 0 || waitAttempts >= maxWaitAttempts) {
-        if (waitAttempts >= maxWaitAttempts) {
-          console.warn(
-            `Timed out waiting for EC2 container instances. Proceeding with deployment (this may indicate a transition to Fargate is needed).`,
-          );
+      throw error;
+    }
+  };
+
+  /**
+   * Create and deploy an ECS task using AWS SDK (replaces ecs-cli compose)
+   * @param {string} yaml - The name of the YAML file to create
+   * @param {object} task - The Docker Compose task definition
+   * @param {string} name - The name of the ECS service
+   * @param {number} port - The port for the ECS service
+   * @param {string} targGroupARN - The target group ARN for the ECS service
+   * @param {Array<string>} subnetsParam - Array of subnet IDs for Fargate tasks
+   * @param {string} ecsSecurityGroupIDParam - Security group ID for Fargate tasks
+   * @returns {Promise} - A promise that resolves when the ECS task is created
+   */
+  const ecsCompose = async (
+    yaml,
+    task,
+    name,
+    port = 0,
+    targGroupARN = false,
+    subnetsParam,
+    ecsSecurityGroupIDParam,
+  ) => {
+    let waitAttempts = 0;
+    const maxWaitAttempts = 30; // Wait up to 5 minutes (30 * 10 seconds)
+
+    /**
+     * Wait for the ECS cluster to be ready, then deploy the service
+     * For Fargate, cluster just needs to exist (no EC2 instances needed)
+     * @returns {Promise} - A promise that resolves when deployment completes
+     */
+    const waitForCluster = async () => {
+      try {
+        console.log(`Verifying ECS cluster exists: "${ECSName}"`);
+        const ecsClient = createECSClient(useIAM);
+        const response = await ecsClient.send(new DescribeClustersCommand({ clusters: [ECSName] }));
+
+        const cluster = response.clusters?.[0];
+        if (!cluster) {
+          throw new Error(`Cluster ${ECSName} not found`);
         }
-        try {
-          console.log(`Writing ECS task list ${name}`);
-          await fs.promises.writeFile(
-            path.join(process.cwd(), "ECStasks", yaml),
-            jsYaml.dump(task),
-            "utf8",
-          );
-        } catch (e) {
-          console.error(`Unable to write ${yaml}`);
-          console.error(`Had hoped to write :\n`, task);
-          throw e;
-        }
-        let compose;
-        try {
-          console.log(`Running ECS compose for ${name}`);
-          let balancerCommand =
-            targGroupARN ?
-              `--target-groups "targetGroupArn=${targGroupARN},containerName=${name},containerPort=${port}"`
-              : "";
-          let composeCommand =
-            `ecs-cli compose -f ${yaml} -p ${yaml.split(".")[0]} service up --ecs-profile ${useIAM} --cluster-config ${ECSName} --scheduling-strategy DAEMON `.concat(
-              balancerCommand,
-            );
-          compose = exec(composeCommand, { cwd: path.join(process.cwd(), "ECStasks") });
-        } catch (e) {
-          console.error(`Failed to run ecs-cli compose service on ${yaml}`);
-          throw e;
-        }
-        return compose;
-      } else {
-        console.log("Waiting for ECS to spool up...");
-        // Add a timeout to prevent infinite waiting - return a promise that resolves after delay
-        return new Promise((resolve) => {
-          setTimeout(() => {
-            wait()
-              .then(resolve)
-              .catch((err) => {
-                console.error(err);
-                resolve(); // Ensure we resolve even on error to prevent hanging
-              });
-          }, 10000);
-        });
+
+        console.log(`ECS cluster ready. Deploying Fargate service...`);
+        // For Fargate, we don't need to wait for EC2 instances - deploy immediately
+        return await deployService();
+      } catch (error) {
+        console.error(`Error checking cluster: ${error.message}`);
+        throw error;
       }
     };
 
-    console.log(`Updated awsResources with ECS information`);
+    /**
+     * Deploy the ECS service using AWS SDK
+     * @returns {Promise} - A promise that resolves when deployment completes
+     */
+    const deployService = async () => {
+      // 1. Write YAML file (for debugging/reference)
+      const yamlPath = path.join(process.cwd(), "ECStasks", yaml);
+      await fs.promises.writeFile(yamlPath, jsYaml.dump(task), "utf8");
+      console.log(`Wrote ECS task definition to ${yaml}`);
+
+      // 2. Convert Docker Compose to ECS Task Definition
+      const serviceName = Object.keys(task.services)[0];
+      const composeService = task.services[serviceName];
+      const taskDefParams = convertComposeToTaskDef(
+        composeService,
+        name,
+        serviceName,
+        executionRoleArn,
+      );
+
+      // 3. Register Task Definition
+      console.log(`Registering task definition for ${name}`);
+      const taskDefArn = await registerECSTaskDefinition(taskDefParams, useIAM);
+
+      // 4. Create Service
+      console.log(`Creating ECS service for ${name}`);
+      await createECSService(
+        name,
+        taskDefArn,
+        ECSName,
+        targGroupARN,
+        serviceName,
+        port,
+        subnetsParam, // Pass subnets from parameters
+        ecsSecurityGroupIDParam, // Pass security group from parameters
+        useIAM,
+      );
+
+      console.log(`Successfully deployed ${name}`);
+    };
+
+    // Update awsResources
     try {
-      let awsResources = jsYaml.load(
+      const awsResources = jsYaml.load(
         fs.readFileSync(path.join(process.cwd(), "awsResources.js"), "utf8"),
       );
       awsResources.ECSName = ECSName;
@@ -1339,13 +1730,13 @@ const ecsTaskCreator = async (projName, useIAM, DHID, completedDBs, ECSName, tar
         jsYaml.dump(awsResources),
         "utf8",
       );
-    } catch (e) {
-      console.error(`Unable to update awsResources.js`);
-      console.error(e);
+      console.log("Updated awsResources with ECS information");
+    } catch (error) {
+      console.error("Unable to update awsResources.js:", error);
     }
 
     console.log("Waiting for ECS cluster to start...");
-    return await wait();
+    return await waitForCluster();
   };
 
   const rabbitPW = Math.random().toString();
@@ -1395,8 +1786,24 @@ const ecsTaskCreator = async (projName, useIAM, DHID, completedDBs, ECSName, tar
   let composedRabbit;
   let composedAPI;
   let composedWorkers;
-  composedRabbit = ecsCompose("rabbitTask.yml", myRabbitTask, "message-queue");
-  composedRabbit = ecsCompose("apiTask.yml", apiTask, "api", 80, targGroupARN);
+  composedRabbit = ecsCompose(
+    "rabbitTask.yml",
+    myRabbitTask,
+    "message-queue",
+    0,
+    false,
+    subnets,
+    ecsSecurityGroupID,
+  );
+  composedAPI = ecsCompose(
+    "apiTask.yml",
+    apiTask,
+    "api",
+    80,
+    targGroupARN,
+    subnets,
+    ecsSecurityGroupID,
+  );
   composedWorkers = workerList.map((w) => {
     const yaml = w.concat(".yml");
     const name = w;
@@ -1426,7 +1833,7 @@ const ecsTaskCreator = async (projName, useIAM, DHID, completedDBs, ECSName, tar
       TRANS_PASS: dbInfoByTask["Transaction"].password,
       TRANS_URL: dbInfoByTask["Transaction"].endpoint,
     };
-    return ecsCompose(yaml, task, name);
+    return ecsCompose(yaml, task, name, 0, false, subnets, ecsSecurityGroupID);
   });
 
   return Promise.all([composedRabbit, composedAPI, composedWorkers]);
@@ -1792,32 +2199,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
   }
 
   const ECSName = projName.replace(/[^A-Za-z0-9]/g, "");
-  const setProfile =
-    `ecs-cli configure profile --profile-name ${useIAM} --access-key ${aws_access_key_id} --secret-key ${aws_secret_access_key}`.replace(
-      /(\r\n|\n|\r)/gm,
-      " ",
-    );
-  let profileSet;
-  try {
-    //not necessary if already set up, but doesn't seem to hurt anything
-    profileSet = await exec(setProfile);
-  } catch (e) {
-    console.error(`Unable to set up profile ${useIAM} for ECS CLI.`);
-    throw e;
-  }
-
-  const nameCluster = `ecs-cli configure --region us-east-1 --cluster ${ECSName} --default-launch-type EC2 --config-name ${ECSName}`;
-  const setDefaultCluster = `ecs-cli configure default --config-name ${ECSName}`;
-  let clusterResults;
-  try {
-    //not necessary if already set up, but doesn't seem to hurt anything
-    clusterResults = await exec(nameCluster);
-    clusterResults = await exec(setDefaultCluster);
-  } catch (e) {
-    console.error(`Unable to set default cluster ${ECSName} for ECS CLI.`);
-    throw e;
-  }
-  console.log(`ECS CLI configured`);
+  // ECS-CLI configuration removed - now using AWS SDK directly
 
   let launchedECS;
   madeSSH = await madeSSH; //need this shortly
@@ -1917,6 +2299,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
         Protocol: "HTTP",
         Port: 80,
         VpcId: myVPC,
+        TargetType: "ip", // Required for Fargate with awsvpc network mode
       }),
     );
   } catch (e) {
@@ -1994,7 +2377,16 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
   let createdECSTasks;
   try {
     console.log("Creating ECS tasks");
-    createdECSTasks = ecsTaskCreator(projName, useIAM, DHID, completedDBs, ECSName, targGroupARN);
+    createdECSTasks = ecsTaskCreator(
+      projName,
+      useIAM,
+      DHID,
+      completedDBs,
+      ECSName,
+      targGroupARN,
+      subnets,
+      ecsSecurityGroupID,
+    );
   } catch (e) {
     throw e;
   }
@@ -2136,7 +2528,7 @@ const handleSecurityGroups = async (useIAM, projName) => {
               FromPort: 5432,
               ToPort: 5432,
               Ipv6Ranges: [{ CidrIpv6: "::/0" }],
-              IpRanges: [{ CidrIp: "0.0.0.0/0" }],
+              IpRanges: [{ CidrIp: "0.0.0.0/0" }], // This means anywhere on the internet, quite permissive
             },
           ],
         }),
@@ -3644,12 +4036,6 @@ const deleteCloudFront = async (useIAM, projName, killTag) => {
           return true;
         }
 
-        // disableCloudfront.Enabled = false
-        // disableCloudfront.CallerReference = cloudConfig.CallerReference
-        // disableCloudfront.Origins.Items[0].Id = cloudConfig.Origins.Items[0].Id
-        // disableCloudfront.Origins.Items[0].DomainName = cloudConfig.Origins.Items[0].DomainName
-        // disableCloudfront.Origins.Items[0].DomainName = cloudConfig.Origins.Items[0].DomainName
-        // disableCloudfront.DefaultCacheBehavior.TargetOriginId = cloudConfig.DefaultCacheBehavior.TargetOriginId
         cloudConfig.Enabled = false; //This is the only thing to update
         console.log(`Disabling cloudfront distribution ` + distId);
 
@@ -3980,7 +4366,7 @@ const deleteBucket = async (useIAM, killTag, awsResources, deletedCloudFront) =>
   if (JSON.parse(buckets.stdout).Buckets.length > 0) {
     return Promise.all(
       JSON.parse(buckets.stdout).Buckets.map(async (b) => {
-        console.log(`Deleting s3 bucket ${b.Name}}`);
+        console.log(`Deleting s3 bucket ${b.Name}`);
         try {
           const s3Client = createS3Client(useIAM);
           // List all objects in the bucket
@@ -4338,13 +4724,13 @@ export const createAutoScale = async (useIAM, projName) => {
     throw e;
   }
 
-  let alarmMainHigh = JSON.parse(JSON.stringify(alarmRDSHigh));
-  let alarmTransactionHigh = JSON.parse(JSON.stringify(alarmRDSHigh));
+  let alarmMainHigh = JSON.parse(JSON.stringify(alarmRDSWriteLatencyHigh));
+  let alarmTransactionHigh = JSON.parse(JSON.stringify(alarmRDSWriteLatencyHigh));
   try {
     let temp = await fs.promises.readFile(path.join(process.cwd(), "pushkin.yaml"), "utf8");
     let config = jsYaml.load(temp);
-    alarmMainHigh.Dimensions.Value = config.productionDBs.Main.name;
-    alarmTransactionHigh.Dimensions.Value = config.productionDBs.Transaction.name;
+    alarmMainHigh.Dimensions[0].Value = config.productionDBs.Main.name;
+    alarmTransactionHigh.Dimensions[0].Value = config.productionDBs.Transaction.name;
     useEmail = config.info.email;
   } catch (e) {
     console.error(`Couldn't load pushkin.yaml`);
@@ -4384,7 +4770,7 @@ export const createAutoScale = async (useIAM, projName) => {
 
   console.log("Registering cloudwatch alarms");
   alarmCPUHigh.AlarmActions = TopicArn;
-  alarmCPUHigh.Dimensions.Value = ECSName;
+  alarmCPUHigh.Dimensions[0].Value = ECSName;
   alarmCPUHigh.AlarmName = shortName.concat("alarmCPUHigh");
   let setAlarmCPUHigh;
   try {
@@ -4397,7 +4783,7 @@ export const createAutoScale = async (useIAM, projName) => {
   }
 
   alarmRAMHigh.AlarmActions = TopicArn;
-  alarmRAMHigh.Dimensions.Value = ECSName;
+  alarmRAMHigh.Dimensions[0].Value = ECSName;
   alarmRAMHigh.AlarmName = shortName.concat("alarmRAMHigh");
   let setAlarmRAMHigh;
   try {

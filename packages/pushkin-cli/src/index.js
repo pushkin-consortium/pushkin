@@ -1710,9 +1710,11 @@ async function main() {
           try {
             setEnv(false, options.verbose); // synchronous
             await handleAWSInit(options.force);
+            // Give async operations a moment to clean up, then exit
+            setTimeout(() => process.exit(0), 1000);
           } catch (e) {
             console.error(e);
-            process.exit();
+            process.exit(1);
           }
           break;
         case "update":
