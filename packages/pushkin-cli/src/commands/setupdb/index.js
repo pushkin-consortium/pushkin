@@ -183,8 +183,8 @@ export async function runMigrations(dbsToExps, coreDBs, verbose) {
           database: dbInfo.name,
           ssl:
             (
-              dbInfo.host.includes(".rds.amazonaws.com") ||
-              (dbInfo.host !== "localhost" && !dbInfo.host.includes("localhost"))
+              dbInfo.url.includes(".rds.amazonaws.com") ||
+              (dbInfo.url !== "localhost" && !dbInfo.url.includes("localhost"))
             ) ?
               { rejectUnauthorized: false }
             : false,
