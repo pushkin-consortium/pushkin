@@ -952,7 +952,34 @@ const getOAC = async (useIAM) => {
   }
 
   if (needOAC) {
-    awsResources.OAC = await createOAC(useIAM);
+    // First, check if an OAC with our name already exists in AWS
+    try {
+      const cloudFrontClient = createCloudFrontClient(useIAM);
+      const listOACResponse = await cloudFrontClient.send(
+        new ListOriginAccessControlsCommand({}),
+      );
+
+      if (listOACResponse.OriginAccessControlList?.Items) {
+        const existingOAC = listOACResponse.OriginAccessControlList.Items.find(
+          (oac) => oac.Name === OriginAccessControl.Name
+        );
+
+        if (existingOAC) {
+          console.log(`Found existing OAC with name ${OriginAccessControl.Name}, reusing it.`);
+          awsResources.OAC = existingOAC.Id;
+        } else {
+          // Create new OAC only if one with our name doesn't exist
+          awsResources.OAC = await createOAC(useIAM);
+        }
+      } else {
+        awsResources.OAC = await createOAC(useIAM);
+      }
+    } catch (error) {
+      console.error(`Error checking for existing OAC: ${error.message}`);
+      // Try creating anyway - if it fails, we'll get the original error
+      awsResources.OAC = await createOAC(useIAM);
+    }
+
     try {
       fs.writeFileSync(
         path.join(process.cwd(), "awsResources.js"),
@@ -2866,6 +2893,7 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
     JSON.parse(temp.stdout).Domains.forEach((c) => {
       domains.push(c.DomainName);
     });
+    domains.push("Enter a custom domain/subdomain");
 
     return new Promise((resolve, reject) => {
       console.log(`Choosing...`);
@@ -2879,8 +2907,25 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
             message: "Which domain would you like to use for your site?",
           },
         ])
-        .then((answers) => {
-          resolve(answers.domain);
+        .then(async (answers) => {
+          if (answers.domain === "Enter a custom domain/subdomain") {
+            const customDomain = await inquirer.prompt([
+              {
+                type: "input",
+                name: "customDomain",
+                message: "Enter your custom domain or subdomain (e.g., subdomain.example.com):",
+                validate: (input) => {
+                  if (!input || input.trim().length === 0) {
+                    return "Domain cannot be empty";
+                  }
+                  return true;
+                },
+              },
+            ]);
+            resolve(customDomain.customDomain);
+          } else {
+            resolve(answers.domain);
+          }
         });
     });
   };
