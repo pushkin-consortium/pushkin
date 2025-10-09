@@ -457,18 +457,57 @@ const makeRecordSet = async (domainName, projName, useIAM, theCloud) => {
 
   let zoneID;
 
-  try {
-    const data = await route53.send(
-      new ListHostedZonesByNameCommand({ DNSName: domainName, hostedZoneId: zoneID }),
-    );
-    if (data.HostedZones.length === 0) {
-      console.error(`No hostedzone found for ${domainName}`);
-      throw new Error(`No hostedzone found for ${domainName}`);
+  // For subdomains, we need to find the parent domain's hosted zone
+  // e.g., for "gww.cherriechang.com", we need to find "cherriechang.com"
+  const findParentZone = (domain) => {
+    const parts = domain.split('.');
+    // Try the domain itself first, then progressively remove subdomains
+    for (let i = 0; i < parts.length - 1; i++) {
+      const candidate = parts.slice(i).join('.');
+      if (parts.length - i >= 2) { // Must have at least domain.tld
+        return candidate;
+      }
     }
-    zoneID = data.HostedZones[0].Id.split("/hostedzone/")[1];
-  } catch (e) {
-    console.error(`Unable to retrieve hostedzone for ${domainName}`);
-    throw e;
+    return domain;
+  };
+
+  // Try to find hosted zone, starting with the full domain and working up to parent domains
+  let zoneDomain = domainName;
+  let foundZone = false;
+
+  while (!foundZone) {
+    try {
+      const data = await route53.send(
+        new ListHostedZonesByNameCommand({ DNSName: zoneDomain }),
+      );
+
+      // Find exact match or best match
+      const matchingZone = data.HostedZones.find(zone => {
+        const zoneName = zone.Name.endsWith('.') ? zone.Name.slice(0, -1) : zone.Name;
+        return zoneName === zoneDomain || domainName.endsWith(zoneName);
+      });
+
+      if (matchingZone) {
+        zoneID = matchingZone.Id.split("/hostedzone/")[1];
+        console.log(`Found hosted zone for ${zoneDomain}: ${zoneID}`);
+        foundZone = true;
+      } else if (zoneDomain.split('.').length > 2) {
+        // Try parent domain (e.g., gww.cherriechang.com -> cherriechang.com)
+        const parts = zoneDomain.split('.');
+        parts.shift();
+        zoneDomain = parts.join('.');
+        console.log(`No exact match, trying parent domain: ${zoneDomain}`);
+      } else {
+        console.error(`No hostedzone found for ${domainName} or its parent domains`);
+        throw new Error(`No hostedzone found for ${domainName}`);
+      }
+    } catch (e) {
+      if (e.message.includes('No hostedzone found')) {
+        throw e;
+      }
+      console.error(`Unable to retrieve hostedzone for ${zoneDomain}`);
+      throw e;
+    }
   }
 
   // if there was a failed init, there may already be resource record sets
@@ -762,8 +801,20 @@ const deployFrontEnd = async (
     myCloudFront.Tags.Items[0].Value = projName;
     if (domainName != "default") {
       // set up DNS
-      myCloudFront.DistributionConfig.Aliases.Quantity = 2;
-      myCloudFront.DistributionConfig.Aliases.Items = [domainName, "www.".concat(domainName)];
+      // Check if domain is already a subdomain (contains a dot before the TLD)
+      const domainParts = domainName.split('.');
+      const isSubdomain = domainParts.length > 2;
+
+      if (isSubdomain) {
+        // For subdomains like "gww.cherriechang.com", only use the subdomain itself
+        myCloudFront.DistributionConfig.Aliases.Quantity = 1;
+        myCloudFront.DistributionConfig.Aliases.Items = [domainName];
+      } else {
+        // For root domains like "cherriechang.com", add both root and www
+        myCloudFront.DistributionConfig.Aliases.Quantity = 2;
+        myCloudFront.DistributionConfig.Aliases.Items = [domainName, "www.".concat(domainName)];
+      }
+
       myCloudFront.DistributionConfig.ViewerCertificate.CloudFrontDefaultCertificate = false;
       myCloudFront.DistributionConfig.ViewerCertificate.ACMCertificateArn = myCertificate;
       myCloudFront.DistributionConfig.ViewerCertificate.SSLSupportMethod = "sni-only";
@@ -2444,28 +2495,51 @@ const forwardAPIWrapper = async (configuredECS, useIAM, projName, myDomain, depl
     // This whole function can be skipped if not using custom domain
     // The API endpoint will have to be set manually
     if (myDomain != "default") {
-      let temp;
       console.log(`Retrieving hostedzone ID for ${myDomain}`);
       let zoneID;
-      try {
-        const route53Client = createRoute53Client(useIAM);
-        const listHostedZonesResponse = await route53Client.send(
-          new ListHostedZonesByNameCommand({ DNSName: myDomain }),
-        );
-        temp = { stdout: JSON.stringify({ HostedZones: listHostedZonesResponse.HostedZones }) };
-      } catch (e) {
-        console.error(`Unable to retrieve hostedzone for ${myDomain}`);
-        throw e;
+      let zoneDomain = myDomain;
+      let foundZone = false;
+
+      // Try to find hosted zone, falling back to parent domains if needed
+      while (!foundZone && zoneDomain.split('.').length >= 2) {
+        try {
+          const route53Client = createRoute53Client(useIAM);
+          const data = await route53Client.send(
+            new ListHostedZonesByNameCommand({ DNSName: zoneDomain }),
+          );
+
+          // Find exact match or best match
+          const matchingZone = data.HostedZones.find(zone => {
+            const zoneName = zone.Name.endsWith('.') ? zone.Name.slice(0, -1) : zone.Name;
+            return zoneName === zoneDomain || myDomain.endsWith(zoneName);
+          });
+
+          if (matchingZone) {
+            zoneID = matchingZone.Id.split("/hostedzone/")[1];
+            console.log(`Found hosted zone for ${zoneDomain}: ${zoneID}`);
+            foundZone = true;
+          } else if (zoneDomain.split('.').length > 2) {
+            // Try parent domain (e.g., gww.cherriechang.com -> cherriechang.com)
+            const parts = zoneDomain.split('.');
+            parts.shift();
+            zoneDomain = parts.join('.');
+            console.log(`No exact match, trying parent domain: ${zoneDomain}`);
+          } else {
+            console.error(`No hostedzone found for ${myDomain} or its parent domains`);
+            throw new Error(`No hostedzone found for ${myDomain}`);
+          }
+        } catch (e) {
+          if (e.message.includes('No hostedzone found')) {
+            throw e;
+          }
+          console.error(`Unable to retrieve hostedzone for ${zoneDomain}`);
+          throw e;
+        }
       }
-      if (JSON.parse(temp.stdout).HostedZones.length == 0) {
+
+      if (!foundZone) {
         console.error(`No hostedzone found for ${myDomain}`);
         throw new Error(`No hostedzone found for ${myDomain}`);
-      }
-      try {
-        zoneID = JSON.parse(temp.stdout).HostedZones[0].Id.split("/hostedzone/")[1];
-      } catch (e) {
-        console.error(`Unable to parse hostedzone for ${myDomain}`);
-        throw e;
       }
 
       // The following will update the resource records, creating them if they don't already exist
