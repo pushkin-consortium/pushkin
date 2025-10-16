@@ -24,6 +24,7 @@ import { runMigrations, getMigrations } from "../setupdb/index.js";
 import { updatePushkinJs, readConfig } from "../prep/index.js";
 import inquirer from "inquirer";
 import crypto from "crypto";
+import { AWSClientFactory } from "./utils/aws-client-factory.js";
 import {
   S3Client,
   ListBucketsCommand,
@@ -278,15 +279,15 @@ const createWAFv2Client = (useIAM) => {
  * @param {*} useIAM - The IAM user to check
  */
 export const checkIAMUser = async (useIAM) => {
-  const sts = new STSClient({
-    credentials: fromIni({ profile: useIAM.iam }),
-  });
+  // Using AWSClientFactory for consistent client creation
+  const clientFactory = new AWSClientFactory(myRegion, useIAM);
+  const sts = clientFactory.createSTS();
 
   try {
     await sts.send(new GetCallerIdentityCommand({}));
   } catch (e) {
     console.error(
-      `The IAM user ${useIAM.iam} is not configured on the AWS SDK. For more information see https://docs.aws.amazon.com/sdk-for-javascript/v3/developer-guide/loading-node-credentials-shared.html`,
+      `The IAM user ${clientFactory.getProfileName()} is not configured on the AWS SDK. For more information see https://docs.aws.amazon.com/sdk-for-javascript/v3/developer-guide/loading-node-credentials-shared.html`,
     );
     throw e;
   }
