@@ -124,7 +124,7 @@ import {
 } from "@aws-sdk/client-cloudwatch-logs";
 import { WAFV2Client, ListWebACLsCommand, CreateWebACLCommand } from "@aws-sdk/client-wafv2";
 
-const myRegion = "us-east-1"; //set as default. may want this to be a parameter somewhere that can be changed.
+const myRegion = "us-east-1"; //set as default. May want this to be a parameter somewhere that can be changed.
 
 const exec = util.promisify(require("child_process").exec);
 const mkdir = util.promisify(require("fs").mkdir);
@@ -460,11 +460,12 @@ const makeRecordSet = async (domainName, projName, useIAM, theCloud) => {
   // For subdomains, we need to find the parent domain's hosted zone
   // e.g., for "gww.cherriechang.com", we need to find "cherriechang.com"
   const findParentZone = (domain) => {
-    const parts = domain.split('.');
+    const parts = domain.split(".");
     // Try the domain itself first, then progressively remove subdomains
     for (let i = 0; i < parts.length - 1; i++) {
-      const candidate = parts.slice(i).join('.');
-      if (parts.length - i >= 2) { // Must have at least domain.tld
+      const candidate = parts.slice(i).join(".");
+      if (parts.length - i >= 2) {
+        // Must have at least domain.tld
         return candidate;
       }
     }
@@ -477,13 +478,11 @@ const makeRecordSet = async (domainName, projName, useIAM, theCloud) => {
 
   while (!foundZone) {
     try {
-      const data = await route53.send(
-        new ListHostedZonesByNameCommand({ DNSName: zoneDomain }),
-      );
+      const data = await route53.send(new ListHostedZonesByNameCommand({ DNSName: zoneDomain }));
 
       // Find exact match or best match
-      const matchingZone = data.HostedZones.find(zone => {
-        const zoneName = zone.Name.endsWith('.') ? zone.Name.slice(0, -1) : zone.Name;
+      const matchingZone = data.HostedZones.find((zone) => {
+        const zoneName = zone.Name.endsWith(".") ? zone.Name.slice(0, -1) : zone.Name;
         return zoneName === zoneDomain || domainName.endsWith(zoneName);
       });
 
@@ -491,18 +490,18 @@ const makeRecordSet = async (domainName, projName, useIAM, theCloud) => {
         zoneID = matchingZone.Id.split("/hostedzone/")[1];
         console.log(`Found hosted zone for ${zoneDomain}: ${zoneID}`);
         foundZone = true;
-      } else if (zoneDomain.split('.').length > 2) {
+      } else if (zoneDomain.split(".").length > 2) {
         // Try parent domain (e.g., gww.cherriechang.com -> cherriechang.com)
-        const parts = zoneDomain.split('.');
+        const parts = zoneDomain.split(".");
         parts.shift();
-        zoneDomain = parts.join('.');
+        zoneDomain = parts.join(".");
         console.log(`No exact match, trying parent domain: ${zoneDomain}`);
       } else {
         console.error(`No hostedzone found for ${domainName} or its parent domains`);
         throw new Error(`No hostedzone found for ${domainName}`);
       }
     } catch (e) {
-      if (e.message.includes('No hostedzone found')) {
+      if (e.message.includes("No hostedzone found")) {
         throw e;
       }
       console.error(`Unable to retrieve hostedzone for ${zoneDomain}`);
@@ -802,7 +801,7 @@ const deployFrontEnd = async (
     if (domainName != "default") {
       // set up DNS
       // Check if domain is already a subdomain (contains a dot before the TLD)
-      const domainParts = domainName.split('.');
+      const domainParts = domainName.split(".");
       const isSubdomain = domainParts.length > 2;
 
       if (isSubdomain) {
@@ -1006,13 +1005,11 @@ const getOAC = async (useIAM) => {
     // First, check if an OAC with our name already exists in AWS
     try {
       const cloudFrontClient = createCloudFrontClient(useIAM);
-      const listOACResponse = await cloudFrontClient.send(
-        new ListOriginAccessControlsCommand({}),
-      );
+      const listOACResponse = await cloudFrontClient.send(new ListOriginAccessControlsCommand({}));
 
       if (listOACResponse.OriginAccessControlList?.Items) {
         const existingOAC = listOACResponse.OriginAccessControlList.Items.find(
-          (oac) => oac.Name === OriginAccessControl.Name
+          (oac) => oac.Name === OriginAccessControl.Name,
         );
 
         if (existingOAC) {
@@ -1498,8 +1495,8 @@ const ecsTaskCreator = async (
     // For 2048 MB: 1 vCPU (1024) or 2 vCPU (2048)
     const taskCPU =
       taskMemory <= 512 ? "256"
-      : taskMemory <= 1024 ? "512"
-      : "1024";
+        : taskMemory <= 1024 ? "512"
+          : "1024";
 
     // Parse port mappings - Fargate doesn't use hostPort in awsvpc mode
     const portMappings = [];
@@ -2501,7 +2498,7 @@ const forwardAPIWrapper = async (configuredECS, useIAM, projName, myDomain, depl
       let foundZone = false;
 
       // Try to find hosted zone, falling back to parent domains if needed
-      while (!foundZone && zoneDomain.split('.').length >= 2) {
+      while (!foundZone && zoneDomain.split(".").length >= 2) {
         try {
           const route53Client = createRoute53Client(useIAM);
           const data = await route53Client.send(
@@ -2509,8 +2506,8 @@ const forwardAPIWrapper = async (configuredECS, useIAM, projName, myDomain, depl
           );
 
           // Find exact match or best match
-          const matchingZone = data.HostedZones.find(zone => {
-            const zoneName = zone.Name.endsWith('.') ? zone.Name.slice(0, -1) : zone.Name;
+          const matchingZone = data.HostedZones.find((zone) => {
+            const zoneName = zone.Name.endsWith(".") ? zone.Name.slice(0, -1) : zone.Name;
             return zoneName === zoneDomain || myDomain.endsWith(zoneName);
           });
 
@@ -2518,18 +2515,18 @@ const forwardAPIWrapper = async (configuredECS, useIAM, projName, myDomain, depl
             zoneID = matchingZone.Id.split("/hostedzone/")[1];
             console.log(`Found hosted zone for ${zoneDomain}: ${zoneID}`);
             foundZone = true;
-          } else if (zoneDomain.split('.').length > 2) {
+          } else if (zoneDomain.split(".").length > 2) {
             // Try parent domain (e.g., gww.cherriechang.com -> cherriechang.com)
-            const parts = zoneDomain.split('.');
+            const parts = zoneDomain.split(".");
             parts.shift();
-            zoneDomain = parts.join('.');
+            zoneDomain = parts.join(".");
             console.log(`No exact match, trying parent domain: ${zoneDomain}`);
           } else {
             console.error(`No hostedzone found for ${myDomain} or its parent domains`);
             throw new Error(`No hostedzone found for ${myDomain}`);
           }
         } catch (e) {
-          if (e.message.includes('No hostedzone found')) {
+          if (e.message.includes("No hostedzone found")) {
             throw e;
           }
           console.error(`Unable to retrieve hostedzone for ${zoneDomain}`);
@@ -2842,7 +2839,11 @@ const migrationsWrapper = async (completedDBs) => {
   let dbsToExps, ranMigrations;
   let info = await completedDBs;
   try {
-    dbsToExps = await getMigrations(path.join(process.cwd(), info.experimentsDir), true);
+    dbsToExps = await getMigrations(
+      path.join(process.cwd(), info.usersDir || "users"),
+      path.join(process.cwd(), info.experimentsDir),
+      true,
+    );
     ranMigrations = runMigrations(dbsToExps, info.productionDBs);
   } catch (e) {
     throw e;
@@ -4355,6 +4356,12 @@ const deleteResourceRecords = async (useIAM, killTag, projName) => {
 const deleteOACs = async (useIAM, deletedCloudFront, killTag) => {
   //FUBAR Need to killize this
   deletedCloudFront = await deletedCloudFront;
+
+  // Wait for CloudFront to fully release OAC references on AWS backend
+  // Even after CloudFront deletion completes, AWS needs time to clean up OAC associations
+  console.log("Waiting 30 seconds for CloudFront to fully release OAC references...");
+  await new Promise((resolve) => setTimeout(resolve, 30000));
+
   let temp;
   try {
     const cloudFrontClient = createCloudFrontClient(useIAM);
@@ -4379,17 +4386,37 @@ const deleteOACs = async (useIAM, deletedCloudFront, killTag) => {
         console.error(`Unable to get etag for origin access control ${d.Id}`);
         throw e;
       }
+      // Retry OAC deletion with delays (CloudFront may still be releasing it)
       let deleteOAC;
-      try {
-        const cloudFrontClient = createCloudFrontClient(useIAM);
-        deleteOAC = await cloudFrontClient.send(
-          new DeleteOriginAccessControlCommand({ Id: d.Id, IfMatch: etag }),
-        );
-      } catch (e) {
-        console.error(`Unable to delete origin access control ${d.Id}`);
-        console.error(`Failed to delete origin access control ${d.Id}`);
-        console.error(e);
-        throw e;
+      const maxRetries = 10;
+      let lastError;
+
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+          const cloudFrontClient = createCloudFrontClient(useIAM);
+          deleteOAC = await cloudFrontClient.send(
+            new DeleteOriginAccessControlCommand({ Id: d.Id, IfMatch: etag }),
+          );
+          break; // Success, exit retry loop
+        } catch (e) {
+          lastError = e;
+
+          // If it's still in use, wait and retry
+          if (e.name === "OriginAccessControlInUse" && attempt < maxRetries - 1) {
+            const waitTime = 10000; // Wait 10 seconds between retries
+            console.log(
+              `OAC ${d.Id} still in use, waiting ${waitTime}ms before retry ${attempt + 1}/${maxRetries}...`,
+            );
+            await new Promise((resolve) => setTimeout(resolve, waitTime));
+            continue;
+          }
+
+          // Other error or final attempt - throw
+          console.error(`Unable to delete origin access control ${d.Id}`);
+          console.error(`Failed to delete origin access control ${d.Id}`);
+          console.error(e);
+          throw e;
+        }
       }
       console.log(`Updating awsResources with cloudfront info`);
       try {

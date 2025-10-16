@@ -21,6 +21,7 @@ export const initSite = async (verbose) => {
       );
       process.exit(1);
     }
+    // Check for default users directory (config doesn't exist yet during initialization)
     if (fs.existsSync("users")) {
       console.error(
         "A `users` directory already exists here. You should run `pushkin install site` in a new directory.",

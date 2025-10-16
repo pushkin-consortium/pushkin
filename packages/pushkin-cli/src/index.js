@@ -35,7 +35,7 @@ import {
   updateExpConfig,
 } from "./commands/experiments/index.js";
 import { prep, setEnv, updatePasswords } from "./commands/prep/index.js";
-import { setupdb, setupTestTransactionsDB, securePasswords } from "./commands/setupdb/index.js";
+import { setupdb, setupLocalTransactionsDB, securePasswords } from "./commands/setupdb/index.js";
 import { initSite, setupPushkinSite } from "./commands/sites/index.js";
 
 import pacMan from "./pMan.js"; //which package manager is available?
@@ -132,10 +132,11 @@ const updateDocker = async () => {
 };
 
 const updateMigrations = async () => {
-  let experimentsDir, productionDBs;
+  let experimentsDir, usersDir, productionDBs;
   try {
     let config = await loadConfig(path.join(process.cwd(), "pushkin.yaml"));
     experimentsDir = config.experimentsDir;
+    usersDir = config.usersDir || "users";
     productionDBs = config.productionDBs;
   } catch (e) {
     console.error(`Unable to load pushkin.yaml`);
@@ -144,7 +145,11 @@ const updateMigrations = async () => {
   console.log(`Handling migrations`);
   let ranMigrations, dbsToExps;
   try {
-    dbsToExps = await getMigrations(path.join(process.cwd(), experimentsDir), true);
+    dbsToExps = await getMigrations(
+      path.join(process.cwd(), usersDir),
+      path.join(process.cwd(), experimentsDir),
+      true,
+    );
   } catch (e) {
     console.error(`Unable to run database migrations`);
     throw e;
@@ -285,12 +290,30 @@ const handleUpdateDB = async (verbose) => {
   try {
     settingUpDB = await setupdb(
       config.databases,
+      path.join(process.cwd(), config.usersDir || "users"),
       path.join(process.cwd(), config.experimentsDir),
       verbose,
     );
+    console.log("✅ Database setup complete!");
   } catch (err) {
-    console.error(err);
-    process.exit();
+    console.error("❌ Database setup failed");
+
+    // Provide actionable error messages based on error type
+    if (err.message.includes("docker")) {
+      console.error("  → Make sure Docker is running");
+    } else if (err.message.includes("config.yaml")) {
+      console.error("  → Check your experiment config files");
+    } else if (err.message.includes("Database") && err.message.includes("not configured")) {
+      console.error("  → Check database configuration in pushkin.yaml");
+    }
+
+    if (verbose) {
+      console.error("\nFull error:", err.stack);
+    } else {
+      console.error(`\nError: ${err.message}`);
+      console.error("Run with --verbose flag for more details");
+    }
+    process.exit(1);
   }
   return settingUpDB;
 };
@@ -871,7 +894,7 @@ const handleInstall = async (templateType, options, verbose) => {
     if (verbose) console.log("Finished setting up site template files");
     // Set up the transactions database
     if (verbose) console.log("Setting up transactions db");
-    await setupTestTransactionsDB(verbose); // Not distributed with sites since it's the same for all of them.
+    await setupLocalTransactionsDB(verbose); // Not distributed with sites since it's the same for all of them.
     if (verbose) console.log("Overwriting DB passwords with secure defaults");
     securePasswords();
   } else {
@@ -1983,7 +2006,7 @@ async function main() {
         case "setup-transaction-db":
           moveToProjectRoot();
           try {
-            await setupTestTransactionsDB();
+            await setupLocalTransactionsDB();
           } catch (e) {
             console.error(e);
             process.exit();
