@@ -3,7 +3,6 @@ import fs from "graceful-fs";
 import path from "path";
 import util from "util";
 import pacMan from "../../pMan.js"; //which package manager is available?
-import { execSync } from "child_process"; // eslint-disable-line
 import jsYaml from "js-yaml";
 import {
   pushkinACL,
@@ -24,6 +23,7 @@ import { runMigrations, getMigrations } from "../setupdb/index.js";
 import { updatePushkinJs, readConfig } from "../prep/index.js";
 import inquirer from "inquirer";
 import crypto from "crypto";
+import { AWSClientFactory } from "./utils/aws-client-factory.js";
 import { AWSClientFactory } from "./utils/aws-client-factory.js";
 import {
   S3Client,
@@ -142,162 +142,6 @@ const execFile = util.promisify(require("child_process").execFile);
 const mkdir = util.promisify(require("fs").mkdir);
 
 /**
- * Helper function to create RDS client
- * @param {*} useIAM - The IAM user to use
- * @returns {RDSClient} - The RDS client
- */
-const createRDSClient = (useIAM) => {
-  return new RDSClient({
-    region: myRegion,
-    credentials: fromIni({ profile: useIAM }),
-  });
-};
-
-/**
- * Helper function to create S3 client
- * @param {*} useIAM - The IAM user to use
- * @returns {S3Client} - The S3 client
- */
-const createS3Client = (useIAM) => {
-  return new S3Client({
-    region: myRegion,
-    credentials: fromIni({ profile: useIAM }),
-  });
-};
-
-/**
- * Helper function to create Elastic Load Balancing v2 client
- * @param {*} useIAM - The IAM user to use
- * @returns {ElasticLoadBalancingV2Client} - The ELBv2 client
- */
-const createELBv2Client = (useIAM) => {
-  return new ElasticLoadBalancingV2Client({
-    region: myRegion,
-    credentials: fromIni({ profile: useIAM }),
-  });
-};
-
-/**
- * Helper function to create CloudFront client
- * @param {*} useIAM - The IAM user to use
- * @returns {CloudFrontClient} - The CloudFront client
- */
-const createCloudFrontClient = (useIAM) => {
-  return new CloudFrontClient({
-    region: myRegion,
-    credentials: fromIni({ profile: useIAM }),
-  });
-};
-
-/**
- * Helper function to create Route 53 client
- * @param {*} useIAM - The IAM user to use
- * @returns {Route53Client} - The Route 53 client
- */
-const createRoute53Client = (useIAM) => {
-  return new Route53Client({
-    region: myRegion,
-    credentials: fromIni({ profile: useIAM }),
-  });
-};
-
-/**
- * Helper function to create Route 53 Domains client
- * @param {*} useIAM - The IAM user to use
- * @returns {Route53DomainsClient} - The Route 53 Domains client
- */
-const createRoute53DomainsClient = (useIAM) => {
-  return new Route53DomainsClient({
-    region: myRegion,
-    credentials: fromIni({ profile: useIAM }),
-  });
-};
-
-/**
- * Helper function to create ECS client
- * @param {*} useIAM - The IAM user to use
- * @returns {ECSClient} - The ECS client
- */
-const createECSClient = (useIAM) => {
-  return new ECSClient({
-    region: myRegion,
-    credentials: fromIni({ profile: useIAM.iam }),
-  });
-};
-
-/**
- * Helper function to create EC2 client
- * @param {*} useIAM - The IAM user to use
- * @returns {EC2Client} - The EC2 client
- */
-const createEC2Client = (useIAM) => {
-  return new EC2Client({
-    region: myRegion,
-    credentials: fromIni({ profile: useIAM.iam }),
-  });
-};
-
-/**
- * Helper function to create IAM client
- * @param {*} useIAM - The IAM user to use
- * @returns {IAMClient} - The IAM client
- */
-const createIAMClient = (useIAM) => {
-  return new IAMClient({
-    region: myRegion,
-    credentials: fromIni({ profile: useIAM.iam }),
-  });
-};
-
-/**
- * Helper function to create CloudFormation client
- * @param {*} useIAM - The IAM user to use
- * @returns {CloudFormationClient} - The CloudFormation client
- */
-const createCloudFormationClient = (useIAM) => {
-  return new CloudFormationClient({
-    region: myRegion,
-    credentials: fromIni({ profile: useIAM }),
-  });
-};
-
-/**
- * Helper function to create CloudWatch Logs client
- * @param {*} useIAM - The IAM user to use
- * @returns {CloudWatchLogsClient} - The CloudWatch Logs client
- */
-const createCloudWatchLogsClient = (useIAM) => {
-  return new CloudWatchLogsClient({
-    region: myRegion,
-    credentials: fromIni({ profile: useIAM }),
-  });
-};
-
-/**
- * Helper function to create WAFv2 client
- * @param {*} useIAM - The IAM user to use
- * @returns {WAFV2Client} - The WAFv2 client
- */
-const createWAFv2Client = (useIAM) => {
-  return new WAFV2Client({
-    region: myRegion,
-    credentials: fromIni({ profile: useIAM }),
-  });
-};
-
-/**
- * Helper function to create Service Discovery client
- * @param {*} useIAM - The IAM user to use
- * @returns {ServiceDiscoveryClient} - The Service Discovery client
- */
-const createServiceDiscoveryClient = (useIAM) => {
-  return new ServiceDiscoveryClient({
-    region: myRegion,
-    credentials: fromIni({ profile: useIAM }),
-  });
-};
-
-/**
  * Create or get existing Cloud Map namespace for service discovery
  * @param {string} projName - The project name
  * @param {string} vpcId - The VPC ID
@@ -305,7 +149,8 @@ const createServiceDiscoveryClient = (useIAM) => {
  * @returns {Promise<string>} - The namespace ID
  */
 const ensureServiceDiscoveryNamespace = async (projName, vpcId, useIAM) => {
-  const client = createServiceDiscoveryClient(useIAM);
+  const clientFactory = new AWSClientFactory(myRegion, useIAM);
+  const client = clientFactory.createClient(ServiceDiscoveryClient);
   const namespaceName = `${projName}.local`;
 
   try {
@@ -374,7 +219,8 @@ const ensureServiceDiscoveryNamespace = async (projName, vpcId, useIAM) => {
  * @returns {Promise<object>} - Service registry configuration for ECS
  */
 const registerServiceWithDiscovery = async (serviceName, namespaceId, useIAM) => {
-  const client = createServiceDiscoveryClient(useIAM);
+  const clientFactory = new AWSClientFactory(myRegion, useIAM);
+  const client = clientFactory.createClient(ServiceDiscoveryClient);
 
   try {
     // Check if service already registered
@@ -437,13 +283,13 @@ const registerServiceWithDiscovery = async (serviceName, namespaceId, useIAM) =>
 export const checkIAMUser = async (useIAM) => {
   // Using AWSClientFactory for consistent client creation
   const clientFactory = new AWSClientFactory(myRegion, useIAM);
-  const sts = clientFactory.createSTS();
+  const sts = clientFactory.createClient(STSClient);
 
   try {
     await sts.send(new GetCallerIdentityCommand({}));
   } catch (e) {
     console.error(
-      `The IAM user ${clientFactory.getProfileName()} is not configured on the AWS SDK. For more information see https://docs.aws.amazon.com/sdk-for-javascript/v3/developer-guide/loading-node-credentials-shared.html`,
+      `The IAM user ${clientFactory.profileName} is not configured on the AWS SDK. For more information see https://docs.aws.amazon.com/sdk-for-javascript/v3/developer-guide/loading-node-credentials-shared.html`,
     );
     throw e;
   }
@@ -843,10 +689,8 @@ const deployFrontEnd = async (
   myCertificate,
   builtFrontEnd,
 ) => {
-  const s3 = new S3Client({
-    region: myRegion,
-    credentials: fromIni({ profile: useIAM.iam }),
-  });
+  const clientFactory = new AWSClientFactory(myRegion, useIAM);
+  const s3 = clientFactory.createClient(S3Client);
   console.log(`Checking to see if bucket ${awsName} already exists.`);
   let bucketExists = false;
   try {
@@ -889,10 +733,7 @@ const deployFrontEnd = async (
   console.log(`Checking for CloudFront distribution`);
   let distributions;
   let distributionExists = false;
-  const cloudFrontClient = new CloudFrontClient({
-    region: myRegion,
-    credentials: fromIni({ profile: useIAM.iam }),
-  });
+  const cloudFrontClient = clientFactory.createClient(CloudFrontClient);
   try {
     distributions = await cloudFrontClient.send(new ListDistributionsCommand({}));
   } catch (e) {
@@ -1022,7 +863,7 @@ const deployFrontEnd = async (
   while (retryCount < maxRetries) {
     try {
       console.log(`Attempting to set bucket permissions (attempt ${retryCount + 1}/${maxRetries})...`);
-      const s3Client = createS3Client(useIAM);
+      const s3Client = clientFactory.createClient(S3Client);
       await s3Client.send(
         new PutBucketPolicyCommand({
           Bucket: awsName,
@@ -1071,10 +912,8 @@ const deployFrontEnd = async (
  * @returns {Promise<void>}
  */
 const waitForCloudFrontDeployment = async (distributionId, useIAM) => {
-  const cloudFrontClient = new CloudFrontClient({
-    region: myRegion,
-    credentials: fromIni({ profile: useIAM.iam }),
-  });
+  const clientFactory = new AWSClientFactory(myRegion, useIAM);
+  const cloudFrontClient = clientFactory.createClient(CloudFrontClient);
 
   console.log(`\nWaiting for CloudFront distribution to be fully deployed...`);
   console.log(`This can take 5-15 minutes. Checking status every 30 seconds.`);
@@ -1124,6 +963,8 @@ const waitForCloudFrontDeployment = async (distributionId, useIAM) => {
  * @returns {Promise<string>} - The ACL ARN
  */
 const getOAC = async (useIAM) => {
+  const clientFactory = new AWSClientFactory(myRegion, useIAM);
+
   /**
    * Creates the Origin Access Control
    * @param {string} useIAM - The IAM profile to use
@@ -1132,7 +973,7 @@ const getOAC = async (useIAM) => {
   const createOAC = async (useIAM) => {
     let temp;
     try {
-      const cloudFrontClient = createCloudFrontClient(useIAM);
+      const cloudFrontClient = clientFactory.createClient(CloudFrontClient);
       const createOACResponse = await cloudFrontClient.send(
         new CreateOriginAccessControlCommand({
           OriginAccessControlConfig: OriginAccessControl,
@@ -1166,7 +1007,7 @@ const getOAC = async (useIAM) => {
     needOAC = true;
   } else {
     try {
-      const cloudFrontClient = createCloudFrontClient(useIAM);
+      const cloudFrontClient = clientFactory.createClient(CloudFrontClient);
       await cloudFrontClient.send(new GetOriginAccessControlCommand({ Id: awsResources.OAC }));
     } catch (e) {
       console.log(e);
@@ -1178,7 +1019,7 @@ const getOAC = async (useIAM) => {
   if (needOAC) {
     // First, check if an OAC with our name already exists in AWS
     try {
-      const cloudFrontClient = createCloudFrontClient(useIAM);
+      const cloudFrontClient = clientFactory.createClient(CloudFrontClient);
       const listOACResponse = await cloudFrontClient.send(new ListOriginAccessControlsCommand({}));
 
       if (listOACResponse.OriginAccessControlList?.Items) {
@@ -1228,6 +1069,7 @@ const getOAC = async (useIAM) => {
  */
 const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
   console.log(`Handling ${dbType} database.`);
+  const clientFactory = new AWSClientFactory(myRegion, useIAM);
   let stdOut, dbName, dbPassword;
   dbName = projName
     .concat(dbType)
@@ -1265,7 +1107,7 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
       //First, check to see if database exists
       let dbInstances;
       try {
-        const rdsClient = createRDSClient(useIAM);
+        const rdsClient = clientFactory.createClient(RDSClient);
         const command = new DescribeDBInstancesCommand({});
         const response = await rdsClient.send(command);
         dbInstances = response.DBInstances;
@@ -1325,7 +1167,7 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
     } else {
       let dbInstances;
       try {
-        const rdsClient = createRDSClient(useIAM);
+        const rdsClient = clientFactory.createClient(RDSClient);
         const command = new DescribeDBInstancesCommand({});
         const response = await rdsClient.send(command);
         dbInstances = response.DBInstances;
@@ -1382,7 +1224,7 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
     myDBConfig.Tags = [{ Key: "PUSHKIN", Value: projName }];
 
     try {
-      const rdsClient = createRDSClient(useIAM);
+      const rdsClient = clientFactory.createClient(RDSClient);
       const command = new CreateDBInstanceCommand(myDBConfig);
       await rdsClient.send(command);
     } catch (e) {
@@ -1398,7 +1240,7 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
       // Current change: try to wait for database to be available with a shorter timeout
       console.log(`Waiting for ${dbType} to spool up. This may take a while...`);
       console.log(`${dbType}: Starting waitUntilDBInstanceAvailable with 20 mins timeout...`);
-      const rdsClient = createRDSClient(useIAM);
+      const rdsClient = clientFactory.createClient(RDSClient);
 
       const waitStart = Date.now();
       await waitUntilDBInstanceAvailable(
@@ -1435,7 +1277,7 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
         console.log(
           `${dbType}: Attempting to get database endpoint (attempt ${retryCount + 1}/${maxRetries})...`,
         );
-        const rdsClient = createRDSClient(useIAM);
+        const rdsClient = clientFactory.createClient(RDSClient);
         const command = new DescribeDBInstancesCommand({
           DBInstanceIdentifier: dbName.toLowerCase(),
         });
@@ -1557,7 +1399,8 @@ const getDBInfo = async () => {
  * @returns {Promise<string>} The ARN of the execution role
  */
 const ensureECSTaskExecutionRole = async (useIAM) => {
-  const iamClient = createIAMClient(useIAM);
+  const clientFactory = new AWSClientFactory(myRegion, useIAM);
+  const iamClient = clientFactory.createClient(IAMClient);
   const roleName = "ecsTaskExecutionRole";
 
   try {
@@ -1634,6 +1477,8 @@ const ecsTaskCreator = async (
   ecsSecurityGroupID,
   vpcId,
 ) => {
+  const clientFactory = new AWSClientFactory(myRegion, useIAM);
+
   try {
     if (fs.existsSync(path.join(process.cwd(), "ECStasks"))) {
       //nothing
@@ -1736,7 +1581,7 @@ const ecsTaskCreator = async (
    * @returns {Promise<string>} Task definition ARN
    */
   const registerECSTaskDefinition = async (taskDefParams, useIAM) => {
-    const ecsClient = createECSClient(useIAM);
+    const ecsClient = clientFactory.createClient(ECSClient);
 
     try {
       const command = new RegisterTaskDefinitionCommand(taskDefParams);
@@ -1777,7 +1622,7 @@ const ecsTaskCreator = async (
     useIAM,
     serviceRegistry = null,
   ) => {
-    const ecsClient = createECSClient(useIAM);
+    const ecsClient = clientFactory.createClient(ECSClient);
 
     // First check if service already exists
     try {
@@ -1933,7 +1778,7 @@ const ecsTaskCreator = async (
     const waitForCluster = async () => {
       try {
         console.log(`Verifying ECS cluster exists: "${ECSName}"`);
-        const ecsClient = createECSClient(useIAM);
+        const ecsClient = clientFactory.createClient(ECSClient);
         const response = await ecsClient.send(new DescribeClustersCommand({ clusters: [ECSName] }));
 
         const cluster = response.clusters?.[0];
@@ -2188,6 +2033,7 @@ const ecsTaskCreator = async (
  */
 const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertificate) => {
   console.log(`Starting ECS setup`);
+  const clientFactory = new AWSClientFactory(myRegion, useIAM);
   let temp;
 
   /**
@@ -2198,7 +2044,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
     let keyPairs;
     let foundPushkinKeyPair = false;
     try {
-      const ec2Client = createEC2Client(useIAM);
+      const ec2Client = clientFactory.createClient(EC2Client);
       const describeKeyPairsResponse = await ec2Client.send(new DescribeKeyPairsCommand({}));
       keyPairs = { stdout: JSON.stringify({ KeyPairs: describeKeyPairsResponse.KeyPairs }) };
     } catch (e) {
@@ -2217,7 +2063,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
       let keyPair;
       try {
         console.error(`Making SSH key`);
-        const ec2Client = createEC2Client(useIAM);
+        const ec2Client = clientFactory.createClient(EC2Client);
         const createKeyPairResponse = await ec2Client.send(
           new CreateKeyPairCommand({
             KeyName: "my-pushkin-key-pair",
@@ -2245,7 +2091,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
     console.log(`Creating security group for load balancer`);
     let groupId;
     try {
-      const ec2Client = createEC2Client(useIAM);
+      const ec2Client = clientFactory.createClient(EC2Client);
 
       // Create security group
       const createSGResponse = await ec2Client.send(
@@ -2307,7 +2153,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
 
   let securityGroups;
   try {
-    const ec2Client = createEC2Client(useIAM);
+    const ec2Client = clientFactory.createClient(EC2Client);
     const describeSecurityGroupsResponse = await ec2Client.send(
       new DescribeSecurityGroupsCommand({}),
     );
@@ -2347,7 +2193,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
     console.log(`Creating security group for ECS cluster`);
     let groupId;
     try {
-      const ec2Client = createEC2Client(useIAM);
+      const ec2Client = clientFactory.createClient(EC2Client);
 
       const createSecurityGroupResponse = await ec2Client.send(
         new CreateSecurityGroupCommand({
@@ -2441,7 +2287,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
   const foundSubnets = new Promise(async (resolve, reject) => {
     console.log(`Retrieving subnets for AWS zone`);
     try {
-      const ec2Client = createEC2Client(useIAM);
+      const ec2Client = clientFactory.createClient(EC2Client);
       const describeSubnetsResponse = await ec2Client.send(new DescribeSubnetsCommand({}));
       let subnets = {};
       describeSubnetsResponse.Subnets.forEach((subnet) => {
@@ -2463,7 +2309,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
     console.log("getting default VPC");
     let describeVpcsResponse;
     try {
-      const ec2Client = createEC2Client(useIAM);
+      const ec2Client = clientFactory.createClient(EC2Client);
       describeVpcsResponse = await ec2Client.send(new DescribeVpcsCommand({}));
     } catch (e) {
       console.error(`Unable to find VPC`);
@@ -2564,7 +2410,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
     // Launch Templates and Fargate over ECS EC2. However, as of this writing (2025-09) ecs-cli does not support Launch Templates.
     // Switching to using AWS CLI in this branch, but opening up a new branch to try out migrating to AWS Copilot CLI
     // Create ECS cluster using AWS SDK instead of deprecated ecs-cli
-    const ecsClient = createECSClient(useIAM);
+    const ecsClient = clientFactory.createClient(ECSClient);
     try {
       const createClusterResponse = await ecsClient.send(
         new CreateClusterCommand({
@@ -2611,7 +2457,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
 
   let madeBalancer;
   try {
-    const elbv2Client = createELBv2Client(useIAM);
+    const elbv2Client = clientFactory.createClient(ElasticLoadBalancingV2Client);
     madeBalancer = elbv2Client.send(
       new CreateLoadBalancerCommand({
         Name: loadBalancerName,
@@ -2629,7 +2475,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
 
   let tempMakeTargetGroup;
   try {
-    const elbv2Client = createELBv2Client(useIAM);
+    const elbv2Client = clientFactory.createClient(ElasticLoadBalancingV2Client);
     tempMakeTargetGroup = await elbv2Client.send(
       new CreateTargetGroupCommand({
         Name: loadBalancerName.concat("Targets").slice(0, 32),
@@ -2666,7 +2512,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
   const balancerZone = aMadeBalancer.LoadBalancers[0].CanonicalHostedZoneId;
   let madeListener;
   try {
-    const elbv2Client = createELBv2Client(useIAM);
+    const elbv2Client = clientFactory.createClient(ElasticLoadBalancingV2Client);
     madeListener = await elbv2Client.send(
       new CreateListenerCommand({
         LoadBalancerArn: balancerARN,
@@ -2687,7 +2533,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
 
   let addedHTTPS;
   try {
-    const elbv2Client = createELBv2Client(useIAM);
+    const elbv2Client = clientFactory.createClient(ElasticLoadBalancingV2Client);
     addedHTTPS = elbv2Client.send(
       new CreateListenerCommand({
         LoadBalancerArn: balancerARN,
@@ -2743,6 +2589,8 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
  * @param deployedFrontEnd
  */
 const forwardAPIWrapper = async (configuredECS, useIAM, projName, myDomain, deployedFrontEnd) => {
+  const clientFactory = new AWSClientFactory(myRegion, useIAM);
+
   /**
    *
    * @param myDomain
@@ -2763,7 +2611,7 @@ const forwardAPIWrapper = async (configuredECS, useIAM, projName, myDomain, depl
       // Try to find hosted zone, falling back to parent domains if needed
       while (!foundZone && zoneDomain.split(".").length >= 2) {
         try {
-          const route53Client = createRoute53Client(useIAM);
+          const route53Client = clientFactory.createClient(Route53Client);
           const data = await route53Client.send(
             new ListHostedZonesByNameCommand({ DNSName: zoneDomain }),
           );
@@ -2817,7 +2665,7 @@ const forwardAPIWrapper = async (configuredECS, useIAM, projName, myDomain, depl
       recordSet.Changes[0].ResourceRecordSet.AliasTarget.HostedZoneId = balancerZone;
       recordSet.Changes[0].ResourceRecordSet.SetIdentifier = projName;
       try {
-        const route53Client = createRoute53Client(useIAM);
+        const route53Client = clientFactory.createClient(Route53Client);
         await route53Client.send(
           new ChangeResourceRecordSetsCommand({
             HostedZoneId: zoneID,
@@ -2856,6 +2704,8 @@ const forwardAPIWrapper = async (configuredECS, useIAM, projName, myDomain, depl
  * @returns {Promise<string>} - The security group ID for the database group
  */
 const handleSecurityGroups = async (useIAM, projName) => {
+  const clientFactory = new AWSClientFactory(myRegion, useIAM);
+
   /**
    * Create security group for databases
    * @param {*} useIAM - The IAM role to use
@@ -2863,7 +2713,7 @@ const handleSecurityGroups = async (useIAM, projName) => {
    * @returns {Promise<string>} - The security group ID for the database group
    */
   const createDatabaseGroup = async (useIAM, projName) => {
-    const ec2Client = createEC2Client(useIAM);
+    const ec2Client = clientFactory.createClient(EC2Client);
     let stdOut;
     try {
       const createSGResponse = await ec2Client.send(
@@ -2903,7 +2753,7 @@ const handleSecurityGroups = async (useIAM, projName) => {
 
   let temp;
   try {
-    const ec2Client = createEC2Client(useIAM);
+    const ec2Client = clientFactory.createClient(EC2Client);
     const describeSecurityGroupsResponse = await ec2Client.send(
       new DescribeSecurityGroupsCommand({}),
     );
@@ -3062,10 +2912,11 @@ const rebuildWorker = async function (exp) {
  * @returns {Promise<void>} - A promise that resolves when the log group is created
  */
 const createLogGroup = async (useIAM, projName) => {
+  const clientFactory = new AWSClientFactory(myRegion, useIAM);
   //Log group for ECS
   let stdOut;
   try {
-    const cloudWatchLogsClient = createCloudWatchLogsClient(useIAM);
+    const cloudWatchLogsClient = clientFactory.createClient(CloudWatchLogsClient);
     await cloudWatchLogsClient.send(
       new CreateLogGroupCommand({
         logGroupName: `ecs/${projName}`,
@@ -3085,7 +2936,7 @@ const createLogGroup = async (useIAM, projName) => {
     }
   }
   try {
-    const cloudWatchLogsClient = createCloudWatchLogsClient(useIAM);
+    const cloudWatchLogsClient = clientFactory.createClient(CloudWatchLogsClient);
     await cloudWatchLogsClient.send(
       new PutRetentionPolicyCommand({
         logGroupName: `ecs/${projName}`,
@@ -3147,10 +2998,8 @@ const setupTransactionsWrapper = async (completedDBs) => {
 const chooseCertificate = async (useIAM) => {
   console.log("Setting up SSL for load-balancer");
 
-  const acm = new ACMClient({
-    region: myRegion,
-    credentials: fromIni({ profile: useIAM }),
-  });
+  const clientFactory = new AWSClientFactory(myRegion, useIAM);
+  const acm = clientFactory.createClient(ACMClient);
 
   let certificates;
   try {
@@ -3199,6 +3048,7 @@ const chooseCertificate = async (useIAM) => {
  * @param DHID
  */
 export async function awsInit(projName, awsName, useIAM, DHID) {
+  const clientFactory = new AWSClientFactory(myRegion, useIAM);
   let temp;
   let pushkinConfig;
   try {
@@ -3228,7 +3078,7 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
     console.log("Choosing domain name for site");
     let temp;
     try {
-      const route53DomainsClient = createRoute53DomainsClient(useIAM);
+      const route53DomainsClient = clientFactory.createClient(Route53DomainsClient);
       const listDomainsResponse = await route53DomainsClient.send(new ListDomainsCommand({}));
       temp = { stdout: JSON.stringify({ Domains: listDomainsResponse.Domains }) };
     } catch (e) {
@@ -3522,6 +3372,7 @@ export async function nameProject(projName) {
  * @param useIAM
  */
 const makeACL = async (useIAM) => {
+  const clientFactory = new AWSClientFactory(myRegion, useIAM);
   //This function first checks for an ACL named pushkinACL. If so, return ARN.
   //If not, create one and return the ARN.
   //We don't store anything because the ACL is always called 'pushkinACL' and the ID and ARN can always be looked up if needed.
@@ -3533,7 +3384,7 @@ const makeACL = async (useIAM) => {
     let ACLarn;
     let temp;
     try {
-      const wafv2Client = createWAFv2Client(useIAM);
+      const wafv2Client = clientFactory.createClient(WAFV2Client);
       const listWebACLsResponse = await wafv2Client.send(
         new ListWebACLsCommand({ Scope: "CLOUDFRONT" }),
       );
@@ -3563,7 +3414,7 @@ const makeACL = async (useIAM) => {
   if (!ACLarn) {
     let temp;
     try {
-      const wafv2Client = createWAFv2Client(useIAM);
+      const wafv2Client = clientFactory.createClient(WAFV2Client);
       const createWebACLResponse = await wafv2Client.send(
         new CreateWebACLCommand({
           Name: "pushkinACL",
@@ -3623,6 +3474,7 @@ export async function addIAM(iam) {
  * @param killTag
  */
 const deleteStack = async (useIAM, killTag) => {
+  const clientFactory = new AWSClientFactory(myRegion, useIAM);
   console.log(`Deleting cloudformation stacks`);
   /**
    *
@@ -3632,7 +3484,7 @@ const deleteStack = async (useIAM, killTag) => {
     let stacksToDelete = [];
     let stackList;
     try {
-      const cloudFormationClient = createCloudFormationClient(useIAM);
+      const cloudFormationClient = clientFactory.createClient(CloudFormationClient);
       const listStacksResponse = await cloudFormationClient.send(new ListStacksCommand({}));
       stackList = { stdout: JSON.stringify({ StackSummaries: listStacksResponse.StackSummaries }) };
     } catch (e) {
@@ -3680,7 +3532,7 @@ const deleteStack = async (useIAM, killTag) => {
       stacksToDelete.map(async (s) => {
         console.log(`Deleting stack ${s}`);
         try {
-          const cloudFormationClient = createCloudFormationClient(useIAM);
+          const cloudFormationClient = clientFactory.createClient(CloudFormationClient);
           return await cloudFormationClient.send(new DeleteStackCommand({ StackName: s }));
         } catch (e) {
           console.warn(
@@ -3727,13 +3579,14 @@ const deleteStack = async (useIAM, killTag) => {
  * @param awsResources
  */
 const deleteCluster = async (deletedStack, useIAM, killTag, projName, awsResources) => {
+  const clientFactory = new AWSClientFactory(myRegion, useIAM);
   deletedStack = await deletedStack; //probably need this gone first.
   console.log(`Deleted stack: ${deletedStack}`);
   let runningClusters = [];
   let clustersToKill = [];
   let temp;
   try {
-    const ecsClient = createECSClient(useIAM);
+    const ecsClient = clientFactory.createClient(ECSClient);
     const listClustersResponse = await ecsClient.send(new ListClustersCommand({}));
     temp = { stdout: JSON.stringify({ clusterArns: listClustersResponse.clusterArns }) };
   } catch (e) {
@@ -3759,7 +3612,7 @@ const deleteCluster = async (deletedStack, useIAM, killTag, projName, awsResourc
     }
     let clusterDescription;
     try {
-      const ecsClient = createECSClient(useIAM);
+      const ecsClient = clientFactory.createClient(ECSClient);
       const describeClustersResponse = await ecsClient.send(
         new DescribeClustersCommand({
           clusters: [awsResources.ECSName],
@@ -3806,7 +3659,7 @@ const deleteCluster = async (deletedStack, useIAM, killTag, projName, awsResourc
     clustersToKill.map(async (c) => {
       let aTaskToKill;
       try {
-        const ecsClient = createECSClient(useIAM);
+        const ecsClient = clientFactory.createClient(ECSClient);
         const listTasksResponse = await ecsClient.send(
           new ListTasksCommand({
             cluster: c,
@@ -3823,7 +3676,7 @@ const deleteCluster = async (deletedStack, useIAM, killTag, projName, awsResourc
         killedTasks = Promise.all(
           tasksToKill.map(async (t) => {
             console.log(`killing task: ` + t);
-            const ecsClient = createECSClient(useIAM);
+            const ecsClient = clientFactory.createClient(ECSClient);
             return await ecsClient.send(
               new StopTaskCommand({
                 cluster: c,
@@ -3839,7 +3692,7 @@ const deleteCluster = async (deletedStack, useIAM, killTag, projName, awsResourc
       while (true) {
         let aTaskToKill;
         try {
-          const ecsClient = createECSClient(useIAM);
+          const ecsClient = clientFactory.createClient(ECSClient);
           const listTasksResponse = await ecsClient.send(
             new ListTasksCommand({
               cluster: c,
@@ -3865,15 +3718,14 @@ const deleteCluster = async (deletedStack, useIAM, killTag, projName, awsResourc
       /**
        *
        * @param clusterName
-       * @param useIAM
        */
-      async function deleteAllServices(clusterName, useIAM) {
+      async function deleteAllServices(clusterName) {
         let servicesToDelete = [];
         let deletedServices = [];
         let aServiceToDelete;
 
         try {
-          const ecsClient = createECSClient(useIAM);
+          const ecsClient = clientFactory.createClient(ECSClient);
           const listServicesResponse = await ecsClient.send(
             new ListServicesCommand({
               cluster: clusterName,
@@ -3893,7 +3745,7 @@ const deleteCluster = async (deletedStack, useIAM, killTag, projName, awsResourc
           deletedServices = Promise.all(
             servicesToDelete.map(async (s) => {
               console.log(`deleting service: ` + s);
-              const ecsClient = createECSClient(useIAM);
+              const ecsClient = clientFactory.createClient(ECSClient);
               return await ecsClient.send(
                 new DeleteServiceCommand({
                   cluster: clusterName,
@@ -3910,7 +3762,7 @@ const deleteCluster = async (deletedStack, useIAM, killTag, projName, awsResourc
         while (true) {
           let servicesList;
           try {
-            const ecsClient = createECSClient(useIAM);
+            const ecsClient = clientFactory.createClient(ECSClient);
             const listServicesResponse = await ecsClient.send(
               new ListServicesCommand({
                 cluster: clusterName,
@@ -3939,13 +3791,13 @@ const deleteCluster = async (deletedStack, useIAM, killTag, projName, awsResourc
         return true;
       }
 
-      return deleteAllServices(c, useIAM);
+      return deleteAllServices(c);
     }),
   );
   let killedClusters = clustersToKill.map(async (c) => {
     console.log(`Deleting ECS Cluster ${c}.`);
     try {
-      const ecsClient = createECSClient(useIAM);
+      const ecsClient = clientFactory.createClient(ECSClient);
       temp = await ecsClient.send(
         new DeleteClusterCommand({
           cluster: c,
@@ -3967,11 +3819,12 @@ const deleteCluster = async (deletedStack, useIAM, killTag, projName, awsResourc
  * @param awsResources
  */
 const dbsToDeleteFunc = async (useIAM, killTag, awsResources) => {
+  const clientFactory = new AWSClientFactory(myRegion, useIAM);
   // Get list of DBs to delete
   let dbs = [];
   let respDBList;
   try {
-    const rdsClient = createRDSClient(useIAM);
+    const rdsClient = clientFactory.createClient(RDSClient);
     const describeDBInstancesResponse = await rdsClient.send(new DescribeDBInstancesCommand({}));
     respDBList = {
       stdout: JSON.stringify({ DBInstances: describeDBInstancesResponse.DBInstances }),
@@ -4004,6 +3857,7 @@ const dbsToDeleteFunc = async (useIAM, killTag, awsResources) => {
  * @param killTag
  */
 const deleteDatabases = async (dbs, useIAM, killTag) => {
+  const clientFactory = new AWSClientFactory(myRegion, useIAM);
   dbs = await dbs;
 
   if (dbs.length == 0) {
@@ -4015,7 +3869,7 @@ const deleteDatabases = async (dbs, useIAM, killTag) => {
     dbs.map(async (db) => {
       let temp;
       try {
-        const rdsClient = createRDSClient(useIAM);
+        const rdsClient = clientFactory.createClient(RDSClient);
         const describeDBInstancesResponse = await rdsClient.send(
           new DescribeDBInstancesCommand({ DBInstanceIdentifier: db }),
         );
@@ -4039,7 +3893,7 @@ const deleteDatabases = async (dbs, useIAM, killTag) => {
         dbs = tempFunc(dbs);
         return;
       }
-      const rdsClient = createRDSClient(useIAM);
+      const rdsClient = clientFactory.createClient(RDSClient);
       await rdsClient.send(
         new ModifyDBInstanceCommand({
           DBInstanceIdentifier: db,
@@ -4060,7 +3914,7 @@ const deleteDatabases = async (dbs, useIAM, killTag) => {
     let temp;
     console.log(`Checking database ${dbId} for deletion protection`);
     try {
-      const rdsClient = createRDSClient(useIAM);
+      const rdsClient = clientFactory.createClient(RDSClient);
       const describeDBInstancesResponse = await rdsClient.send(
         new DescribeDBInstancesCommand({ DBInstanceIdentifier: dbId }),
       );
@@ -4095,7 +3949,7 @@ const deleteDatabases = async (dbs, useIAM, killTag) => {
           //check whether DB is already being deleted
           let dbStatus;
           try {
-            const rdsClient = createRDSClient(useIAM);
+            const rdsClient = clientFactory.createClient(RDSClient);
             const describeDBInstancesResponse = await rdsClient.send(
               new DescribeDBInstancesCommand({ DBInstanceIdentifier: db }),
             );
@@ -4110,7 +3964,7 @@ const deleteDatabases = async (dbs, useIAM, killTag) => {
             let dbDeletionResponse;
             console.log(`Deleting database ${db}`);
             try {
-              const rdsClient = createRDSClient(useIAM);
+              const rdsClient = clientFactory.createClient(RDSClient);
               dbDeletionResponse = rdsClient.send(
                 new DeleteDBInstanceCommand({
                   DBInstanceIdentifier: db,
@@ -4152,7 +4006,7 @@ const deleteDatabases = async (dbs, useIAM, killTag) => {
       const confirmDBDeleted = async () => {
         let temp;
         try {
-          const rdsClient = createRDSClient(useIAM);
+          const rdsClient = clientFactory.createClient(RDSClient);
           const describeDBInstancesResponse = await rdsClient.send(
             new DescribeDBInstancesCommand({}),
           );
@@ -4189,10 +4043,11 @@ const deleteDatabases = async (dbs, useIAM, killTag) => {
  * @param killTag
  */
 const deleteLoadBalancer = async (useIAM, killTag) => {
+  const clientFactory = new AWSClientFactory(myRegion, useIAM);
   //FUBAR Need to killize this
   let temp;
   try {
-    const elbv2Client = createELBv2Client(useIAM);
+    const elbv2Client = clientFactory.createClient(ElasticLoadBalancingV2Client);
     const describeLoadBalancersResponse = await elbv2Client.send(
       new DescribeLoadBalancersCommand({}),
     );
@@ -4216,15 +4071,14 @@ const deleteLoadBalancer = async (useIAM, killTag) => {
       /**
        *
        * @param loadBalancerName
-       * @param useIAM
        */
-      async function deleteAllListeners(loadBalancerName, useIAM) {
+      async function deleteAllListeners(loadBalancerName) {
         let listenersToDelete = [];
         let deletedListeners = [];
         let temp;
 
         try {
-          const elbv2Client = createELBv2Client(useIAM);
+          const elbv2Client = clientFactory.createClient(ElasticLoadBalancingV2Client);
           const describeListenersResponse = await elbv2Client.send(
             new DescribeListenersCommand({ LoadBalancerArn: loadBalancerName }),
           );
@@ -4237,7 +4091,7 @@ const deleteLoadBalancer = async (useIAM, killTag) => {
         listenersToDelete = JSON.parse(temp.stdout).Listeners.map((l) => l.ListenerArn);
 
         if (listenersToDelete.length > 0) {
-          const elbv2Client = createELBv2Client(useIAM);
+          const elbv2Client = clientFactory.createClient(ElasticLoadBalancingV2Client);
           deletedListeners = Promise.all(
             listenersToDelete.map(async (l) => {
               console.log(`deleting listener: ` + l);
@@ -4254,7 +4108,7 @@ const deleteLoadBalancer = async (useIAM, killTag) => {
         while (true) {
           let describedListeners;
           try {
-            const elbv2Client = createELBv2Client(useIAM);
+            const elbv2Client = clientFactory.createClient(ElasticLoadBalancingV2Client);
             const describeListenersResponse = await elbv2Client.send(
               new DescribeListenersCommand({ LoadBalancerArn: loadBalancerName }),
             );
@@ -4282,11 +4136,11 @@ const deleteLoadBalancer = async (useIAM, killTag) => {
         return true;
       }
 
-      await deleteAllListeners(b, useIAM);
+      await deleteAllListeners(b);
 
       let deletedLoadBalancer;
       try {
-        const elbv2Client = createELBv2Client(useIAM);
+        const elbv2Client = clientFactory.createClient(ElasticLoadBalancingV2Client);
         deletedLoadBalancer = await elbv2Client.send(
           new DeleteLoadBalancerCommand({ LoadBalancerArn: b }),
         );
@@ -4307,10 +4161,11 @@ const deleteLoadBalancer = async (useIAM, killTag) => {
  * @param killTag
  */
 const deleteCloudFront = async (useIAM, projName, killTag) => {
+  const clientFactory = new AWSClientFactory(myRegion, useIAM);
   // First, get list of distributions we need to delete
   let tempDists;
   try {
-    const cloudFrontClient = createCloudFrontClient(useIAM);
+    const cloudFrontClient = clientFactory.createClient(CloudFrontClient);
     const listDistributionsResponse = await cloudFrontClient.send(new ListDistributionsCommand({}));
     tempDists = {
       stdout: JSON.stringify({ DistributionList: listDistributionsResponse.DistributionList }),
@@ -4335,7 +4190,7 @@ const deleteCloudFront = async (useIAM, projName, killTag) => {
         //check whether this is tagged to our project
         let tempTagCheck;
         try {
-          const cloudFrontClient = createCloudFrontClient(useIAM);
+          const cloudFrontClient = clientFactory.createClient(CloudFrontClient);
           const listTagsResponse = await cloudFrontClient.send(
             new ListTagsForResourceCommand({ Resource: d.ARN }),
           );
@@ -4369,7 +4224,7 @@ const deleteCloudFront = async (useIAM, projName, killTag) => {
       let distributionReady = false;
       let temp;
       try {
-        const cloudFrontClient = createCloudFrontClient(useIAM);
+        const cloudFrontClient = clientFactory.createClient(CloudFrontClient);
         const listDistributionsResponse = await cloudFrontClient.send(
           new ListDistributionsCommand({}),
         );
@@ -4413,7 +4268,7 @@ const deleteCloudFront = async (useIAM, projName, killTag) => {
         let ETag;
         let aDistributionConfig;
         try {
-          const cloudFrontClient = createCloudFrontClient(useIAM);
+          const cloudFrontClient = clientFactory.createClient(CloudFrontClient);
           aDistributionConfig = await cloudFrontClient.send(
             new GetDistributionConfigCommand({ Id: distId }),
           );
@@ -4432,7 +4287,7 @@ const deleteCloudFront = async (useIAM, projName, killTag) => {
         let disableCloudFront;
         let disableFailed;
         try {
-          const cloudFrontClient = createCloudFrontClient(useIAM);
+          const cloudFrontClient = clientFactory.createClient(CloudFrontClient);
           disableCloudFront = await cloudFrontClient.send(
             new UpdateDistributionCommand({
               Id: distId,
@@ -4480,7 +4335,7 @@ const deleteCloudFront = async (useIAM, projName, killTag) => {
               console.log(`Cloudfront is disabled. Deleting.`);
               //Apparently the ETag changes after disabling? So we need to get it again.
               try {
-                const cloudFrontClient = createCloudFrontClient(useIAM);
+                const cloudFrontClient = clientFactory.createClient(CloudFrontClient);
                 const getDistributionConfigResponse = await cloudFrontClient.send(
                   new GetDistributionConfigCommand({ Id: distId }),
                 );
@@ -4498,14 +4353,14 @@ const deleteCloudFront = async (useIAM, projName, killTag) => {
               }
               //Armed with the new ETag, we can delete the distribution
               try {
-                const cloudFrontClient = createCloudFrontClient(useIAM);
+                const cloudFrontClient = clientFactory.createClient(CloudFrontClient);
                 await cloudFrontClient.send(
                   new DeleteDistributionCommand({ Id: distId, IfMatch: ETag }),
                 );
               } catch (e) {
                 console.error(`Unable to delete cloudfront distribution`);
                 try {
-                  const cloudFrontClient = createCloudFrontClient(useIAM);
+                  const cloudFrontClient = clientFactory.createClient(CloudFrontClient);
                   const getDistributionResponse = await cloudFrontClient.send(
                     new GetDistributionCommand({ Id: distId }),
                   );
@@ -4562,6 +4417,7 @@ const deleteCloudFront = async (useIAM, projName, killTag) => {
  * @param projName
  */
 const deleteResourceRecords = async (useIAM, killTag, projName) => {
+  const clientFactory = new AWSClientFactory(myRegion, useIAM);
   let temp;
   let pushkinConfig;
   try {
@@ -4578,7 +4434,7 @@ const deleteResourceRecords = async (useIAM, killTag, projName) => {
   let zoneID;
   let listedHostedZones;
   try {
-    const route53Client = createRoute53Client(useIAM);
+    const route53Client = clientFactory.createClient(Route53Client);
     const listHostedZonesResponse = await route53Client.send(
       new ListHostedZonesByNameCommand({ DNSName: myDomain }),
     );
@@ -4611,7 +4467,7 @@ const deleteResourceRecords = async (useIAM, killTag, projName) => {
 
   let tempRRList;
   try {
-    const route53Client = createRoute53Client(useIAM);
+    const route53Client = clientFactory.createClient(Route53Client);
     const listResourceRecordSetsResponse = await route53Client.send(
       new ListResourceRecordSetsCommand({ HostedZoneId: zoneID }),
     );
@@ -4634,7 +4490,7 @@ const deleteResourceRecords = async (useIAM, killTag, projName) => {
     }
   });
   if (resourceRecords.ChangeBatch.Changes.length > 0) {
-    const route53Client = createRoute53Client(useIAM);
+    const route53Client = clientFactory.createClient(Route53Client);
     return route53Client.send(
       new ChangeResourceRecordSetsCommand({
         HostedZoneId: resourceRecords.HostedZoneId,
@@ -4653,6 +4509,7 @@ const deleteResourceRecords = async (useIAM, killTag, projName) => {
  * @param killTag
  */
 const deleteOACs = async (useIAM, deletedCloudFront, killTag) => {
+  const clientFactory = new AWSClientFactory(myRegion, useIAM);
   //FUBAR Need to killize this
   deletedCloudFront = await deletedCloudFront;
 
@@ -4663,7 +4520,7 @@ const deleteOACs = async (useIAM, deletedCloudFront, killTag) => {
 
   let temp;
   try {
-    const cloudFrontClient = createCloudFrontClient(useIAM);
+    const cloudFrontClient = clientFactory.createClient(CloudFrontClient);
     const listOACResponse = await cloudFrontClient.send(new ListOriginAccessControlsCommand({}));
     temp = {
       stdout: JSON.stringify({ OriginAccessControlList: listOACResponse.OriginAccessControlList }),
@@ -4676,7 +4533,7 @@ const deleteOACs = async (useIAM, deletedCloudFront, killTag) => {
     for (const d of JSON.parse(temp.stdout).OriginAccessControlList.Items) {
       let etag;
       try {
-        const cloudFrontClient = createCloudFrontClient(useIAM);
+        const cloudFrontClient = clientFactory.createClient(CloudFrontClient);
         const getOACResponse = await cloudFrontClient.send(
           new GetOriginAccessControlCommand({ Id: d.Id }),
         );
@@ -4692,7 +4549,7 @@ const deleteOACs = async (useIAM, deletedCloudFront, killTag) => {
 
       for (let attempt = 0; attempt < maxRetries; attempt++) {
         try {
-          const cloudFrontClient = createCloudFrontClient(useIAM);
+          const cloudFrontClient = clientFactory.createClient(CloudFrontClient);
           deleteOAC = await cloudFrontClient.send(
             new DeleteOriginAccessControlCommand({ Id: d.Id, IfMatch: etag }),
           );
@@ -4743,11 +4600,12 @@ const deleteOACs = async (useIAM, deletedCloudFront, killTag) => {
  * @param deletedLoadBalancer
  */
 const deleteTargetGroup = async (useIAM, deletedLoadBalancer) => {
+  const clientFactory = new AWSClientFactory(myRegion, useIAM);
   //FUBAR Need to killize this
   await deletedLoadBalancer;
   let getTargetGroups;
   try {
-    const elbv2Client = createELBv2Client(useIAM);
+    const elbv2Client = clientFactory.createClient(ElasticLoadBalancingV2Client);
     const describeTargetGroupsResponse = await elbv2Client.send(
       new DescribeTargetGroupsCommand({}),
     );
@@ -4765,7 +4623,7 @@ const deleteTargetGroup = async (useIAM, deletedLoadBalancer) => {
     return Promise.all(
       targetGroups.map(async (tg) => {
         try {
-          const elbv2Client = createELBv2Client(useIAM);
+          const elbv2Client = clientFactory.createClient(ElasticLoadBalancingV2Client);
           await elbv2Client.send(new DescribeTargetGroupsCommand({ TargetGroupArns: [tg] }));
         } catch (e) {
           console.warn(
@@ -4775,7 +4633,7 @@ const deleteTargetGroup = async (useIAM, deletedLoadBalancer) => {
           return true;
         }
         try {
-          const elbv2Client = createELBv2Client(useIAM);
+          const elbv2Client = clientFactory.createClient(ElasticLoadBalancingV2Client);
           await elbv2Client.send(new DeleteTargetGroupCommand({ TargetGroupArn: tg }));
         } catch (e) {
           console.error(`Unable to delete associated target group`);
@@ -4797,11 +4655,12 @@ const deleteTargetGroup = async (useIAM, deletedLoadBalancer) => {
  * @param deletedCloudFront
  */
 const deleteBucket = async (useIAM, killTag, awsResources, deletedCloudFront) => {
+  const clientFactory = new AWSClientFactory(myRegion, useIAM);
   await deletedCloudFront;
   //FUBAR Need to killize this
   let buckets;
   try {
-    const s3Client = createS3Client(useIAM);
+    const s3Client = clientFactory.createClient(S3Client);
     const listBucketsResponse = await s3Client.send(new ListBucketsCommand({}));
     buckets = { stdout: JSON.stringify({ Buckets: listBucketsResponse.Buckets }) };
   } catch (e) {
@@ -4813,7 +4672,7 @@ const deleteBucket = async (useIAM, killTag, awsResources, deletedCloudFront) =>
       JSON.parse(buckets.stdout).Buckets.map(async (b) => {
         console.log(`Deleting s3 bucket ${b.Name}`);
         try {
-          const s3Client = createS3Client(useIAM);
+          const s3Client = clientFactory.createClient(S3Client);
           // List all objects in the bucket
           let isTruncated = true;
           let continuationToken;
@@ -4859,19 +4718,18 @@ const deleteBucket = async (useIAM, killTag, awsResources, deletedCloudFront) =>
  * @param deletedDBs
  */
 const deleteSecurityGroups = async (useIAM, killTag, deletedDBs) => {
+  const clientFactory = new AWSClientFactory(myRegion, useIAM);
   console.log(`Before deleting security groups, wait for DBs to be completed deleted`);
   await deletedDBs;
   console.log(`DBs deleted. Can start deleting security groups.`);
   /**
    *
    * @param g
-   * @param useIAM
-   * @param killTag
    */
-  const deleteMyGroup = async (g, useIAM, killTag) => {
+  const deleteMyGroup = async (g) => {
     console.log(`Deleting security group ${g}`);
     try {
-      const ec2Client = createEC2Client(useIAM);
+      const ec2Client = clientFactory.createClient(EC2Client);
       await ec2Client.send(new DescribeSecurityGroupsCommand({ GroupNames: [g] }));
     } catch (e) {
       console.log(e);
@@ -4879,7 +4737,7 @@ const deleteSecurityGroups = async (useIAM, killTag, deletedDBs) => {
       return true;
     }
     try {
-      const ec2Client = createEC2Client(useIAM);
+      const ec2Client = clientFactory.createClient(EC2Client);
       await ec2Client.send(new DeleteSecurityGroupCommand({ GroupName: g }));
     } catch (e) {
       console.warn(
@@ -4895,7 +4753,7 @@ const deleteSecurityGroups = async (useIAM, killTag, deletedDBs) => {
   let groupsToDelete = [];
   let tempGroupList;
   try {
-    const ec2Client = createEC2Client(useIAM);
+    const ec2Client = clientFactory.createClient(EC2Client);
     const describeSecurityGroupsResponse = await ec2Client.send(
       new DescribeSecurityGroupsCommand({}),
     );
@@ -4919,7 +4777,7 @@ const deleteSecurityGroups = async (useIAM, killTag, deletedDBs) => {
       }
     }
   });
-  return Promise.all(groupsToDelete.map((g) => deleteMyGroup(g, useIAM, killTag)));
+  return Promise.all(groupsToDelete.map((g) => deleteMyGroup(g)));
 };
 
 /**
@@ -4930,7 +4788,8 @@ const deleteSecurityGroups = async (useIAM, killTag, deletedDBs) => {
  * @returns {Promise<void>}
  */
 const deleteServiceDiscovery = async (useIAM, projName, killTag) => {
-  const client = createServiceDiscoveryClient(useIAM);
+  const clientFactory = new AWSClientFactory(myRegion, useIAM);
+  const client = clientFactory.createClient(ServiceDiscoveryClient);
   const namespaceName = `${projName}.local`;
 
   try {
@@ -5222,20 +5081,21 @@ export const awsArmageddon = async (useIAM, killType) => {
  * @param useIAM
  */
 export async function awsList(useIAM) {
+  const clientFactory = new AWSClientFactory(myRegion, useIAM);
   let temp;
 
-  const rdsClient = createRDSClient(useIAM);
+  const rdsClient = clientFactory.createClient(RDSClient);
   const describeDBInstancesResponse = await rdsClient.send(new DescribeDBInstancesCommand({}));
   temp = { stdout: JSON.stringify({ DBInstances: describeDBInstancesResponse.DBInstances }) };
   if (JSON.parse(temp.stdout).DBInstances.length > 0) {
     console.log("DBInstances:\n", JSON.parse(temp.stdout).DBInstances);
   }
-  const ecsClient = createECSClient(useIAM);
+  const ecsClient = clientFactory.createClient(ECSClient);
   const describeClustersResponse = await ecsClient.send(new DescribeClustersCommand({}));
   if (describeClustersResponse.clusters.length > 0) {
     console.log("ECS Clusters:\n", describeClustersResponse.clusters);
   }
-  const ec2Client = createEC2Client(useIAM);
+  const ec2Client = clientFactory.createClient(EC2Client);
   const describeSecurityGroupsResponse = await ec2Client.send(
     new DescribeSecurityGroupsCommand({}),
   );
@@ -5247,7 +5107,7 @@ export async function awsList(useIAM) {
       console.log("Security Group:\n", g);
     }
   });
-  const elbv2Client = createELBv2Client(useIAM);
+  const elbv2Client = clientFactory.createClient(ElasticLoadBalancingV2Client);
   const describeLoadBalancersResponse = await elbv2Client.send(
     new DescribeLoadBalancersCommand({}),
   );
@@ -5255,13 +5115,13 @@ export async function awsList(useIAM) {
   if (JSON.parse(temp.stdout).LoadBalancers.length > 0) {
     console.log("Load Balancers:\n", JSON.parse(temp.stdout).LoadBalancers);
   }
-  const s3Client = createS3Client(useIAM);
+  const s3Client = clientFactory.createClient(S3Client);
   const listBucketsResponse = await s3Client.send(new ListBucketsCommand({}));
   temp = { stdout: JSON.stringify({ Buckets: listBucketsResponse.Buckets }) };
   if (JSON.parse(temp.stdout).Buckets.length > 0) {
     console.log("S3 Buckets:\n", JSON.parse(temp.stdout).Buckets);
   }
-  const cloudFrontClient = createCloudFrontClient(useIAM);
+  const cloudFrontClient = clientFactory.createClient(CloudFrontClient);
   const listDistributionsResponse = await cloudFrontClient.send(new ListDistributionsCommand({}));
   temp = {
     stdout: JSON.stringify({ DistributionList: listDistributionsResponse.DistributionList }),
@@ -5269,7 +5129,7 @@ export async function awsList(useIAM) {
   if (temp.stdout != "") {
     console.log("CloudFront Distributions:\n", JSON.parse(temp.stdout));
   }
-  const cloudFormationClient = createCloudFormationClient(useIAM);
+  const cloudFormationClient = clientFactory.createClient(CloudFormationClient);
   const describeStacksResponse = await cloudFormationClient.send(new DescribeStacksCommand({}));
   temp = { stdout: JSON.stringify({ Stacks: describeStacksResponse.Stacks }) };
   if (JSON.parse(temp.stdout).Stacks.length > 0) {
