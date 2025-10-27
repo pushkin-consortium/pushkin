@@ -1123,9 +1123,9 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
           sameParams = false;
           console.warn("\x1b[31m%s\x1b[0m", `Database port on RDS does not match pushkin.yaml`);
         }
-        if (pushkinConfig.productionDBs[dbType].host != retrievedDBInfo.Endpoint.Address) {
+        if (pushkinConfig.productionDBs[dbType].url != retrievedDBInfo.Endpoint.Address) {
           sameParams = false;
-          console.warn("\x1b[31m%s\x1b[0m", `Database host on RDS does not match pushkin.yaml`);
+          console.warn("\x1b[31m%s\x1b[0m", `Database URL on RDS does not match pushkin.yaml`);
         }
         if (sameParams) {
           console.log(
@@ -1361,7 +1361,7 @@ const getDBInfo = async () => {
         username: pushkinConfig.productionDBs[d].user,
         password: pushkinConfig.productionDBs[d].pass,
         port: pushkinConfig.productionDBs[d].port,
-        endpoint: pushkinConfig.productionDBs[d].host,
+        endpoint: pushkinConfig.productionDBs[d].url,
       };
     });
     return dbsByType;
@@ -3228,7 +3228,7 @@ export async function nameProject(projName) {
   if (pushkinConfig.productionDBs) {
     Object.keys(pushkinConfig.productionDBs).forEach((db) => {
       pushkinConfig.productionDBs[db].name = null;
-      pushkinConfig.productionDBs[db].host = null;
+      pushkinConfig.productionDBs[db].url = null;
       pushkinConfig.productionDBs[db].pass = null;
       // Leave port and user in place, since those are unlikely to change
     });
