@@ -1815,9 +1815,49 @@ const ecsTaskCreator = async (
     return await waitForCluster();
   };
 
-  const rabbitPW = Math.random().toString();
+  // Load pushkin.yaml to check for existing RabbitMQ credentials
+  let pushkinConfig;
+  try {
+    const configContent = await fs.promises.readFile(path.join(process.cwd(), "pushkin.yaml"), "utf8");
+    pushkinConfig = jsYaml.load(configContent);
+  } catch (e) {
+    console.error("Failed to load pushkin.yaml");
+    throw e;
+  }
+
+  // Use existing RabbitMQ credentials if available, otherwise generate new ones
+  let rabbitPW, rabbitCookie;
+  if (pushkinConfig.rabbitmq && pushkinConfig.rabbitmq.password && pushkinConfig.rabbitmq.erlangCookie) {
+    console.log("Using existing RabbitMQ credentials from pushkin.yaml");
+    rabbitPW = pushkinConfig.rabbitmq.password;
+    rabbitCookie = pushkinConfig.rabbitmq.erlangCookie;
+  } else {
+    console.log("Generating new RabbitMQ credentials");
+    // Use crypto.randomBytes for secure password generation
+    rabbitPW = crypto.randomBytes(16).toString("hex");
+    rabbitCookie = uuid();
+
+    // Save to pushkin.yaml
+    if (!pushkinConfig.rabbitmq) {
+      pushkinConfig.rabbitmq = {};
+    }
+    pushkinConfig.rabbitmq.password = rabbitPW;
+    pushkinConfig.rabbitmq.erlangCookie = rabbitCookie;
+
+    try {
+      await fs.promises.writeFile(
+        path.join(process.cwd(), "pushkin.yaml"),
+        jsYaml.dump(pushkinConfig),
+        "utf8"
+      );
+      console.log("Saved RabbitMQ credentials to pushkin.yaml");
+    } catch (e) {
+      console.error("Failed to save RabbitMQ credentials to pushkin.yaml");
+      throw e;
+    }
+  }
+
   const rabbitUser = projName.replace(/[^A-Za-z0-9]/g, "");
-  const rabbitCookie = uuid();
   const rabbitAddress = "amqp://"
     .concat(rabbitUser)
     .concat(":")
