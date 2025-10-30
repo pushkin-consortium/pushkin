@@ -124,6 +124,16 @@ import {
   PutRetentionPolicyCommand,
 } from "@aws-sdk/client-cloudwatch-logs";
 import { WAFV2Client, ListWebACLsCommand, CreateWebACLCommand } from "@aws-sdk/client-wafv2";
+import {
+  ServiceDiscoveryClient,
+  CreatePrivateDnsNamespaceCommand,
+  ListNamespacesCommand,
+  CreateServiceCommand as CreateSDServiceCommand,
+  ListServicesCommand as ListSDServicesCommand,
+  DeleteServiceCommand as DeleteSDServiceCommand,
+  DeleteNamespaceCommand,
+  GetOperationCommand,
+} from "@aws-sdk/client-servicediscovery";
 
 const myRegion = "us-east-1"; //set as default. May want this to be a parameter somewhere that can be changed.
 
@@ -272,6 +282,151 @@ const createWAFv2Client = (useIAM) => {
     region: myRegion,
     credentials: fromIni({ profile: useIAM }),
   });
+};
+
+/**
+ * Helper function to create Service Discovery client
+ * @param {*} useIAM - The IAM user to use
+ * @returns {ServiceDiscoveryClient} - The Service Discovery client
+ */
+const createServiceDiscoveryClient = (useIAM) => {
+  return new ServiceDiscoveryClient({
+    region: myRegion,
+    credentials: fromIni({ profile: useIAM }),
+  });
+};
+
+/**
+ * Create or get existing Cloud Map namespace for service discovery
+ * @param {string} projName - The project name
+ * @param {string} vpcId - The VPC ID
+ * @param {string} useIAM - The IAM profile to use
+ * @returns {Promise<string>} - The namespace ID
+ */
+const ensureServiceDiscoveryNamespace = async (projName, vpcId, useIAM) => {
+  const client = createServiceDiscoveryClient(useIAM);
+  const namespaceName = `${projName}.local`;
+
+  try {
+    // Check if namespace already exists
+    const listCommand = new ListNamespacesCommand({});
+    const listResponse = await client.send(listCommand);
+
+    const existingNamespace = listResponse.Namespaces?.find(
+      (ns) => ns.Name === namespaceName && ns.Type === "DNS_PRIVATE",
+    );
+
+    if (existingNamespace) {
+      console.log(`Using existing Service Discovery namespace: ${namespaceName}`);
+      return existingNamespace.Id;
+    }
+
+    // Create new namespace
+    console.log(`Creating Service Discovery namespace: ${namespaceName}`);
+    const createCommand = new CreatePrivateDnsNamespaceCommand({
+      Name: namespaceName,
+      Vpc: vpcId,
+      Description: `Service discovery namespace for ${projName}`,
+    });
+
+    const createResponse = await client.send(createCommand);
+    const operationId = createResponse.OperationId;
+    console.log(`Service Discovery namespace creation started. Operation ID: ${operationId}`);
+
+    // Wait for operation to complete and get namespace ID
+    console.log("Waiting for namespace creation to complete...");
+    let namespaceId;
+    let attempts = 0;
+    const maxAttempts = 60; // Wait up to 5 minutes (60 * 5 seconds)
+
+    while (attempts < maxAttempts) {
+      const getOpCommand = new GetOperationCommand({ OperationId: operationId });
+      const opResponse = await client.send(getOpCommand);
+
+      if (opResponse.Operation.Status === "SUCCESS") {
+        namespaceId = opResponse.Operation.Targets?.NAMESPACE;
+        console.log(`Service Discovery namespace created successfully: ${namespaceId}`);
+        return namespaceId;
+      } else if (opResponse.Operation.Status === "FAIL") {
+        throw new Error(`Namespace creation failed: ${opResponse.Operation.ErrorMessage}`);
+      }
+
+      // Still pending, wait and retry
+      attempts++;
+      if (attempts < maxAttempts) {
+        await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 5 seconds
+      }
+    }
+
+    throw new Error("Timeout waiting for namespace creation");
+  } catch (error) {
+    console.error("Error creating Service Discovery namespace:", error);
+    throw error;
+  }
+};
+
+/**
+ * Register ECS service with Service Discovery
+ * @param {string} serviceName - The service name (e.g., 'message-queue')
+ * @param {string} namespaceId - The Cloud Map namespace ID
+ * @param {string} useIAM - The IAM profile to use
+ * @returns {Promise<object>} - Service registry configuration for ECS
+ */
+const registerServiceWithDiscovery = async (serviceName, namespaceId, useIAM) => {
+  const client = createServiceDiscoveryClient(useIAM);
+
+  try {
+    // Check if service already registered
+    const listCommand = new ListSDServicesCommand({
+      Filters: [
+        {
+          Name: "NAMESPACE_ID",
+          Values: [namespaceId],
+          Condition: "EQ",
+        },
+      ],
+    });
+
+    const listResponse = await client.send(listCommand);
+    const existingService = listResponse.Services?.find((s) => s.Name === serviceName);
+
+    if (existingService) {
+      console.log(`Service ${serviceName} already registered with Service Discovery`);
+      return {
+        registryArn: existingService.Arn,
+      };
+    }
+
+    // Create service registration
+    console.log(`Registering ${serviceName} with Service Discovery`);
+    const createCommand = new CreateSDServiceCommand({
+      Name: serviceName,
+      NamespaceId: namespaceId,
+      DnsConfig: {
+        DnsRecords: [
+          {
+            Type: "A",
+            TTL: 60,
+          },
+        ],
+      },
+      HealthCheckCustomConfig: {
+        FailureThreshold: 1,
+      },
+    });
+
+    const createResponse = await client.send(createCommand);
+    console.log(`Service ${serviceName} registered with ARN: ${createResponse.Service.Arn}`);
+
+    return {
+      registryArn: createResponse.Service.Arn,
+      // Note: containerPort is NOT included for DNS A record-based service discovery
+      // ECS tasks will be registered with their IP addresses, not ports
+    };
+  } catch (error) {
+    console.error(`Error registering service ${serviceName}:`, error);
+    throw error;
+  }
 };
 
 /**
@@ -1124,9 +1279,9 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
           sameParams = false;
           console.warn("\x1b[31m%s\x1b[0m", `Database port on RDS does not match pushkin.yaml`);
         }
-        if (pushkinConfig.productionDBs[dbType].host != retrievedDBInfo.Endpoint.Address) {
+        if (pushkinConfig.productionDBs[dbType].url != retrievedDBInfo.Endpoint.Address) {
           sameParams = false;
-          console.warn("\x1b[31m%s\x1b[0m", `Database host on RDS does not match pushkin.yaml`);
+          console.warn("\x1b[31m%s\x1b[0m", `Database URL on RDS does not match pushkin.yaml`);
         }
         if (sameParams) {
           console.log(
@@ -1362,7 +1517,7 @@ const getDBInfo = async () => {
         username: pushkinConfig.productionDBs[d].user,
         password: pushkinConfig.productionDBs[d].pass,
         port: pushkinConfig.productionDBs[d].port,
-        endpoint: pushkinConfig.productionDBs[d].host,
+        endpoint: pushkinConfig.productionDBs[d].url,
       };
     });
     return dbsByType;
@@ -1442,6 +1597,7 @@ const ensureECSTaskExecutionRole = async (useIAM) => {
  * @param {string} targGroupARN - The target group ARN
  * @param {Array<string>} subnets - Array of subnet IDs for Fargate tasks
  * @param {string} ecsSecurityGroupID - Security group ID for Fargate tasks
+ * @param {string} vpcId - The VPC ID for Service Discovery namespace
  * @returns {Promise} - A promise that resolves when the ECS tasks are created
  */
 const ecsTaskCreator = async (
@@ -1453,6 +1609,7 @@ const ecsTaskCreator = async (
   targGroupARN,
   subnets,
   ecsSecurityGroupID,
+  vpcId,
 ) => {
   try {
     if (fs.existsSync(path.join(process.cwd(), "ECStasks"))) {
@@ -1582,6 +1739,7 @@ const ecsTaskCreator = async (
    * @param {Array<string>} subnets - Subnet IDs for Fargate tasks
    * @param {string} securityGroup - Security group ID for Fargate tasks
    * @param {string} useIAM - IAM profile to use
+   * @param {object} serviceRegistry - Optional Service Discovery registry configuration
    * @returns {Promise<object>} Service creation response
    */
   const createECSService = async (
@@ -1594,6 +1752,7 @@ const ecsTaskCreator = async (
     subnets = [],
     securityGroup = null,
     useIAM,
+    serviceRegistry = null,
   ) => {
     const ecsClient = createECSClient(useIAM);
 
@@ -1662,6 +1821,21 @@ const ecsTaskCreator = async (
       ];
     }
 
+    // Add Service Discovery configuration if provided
+    if (serviceRegistry) {
+      const registryConfig = {
+        registryArn: serviceRegistry.registryArn,
+      };
+      if (serviceRegistry.containerName) {
+        registryConfig.containerName = serviceRegistry.containerName;
+      }
+      if (serviceRegistry.containerPort) {
+        registryConfig.containerPort = serviceRegistry.containerPort;
+      }
+
+      serviceParams.serviceRegistries = [registryConfig];
+    }
+
     try {
       const command = new CreateServiceCommand(serviceParams);
       const response = await ecsClient.send(command);
@@ -1715,6 +1889,7 @@ const ecsTaskCreator = async (
    * @param {string} targGroupARN - The target group ARN for the ECS service
    * @param {Array<string>} subnetsParam - Array of subnet IDs for Fargate tasks
    * @param {string} ecsSecurityGroupIDParam - Security group ID for Fargate tasks
+   * @param {object} serviceRegistry - Optional Service Discovery registry configuration
    * @returns {Promise} - A promise that resolves when the ECS task is created
    */
   const ecsCompose = async (
@@ -1725,10 +1900,8 @@ const ecsTaskCreator = async (
     targGroupARN = false,
     subnetsParam,
     ecsSecurityGroupIDParam,
+    serviceRegistry = null,
   ) => {
-    let waitAttempts = 0;
-    const maxWaitAttempts = 30; // Wait up to 5 minutes (30 * 10 seconds)
-
     /**
      * Wait for the ECS cluster to be ready, then deploy the service
      * For Fargate, cluster just needs to exist (no EC2 instances needed)
@@ -1790,6 +1963,7 @@ const ecsTaskCreator = async (
         subnetsParam, // Pass subnets from parameters
         ecsSecurityGroupIDParam, // Pass security group from parameters
         useIAM,
+        serviceRegistry, // Pass Service Discovery registry if provided
       );
 
       console.log(`Successfully deployed ${name}`);
@@ -1818,7 +1992,10 @@ const ecsTaskCreator = async (
   // Load pushkin.yaml to check for existing RabbitMQ credentials
   let pushkinConfig;
   try {
-    const configContent = await fs.promises.readFile(path.join(process.cwd(), "pushkin.yaml"), "utf8");
+    const configContent = await fs.promises.readFile(
+      path.join(process.cwd(), "pushkin.yaml"),
+      "utf8",
+    );
     pushkinConfig = jsYaml.load(configContent);
   } catch (e) {
     console.error("Failed to load pushkin.yaml");
@@ -1827,7 +2004,11 @@ const ecsTaskCreator = async (
 
   // Use existing RabbitMQ credentials if available, otherwise generate new ones
   let rabbitPW, rabbitCookie;
-  if (pushkinConfig.rabbitmq && pushkinConfig.rabbitmq.password && pushkinConfig.rabbitmq.erlangCookie) {
+  if (
+    pushkinConfig.rabbitmq &&
+    pushkinConfig.rabbitmq.password &&
+    pushkinConfig.rabbitmq.erlangCookie
+  ) {
     console.log("Using existing RabbitMQ credentials from pushkin.yaml");
     rabbitPW = pushkinConfig.rabbitmq.password;
     rabbitCookie = pushkinConfig.rabbitmq.erlangCookie;
@@ -1848,7 +2029,7 @@ const ecsTaskCreator = async (
       await fs.promises.writeFile(
         path.join(process.cwd(), "pushkin.yaml"),
         jsYaml.dump(pushkinConfig),
-        "utf8"
+        "utf8",
       );
       console.log("Saved RabbitMQ credentials to pushkin.yaml");
     } catch (e) {
@@ -1862,7 +2043,9 @@ const ecsTaskCreator = async (
     .concat(rabbitUser)
     .concat(":")
     .concat(rabbitPW)
-    .concat("@localhost:5672");
+    .concat("@")
+    .concat(rabbitHost)
+    .concat(":5672");
   let myRabbitTask = JSON.parse(JSON.stringify(rabbitTask));
   myRabbitTask.services["message-queue"].environment.RABBITMQ_DEFAULT_USER = rabbitUser;
   myRabbitTask.services["message-queue"].environment.RABBITMQ_DEFAULT_PASS = rabbitPW;
@@ -1899,6 +2082,18 @@ const ecsTaskCreator = async (
   await completedDBs; //Next part won't run if DBs aren't done
   const dbInfoByTask = await getDBInfo();
 
+  // Set up Service Discovery namespace for internal service communication
+  console.log(`Setting up Service Discovery namespace for ${projName}`);
+  const namespaceId = await ensureServiceDiscoveryNamespace(projName, vpcId, useIAM);
+
+  // Register message-queue service with Service Discovery
+  console.log(`Registering message-queue with Service Discovery`);
+  const messageQueueRegistry = await registerServiceWithDiscovery(
+    "message-queue",
+    namespaceId,
+    useIAM,
+  );
+
   let composedRabbit;
   let composedAPI;
   let composedWorkers;
@@ -1910,6 +2105,7 @@ const ecsTaskCreator = async (
     false,
     subnets,
     ecsSecurityGroupID,
+    messageQueueRegistry,
   );
   composedAPI = ecsCompose(
     "apiTask.yml",
@@ -2502,6 +2698,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
       targGroupARN,
       subnets,
       ecsSecurityGroupID,
+      myVPC,
     );
   } catch (e) {
     throw e;
@@ -3269,7 +3466,7 @@ export async function nameProject(projName) {
   if (pushkinConfig.productionDBs) {
     Object.keys(pushkinConfig.productionDBs).forEach((db) => {
       pushkinConfig.productionDBs[db].name = null;
-      pushkinConfig.productionDBs[db].host = null;
+      pushkinConfig.productionDBs[db].url = null;
       pushkinConfig.productionDBs[db].pass = null;
       // Leave port and user in place, since those are unlikely to change
     });
@@ -4665,6 +4862,135 @@ const deleteSecurityGroups = async (useIAM, killTag, deletedDBs) => {
 };
 
 /**
+ * Delete Service Discovery (Cloud Map) resources
+ * @param {string} useIAM - The IAM profile to use
+ * @param {string} projName - The project name (used to identify namespace)
+ * @param {boolean} killTag - If truthy, only delete resources for this project
+ * @returns {Promise<void>}
+ */
+const deleteServiceDiscovery = async (useIAM, projName, killTag) => {
+  const client = createServiceDiscoveryClient(useIAM);
+  const namespaceName = `${projName}.local`;
+
+  try {
+    console.log("Checking for Service Discovery resources to delete...");
+
+    // List all namespaces
+    const listNamespacesCommand = new ListNamespacesCommand({});
+    const namespacesResponse = await client.send(listNamespacesCommand);
+
+    if (!namespacesResponse.Namespaces || namespacesResponse.Namespaces.length === 0) {
+      console.log("No Service Discovery namespaces found.");
+      return;
+    }
+
+    // Filter namespaces to delete
+    let namespacesToDelete = namespacesResponse.Namespaces;
+    if (killTag) {
+      // Only delete namespace for this project
+      namespacesToDelete = namespacesResponse.Namespaces.filter(
+        (ns) => ns.Name === namespaceName && ns.Type === "DNS_PRIVATE",
+      );
+
+      if (namespacesToDelete.length === 0) {
+        console.log(`No Service Discovery namespace found for project: ${namespaceName}`);
+        return;
+      }
+    }
+
+    // Delete services in each namespace before deleting the namespace
+    for (const namespace of namespacesToDelete) {
+      console.log(`Processing namespace: ${namespace.Name} (${namespace.Id})`);
+
+      // List services in this namespace
+      const listServicesCommand = new ListSDServicesCommand({
+        Filters: [
+          {
+            Name: "NAMESPACE_ID",
+            Values: [namespace.Id],
+            Condition: "EQ",
+          },
+        ],
+      });
+
+      const servicesResponse = await client.send(listServicesCommand);
+
+      if (servicesResponse.Services && servicesResponse.Services.length > 0) {
+        console.log(
+          `Found ${servicesResponse.Services.length} services to delete in namespace ${namespace.Name}`,
+        );
+
+        // Delete each service
+        for (const service of servicesResponse.Services) {
+          try {
+            console.log(`  Deleting service: ${service.Name} (${service.Id})`);
+            const deleteServiceCommand = new DeleteSDServiceCommand({
+              Id: service.Id,
+            });
+            await client.send(deleteServiceCommand);
+            console.log(`  Successfully deleted service: ${service.Name}`);
+          } catch (error) {
+            console.warn(`  Failed to delete service ${service.Name}:`, error.message);
+            // Continue with other services
+          }
+        }
+      }
+
+      // Now delete the namespace
+      try {
+        console.log(`Deleting namespace: ${namespace.Name} (${namespace.Id})`);
+        const deleteNamespaceCommand = new DeleteNamespaceCommand({
+          Id: namespace.Id,
+        });
+        const deleteResponse = await client.send(deleteNamespaceCommand);
+
+        // Wait for deletion to complete
+        if (deleteResponse.OperationId) {
+          console.log(`Namespace deletion started. Operation ID: ${deleteResponse.OperationId}`);
+          console.log("Waiting for namespace deletion to complete...");
+
+          let attempts = 0;
+          const maxAttempts = 60; // Wait up to 5 minutes
+
+          while (attempts < maxAttempts) {
+            const getOpCommand = new GetOperationCommand({
+              OperationId: deleteResponse.OperationId,
+            });
+            const opResponse = await client.send(getOpCommand);
+
+            if (opResponse.Operation.Status === "SUCCESS") {
+              console.log(`Successfully deleted namespace: ${namespace.Name}`);
+              break;
+            } else if (opResponse.Operation.Status === "FAIL") {
+              console.warn(`Namespace deletion failed: ${opResponse.Operation.ErrorMessage}`);
+              break;
+            }
+
+            // Still pending, wait and retry
+            attempts++;
+            if (attempts < maxAttempts) {
+              await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 5 seconds
+            }
+          }
+
+          if (attempts >= maxAttempts) {
+            console.warn(`Timeout waiting for namespace ${namespace.Name} deletion`);
+          }
+        }
+      } catch (error) {
+        console.warn(`Failed to delete namespace ${namespace.Name}:`, error.message);
+        // Continue with other namespaces
+      }
+    }
+
+    console.log("Service Discovery cleanup complete.");
+  } catch (error) {
+    console.error("Error during Service Discovery cleanup:", error);
+    // Don't throw - allow other cleanup to continue
+  }
+};
+
+/**
  *
  * @param useIAM
  * @param killType
@@ -4699,6 +5025,16 @@ export const awsArmageddon = async (useIAM, killType) => {
   } catch (e) {
     console.warn("\x1b[31m%s\x1b[0m", e);
     //Don't exit. Might as well try deleting other things, too.
+  }
+
+  // Delete Service Discovery resources after ECS cluster
+  let deletedServiceDiscovery;
+  try {
+    deletedServiceDiscovery = deleteServiceDiscovery(useIAM, projName, killTag);
+  } catch (e) {
+    console.warn("\x1b[31m%s\x1b[0m", `Unable to delete Service Discovery resources`);
+    console.warn("\x1b[31m%s\x1b[0m", e);
+    // Don't fail the whole process for this
   }
 
   let deletedDBs, dbsToDelete;
@@ -4805,6 +5141,7 @@ export const awsArmageddon = async (useIAM, killType) => {
     deletedOACs,
     deletedCluster,
     deletedTargetGroup,
+    deletedServiceDiscovery,
   ]);
 
   console.log(
