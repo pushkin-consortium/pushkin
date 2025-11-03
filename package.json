@@ -6,6 +6,10 @@
     "!templates/experiments/template-sync"
   ],
   "scripts": {
+    "build:api": "yarn workspace pushkin-api build",
+    "build:cli": "yarn workspace pushkin-cli build",
+    "build:client": "yarn workspace pushkin-client build",
+    "build:worker": "yarn workspace pushkin-worker build",
     "copy-from-basic-exp": "node templates/experiments/template-sync/copy-from-basic.js",
     "docs:deploy": "poetry install --no-root && poetry run mike deploy -u --alias-type=redirect",
     "docs:serve": "poetry run mike serve",
