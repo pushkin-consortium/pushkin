@@ -2039,6 +2039,7 @@ const ecsTaskCreator = async (
   }
 
   const rabbitUser = projName.replace(/[^A-Za-z0-9]/g, "");
+  const rabbitHost = `message-queue.${projName}.local`;
   const rabbitAddress = "amqp://"
     .concat(rabbitUser)
     .concat(":")
