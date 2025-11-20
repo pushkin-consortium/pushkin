@@ -6,6 +6,7 @@ import * as compose from "docker-compose";
 import util from "util";
 import crypto from "crypto";
 import { exec as execCallback } from "child_process";
+import { URL } from "url";
 
 const exec = util.promisify(execCallback);
 
@@ -214,6 +215,14 @@ async function waitForDockerDBContainerReady(
  * @returns {object} Knex configuration object
  */
 function buildKnexConfig(dbInfo) {
+  // Parse host from dbInfo.url (allow either a hostname or URL)
+  let parsedHost;
+  try {
+    // If dbInfo.url is just a hostname, this throws; fallback to using as is
+    parsedHost = new URL(dbInfo.url).hostname;
+  } catch {
+    parsedHost = dbInfo.url;
+  }
   return {
     client: "pg",
     version: "11",
@@ -226,8 +235,8 @@ function buildKnexConfig(dbInfo) {
       // Enable SSL for AWS RDS or non-localhost connections
       ssl:
         (
-          dbInfo.url.includes(".rds.amazonaws.com") ||
-          (dbInfo.url !== "localhost" && !dbInfo.url.includes("localhost"))
+          (parsedHost && parsedHost.endsWith(".rds.amazonaws.com")) ||
+          (parsedHost !== "localhost" && !parsedHost.includes("localhost"))
         ) ?
           { rejectUnauthorized: false }
           : false,
