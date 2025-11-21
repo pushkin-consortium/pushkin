@@ -36,7 +36,9 @@ const Header = (props) => {
   }
 
   useEffect(() => {
-    if (!isLoading) {
+    // Only dispatch getUser for legacy session-based auth
+    // Auth0 users are handled by AuthSync component
+    if (!isLoading && !(CONFIG.useAuth && CONFIG.authDomain && CONFIG.authClientID)) {
       props.dispatch(getUser(isAuthenticated, user));
     }
   }, [isAuthenticated, isLoading, user, props]);
