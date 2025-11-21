@@ -1,19 +1,19 @@
 // ./src/components/Layout/Navigation.js
 
-import React, { Fragment, useEffect } from 'react';
-import { LinkContainer } from 'react-router-bootstrap';
+import React, { Fragment, useEffect } from "react";
+import { LinkContainer } from "react-router-bootstrap";
 
 //redux
-import { connect } from 'react-redux';
-import { getUser, setUserID } from '../../actions/userInfo';
+import { connect } from "react-redux";
+import { getUser, setUserID } from "../../actions/userInfo";
 
 //styling
-import { Nav, Navbar, Button, Image } from 'react-bootstrap';
+import { Nav, Navbar, Button, Image } from "react-bootstrap";
 
 //other
-import { CONFIG } from '../../config';
-import LoginButton from '../Authentication/Login';
-import LogoutButton from '../Authentication/Logout';
+import { CONFIG } from "../../config";
+import LoginButton from "../Authentication/Login";
+import LogoutButton from "../Authentication/Logout";
 import { useAuth0 } from "@auth0/auth0-react";
 
 const mapStateToProps = (state) => {
@@ -48,16 +48,12 @@ const Header = (props) => {
   }
 
   return (
-    <Navbar
-      className="navbar-dark bg-dark"
-      expand="lg"
-      style={{ fontSize: '22px' }}
-    >
+    <Navbar className="navbar-dark bg-dark" expand="lg" style={{ fontSize: "22px" }}>
       <LinkContainer to="/">
-        <Navbar.Brand style={{ fontSize: '22px' }}>
+        <Navbar.Brand style={{ fontSize: "22px" }}>
           <Image
             className="mr-2 left"
-            src={require('../../assets/images/logo/NavbarLogo.png')}
+            src={require("../../assets/images/logo/NavbarLogo.png")}
             width="30"
             height="30"
           />
@@ -85,7 +81,9 @@ const Header = (props) => {
         {CONFIG.useAuth && (
           <Nav className="ml-auto">
             <Nav.Item>
-              {isAuthenticated ? <LogoutButton /> : <LoginButton />}
+              {isAuthenticated ?
+                <LogoutButton />
+              : <LoginButton />}
             </Nav.Item>
           </Nav>
         )}
