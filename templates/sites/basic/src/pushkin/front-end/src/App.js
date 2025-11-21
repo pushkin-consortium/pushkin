@@ -12,6 +12,7 @@ import Header from "./components/Layout/Header";
 import Footer from "./components/Layout/Footer";
 import TakeQuiz from "./components/Quizzes/TakeQuiz";
 import Results from "./components/Quizzes/Results";
+import Profile from "./components/Authentication/Profile";
 
 //import pages
 import HomePage from "./pages/Home";
@@ -47,6 +48,10 @@ function App() {
 
           <Route path="/feedback">
             <FeedbackPage />
+          </Route>
+
+          <Route path="/profile">
+            <Profile />
           </Route>
 
           <Route path="/quizzes/:quizName/results">

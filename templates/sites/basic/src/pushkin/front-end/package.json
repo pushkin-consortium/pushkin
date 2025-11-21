@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@auth0/auth0-react": "^2.2.4",
     "aphrodite": "^2.4.0",
     "axios": "^1.7.7",
     "bootstrap": "^4.3.1",
