@@ -48,7 +48,9 @@ class PushkinWorker {
   async init() {
     return new Promise((resolve, reject) => {
       amqp
-        .connect(this.amqpAddress)
+        .connect(this.amqpAddress, {
+          heartbeat: 30 // Send heartbeat every 30 seconds to prevent timeout
+        })
         .then((conn) => {
           this.conn = conn;
           this.initialized = true;
