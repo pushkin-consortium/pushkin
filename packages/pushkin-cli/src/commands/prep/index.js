@@ -5,7 +5,6 @@ import jsYaml from "js-yaml";
 import util from "util";
 import { execSync } from "child_process"; // eslint-disable-line
 const exec = util.promisify(require("child_process").exec);
-const execFile = util.promisify(require("child_process").execFile);
 import pacMan from "../../pMan.js"; //which package manager is available?
 import { env } from "process";
 
@@ -531,7 +530,7 @@ export const prep = async (experimentsDir, coreDir, verbose) => {
     }
     const workerConfig = expConfig.worker;
     const workerName = `${exp}_worker`.toLowerCase(); //Docker names must all be lower case
-    const workerLoc = path.join(expDir, workerConfig.location);
+    const workerLoc = path.join(expDir, workerConfig.location).replace(/ /g, "\\ "); //handle spaces in path
 
     let AMQP_ADDRESS;
     // Recall, compFile is docker-compose.dev.yml, and is defined outside this function.
@@ -550,25 +549,26 @@ export const prep = async (experimentsDir, coreDir, verbose) => {
       AMQP_ADDRESS || "amqp://message-queue:5672";
     compFile.services[workerName].environment.DB_USER = pushkinYAML.databases.localtestdb.user;
     compFile.services[workerName].environment.DB_PASS = pushkinYAML.databases.localtestdb.pass;
-    compFile.services[workerName].environment.DB_HOST = pushkinYAML.databases.localtestdb.host;
+    // Use Docker service name for inter-container communication, not localhost
+    compFile.services[workerName].environment.DB_HOST = 'test_db';
     compFile.services[workerName].environment.DB_DB = pushkinYAML.databases.localtestdb.name;
     compFile.services[workerName].environment.TRANS_USER =
       pushkinYAML.databases.localtransactiondb.user;
     compFile.services[workerName].environment.TRANS_PASS =
       pushkinYAML.databases.localtransactiondb.pass;
-    compFile.services[workerName].environment.TRANS_HOST =
-      pushkinYAML.databases.localtransactiondb.host;
+    // Use Docker service name for inter-container communication, not localhost
+    compFile.services[workerName].environment.TRANS_HOST = 'test_transaction_db';
     compFile.services[workerName].environment.TRANS_DB =
       pushkinYAML.databases.localtransactiondb.name;
     // Use internal container port (5432), not host-mapped port
-    compFile.services[workerName].environment.TRANS_PORT = "5432";
+    compFile.services[workerName].environment.TRANS_PORT = '5432';
 
     let workerBuild;
     try {
       if (verbose) console.log(`Building docker image for ${workerName}`);
-      const dockerArgs = ["build", workerLoc, "-t", workerName, "--load"];
-      if (verbose) console.log("docker", dockerArgs.join(" "));
-      workerBuild = execFile("docker", dockerArgs);
+      let dockerCommand = `docker build ${workerLoc} -t ${workerName} --load`;
+      if (verbose) console.log(dockerCommand);
+      workerBuild = exec(dockerCommand);
     } catch (e) {
       console.error(`Problem building worker for ${exp}`);
       throw e;
