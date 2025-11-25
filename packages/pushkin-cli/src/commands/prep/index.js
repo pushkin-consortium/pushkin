@@ -44,8 +44,11 @@ export const updatePasswords = async () => {
   composeFileData.services.test_transaction_db.environment.POSTGRES_PASSWORD = transactionDBPass;
   exps.forEach((exp) => {
     const workerName = exp.toLowerCase().concat("_worker");
-    composeFileData.services[workerName].environment.DB_PASS = testDBPass;
-    composeFileData.services[workerName].environment.TRANS_PASS = transactionDBPass;
+    // Check if worker service exists before trying to update it
+    if (composeFileData.services[workerName] && composeFileData.services[workerName].environment) {
+      composeFileData.services[workerName].environment.DB_PASS = testDBPass;
+      composeFileData.services[workerName].environment.TRANS_PASS = transactionDBPass;
+    }
   });
   const newComposeFile = fs.promises.writeFile(
     "pushkin/docker-compose.dev.yml",
@@ -542,18 +545,19 @@ export const prep = async (experimentsDir, coreDir, verbose) => {
       AMQP_ADDRESS || "amqp://message-queue:5672";
     compFile.services[workerName].environment.DB_USER = pushkinYAML.databases.localtestdb.user;
     compFile.services[workerName].environment.DB_PASS = pushkinYAML.databases.localtestdb.pass;
-    compFile.services[workerName].environment.DB_HOST = pushkinYAML.databases.localtestdb.url;
+    // Use Docker service name for inter-container communication, not localhost
+    compFile.services[workerName].environment.DB_HOST = 'test_db';
     compFile.services[workerName].environment.DB_DB = pushkinYAML.databases.localtestdb.name;
     compFile.services[workerName].environment.TRANS_USER =
       pushkinYAML.databases.localtransactiondb.user;
     compFile.services[workerName].environment.TRANS_PASS =
       pushkinYAML.databases.localtransactiondb.pass;
-    compFile.services[workerName].environment.TRANS_HOST =
-      pushkinYAML.databases.localtransactiondb.url;
+    // Use Docker service name for inter-container communication, not localhost
+    compFile.services[workerName].environment.TRANS_HOST = 'test_transaction_db';
     compFile.services[workerName].environment.TRANS_DB =
       pushkinYAML.databases.localtransactiondb.name;
-    compFile.services[workerName].environment.TRANS_PORT =
-      pushkinYAML.databases.localtransactiondb.port;
+    // Use internal container port (5432), not host-mapped port
+    compFile.services[workerName].environment.TRANS_PORT = '5432';
 
     let workerBuild;
     try {
