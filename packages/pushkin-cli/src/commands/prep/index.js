@@ -3,7 +3,7 @@ import path from "path";
 import fs from "graceful-fs";
 import jsYaml from "js-yaml";
 import util from "util";
-import { execSync } from 'child_process'; // eslint-disable-line
+import { execSync } from "child_process"; // eslint-disable-line
 const exec = util.promisify(require("child_process").exec);
 import pacMan from "../../pMan.js"; //which package manager is available?
 import { env } from "process";
@@ -104,29 +104,33 @@ const publishLocalPackage = async (modDir, modName, verbose) => {
         let pluginsToAdd = [];
         let pluginsToUpgrade = [];
         plugins.forEach((plugin) => {
-          // Create a regex to find the version number specified after the import statement
-          let versionMatch = new RegExp(`(?<=${plugin}'; \/\/ version:).+?(?= \/\/)`, "g");
-          let pluginVersion = "";
-          if (expJs.includes(`${plugin}'; // version:`)) {
-            pluginVersion = expJs.match(versionMatch)[0];
-          }
-          // If any jsPsych plugins are not yet added to package.json, add them
-          if (!packageJson.dependencies[plugin]) {
-            if (pluginVersion === "") {
-              // Just add the plugin name if no version/tag is specified
-              pluginsToAdd.push(plugin);
-            } else {
-              // Append the version/tag if specified
-              pluginsToAdd.push(plugin + "@" + pluginVersion);
+          // Check if plugins exist before iterating (match returns null if no matches)
+          if (plugins) {
+            // Create a regex to find the version number specified after the import statement
+            let versionMatch = new RegExp(`(?<=${plugin}'; \/\/ version:).+?(?= \/\/)`, "g");
+            let pluginVersion = "";
+            if (expJs.includes(`${plugin}'; // version:`)) {
+              pluginVersion = expJs.match(versionMatch)[0];
             }
-          } else {
-            // package is already added to package.json
-            // Check if version/tag is specified and differs from the one in package.json
-            if (pluginVersion !== "" && packageJson.dependencies[plugin] !== pluginVersion) {
-              pluginsToUpgrade.push(plugin + "@" + pluginVersion);
+            // If any jsPsych plugins are not yet added to package.json, add them
+            if (!packageJson.dependencies[plugin]) {
+              if (pluginVersion === "") {
+                // Just add the plugin name if no version/tag is specified
+                pluginsToAdd.push(plugin);
+              } else {
+                // Append the version/tag if specified
+                pluginsToAdd.push(plugin + "@" + pluginVersion);
+              }
+            } else {
+              // package is already added to package.json
+              // Check if version/tag is specified and differs from the one in package.json
+              if (pluginVersion !== "" && packageJson.dependencies[plugin] !== pluginVersion) {
+                pluginsToUpgrade.push(plugin + "@" + pluginVersion);
+              }
             }
           }
         });
+
         // If any plugins need to be added or upgraded, do so
         if (pluginsToAdd.length > 0) {
           if (verbose)
@@ -546,18 +550,18 @@ export const prep = async (experimentsDir, coreDir, verbose) => {
     compFile.services[workerName].environment.DB_USER = pushkinYAML.databases.localtestdb.user;
     compFile.services[workerName].environment.DB_PASS = pushkinYAML.databases.localtestdb.pass;
     // Use Docker service name for inter-container communication, not localhost
-    compFile.services[workerName].environment.DB_HOST = 'test_db';
+    compFile.services[workerName].environment.DB_HOST = "test_db";
     compFile.services[workerName].environment.DB_DB = pushkinYAML.databases.localtestdb.name;
     compFile.services[workerName].environment.TRANS_USER =
       pushkinYAML.databases.localtransactiondb.user;
     compFile.services[workerName].environment.TRANS_PASS =
       pushkinYAML.databases.localtransactiondb.pass;
     // Use Docker service name for inter-container communication, not localhost
-    compFile.services[workerName].environment.TRANS_HOST = 'test_transaction_db';
+    compFile.services[workerName].environment.TRANS_HOST = "test_transaction_db";
     compFile.services[workerName].environment.TRANS_DB =
       pushkinYAML.databases.localtransactiondb.name;
     // Use internal container port (5432), not host-mapped port
-    compFile.services[workerName].environment.TRANS_PORT = '5432';
+    compFile.services[workerName].environment.TRANS_PORT = "5432";
 
     let workerBuild;
     try {
