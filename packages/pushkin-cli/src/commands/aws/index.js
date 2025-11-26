@@ -3,7 +3,7 @@ import fs from "graceful-fs";
 import path from "path";
 import util from "util";
 import pacMan from "../../pMan.js"; //which package manager is available?
-import { execSync } from 'child_process'; // eslint-disable-line
+import { execSync } from "child_process"; // eslint-disable-line
 import jsYaml from "js-yaml";
 import {
   pushkinACL,
@@ -902,7 +902,8 @@ const deployFrontEnd = async (
       let tempCheck = false;
       try {
         tempCheck = d.Origins.Items[0].Id == awsName;
-      } catch (e) { //eslint-disable-line
+      } catch (e) {
+        //eslint-disable-line
         // Probably not a fully created cloudfront distribution.
         // Probably can ignore this.
         console.warn(
@@ -1210,7 +1211,10 @@ const getOAC = async (useIAM) => {
 const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
   console.log(`Handling ${dbType} database.`);
   let stdOut, dbName, dbPassword;
-  dbName = projName.concat(dbType).replace(/[^A-Za-z0-9]/g, "");
+  dbName = projName
+    .concat(dbType)
+    .replace(/[^A-Za-z0-9]/g, "")
+    .toLowerCase();
 
   /**
    * Determine if a new database is needed
@@ -1386,7 +1390,7 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
           minDelay: 10, // Check every 10 seconds
           maxDelay: 20, // Maximum 20 seconds between checks
         },
-        { DBInstanceIdentifier: dbName },
+        { DBInstanceIdentifier: dbName.toLowerCase() },
       );
       const waitTime = Math.round((Date.now() - waitStart) / 1000);
       console.log(`${dbType} is spooled up after ${waitTime} seconds!`);
@@ -1414,7 +1418,9 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
           `${dbType}: Attempting to get database endpoint (attempt ${retryCount + 1}/${maxRetries})...`,
         );
         const rdsClient = createRDSClient(useIAM);
-        const command = new DescribeDBInstancesCommand({ DBInstanceIdentifier: dbName });
+        const command = new DescribeDBInstancesCommand({
+          DBInstanceIdentifier: dbName.toLowerCase(),
+        });
         dbEndpoint = await rdsClient.send(command);
 
         // Check if we got a valid endpoint
@@ -1652,8 +1658,8 @@ const ecsTaskCreator = async (
     // For 2048 MB: 1 vCPU (1024) or 2 vCPU (2048)
     const taskCPU =
       taskMemory <= 512 ? "256"
-        : taskMemory <= 1024 ? "512"
-          : "1024";
+      : taskMemory <= 1024 ? "512"
+      : "1024";
 
     // Parse port mappings - Fargate doesn't use hostPort in awsvpc mode
     const portMappings = [];
@@ -4398,6 +4404,7 @@ const deleteCloudFront = async (useIAM, projName, killTag) => {
         console.log(`Disabling cloudfront distribution ` + distId);
 
         let disableCloudFront;
+        let disableFailed;
         try {
           const cloudFrontClient = createCloudFrontClient(useIAM);
           disableCloudFront = await cloudFrontClient.send(
@@ -4407,17 +4414,39 @@ const deleteCloudFront = async (useIAM, projName, killTag) => {
               DistributionConfig: cloudConfig,
             }),
           );
+          console.log(`Successfully initiated disable for CloudFront distribution ${distId}`);
         } catch (e) {
           console.error(
-            `Possibly unable to disable cloudfront distribution ${distId}.\n Sometimes this throws errors but works anyway, so we'll continue and see what happens...\n`,
+            `Possibly unable to disable cloudfront distribution ${distId}.\n Error details: ${e.name}-${e.message}\n Sometimes this throws errors but works anyway, so we'll continue and see what happens...\n`,
           );
+          disableFailed = true;
         }
 
         return new Promise((resolve, reject) => {
-          /**
-           *
-           */
+          // If disable failed, skip waiting and resolve immediately
+          if (disableFailed) {
+            console.warn(
+              `Skipping CloudFront disable wait since the disable command failed. ` +
+                `The distribution ${distId} may still be enabled. ` +
+                `You can manually disable and delete it from the AWS Console.`,
+            );
+            resolve(false);
+            return;
+          }
+
+          // Add timeout to prevent infinite waiting (30 minutes max)
+          const maxWaitTime = 30 * 60 * 1000; // 30 minutes
+          const startTime = Date.now();
           const wait = async () => {
+            // Check if we've exceeded the timeout
+            if (Date.now() - startTime > maxWaitTime) {
+              console.error(
+                `Timeout: CloudFront distribution ${distId} did not disable within 30 minutes. ` +
+                  `You may need to manually disable and delete it from the AWS Console.`,
+              );
+              resolve(false);
+              return;
+            }
             //Sometimes, I really miss loops
             let aDistributionConfig;
             let x = await checkCloudFront(distId);
@@ -4439,6 +4468,7 @@ const deleteCloudFront = async (useIAM, projName, killTag) => {
                   `Suddenly can't find cloudfront distribution ${distId}. Which is very strange, since we haven't deleted it yet. Skipping for now...`,
                 );
                 resolve(true);
+                return;
               }
               //Armed with the new ETag, we can delete the distribution
               try {
@@ -4454,6 +4484,7 @@ const deleteCloudFront = async (useIAM, projName, killTag) => {
                     new GetDistributionCommand({ Id: distId }),
                   );
                   resolve(getDistributionResponse);
+                  return;
                 } catch (e) {
                   console.error(e);
                   if (aDistributionConfig.Distribution.Status != "InProgress") {
@@ -4461,6 +4492,7 @@ const deleteCloudFront = async (useIAM, projName, killTag) => {
                       `Unable to delete cloudfront distribution. It may be worth running pushkin aws armageddon again.`,
                     );
                     resolve(false);
+                    return;
                   }
                 }
                 console.error(e);
@@ -4481,7 +4513,10 @@ const deleteCloudFront = async (useIAM, projName, killTag) => {
               }
               resolve(true);
             } else {
-              console.log(`Waiting for cloudfront distribution ${distId} to be disabled...`);
+              const elapsedMinutes = Math.round((Date.now() - startTime) / 60000);
+              console.log(
+                `Waiting for cloudfront distribution ${distId} to be disabled... (${elapsedMinutes} min elapsed)`,
+              );
               setTimeout(wait, 30000);
             }
           };
