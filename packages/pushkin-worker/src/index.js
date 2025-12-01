@@ -49,7 +49,7 @@ class PushkinWorker {
     return new Promise((resolve, reject) => {
       amqp
         .connect(this.amqpAddress, {
-          heartbeat: 30 // Send heartbeat every 30 seconds to prevent timeout
+          heartbeat: 30, // Send heartbeat every 30 seconds to prevent timeout
         })
         .then((conn) => {
           this.conn = conn;
@@ -151,10 +151,22 @@ class DefaultHandler {
     console.log(
       `setting up main db connection with user: ${connection.user}, database: ${connection.database}, host: ${connection.host}`,
     );
+
+    // Auto-detect if SSL should be enabled for RDS or non-localhost connections
+    const shouldUseSSL =
+      connection.ssl !== undefined ?
+        connection.ssl
+      : connection.host &&
+        (connection.host.endsWith(".rds.amazonaws.com") ||
+          (connection.host !== "localhost" && !connection.host.includes("localhost")));
+
     this.knexInfo = {
       client: "pg",
       version: "11",
-      connection: connection,
+      connection: {
+        ...connection,
+        ssl: shouldUseSSL ? { rejectUnauthorized: false } : false,
+      },
       debug: true,
     }; //fubar -- get rid of debug
 
@@ -186,10 +198,24 @@ class DefaultHandler {
     if (this.logging) {
       try {
         this.trans_table = transactionOps.tableName;
+
+        // Auto-detect if SSL should be enabled for transaction DB
+        const transConnection = transactionOps.connection;
+        const transShouldUseSSL =
+          transConnection.ssl !== undefined ?
+            transConnection.ssl
+          : transConnection.host &&
+            (transConnection.host.endsWith(".rds.amazonaws.com") ||
+              (transConnection.host !== "localhost" &&
+                !transConnection.host.includes("localhost")));
+
         this.pg_trans = knex({
           client: "pg",
           version: "11",
-          connection: transactionOps.connection,
+          connection: {
+            ...transConnection,
+            ssl: transShouldUseSSL ? { rejectUnauthorized: false } : false,
+          },
           debug: true,
         }); //fubar get rid of debug when not needed
       } catch (error) {
