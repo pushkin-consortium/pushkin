@@ -7,10 +7,11 @@ import cookieSession from "cookie-session";
 import fs from "fs";
 
 export default class PushkinAPI {
-  constructor(expressPort, amqpAddress, key) {
+  constructor(expressPort, amqpAddress, key, corsOptions = {}) {
     this.expressPort = expressPort;
     this.amqpAddress = amqpAddress;
     this.initialized = false;
+    this.corsOptions = corsOptions;
 
     // Check if .env file exists
     if (fs.existsSync(".env")) {
