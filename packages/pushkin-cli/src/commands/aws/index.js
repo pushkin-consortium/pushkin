@@ -2064,6 +2064,8 @@ const ecsTaskCreator = async (
   apiTask.services["api"].logging.options["awslogs-group"] = `ecs/${projName}`;
   apiTask.services["api"].logging.options["awslogs-stream-prefix"] = `ecs/api/${projName}`;
 
+  // Note: Database credentials will be added after DBs are created (see below)
+
   let docker_compose;
   try {
     docker_compose = jsYaml.load(
@@ -2087,6 +2089,12 @@ const ecsTaskCreator = async (
   console.log(`ECS task creation waiting on DBs`);
   await completedDBs; //Next part won't run if DBs aren't done
   const dbInfoByTask = await getDBInfo();
+
+  // Add database credentials to API task for Auth0 user registration
+  apiTask.services["api"].environment.DB_HOST = dbInfoByTask["Main"].endpoint;
+  apiTask.services["api"].environment.DB_USER = dbInfoByTask["Main"].username;
+  apiTask.services["api"].environment.DB_DB = dbInfoByTask["Main"].name;
+  apiTask.services["api"].environment.DB_PASS = dbInfoByTask["Main"].password;
 
   // Set up Service Discovery namespace for internal service communication
   console.log(`Setting up Service Discovery namespace for ${projName}`);
