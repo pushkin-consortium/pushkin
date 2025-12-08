@@ -39,7 +39,7 @@ export default class PushkinAPI {
       next();
     });
     this.app.use(bodyParser.json());
-    this.app.use(cors());
+    this.app.use(cors(Object.keys(this.corsOptions).length > 0 ? this.corsOptions : undefined));
     this.expressListening = false;
     this.server = null;
     this.app.get("/", function (req, res) {

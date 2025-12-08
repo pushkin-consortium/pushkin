@@ -20,7 +20,13 @@ import FindingsPage from "./pages/Findings";
 import AboutPage from "./pages/About";
 import FeedbackPage from "./pages/Feedback";
 
+//import Auth0 sync hook
+import useAuth0Sync from "./hooks/useAuth0Sync";
+
 function App() {
+  // Sync Auth0 users with Pushkin database
+  useAuth0Sync();
+
   return (
     <>
       <div className="App" style={{ minHeight: "100vh", position: "relative" }}>

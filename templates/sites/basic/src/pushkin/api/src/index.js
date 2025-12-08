@@ -10,7 +10,18 @@ const production = process.env.NODE_ENV === "production";
 console.log("port: ", port, "amqpAddress: ", amqpAddress, "production: ", production); //FUBAR
 
 const secretKey = crypto.randomBytes(32).toString("hex");
-const api = new pushkin.API(port, amqpAddress, secretKey);
+
+// Configure CORS options based on environment
+// In production, replace with your actual domain
+const corsOptions = production ? {
+  origin: process.env.SITE_URL || 'https://yourdomain.com',
+  credentials: true
+} : {
+  origin: true,
+  credentials: true
+};
+
+const api = new pushkin.API(port, amqpAddress, secretKey, corsOptions);
 
 api
   .init()

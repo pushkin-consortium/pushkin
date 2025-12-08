@@ -23,7 +23,6 @@ import rootSaga from './sagas/index';
 
 // Auth0 integration
 import { Auth0Provider } from '@auth0/auth0-react';
-import AuthSync from "./actions/AuthSync";
 
 // //Stylin
 // import './index.css'; // drop??
@@ -67,7 +66,6 @@ const AppWithAuth = () => {
         useRefreshTokens={true}
         cacheLocation="localstorage"
       >
-        <AuthSync />
         <App />
       </Auth0Provider>
     );
