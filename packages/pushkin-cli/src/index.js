@@ -1004,7 +1004,7 @@ const handleAWSInit = async (force) => {
   }
 
   try {
-    checkIAMUser(useIAM);
+    await checkIAMUser(useIAM.iam);
   } catch (e) {
     console.error(
       `The IAM user ${useIAM.iam} is not configured on the AWS CLI. For more information see https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html`,
