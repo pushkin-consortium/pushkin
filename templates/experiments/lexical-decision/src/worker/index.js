@@ -9,20 +9,24 @@ const options = {
 	taskQueue: 'pushkintemplate_quiz_taskworker',
 };
 
+const sslConfig = process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false;
+
 const connection = {
 	host: process.env.DB_HOST,
 	user: process.env.DB_USER,
 	password: process.env.DB_PASS,
 	database: process.env.DB_DB,
+	ssl: sslConfig,
 };
 
 const transactionOps = {
 	tableName: 'transactions',
 	connection: {
-			host: process.env.TRANS_HOST,
-			user: process.env.TRANS_USER,
-			password: process.env.TRANS_PASS,
-			database: process.env.TRANS_DB,
+		host: process.env.TRANS_HOST,
+		user: process.env.TRANS_USER,
+		password: process.env.TRANS_PASS,
+		database: process.env.TRANS_DB,
+		ssl: sslConfig,
 	}
 }
 

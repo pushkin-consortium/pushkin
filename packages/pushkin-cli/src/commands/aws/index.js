@@ -2160,6 +2160,7 @@ const ecsTaskCreator = async (
       DB_DB: dbInfoByTask["Main"].name,
       DB_PASS: dbInfoByTask["Main"].password,
       DB_URL: dbInfoByTask["Main"].endpoint,
+      DB_SSL: "true",
       //"TRANS_URL": `postgres://${dbInfoByTask['Transaction'].username}:${dbInfoByTask['Transaction'].password}@${dbInfoByTask['Transaction'].endpoint}:/${dbInfoByTask['Transaction'].port}/${dbInfoByTask['Transaction'].name}`
       TRANS_HOST: dbInfoByTask["Transaction"].endpoint,
       TRANS_USER: dbInfoByTask["Transaction"].username,
