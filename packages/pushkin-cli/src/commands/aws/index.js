@@ -219,7 +219,7 @@ const createRoute53DomainsClient = (useIAM) => {
 const createECSClient = (useIAM) => {
   return new ECSClient({
     region: myRegion,
-    credentials: fromIni({ profile: useIAM.iam }),
+    credentials: fromIni({ profile: useIAM }),
   });
 };
 
@@ -231,7 +231,7 @@ const createECSClient = (useIAM) => {
 const createEC2Client = (useIAM) => {
   return new EC2Client({
     region: myRegion,
-    credentials: fromIni({ profile: useIAM.iam }),
+    credentials: fromIni({ profile: useIAM }),
   });
 };
 
@@ -243,7 +243,7 @@ const createEC2Client = (useIAM) => {
 const createIAMClient = (useIAM) => {
   return new IAMClient({
     region: myRegion,
-    credentials: fromIni({ profile: useIAM.iam }),
+    credentials: fromIni({ profile: useIAM }),
   });
 };
 
@@ -434,14 +434,14 @@ const registerServiceWithDiscovery = async (serviceName, namespaceId, useIAM) =>
  */
 export const checkIAMUser = async (useIAM) => {
   const sts = new STSClient({
-    credentials: fromIni({ profile: useIAM.iam }),
+    credentials: fromIni({ profile: useIAM }),
   });
 
   try {
     await sts.send(new GetCallerIdentityCommand({}));
   } catch (e) {
     console.error(
-      `The IAM user ${useIAM.iam} is not configured on the AWS SDK. For more information see https://docs.aws.amazon.com/sdk-for-javascript/v3/developer-guide/loading-node-credentials-shared.html`,
+      `The IAM user ${useIAM} is not configured on the AWS SDK. For more information see https://docs.aws.amazon.com/sdk-for-javascript/v3/developer-guide/loading-node-credentials-shared.html`,
     );
     throw e;
   }
@@ -607,7 +607,7 @@ export const syncS3 = async (awsName, useIAM) => {
 const makeRecordSet = async (domainName, projName, useIAM, theCloud) => {
   const route53 = new Route53Client({
     region: myRegion,
-    credentials: fromIni({ profile: useIAM.iam }),
+    credentials: fromIni({ profile: useIAM }),
   });
 
   let zoneID;
@@ -843,7 +843,7 @@ const deployFrontEnd = async (
 ) => {
   const s3 = new S3Client({
     region: myRegion,
-    credentials: fromIni({ profile: useIAM.iam }),
+    credentials: fromIni({ profile: useIAM }),
   });
   console.log(`Checking to see if bucket ${awsName} already exists.`);
   let bucketExists = false;
@@ -889,7 +889,7 @@ const deployFrontEnd = async (
   let distributionExists = false;
   const cloudFrontClient = new CloudFrontClient({
     region: myRegion,
-    credentials: fromIni({ profile: useIAM.iam }),
+    credentials: fromIni({ profile: useIAM }),
   });
   try {
     distributions = await cloudFrontClient.send(new ListDistributionsCommand({}));
@@ -1055,7 +1055,7 @@ const deployFrontEnd = async (
 const waitForCloudFrontDeployment = async (distributionId, useIAM) => {
   const cloudFrontClient = new CloudFrontClient({
     region: myRegion,
-    credentials: fromIni({ profile: useIAM.iam }),
+    credentials: fromIni({ profile: useIAM }),
   });
 
   console.log(`\nWaiting for CloudFront distribution to be fully deployed...`);
