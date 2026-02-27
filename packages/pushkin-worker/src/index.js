@@ -163,13 +163,11 @@ class DefaultHandler {
       throw error;
     }
     console.log("check that we are connected to the main db");
-    try {
-      this.pg_main(this.tables.users).then((rows) => {
-        console.log("testing: " + rows);
-      });
-    } catch (error) {
-      console.error(`Problem with simple select from transaction DB: ${error}`);
-    }
+    this.pg_main(this.tables.users).then((rows) => {
+      console.log("testing: " + rows);
+    }).catch((error) => {
+      console.error(`Could not query main DB (host: ${connection.host}, database: ${connection.database}): ${error.message}`);
+    });
     console.log(
       `checking logging: ${JSON.stringify({
         tableName: transactionOps.tableName,
@@ -196,13 +194,11 @@ class DefaultHandler {
         this.logging = false;
       }
       console.log("check that we are connected to the transaction db");
-      try {
-        this.pg_trans(this.trans_table).then((rows) => {
-          console.log("testing: " + rows);
-        });
-      } catch (error) {
-        console.error(`Problem with simple select from transaction DB: ${error}`);
-      }
+      this.pg_trans(this.trans_table).then((rows) => {
+        console.log("testing: " + rows);
+      }).catch((error) => {
+        console.error(`Could not query transaction DB (host: ${transactionOps.connection.host}, database: ${transactionOps.connection.database}): ${error.message}`);
+      });
     }
     console.log(`Checked logging`);
   }
