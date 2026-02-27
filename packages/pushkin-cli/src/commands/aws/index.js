@@ -980,7 +980,6 @@ const deployFrontEnd = async (
       myCloud = await cloudFrontClient.send(
         new CreateDistributionWithTagsCommand({
           DistributionConfigWithTags: {
-            credentials: useIAM.iam,
             DistributionConfig: myCloudFront.DistributionConfig,
             Tags: {
               Items: myCloudFront.Tags.Items,
