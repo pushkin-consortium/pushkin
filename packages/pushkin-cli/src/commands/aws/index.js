@@ -1013,18 +1013,35 @@ const deployFrontEnd = async (
   console.log("Setting bucket permissions");
   policy.Statement[0].Resource = "arn:aws:s3:::".concat(awsName).concat("/*");
   policy.Statement[0].Condition.StringEquals["AWS:SourceArn"] = theCloud.ARN;
-  try {
-    const s3Client = createS3Client(useIAM);
-    await s3Client.send(
-      new PutBucketPolicyCommand({
-        Bucket: awsName,
-        Policy: JSON.stringify(policy),
-      }),
-    );
-    console.log("Bucket permissions set successfully");
-  } catch (e) {
-    console.error("Problem setting bucket permissions for front-end");
-    throw e;
+
+  let retryCount = 0;
+  const maxRetries = 3;
+
+  while (retryCount < maxRetries) {
+    try {
+      console.log(`Attempting to set bucket permissions (attempt ${retryCount + 1}/${maxRetries})...`);
+      const s3Client = createS3Client(useIAM);
+      await s3Client.send(
+        new PutBucketPolicyCommand({
+          Bucket: awsName,
+          Policy: JSON.stringify(policy),
+        }),
+      );
+      console.log("Bucket permissions set successfully");
+      break;
+    } catch (e) {
+      retryCount++;
+      console.warn(`Attempt ${retryCount} failed to set bucket permissions:`, e.message);
+
+      if (retryCount >= maxRetries) {
+        console.error(`Failed to set bucket permissions after ${maxRetries} attempts`);
+        throw e;
+      }
+
+      // Wait 10 seconds before retrying
+      console.log("Waiting 10 seconds before retry...");
+      await new Promise((resolve) => setTimeout(resolve, 10000));
+    }
   }
 
   if (domainName != "default") {
