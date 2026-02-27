@@ -9,24 +9,26 @@ const options = {
   taskQueue: "pushkintemplate_quiz_taskworker",
 };
 
-// Note: SSL will be auto-detected by pushkin-worker for RDS endpoints
-// No need to specify ssl here - it will be added automatically for .rds.amazonaws.com hosts
+const sslConfig = process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false;
+
 const connection = {
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASS,
-  database: process.env.DB_DB,
+	host: process.env.DB_HOST,
+	user: process.env.DB_USER,
+	password: process.env.DB_PASS,
+	database: process.env.DB_DB,
+	ssl: sslConfig,
 };
 
 const transactionOps = {
-  tableName: "transactions",
-  connection: {
-    host: process.env.TRANS_HOST,
-    user: process.env.TRANS_USER,
-    password: process.env.TRANS_PASS,
-    database: process.env.TRANS_DB,
-  },
-};
+	tableName: 'transactions',
+	connection: {
+		host: process.env.TRANS_HOST,
+		user: process.env.TRANS_USER,
+		password: process.env.TRANS_PASS,
+		database: process.env.TRANS_DB,
+		ssl: sslConfig,
+	}
+}
 
 const worker = new pWorker(options);
 worker
