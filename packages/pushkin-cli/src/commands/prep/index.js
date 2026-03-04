@@ -5,6 +5,7 @@ import jsYaml from "js-yaml";
 import util from "util";
 import { execSync } from "child_process"; // eslint-disable-line
 const exec = util.promisify(require("child_process").exec);
+const execFile = util.promisify(require("child_process").execFile);
 import pacMan from "../../pMan.js"; //which package manager is available?
 import { env } from "process";
 
@@ -530,7 +531,7 @@ export const prep = async (experimentsDir, coreDir, verbose) => {
     }
     const workerConfig = expConfig.worker;
     const workerName = `${exp}_worker`.toLowerCase(); //Docker names must all be lower case
-    const workerLoc = path.join(expDir, workerConfig.location).replace(/ /g, "\\ "); //handle spaces in path
+    const workerLoc = path.join(expDir, workerConfig.location);
 
     let AMQP_ADDRESS;
     // Recall, compFile is docker-compose.dev.yml, and is defined outside this function.
@@ -565,9 +566,9 @@ export const prep = async (experimentsDir, coreDir, verbose) => {
     let workerBuild;
     try {
       if (verbose) console.log(`Building docker image for ${workerName}`);
-      let dockerCommand = `docker build ${workerLoc} -t ${workerName} --load`;
-      if (verbose) console.log(dockerCommand);
-      workerBuild = exec(dockerCommand);
+      const dockerArgs = ["build", workerLoc, "-t", workerName, "--load"];
+      if (verbose) console.log("docker", dockerArgs.join(" "));
+      workerBuild = execFile("docker", dockerArgs);
     } catch (e) {
       console.error(`Problem building worker for ${exp}`);
       throw e;
