@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { execSync, exec } from "child_process";
+import { execSync, exec, execFile } from "child_process";
 /* eslint-disable-next-line no-unused-vars */
 import commandLineArgs from "command-line-args"; // commandLineArgs is necessary for the CLI to run
 //import { Command } from "commander";
@@ -180,11 +180,25 @@ const updateECS = async () => {
   return Promise.all(
     yamls.forEach((yaml) => {
       if (yaml != "ecs-params.yml") {
-        let composeCommand = `ecs-cli compose -f ${yaml} -p ${yaml.split(".")[0]} service up --ecs-profile ${useIAM} --cluster-config ${ECSName} --force-deployment`;
         try {
-          temp = exec(composeCommand, {
-            cwd: path.join(process.cwd(), "ECStasks"),
-          });
+          temp = execFile(
+            "ecs-cli",
+            [
+              "compose",
+              "-f",
+              yaml,
+              "-p",
+              yaml.split(".")[0],
+              "service",
+              "up",
+              "--ecs-profile",
+              useIAM,
+              "--cluster-config",
+              ECSName,
+              "--force-deployment",
+            ],
+            { cwd: path.join(process.cwd(), "ECStasks") },
+          );
         } catch (e) {
           console.warn("\x1b[31m%s\x1b[0m", `Unable to update service ${yaml}.`);
           console.warn("\x1b[31m%s\x1b[0m", e);

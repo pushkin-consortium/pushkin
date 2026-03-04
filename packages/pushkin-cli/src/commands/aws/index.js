@@ -137,6 +137,7 @@ import {
 const myRegion = "us-east-1"; //set as default. May want this to be a parameter somewhere that can be changed.
 
 const exec = util.promisify(require("child_process").exec);
+const execFile = util.promisify(require("child_process").execFile);
 const mkdir = util.promisify(require("fs").mkdir);
 
 /**
@@ -3032,13 +3033,20 @@ const rebuildWorker = async function (exp) {
   }
   const workerConfig = expConfig.worker;
   const workerName = `${exp}_worker`.toLowerCase(); //Docker names must all be lower case
-  const workerLoc = path.join(expDir, workerConfig.location).replace(/ /g, "\\ "); //handle spaces in path
+  const workerLoc = path.join(expDir, workerConfig.location);
 
   let workerBuild;
   try {
-    workerBuild = exec(
-      `docker buildx build --platform linux/amd64 ${workerLoc} -t ${workerName} --load`,
-    );
+    workerBuild = execFile("docker", [
+      "buildx",
+      "build",
+      "--platform",
+      "linux/amd64",
+      workerLoc,
+      "-t",
+      workerName,
+      "--load",
+    ]);
   } catch (e) {
     console.error(`Problem building worker for ${exp}`);
     throw e;
