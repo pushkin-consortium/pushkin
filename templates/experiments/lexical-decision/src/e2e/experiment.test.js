@@ -247,9 +247,11 @@ test.describe("Completing the experiment in simulation mode", () => {
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
-          percentileRank: 75,
-          totalRows: 100,
-          summary_stat: 5000,
+          resData: {
+            percentileRank: 75,
+            totalRows: 100,
+            summary_stat: 5000,
+          },
         }),
       }),
     );
