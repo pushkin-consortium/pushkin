@@ -246,7 +246,7 @@ test.describe("Completing the experiment in simulation mode", () => {
     await expect(loadingMessage).toHaveText("Loading...");
 
     // Mock the API response to simulate data being available
-    await page.route("**/api/results", (route) =>
+    await page.route(`**/api/${expInfo.shortName}/getPercentileRank`, (route) =>
       route.fulfill({
         status: 200,
         contentType: "application/json",
