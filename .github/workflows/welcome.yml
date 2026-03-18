@@ -1,6 +1,7 @@
 name: Welcome new contributors
 
-on: 
+on:
+  workflow_dispatch:
   issues:
     types: [opened]
   pull_request:
