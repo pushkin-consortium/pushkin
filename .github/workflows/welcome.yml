@@ -10,7 +10,6 @@ jobs:
   write-message:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
       - uses: actions/first-interaction@main
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
