@@ -2,15 +2,7 @@ import { fromIni } from "@aws-sdk/credential-providers";
 
 /**
  * AWS Client Factory
- *
  * Centralized factory for creating AWS SDK v3 clients with consistent configuration.
- * @example
- * import { RDSClient } from "@aws-sdk/client-rds";
- * import { S3Client } from "@aws-sdk/client-s3";
- *
- * const factory = new AWSClientFactory('us-east-1', 'my-profile');
- * const rds = factory.createClient(RDSClient);
- * const s3 = factory.createClient(S3Client);
  */
 export class AWSClientFactory {
   /**
@@ -27,11 +19,7 @@ export class AWSClientFactory {
   /**
    * Create any AWS SDK v3 client with consistent configuration
    * @param {Function} ClientClass - AWS SDK client class (e.g., RDSClient, S3Client)
-   * @returns {Object} Configured client instance
-   *
-   * @example
-   * import { RDSClient } from "@aws-sdk/client-rds";
-   * const rds = factory.createClient(RDSClient);
+   * @returns {object} Configured client instance
    */
   createClient(ClientClass) {
     return new ClientClass({
