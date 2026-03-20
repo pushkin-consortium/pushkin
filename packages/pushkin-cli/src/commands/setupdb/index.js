@@ -391,7 +391,7 @@ async function ensureCleanState(verbose) {
       if (verbose) console.log("No existing database containers found (grep returned no matches).");
     } else {
       // Actual error - log it but don't fail the entire setup
-      if (verbose) console.warn("Warning: Could not check for existing containers:", e.message);
+      console.warn("Warning: Could not check for existing containers:", e.message);
     }
   }
 }
