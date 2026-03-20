@@ -410,7 +410,7 @@ export async function setupdb(coreDBs, mainExpDir, verbose) {
       cwd: path.join(process.cwd(), "pushkin"),
       config: "docker-compose.dev.yml",
     });
-  } catch {
+  } catch (e) {
     console.error("something went wrong starting database containers.");
     throw e;
   }
