@@ -359,22 +359,11 @@ async function ensureCleanState(verbose) {
       const dockerConfig = "docker-compose.dev.yml";
 
       try {
-        // Stop containers if running
-        await compose.stop({
+        // Remove containers and named volumes so new containers start with fresh credentials
+        await compose.down({
           cwd: dockerPath,
           config: dockerConfig,
-        });
-      } catch (err) {
-        // Containers might already be stopped, which is fine
-        if (verbose) console.log("Containers already stopped or error stopping:", err.message);
-      }
-
-      try {
-        // Remove containers
-        await compose.rm({
-          cwd: dockerPath,
-          config: dockerConfig,
-          commandOptions: ["-f", "-v"], // -f: force, -v: remove volumes
+          commandOptions: ["--volumes"], // removes named volumes (e.g. test_transaction_db_volume)
         });
       } catch (err) {
         if (verbose) console.warn("Warning removing containers:", err.message);
