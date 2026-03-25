@@ -77,7 +77,7 @@ const ExpResults = (props) => {
       );
     }
 
-    if (!data.percentileRank || !data.totalRows || !data.summary_stat) {
+    if (data.percentileRank == null || !data.totalRows || data.summary_stat == null) {
       return (
         <div>
           <Container className="mt-5 text-center">
