@@ -1,6 +1,7 @@
 name: Welcome new contributors
 
-on: 
+on:
+  workflow_dispatch:
   issues:
     types: [opened]
   pull_request:
@@ -10,11 +11,10 @@ jobs:
   write-message:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
       - uses: actions/first-interaction@main
         with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          issue-message: |
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          issue_message: |
             👋 
             Thanks for opening this issue! We will investigate the matter and get back to you as soon as possible. In the meantime, double check that your issue:
             
@@ -29,7 +29,7 @@ jobs:
                - [JavaScript Tutorial](https://www.codecademy.com/learn/introduction-to-javascript)
                - [JsPsych Tutorial](https://www.jspsych.org/7.3/tutorials/hello-world/#jspsych-hello-world-experiment)
 
-          pr-message: |
+          pr_message: |
             👋 
             Thanks for making this pull request! We will review it as soon as possible. In the meantime, double check that your PR:
             
