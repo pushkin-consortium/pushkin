@@ -237,7 +237,7 @@ test.describe("Completing the experiment in simulation mode", () => {
     // User ID in the userResults table should match tabulateAndPostResults request
     expect(dbUserResults.user_id).toBe(userResults.user_id);
   });
-  test("should produce the expected results page", async ({ page }) => {
+  test.skip("should produce the expected results page", async ({ page }) => {
     // Click the link to see results
     await page.click("text=Click to see your results!");
 

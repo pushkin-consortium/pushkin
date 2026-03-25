@@ -137,6 +137,7 @@ import {
 const myRegion = "us-east-1"; //set as default. May want this to be a parameter somewhere that can be changed.
 
 const exec = util.promisify(require("child_process").exec);
+const execFile = util.promisify(require("child_process").execFile);
 const mkdir = util.promisify(require("fs").mkdir);
 
 /**
@@ -219,7 +220,7 @@ const createRoute53DomainsClient = (useIAM) => {
 const createECSClient = (useIAM) => {
   return new ECSClient({
     region: myRegion,
-    credentials: fromIni({ profile: useIAM.iam }),
+    credentials: fromIni({ profile: useIAM }),
   });
 };
 
@@ -231,7 +232,7 @@ const createECSClient = (useIAM) => {
 const createEC2Client = (useIAM) => {
   return new EC2Client({
     region: myRegion,
-    credentials: fromIni({ profile: useIAM.iam }),
+    credentials: fromIni({ profile: useIAM }),
   });
 };
 
@@ -243,7 +244,7 @@ const createEC2Client = (useIAM) => {
 const createIAMClient = (useIAM) => {
   return new IAMClient({
     region: myRegion,
-    credentials: fromIni({ profile: useIAM.iam }),
+    credentials: fromIni({ profile: useIAM }),
   });
 };
 
@@ -434,14 +435,14 @@ const registerServiceWithDiscovery = async (serviceName, namespaceId, useIAM) =>
  */
 export const checkIAMUser = async (useIAM) => {
   const sts = new STSClient({
-    credentials: fromIni({ profile: useIAM.iam }),
+    credentials: fromIni({ profile: useIAM }),
   });
 
   try {
     await sts.send(new GetCallerIdentityCommand({}));
   } catch (e) {
     console.error(
-      `The IAM user ${useIAM.iam} is not configured on the AWS SDK. For more information see https://docs.aws.amazon.com/sdk-for-javascript/v3/developer-guide/loading-node-credentials-shared.html`,
+      `The IAM user ${useIAM} is not configured on the AWS SDK. For more information see https://docs.aws.amazon.com/sdk-for-javascript/v3/developer-guide/loading-node-credentials-shared.html`,
     );
     throw e;
   }
@@ -607,7 +608,7 @@ export const syncS3 = async (awsName, useIAM) => {
 const makeRecordSet = async (domainName, projName, useIAM, theCloud) => {
   const route53 = new Route53Client({
     region: myRegion,
-    credentials: fromIni({ profile: useIAM.iam }),
+    credentials: fromIni({ profile: useIAM }),
   });
 
   let zoneID;
@@ -843,7 +844,7 @@ const deployFrontEnd = async (
 ) => {
   const s3 = new S3Client({
     region: myRegion,
-    credentials: fromIni({ profile: useIAM.iam }),
+    credentials: fromIni({ profile: useIAM }),
   });
   console.log(`Checking to see if bucket ${awsName} already exists.`);
   let bucketExists = false;
@@ -889,7 +890,7 @@ const deployFrontEnd = async (
   let distributionExists = false;
   const cloudFrontClient = new CloudFrontClient({
     region: myRegion,
-    credentials: fromIni({ profile: useIAM.iam }),
+    credentials: fromIni({ profile: useIAM }),
   });
   try {
     distributions = await cloudFrontClient.send(new ListDistributionsCommand({}));
@@ -979,7 +980,6 @@ const deployFrontEnd = async (
       myCloud = await cloudFrontClient.send(
         new CreateDistributionWithTagsCommand({
           DistributionConfigWithTags: {
-            credentials: useIAM.iam,
             DistributionConfig: myCloudFront.DistributionConfig,
             Tags: {
               Items: myCloudFront.Tags.Items,
@@ -1014,18 +1014,35 @@ const deployFrontEnd = async (
   console.log("Setting bucket permissions");
   policy.Statement[0].Resource = "arn:aws:s3:::".concat(awsName).concat("/*");
   policy.Statement[0].Condition.StringEquals["AWS:SourceArn"] = theCloud.ARN;
-  try {
-    const s3Client = createS3Client(useIAM);
-    await s3Client.send(
-      new PutBucketPolicyCommand({
-        Bucket: awsName,
-        Policy: JSON.stringify(policy),
-      }),
-    );
-    console.log("Bucket permissions set successfully");
-  } catch (e) {
-    console.error("Problem setting bucket permissions for front-end");
-    throw e;
+
+  let retryCount = 0;
+  const maxRetries = 3;
+
+  while (retryCount < maxRetries) {
+    try {
+      console.log(`Attempting to set bucket permissions (attempt ${retryCount + 1}/${maxRetries})...`);
+      const s3Client = createS3Client(useIAM);
+      await s3Client.send(
+        new PutBucketPolicyCommand({
+          Bucket: awsName,
+          Policy: JSON.stringify(policy),
+        }),
+      );
+      console.log("Bucket permissions set successfully");
+      break;
+    } catch (e) {
+      retryCount++;
+      console.warn(`Attempt ${retryCount} failed to set bucket permissions:`, e.message);
+
+      if (retryCount >= maxRetries) {
+        console.error(`Failed to set bucket permissions after ${maxRetries} attempts`);
+        throw e;
+      }
+
+      // Wait 10 seconds before retrying
+      console.log("Waiting 10 seconds before retry...");
+      await new Promise((resolve) => setTimeout(resolve, 10000));
+    }
   }
 
   if (domainName != "default") {
@@ -1055,7 +1072,7 @@ const deployFrontEnd = async (
 const waitForCloudFrontDeployment = async (distributionId, useIAM) => {
   const cloudFrontClient = new CloudFrontClient({
     region: myRegion,
-    credentials: fromIni({ profile: useIAM.iam }),
+    credentials: fromIni({ profile: useIAM }),
   });
 
   console.log(`\nWaiting for CloudFront distribution to be fully deployed...`);
@@ -2129,7 +2146,7 @@ const ecsTaskCreator = async (
     let expName = w.split("_worker")[0];
     task.version = workerTask.version;
     task.services = {};
-    task.services[w] = JSON.parse(JSON.stringify(workerTask.services["EXPERIMENT_NAME"]));
+    task.services[w] = structuredClone(workerTask.services["EXPERIMENT_NAME"]);
     task.services[w].image = `${DHID}/${w}:latest`;
     task.services[w].logging.options["awslogs-group"] = `ecs/${projName}`;
     task.services[w].logging.options["awslogs-stream-prefix"] = `ecs/${w}/${projName}`;
@@ -2144,6 +2161,7 @@ const ecsTaskCreator = async (
       DB_DB: dbInfoByTask["Main"].name,
       DB_PASS: dbInfoByTask["Main"].password,
       DB_URL: dbInfoByTask["Main"].endpoint,
+      DB_SSL: "true",
       //"TRANS_URL": `postgres://${dbInfoByTask['Transaction'].username}:${dbInfoByTask['Transaction'].password}@${dbInfoByTask['Transaction'].endpoint}:/${dbInfoByTask['Transaction'].port}/${dbInfoByTask['Transaction'].name}`
       TRANS_HOST: dbInfoByTask["Transaction"].endpoint,
       TRANS_USER: dbInfoByTask["Transaction"].username,
@@ -3015,13 +3033,20 @@ const rebuildWorker = async function (exp) {
   }
   const workerConfig = expConfig.worker;
   const workerName = `${exp}_worker`.toLowerCase(); //Docker names must all be lower case
-  const workerLoc = path.join(expDir, workerConfig.location).replace(/ /g, "\\ "); //handle spaces in path
+  const workerLoc = path.join(expDir, workerConfig.location);
 
   let workerBuild;
   try {
-    workerBuild = exec(
-      `docker buildx build --platform linux/amd64 ${workerLoc} -t ${workerName} --load`,
-    );
+    workerBuild = execFile("docker", [
+      "buildx",
+      "build",
+      "--platform",
+      "linux/amd64",
+      workerLoc,
+      "-t",
+      workerName,
+      "--load",
+    ]);
   } catch (e) {
     console.error(`Problem building worker for ${exp}`);
     throw e;

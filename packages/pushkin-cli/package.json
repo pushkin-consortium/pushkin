@@ -10,7 +10,7 @@
     "pushkin": "build/index.js"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest",
     "build": "babel --root-mode upward src -d build",
     "prepack": "cp ../../LICENSE ."
   },
