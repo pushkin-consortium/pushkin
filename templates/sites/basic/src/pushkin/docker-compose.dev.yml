@@ -13,7 +13,7 @@ services:
     links:
       - message-queue
   message-queue:
-    image: 'rabbitmq:3.6-management'
+    image: 'rabbitmq:3.12-management'
     expose:
       - 5672
       - 15672
@@ -23,6 +23,7 @@ services:
       CONFD_ARGS: '--interval 5'
       RABBITMQ_CLUSTER_PARTITION_HANDLING: autoheal
       RABBITMQ_NET_TICKTIME: '60'
+      RABBITMQ_HEARTBEAT: '30'
       RABBITMQ_ERLANG_COOKIE: message-queue-cookie
       RABBITMQ_NODENAME: rabbitmqnode@localhost
     volumes:

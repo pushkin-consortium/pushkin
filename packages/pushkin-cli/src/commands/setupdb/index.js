@@ -5,12 +5,13 @@ import knex from "knex";
 import * as compose from "docker-compose";
 import util from "util";
 import crypto from "crypto";
-const exec = util.promisify(require("child_process").exec);
+import { exec as execCallback } from "child_process";
+import { URL } from "url";
 
-const shell = require("shelljs");
+const exec = util.promisify(execCallback);
 
 /**
- * Overwrite DB passwords with secure randomly generated ones
+ * Overwrite testDB and transactionDB passwords with secure randomly generated ones
  * @returns {void}
  */
 export const securePasswords = () => {
@@ -30,82 +31,104 @@ export const securePasswords = () => {
   fs.writeFileSync("pushkin/docker-compose.dev.yml", jsYaml.dump(composeFile));
 };
 
-const fixConfig = function (configPath, verbose) {
-  //stupid function to add key to experiment and users configs
-  //This allows backwards compatibility
-
-  if (verbose) console.log("--verbose flag set inside fixConfig()");
-  let temp;
+const ensureProductionDBField = function (configPath, verbose) {
+  // Load the config file
   let config;
   try {
-    temp = fs.readFileSync(configPath, "utf8");
-    config = jsYaml.load(temp);
+    const configFileContents = fs.readFileSync(configPath, "utf8");
+    config = jsYaml.load(configFileContents);
   } catch (e) {
-    console.error("Failed to read users/config.yaml");
+    console.error(`Failed to read config file at ${configPath}`);
     throw e;
   }
-
+  // Add productionDB field if it doesn't exist (backwards compatibility)
   if (!config.productionDB) {
     config.productionDB = "Main";
     try {
-      temp = fs.writeFileSync(configPath, jsYaml.dump(config), "utf8");
-      if (verbose) console.log(`Updated "productionDB" in users/config.yaml`);
+      fs.writeFileSync(configPath, jsYaml.dump(config), "utf8");
+      if (verbose) console.log(`Updated "productionDB" in ${configPath}`);
     } catch (e) {
+      if (verbose) console.error("Failed to update productionDB: ", e);
       throw e;
     }
   }
-
-  return;
 };
 
-export async function getMigrations(mainExpDir, production, verbose) {
-  if (verbose) console.log("--verbose flag set inside getMigrations()");
-  const dbsToExps = new Map(); // which dbs -> { migrations, seeds } list
-  // read userDB files
-  const userDir = path.join(process.cwd(), "users");
-  const userConfigPath = path.join(userDir, "config.yaml");
-  fixConfig(userConfigPath, verbose); //this needs to finish running before we start loading migrations
+/**
+ * Collects all database migration and seed files from the users directory and experiments directory,
+ * organizing them by which database they belong to. Multiple experiments may share the same
+ * database, so all their migrations need to be run together.
+ * @param {string} usersDir - Absolute path to the users directory
+ * @param {string} experimentsDir - Absolute path to the experiments directory
+ * @param {boolean} production - Use productionDB for AWS deployment; otherwise use database
+ * @param {boolean} verbose - Whether to enable verbose logging
+ * @returns {Promise<Map<string, Array<{migrations: string, seeds: string}>>>}
+ *   Map of database names to arrays of migration/seed directory paths
+ * @throws {Error} If config files cannot be read or parsed
+ */
+export async function getMigrations(usersDir, experimentsDir, production, verbose) {
+  // Map structure: database name -> array of { migrations: path, seeds: path }
+  const dbsToExps = new Map();
 
-  let userConfig;
+  // === 1. Load migrations from the users directory ===
+  const usersConfigPath = path.join(usersDir, "config.yaml");
+  ensureProductionDBField(usersConfigPath, verbose);
+
+  let usersConfig;
   try {
-    userConfig = jsYaml.load(fs.readFileSync(userConfigPath), "utf8");
+    usersConfig = jsYaml.load(fs.readFileSync(usersConfigPath, "utf8"));
   } catch (e) {
-    console.error(`Failed to load config file for ${userDir}:\n\t${e}`);
-    throw e;
+    throw new Error(
+      `Failed to load users config at ${usersConfigPath}. ` +
+      `Make sure the file exists and contains valid YAML.\nOriginal error: ${e.message}`,
+    );
   }
-  const userMigsDir = path.join(userDir, userConfig.migrations.location);
-  const userDatabase = production ? userConfig.productionDB : userConfig.database;
-  if (verbose) console.log(`userMigsDir: ${userMigsDir}`);
-  if (verbose) console.log(`userDatabase: ${userDatabase}`);
 
-  if (dbsToExps.has(userDatabase)) {
-    dbsToExps.get(userDatabase).push({ migrations: userMigsDir, seeds: "" });
+  const usersMigsDir = path.join(usersDir, usersConfig.migrations.location);
+  const usersDatabase = production ? usersConfig.productionDB : usersConfig.database;
+  if (verbose) console.log(`usersMigsDir: ${usersMigsDir}`);
+  if (verbose) console.log(`usersDatabase: ${usersDatabase}`);
+
+  // Add users migrations to the map (users don't have seeds)
+  if (dbsToExps.has(usersDatabase)) {
+    dbsToExps.get(usersDatabase).push({ migrations: usersMigsDir, seeds: "" });
   } else {
-    dbsToExps.set(userDatabase, [{ migrations: userMigsDir, seeds: "" }]);
+    dbsToExps.set(usersDatabase, [{ migrations: usersMigsDir, seeds: "" }]);
   }
 
-  // read experiment migrations
+  // === 2. Load migrations from each experiment in experiments directory ===
   let expConfig;
-  //supposedly, forEach is blocking, so this block shouldn't cause us problems
-  //with synchronicity
-  fs.readdirSync(mainExpDir).forEach((eDir) => {
-    if (verbose) console.log(`Loading migrations for ${eDir}`);
-    const expDir = path.join(mainExpDir, eDir);
-    if (!fs.lstatSync(expDir).isDirectory()) return;
-    // load exp config, skip if there isn't any
-    const expConfigPath = path.join(expDir, "config.yaml");
-    fixConfig(expConfigPath, verbose); //this needs to finish running before we start loading migrations
+  // Note: forEach is synchronous, so no race conditions here
+  fs.readdirSync(experimentsDir).forEach((expDir) => {
+    if (verbose) console.log(`Loading migrations for ${expDir}`);
+    const expDirPath = path.join(experimentsDir, expDir);
+
+    // Skip non-directories
+    if (!fs.lstatSync(expDirPath).isDirectory()) return;
+
+    // Load experiment config
+    const expConfigPath = path.join(expDirPath, "config.yaml");
+    ensureProductionDBField(expConfigPath, verbose);
+
     try {
-      expConfig = jsYaml.load(fs.readFileSync(expConfigPath), "utf8");
+      expConfig = jsYaml.load(fs.readFileSync(expConfigPath, "utf8"));
     } catch (e) {
-      console.error(`Failed to load config file for ${expDir}:\n\t${e}`);
+      // Log error and skip this experiment if config missing or invalid
+      console.error(
+        `Failed to load experiment config at ${expConfigPath}. ` +
+        `Skipping experiment "${expDir}". ` +
+        `Make sure config.yaml exists and contains valid YAML.\nError: ${e.message}`,
+      );
       return;
     }
     if (verbose) console.log(`expConfig:\n ${JSON.stringify(expConfig)}`);
-    // add these migrations and seeds to the appropriate database
+
+    // Determine which database this experiment uses and where its migrations/seeds are
     const expDatabase = production ? expConfig.productionDB : expConfig.database;
-    const migsDir = path.join(expDir, expConfig.migrations.location);
-    const seedsDir = path.join(expDir, expConfig.seeds.location);
+    const migsDir = path.join(expDirPath, expConfig.migrations.location);
+    const seedsDir = path.join(expDirPath, expConfig.seeds.location);
+
+    // Add to the map (multiple experiments can share the same database)
     if (dbsToExps.has(expDatabase)) {
       dbsToExps.get(expDatabase).push({ migrations: migsDir, seeds: seedsDir });
     } else {
@@ -116,112 +139,238 @@ export async function getMigrations(mainExpDir, production, verbose) {
   return dbsToExps;
 }
 
-export async function runMigrations(dbsToExps, coreDBs, verbose) {
-  if (verbose) console.log("--verbose flag set inside runMigrations()");
-  let ranMigrations = [];
-  try {
-    dbsToExps.forEach((migAndSeedDirs, db) => {
-      if (!coreDBs[db]) {
-        console.error(`The database ${db} is not configured in pushkin.yaml`);
-        return;
-      }
-      let dbInfo = coreDBs[db];
-      if (!dbInfo.host) {
-        if (verbose)
-          console.log(`No host listed for database ${dbInfo.name}. Defaulting to 'localhost'.`);
-        dbInfo.host = "localhost";
-      }
-      const migDirs = migAndSeedDirs.map((i) => i.migrations);
-      const seedDirs = migAndSeedDirs
-        .map((i) => i.seeds)
-        .filter((el) => {
-          return el != "";
-        });
-      const knexInfo = {
-        client: "pg",
-        version: "11",
-        connection: {
-          host: dbInfo.url,
-          user: dbInfo.user,
-          port: dbInfo.port,
-          password: dbInfo.pass,
-          database: dbInfo.name,
-        },
-      };
-      let pg;
-      try {
-        pg = knex(knexInfo);
-      } catch (e) {
-        console.error(`Problem connecting to database.\n`, knexInfo);
-        throw e;
-      }
-      ranMigrations.push(
-        new Promise(async (resolve, reject) => {
-          if (verbose) console.log(`Running migrations for ${db}`);
-          try {
-            await pg.migrate.latest({ directory: migDirs });
-          } catch (e) {
-            console.error(`Problem running migrations for ${db}`);
-            throw e;
-          }
-          if (verbose) console.log(`Ran migrations for ${db}`);
-
-          let runSeeds = async (seedDir, verbose) => {
-            if (verbose) console.log("--verbose flag set inside runSeeds()");
-            //run seeds, if any
-            if (verbose) console.log(`Running seeds on`, seedDir);
-            let promiseSeed;
-            try {
-              promiseSeed = pg.seed.run({ directory: seedDir });
-            } catch (e) {
-              console.error(`Problem running seed `, seedDir);
-              throw e;
-            }
-            return promiseSeed;
-          };
-
-          let ranSeeds;
-          try {
-            ranSeeds = seedDirs.map((seedDir) => runSeeds(seedDir, verbose));
-          } catch (e) {
-            console.error(`Problem running seeds for ${db}`);
-            throw e;
-          }
-
-          await Promise.all(ranSeeds);
-
-          pg.destroy();
-          resolve(true);
-        }),
+/**
+ * Wait for database to be ready by attempting to connect with retries.
+ * Uses exponential backoff to avoid overwhelming the database during startup.
+ * @param {object} knexInstance - Knex instance to test
+ * @param {string} dbName - Database name for logging
+ * @param {number} maxRetries - Maximum number of retry attempts (default 10)
+ * @returns {Promise<void>}
+ * @throws {Error} If database doesn't become ready after maxRetries attempts
+ */
+const waitForDBReady = async (knexInstance, dbName, maxRetries = 10) => {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      await knexInstance.raw("SELECT 1");
+      console.log(`Database ${dbName} is ready for connections`);
+      return;
+    } catch (error) {
+      const waitTime = Math.min(1000 * Math.pow(2, i), 30000);
+      console.log(
+        `Database ${dbName} not ready yet (attempt ${i + 1}/${maxRetries}), waiting ${waitTime}ms...`,
       );
-    });
-  } catch (e) {
-    throw e;
+      await new Promise((resolve) => setTimeout(resolve, waitTime));
+
+      // Throw on last attempt
+      if (i === maxRetries - 1) {
+        throw new Error(
+          `Database ${dbName} did not become ready after ${maxRetries} attempts: ${error.message}`,
+        );
+      }
+    }
   }
-  return Promise.all(ranMigrations);
+};
+
+/**
+ * Wait for a Docker database container to be healthy.
+ * Only used for local development with Docker Compose.
+ * 'test_db' is the main database for experiments/users.
+ * 'test_transaction_db' is the audit log database for query tracking/debugging.
+ * @param {string} dockerDB - Docker database container name (e.g., 'test_db', 'test_transaction_db')
+ * @param {boolean} verbose - Whether to enable verbose logging
+ * @param {number} maxRetries - Maximum number of retry attempts (default 60)
+ * @param {number} checkInterval - Interval between health checks in milliseconds (default 2500)
+ * @returns {Promise<void>} Resolves when container is healthy
+ * @throws {Error} If container doesn't become healthy after maxRetries attempts
+ */
+async function waitForDockerDBContainerReady(
+  dockerDB,
+  verbose,
+  maxRetries = 60,
+  checkInterval = 2500,
+) {
+  for (let i = 0; i < maxRetries; i++) {
+    if (verbose && i === 0) console.log(`Waiting for ${dockerDB}...`);
+
+    const containerStatus = await exec(
+      `docker ps --format "{{.Names}} {{.Status}}" | awk '/pushkin[-_]${dockerDB}[-_]1/ {print $0}'`,
+    );
+
+    if (containerStatus.stdout.search("healthy") > 0) {
+      if (verbose) console.log(`${dockerDB} is healthy`);
+      return;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, checkInterval));
+
+    if (i === maxRetries - 1) {
+      throw new Error(`${dockerDB} did not become healthy after ${maxRetries} attempts`);
+    }
+  }
 }
 
-export async function setupTestTransactionsDB(verbose) {
-  //FUBAR could make a lot more use of asyncronous functions here
-  if (verbose) console.log("--verbose flag set inside setupTestTransactionsDB()");
-  let composeFile, pushkinConfig, temp;
+/**
+ * Build Knex configuration object for database connection.
+ * @param {object} dbInfo - Database connection info (url, user, port, pass, name)
+ * @returns {object} Knex configuration object
+ */
+function buildKnexConfig(dbInfo) {
+  // Parse host from dbInfo.url (allow either a hostname or URL)
+  let parsedHost;
   try {
-    temp = await fs.promises.readFile(path.join(process.cwd(), "pushkin/docker-compose.dev.yml"));
-    composeFile = jsYaml.load(temp);
-  } catch (e) {
-    console.error(`Failed to load pushkin/docker-compose.dev.yml`);
-    throw e;
+    // If dbInfo.url is just a hostname, this throws; fallback to using as is
+    parsedHost = new URL(dbInfo.url).hostname;
+  } catch {
+    parsedHost = dbInfo.url;
   }
+  return {
+    client: "pg",
+    version: "11",
+    connection: {
+      host: dbInfo.url,
+      user: dbInfo.user,
+      port: dbInfo.port,
+      password: dbInfo.pass,
+      database: dbInfo.name,
+      // Enable SSL for AWS RDS or non-localhost connections
+      ssl:
+        (
+          (parsedHost && parsedHost.endsWith(".rds.amazonaws.com")) ||
+          (parsedHost !== "localhost" && !parsedHost.includes("localhost"))
+        ) ?
+          { rejectUnauthorized: false }
+          : false,
+    },
+    // Connection pool settings optimized for migration stability
+    pool: {
+      min: 0,
+      max: 5,
+      acquireTimeoutMillis: 60000,
+      createTimeoutMillis: 60000,
+      destroyTimeoutMillis: 5000,
+      idleTimeoutMillis: 30000,
+      reapIntervalMillis: 1000,
+      createRetryIntervalMillis: 200,
+    },
+    acquireConnectionTimeout: 60000,
+  };
+}
+
+/**
+ * Run database migrations and seeds for all configured databases.
+ * Connects to each database using Knex, runs migrations to create/update table schemas,
+ * then runs seeds to populate initial data.
+ * @param {Map<string, Array<{migrations: string, seeds: string}>>} dbsToExps - Map of database names to migration/seed paths
+ * @param {object} dbConfigs - Database configurations from pushkin.yaml
+ * @param {boolean} verbose - Whether to enable verbose logging
+ * @returns {Promise<Array>} Promise that resolves when all migrations complete
+ * @throws {Error} If any migration or seed operation fails
+ */
+export async function runMigrations(dbsToExps, dbConfigs, verbose) {
+  let migrationPromises = [];
+  dbsToExps.forEach((migAndSeedDirs, db) => {
+    // Validate database is configured
+    if (!dbConfigs[db]) {
+      console.error(`The database ${db} is not configured in pushkin.yaml`);
+      return;
+    }
+
+    let dbInfo = dbConfigs[db];
+    // Default to localhost if no url specified
+    if (!dbInfo.url) {
+      if (verbose)
+        console.log(`No url listed for database ${dbInfo.name}. Defaulting to 'localhost'.`);
+      dbInfo.url = "localhost";
+    }
+
+    // Extract migration directories and filter out empty seed directories
+    const migDirs = migAndSeedDirs.map((dir) => dir.migrations);
+    const seedDirs = migAndSeedDirs.map((dir) => dir.seeds).filter((value) => value != "");
+
+    // Create Knex instance with database connection config
+    const knexClient = knex(buildKnexConfig(dbInfo));
+
+    // Create a promise for this database's migration
+    migrationPromises.push(
+      (async () => {
+        if (verbose) console.log(`Running migrations for ${db}`);
+
+        try {
+          // Wait for database to be ready (especially important for RDS)
+          await waitForDBReady(knexClient, db);
+
+          // Run migrations
+          await knexClient.migrate.latest({ directory: migDirs });
+          if (verbose) console.log(`Ran migrations for ${db}`);
+
+          // Run all seeds for this database
+          const seedPromises = seedDirs.map((seedDir) => {
+            if (verbose) console.log(`Running seeds on ${seedDir}`);
+            return knexClient.seed.run({ directory: seedDir });
+          });
+          await Promise.all(seedPromises);
+
+          return true;
+        } catch (e) {
+          console.error(`Database ${db} migration failed:`, e.message);
+          throw e;
+        } finally {
+          // Clean up Knex connection
+          knexClient.destroy();
+        }
+      })(), // IIFE
+    );
+  });
+
+  // Wait for all database migrations to complete
+  return Promise.all(migrationPromises);
+}
+
+/**
+ * Set up the local transactions database configuration if it doesn't exist.
+ *
+ * The local transactions database (test_transaction_db) is an audit log that records all database
+ * queries executed during local development. It helps with debugging by providing a history
+ * of all operations. This is separate from the test_db which stores experiment data.
+ *
+ * This function creates the necessary Docker Compose service and Pushkin config entries.
+ * @param {boolean} verbose - Whether to enable verbose logging
+ * @returns {Promise<boolean>} Returns true when setup is complete
+ * @throws {Error} If config files cannot be read or written
+ */
+export async function setupLocalTransactionsDB(verbose) {
+  // Load configuration files
+  let composeFile, pushkinConfig;
   try {
-    temp = await fs.promises.readFile(path.join(process.cwd(), "pushkin.yaml"));
-    pushkinConfig = jsYaml.load(temp);
+    const composeFileContents = await fs.promises.readFile(
+      path.join(process.cwd(), "pushkin/docker-compose.dev.yml"),
+      "utf8",
+    );
+    composeFile = jsYaml.load(composeFileContents);
   } catch (e) {
-    console.error(`Failed to load pushkin.yaml`);
-    throw e;
+    throw new Error(
+      `Failed to load pushkin/docker-compose.dev.yml. Make sure it exists.\nOriginal error: ${e.message}`,
+    );
   }
-  if (!composeFile.test_transaction_db) {
+
+  try {
+    const pushkinConfigContents = await fs.promises.readFile(
+      path.join(process.cwd(), "pushkin.yaml"),
+      "utf8",
+    );
+    pushkinConfig = jsYaml.load(pushkinConfigContents);
+  } catch (e) {
+    throw new Error(
+      `Failed to load pushkin.yaml. Make sure it exists.\nOriginal error: ${e.message}`,
+    );
+  }
+
+  // Create transactions DB service if it doesn't exist
+  if (!composeFile.services.test_transaction_db) {
     if (verbose)
-      console.log(`No transaction db for local testing found in docker-compose.dev.yml. Creating.`);
+      console.log(`No transaction db for logging found in docker-compose.dev.yml. Creating.`);
+
+    // Add Docker Compose service for transactions database
     composeFile.services.test_transaction_db = {
       image: "postgres:11",
       environment: {
@@ -238,16 +387,15 @@ export async function setupTestTransactionsDB(verbose) {
       },
     };
     composeFile.volumes.test_transaction_db_volume = null;
-    try {
-      if (verbose) console.log(`Updating pushkin/docker-compose.dev.yml to include transation db`);
-      await fs.promises.writeFile(
-        path.join(process.cwd(), "pushkin/docker-compose.dev.yml"),
-        jsYaml.dump(composeFile),
-      );
-    } catch (e) {
-      console.error(`Failed to write pushkin/docker-compose.dev.yml`);
-      throw e;
-    }
+
+    // Write updated docker-compose file
+    if (verbose) console.log(`Updating pushkin/docker-compose.dev.yml to include transaction db`);
+    await fs.promises.writeFile(
+      path.join(process.cwd(), "pushkin/docker-compose.dev.yml"),
+      jsYaml.dump(composeFile),
+    );
+
+    // Add database config to pushkin.yaml
     pushkinConfig.databases.localtransactiondb = {
       user: "postgres",
       pass: "example",
@@ -256,28 +404,24 @@ export async function setupTestTransactionsDB(verbose) {
       url: "localhost",
       name: "test_transaction_db",
     };
-    try {
-      if (verbose) console.log(`Updating pushkin.yaml`);
-      await fs.promises.writeFile(
-        path.join(process.cwd(), "pushkin.yaml"),
-        jsYaml.dump(pushkinConfig),
-      );
-    } catch (e) {
-      console.error(`Failed to write pushkin.yaml`);
-      throw e;
-    }
+
+    // Write updated pushkin.yaml
+    if (verbose) console.log(`Updating pushkin.yaml`);
+    await fs.promises.writeFile(
+      path.join(process.cwd(), "pushkin.yaml"),
+      jsYaml.dump(pushkinConfig),
+    );
   }
   if (verbose) {
     console.log("Finished updating configs for test transactions db");
-    console.log(`See if a migrations file for transactions exists`);
-  }
-  const migDir = path.join(process.cwd(), "coreMigrations");
-  try {
-    await fs.promises.mkdir(migDir, { recursive: true });
-  } catch (e) {
-    throw e;
+    console.log(`Checking if a migrations file for transactions exists`);
   }
 
+  // Create coreMigrations directory if it doesn't exist
+  const migDir = path.join(process.cwd(), "coreMigrations");
+  await fs.promises.mkdir(migDir, { recursive: true });
+
+  // Create migration file for transactions table if it doesn't exist
   try {
     await fs.promises.readFile(path.join(migDir, "migrateTransactions.js"));
     if (verbose) console.log(`Migrations for transactions db already exist. Skipping creation.`);
@@ -293,7 +437,7 @@ export async function setupTestTransactionsDB(verbose) {
           table.timestamps();
         });
       };
-      
+
       exports.down = function(knex) {
         return knex.schema.dropTable('transactions');
       };`,
@@ -302,127 +446,85 @@ export async function setupTestTransactionsDB(verbose) {
   return true;
 }
 
+/**
+ * Run migrations for the transactions database (audit log).
+ * The transactions database records all queries for debugging purposes.
+ * Waits for the Docker container to be healthy before running migrations.
+ * @param {object} coreDBs - Database configurations from pushkin.yaml
+ * @param {boolean} verbose - Whether to enable verbose logging
+ * @returns {Promise} Promise that resolves when migrations complete
+ */
 export async function migrateTransactionsDB(coreDBs, verbose) {
-  if (verbose) console.log("--verbose flag set inside migrateTransactionsDB()");
-  return new Promise(async (resolve, reject) => {
-    const waitforTrans = async (verbose) => {
-      if (verbose) {
-        console.log("--verbose flag set inside waitforTrans()");
-        console.log("Waiting for test transaction db...");
-      }
-      let x = await exec(
-        `docker ps --format "{{.Names}} {{.Status}}" | awk '/pushkin[-_]test_transaction_db[-_]1/ {print $0}'`,
-      );
-      if (x.stdout.search("healthy") > 0) {
-        if (verbose) console.log("Test transaction db is healthy");
-        let transMigrations = new Map();
-        if (verbose) console.log(`Starting migrations for test transactions DB.`);
-        transMigrations.set("localtransactiondb", [
-          { migrations: path.join(process.cwd(), "coreMigrations"), seeds: "" },
-        ]);
-        let ranMigrations;
-        try {
-          ranMigrations = runMigrations(transMigrations, coreDBs, verbose);
-        } catch (e) {
-          console.error(`Problem running migrations for transactions table`);
-          throw e;
-        }
-        resolve(ranMigrations);
-      } else {
-        setTimeout(waitforTrans, 2500, verbose); // verbose needs to be passed in as argument to the function reference
-      }
-    };
-    waitforTrans(verbose);
-  });
+  // Wait for container to be healthy
+  await waitForDockerDBContainerReady("test_transaction_db", verbose);
+
+  // Set up migrations map
+  if (verbose) console.log(`Starting migrations for test transactions DB.`);
+  const transMigrations = new Map();
+  transMigrations.set("localtransactiondb", [
+    { migrations: path.join(process.cwd(), "coreMigrations"), seeds: "" },
+  ]);
+
+  // Run migrations
+  return runMigrations(transMigrations, coreDBs, verbose);
 }
 
-export async function setupdb(coreDBs, mainExpDir, verbose) {
-  if (verbose) console.log("--verbose flag set inside setupdb()");
-  // load up all migrations for same dbs to be run at same time (knex requires this)
+/**
+ * Wait for main test database to be healthy, then run migrations.
+ * The main test database (test_db) stores experiment data and user accounts.
+ * @param {Map} dbMigrationsMap - Map of database names to migration/seed paths
+ * @param {object} coreDBs - Database configurations from pushkin.yaml
+ * @param {boolean} verbose - Whether to enable verbose logging
+ * @returns {Promise} Promise that resolves when migrations complete
+ */
+async function migrateExperimentsDB(dbMigrationsMap, coreDBs, verbose) {
+  await waitForDockerDBContainerReady("test_db", verbose);
+  return runMigrations(dbMigrationsMap, coreDBs, verbose);
+}
 
-  let dbPromise;
-  if (verbose) console.log("Spooling up databases.");
-  try {
-    dbPromise = compose.upMany(["test_db", "test_transaction_db"], {
-      cwd: path.join(process.cwd(), "pushkin"),
-      config: "docker-compose.dev.yml",
-    });
-  } catch {
-    console.error("something went wrong starting database containers.");
-    throw e;
-  }
+/**
+ * Set up all databases by running migrations and seeds.
+ * This is the main orchestration function that:
+ * 1. Starts Docker containers for test databases:
+ *    - test_db: Main database for experiments and user accounts
+ *    - test_transaction_db: Audit log database for query tracking/debugging
+ * 2. Collects all migrations from experiments and users
+ * 3. Waits for database containers to be healthy
+ * 4. Runs migrations and seeds in parallel
+ * 5. Stops all database containers when done
+ * @param {object} coreDBs - Database configurations object from pushkin.yaml
+ * @param {string} usersDir - Path to users directory
+ * @param {string} mainExpDir - Path to main experiments directory
+ * @param {boolean} verbose - Whether to enable verbose logging
+ * @returns {Promise} Promise that resolves when setup is complete
+ */
+export async function setupdb(coreDBs, usersDir, mainExpDir, verbose) {
+  // === 1. Start Docker containers for test databases ===
+  // test_db: Main database for experiments/users
+  // test_transaction_db: Audit log (records all queries for debugging)
+  // Note: Knex requires all migrations for the same DB to be run together
+  if (verbose) console.log("Spooling up Docker containers for test databases.");
+  const dbPromise = compose.upMany(["test_db", "test_transaction_db"], {
+    cwd: path.join(process.cwd(), "pushkin"),
+    config: "docker-compose.dev.yml",
+  });
 
-  let dbsToExps;
-  try {
-    dbsToExps = await getMigrations(mainExpDir, false, verbose);
-  } catch (e) {
-    console.error(`Problem getting migrations`);
-    throw e;
-  }
+  // === 2. Collect all migrations from experiments and users ===
+  const dbMigrationsMap = await getMigrations(usersDir, mainExpDir, false, verbose);
 
-  await dbPromise; //no point in going on until this much is run
+  // === 3. Wait for database containers to start before proceeding ===
+  await dbPromise;
 
-  let migrateExperiments = async (dbsToExps, verbose) => {
-    if (verbose) console.log("--verbose flag set inside migrateExperiments()");
-    return new Promise(async (resolve, reject) => {
-      const waitforMain = async (verbose) => {
-        if (verbose) {
-          console.log("--verbose flag set inside waitforMain()");
-          console.log("Waiting for test db...");
-        }
-        let x = await exec(
-          `docker ps --format "{{.Names}} {{.Status}}" | awk '/pushkin[-_]test_db[-_]1/ {print $0}'`,
-        );
-        if (x.stdout.search("healthy") > 0) {
-          if (verbose) console.log("Test test db is healthy");
-          let migrateExpDBs;
-          try {
-            migrateExpDBs = runMigrations(dbsToExps, coreDBs, verbose);
-          } catch (e) {
-            console.error(`Problem running migrations for experiment databases`);
-            throw e;
-          }
-          resolve(migrateExpDBs);
-        } else {
-          setTimeout(waitforMain, 2500, verbose); // verbose needs to be passed in as argument to the function reference
-        }
-      };
-      waitforMain(verbose);
-    });
-  };
-
-  let setupTransactionsTable;
-  try {
-    //Note that migrateTransactionsDB() launches that DB and waits for it
-    setupTransactionsTable = migrateTransactionsDB(coreDBs, verbose);
-  } catch (error) {
-    console.error(`Problem running migrations for transactions table`);
-    throw error;
-  }
-
-  let migrateExperimentsDBs;
-  try {
-    //Note that migrateExperiments() launches that DB and waits for it
-    migrateExperimentsDBs = migrateExperiments(dbsToExps, verbose);
-  } catch (e) {
-    console.error(`Problem running migrations for experiment databases`);
-    throw e;
-  }
-
-  await Promise.all([migrateExperimentsDBs, setupTransactionsTable]); //wait for all migrations to finish
+  // === 4. Run migrations and seeds in parallel ===
+  const setupTransactionsTable = migrateTransactionsDB(coreDBs, verbose);
+  const experimentMigrationsPromise = migrateExperimentsDB(dbMigrationsMap, coreDBs, verbose);
+  await Promise.all([experimentMigrationsPromise, setupTransactionsTable]);
 
   if (verbose) console.log("Finished running all migrations. Shutting down database containers.");
-  let stopDB = async (dockerPath, dockerConfig) => {
-    return compose.stop({ cwd: dockerPath, config: dockerConfig });
-  };
 
-  let stoppedDB;
-  try {
-    stoppedDB = await stopDB(path.join(process.cwd(), "pushkin"), "docker-compose.dev.yml");
-  } catch (e) {
-    console.error(`Problem stopping database`);
-    throw e;
-  }
-
-  return stoppedDB;
+  // === 5. Stop all database containers ===
+  return await compose.stop({
+    cwd: path.join(process.cwd(), "pushkin"),
+    config: "docker-compose.dev.yml",
+  });
 }

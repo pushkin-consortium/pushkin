@@ -21,6 +21,9 @@ import createSagaMiddleware from 'redux-saga';
 import rootReducer from './reducers/index';
 import rootSaga from './sagas/index';
 
+// Auth0 integration
+import { Auth0Provider } from '@auth0/auth0-react';
+
 // //Stylin
 // import './index.css'; // drop??
 // import './styles/styles.less'; //Bootstrap styles
@@ -50,10 +53,30 @@ const onRedirectCallback = (appState) => {
 //Renders the front end
 const root = createRoot(document.getElementById('root'));
 
+// Conditionally wrap with Auth0Provider if useAuth is enabled
+const AppWithAuth = () => {
+  if (CONFIG.useAuth && CONFIG.authDomain && CONFIG.authClientID) {
+    return (
+      <Auth0Provider
+        domain={CONFIG.authDomain}
+        clientId={CONFIG.authClientID}
+        authorizationParams={{
+          redirect_uri: window.location.origin
+        }}
+        useRefreshTokens={true}
+        cacheLocation="localstorage"
+      >
+        <App />
+      </Auth0Provider>
+    );
+  }
+  return <App />;
+};
+
 root.render(
   <Provider store={store}>
     <Router>
-      <App />
+      <AppWithAuth />
     </Router>
   </Provider>
 );

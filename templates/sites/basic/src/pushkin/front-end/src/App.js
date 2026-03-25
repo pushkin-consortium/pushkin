@@ -12,6 +12,7 @@ import Header from "./components/Layout/Header";
 import Footer from "./components/Layout/Footer";
 import TakeQuiz from "./components/Quizzes/TakeQuiz";
 import Results from "./components/Quizzes/Results";
+import Profile from "./components/Authentication/Profile";
 
 //import pages
 import HomePage from "./pages/Home";
@@ -19,7 +20,13 @@ import FindingsPage from "./pages/Findings";
 import AboutPage from "./pages/About";
 import FeedbackPage from "./pages/Feedback";
 
+//import Auth0 sync hook
+import useAuth0Sync from "./hooks/useAuth0Sync";
+
 function App() {
+  // Sync Auth0 users with Pushkin database
+  useAuth0Sync();
+
   return (
     <>
       <div className="App" style={{ minHeight: "100vh", position: "relative" }}>
@@ -47,6 +54,10 @@ function App() {
 
           <Route path="/feedback">
             <FeedbackPage />
+          </Route>
+
+          <Route path="/profile">
+            <Profile />
           </Route>
 
           <Route path="/quizzes/:quizName/results">
