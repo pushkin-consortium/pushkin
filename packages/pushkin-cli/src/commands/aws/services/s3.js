@@ -1,8 +1,6 @@
 import {
   S3Client,
   ListBucketsCommand,
-  CreateBucketCommand,
-  PutBucketPolicyCommand,
   DeleteBucketCommand,
   ListObjectsV2Command,
   DeleteObjectsCommand,
@@ -13,7 +11,7 @@ import { AWSClientFactory } from "../utils/aws-client-factory.js";
 import { AWS_REGION as myRegion, exec, pacMan } from "../constants.js";
 
 /**
- * Build the project front-end
+ * Build the project's React front-end
  * @param {string} projName - The project name
  * @returns {Promise} - A promise that resolves when the front-end is built
  */

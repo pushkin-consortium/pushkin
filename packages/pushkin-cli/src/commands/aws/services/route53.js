@@ -6,7 +6,6 @@ import {
 } from "@aws-sdk/client-route-53";
 import { AWSClientFactory } from "../utils/aws-client-factory.js";
 import { AWS_REGION } from "../constants.js";
-import { changeSet } from "../awsConfigs.js";
 import fs from "graceful-fs";
 import path from "path";
 import jsYaml from "js-yaml";
@@ -333,5 +332,64 @@ const deleteResourceRecords = async (useIAM, killTag, projName) => {
     return true;
   }
 };
+
+  /**
+   * Choose a domain for the site
+   * @param {string|object} useIAM - The IAM profile or object with IAM info
+   * @returns {Promise<string>} - A promise that resolves to the chosen domain
+   */
+  const chooseDomain = async (useIAM) => {
+    console.log("Choosing domain name for site");
+    let temp;
+    try {
+      const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+      const factory = new AWSClientFactory(AWS_REGION, profileName);
+      const route53DomainsClient = factory.createClient(Route53DomainsClient);
+      const listDomainsResponse = await route53DomainsClient.send(new ListDomainsCommand({}));
+      temp = { stdout: JSON.stringify({ Domains: listDomainsResponse.Domains }) };
+    } catch (e) {
+      console.error(`Unable to get list of SSL certificates`);
+    }
+    let domains = ["default"];
+    JSON.parse(temp.stdout).Domains.forEach((c) => {
+      domains.push(c.DomainName);
+    });
+    domains.push("Enter a custom domain/subdomain");
+
+    return new Promise((resolve) => {
+      console.log(`Choosing...`);
+      inquirer
+        .prompt([
+          {
+            type: "list",
+            name: "domain",
+            choices: domains,
+            default: 0,
+            message: "Which domain would you like to use for your site?",
+          },
+        ])
+        .then(async (answers) => {
+          if (answers.domain === "Enter a custom domain/subdomain") {
+            const customDomain = await inquirer.prompt([
+              {
+                type: "input",
+                name: "customDomain",
+                message: "Enter your custom domain or subdomain (e.g., subdomain.example.com):",
+                validate: (input) => {
+                  if (!input || input.trim().length === 0) {
+                    return "Domain cannot be empty";
+                  }
+                  return true;
+                },
+              },
+            ]);
+            resolve(customDomain.customDomain);
+          } else {
+            resolve(answers.domain);
+          }
+        });
+    });
+  };
+  
 // Export all functions
 export { makeRecordSet, deleteResourceRecords };

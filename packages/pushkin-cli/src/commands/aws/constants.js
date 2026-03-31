@@ -13,6 +13,7 @@ export const AWS_REGION = "us-east-1";
 
 /**
  * Promisified exec utility for running shell commands
- * Usage: await exec('ls -la')
+ * @example
+ * await exec('ls -la')
  */
 export const exec = util.promisify(require("child_process").exec);

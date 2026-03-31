@@ -21,6 +21,11 @@
  * @see index.js for deployment logic that uses these configs
  */
 
+import { loadAwsConfig } from "./utils/aws-config.js";
+
+const awsConfig = loadAwsConfig();
+const PROJECT_TAG_KEY = awsConfig.tagging.projectTagKey;
+
 // FRONT-END DELIVERY
 /**
  * For creating ACL that protects Pushkin site from common web exploits and malicious traffic by
@@ -165,8 +170,8 @@ export const cloudFront = {
   Tags: {
     Items: [
       {
-        Key: "PUSHKIN",
-        Value: "PUSHKIN",
+        Key: PROJECT_TAG_KEY,
+        Value: PROJECT_TAG_KEY,
       },
     ],
   },
@@ -384,7 +389,7 @@ export const dbConfig = {
   MaxAllocatedStorage: 1000,
   Tags: [
     {
-      Key: "PUSHKIN",
+      Key: PROJECT_TAG_KEY,
       Value: "", // → project name
     },
   ],

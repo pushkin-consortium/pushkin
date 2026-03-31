@@ -8,8 +8,11 @@ import {
 } from "@aws-sdk/client-ec2";
 import { WAFv2Client, ListWebACLsCommand, CreateWebACLCommand } from "@aws-sdk/client-wafv2";
 import { AWSClientFactory } from "../utils/aws-client-factory.js";
+import { loadAwsConfig } from "../utils/aws-config.js";
 import { AWS_REGION } from "../constants.js";
 import { pushkinACL } from "../awsConfigs.js";
+
+const PROJECT_TAG_KEY = loadAwsConfig().tagging.projectTagKey;
 
 /**
  * Check if the IAM user is configured on the AWS SDK
@@ -56,7 +59,7 @@ const handleSecurityGroups = async (useIAM, projName) => {
           TagSpecifications: [
             {
               ResourceType: "security-group",
-              Tags: [{ Key: "PUSHKIN", Value: projName }],
+              Tags: [{ Key: PROJECT_TAG_KEY, Value: projName }],
             },
           ],
         }),

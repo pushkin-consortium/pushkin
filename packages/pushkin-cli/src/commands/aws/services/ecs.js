@@ -41,6 +41,7 @@ import {
   DeleteStackCommand,
 } from "@aws-sdk/client-cloudformation";
 import { AWSClientFactory } from "../utils/aws-client-factory.js";
+import { updateAwsResourcesField } from "../utils/aws-resources.js";
 import { AWS_REGION } from "../constants.js";
 import { rabbitTask, apiTask, workerTask } from "../awsConfigs.js";
 import { getDBInfo } from "./rds.js";
@@ -51,7 +52,9 @@ import crypto from "crypto";
 import { v4 as uuid } from "uuid";
 import { mkdir } from "fs/promises";
 import { exec, execSync } from "child_process";
-import { readConfig } from "pushkin-cli/src/commands/aws/utils/readConfig.js";
+import { loadAwsConfig } from "../utils/aws-config.js";
+
+const PROJECT_TAG_KEY = loadAwsConfig().tagging.projectTagKey;
 
 /**
  * Ensure ECS Task Execution Role exists, creating it if necessary
@@ -115,7 +118,7 @@ const ensureECSTaskExecutionRole = async (useIAM) => {
 };
 
 /**
- * Create ECS tasks for the API and workers
+ * Create ECS tasks for the API and worker containers
  * @param {string} projName - The name of the project
  * @param {boolean} useIAM - Whether to use IAM roles
  * @param {string} DHID - The DataHub ID
@@ -485,15 +488,7 @@ const ecsTaskCreator = async (
 
     // Update awsResources
     try {
-      const awsResources = jsYaml.load(
-        fs.readFileSync(path.join(process.cwd(), "awsResources.js"), "utf8"),
-      );
-      awsResources.ECSName = ECSName;
-      fs.writeFileSync(
-        path.join(process.cwd(), "awsResources.js"),
-        jsYaml.dump(awsResources),
-        "utf8",
-      );
+      updateAwsResourcesField("ECSName", ECSName);
       console.log("Updated awsResources with ECS information");
     } catch (error) {
       console.error("Unable to update awsResources.js:", error);
@@ -651,7 +646,11 @@ const ecsTaskCreator = async (
 };
 
 /**
- * Set up ECS cluster and related resources
+ * Set up ECS cluster and related resources:
+ * - Security groups and SSH keys
+ * - Load balancers and target groups
+ * - Auto-scaling configuration
+ * - Network setup (VPC, subnets)
  * @param {string} projName - The name of the project
  * @param {string} awsName - The name of the AWS account
  * @param {boolean} useIAM - Whether to use IAM roles
@@ -737,7 +736,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
               ResourceType: "security-group",
               Tags: [
                 {
-                  Key: "PUSHKIN",
+                  Key: PROJECT_TAG_KEY,
                   Value: projName,
                 },
               ],
@@ -842,7 +841,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
               ResourceType: "security-group",
               Tags: [
                 {
-                  Key: "PUSHKIN",
+                  Key: PROJECT_TAG_KEY,
                   Value: projName,
                 },
               ],
@@ -1059,7 +1058,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
       const createClusterResponse = await ecsClient.send(
         new CreateClusterCommand({
           clusterName: ECSName,
-          tags: [{ key: "PUSHKIN", value: projName }],
+          tags: [{ key: PROJECT_TAG_KEY, value: projName }],
         }),
       );
       console.log(`Created ECS cluster: ${ECSName}`);
@@ -1085,15 +1084,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
 
   try {
     console.log(`Updating awsResources.js with load balancer info`);
-    let awsResources = jsYaml.load(
-      fs.readFileSync(path.join(process.cwd(), "awsResources.js"), "utf8"),
-    );
-    awsResources.loadBalancerName = loadBalancerName;
-    fs.writeFileSync(
-      path.join(process.cwd(), "awsResources.js"),
-      jsYaml.dump(awsResources),
-      "utf8",
-    );
+    updateAwsResourcesField("loadBalancerName", loadBalancerName);
   } catch (e) {
     console.error(`Unable to update awsResources.js`);
     console.error(e);
@@ -1111,7 +1102,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
         Scheme: "internet-facing",
         Subnets: subnets,
         SecurityGroups: [BalancerSecurityGroupID],
-        Tags: [{ Key: "PUSHKIN", Value: projName }],
+        Tags: [{ Key: PROJECT_TAG_KEY, Value: projName }],
       }),
     );
   } catch (e) {
@@ -1140,15 +1131,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
   const targGroupARN = tempMakeTargetGroup.TargetGroups[0].TargetGroupArn;
   try {
     console.log(`Updating awsResources.js with target group info`);
-    let awsResources = jsYaml.load(
-      fs.readFileSync(path.join(process.cwd(), "awsResources.js"), "utf8"),
-    );
-    awsResources.targGroupARN = targGroupARN;
-    fs.writeFileSync(
-      path.join(process.cwd(), "awsResources.js"),
-      jsYaml.dump(awsResources),
-      "utf8",
-    );
+    updateAwsResourcesField("targGroupARN", targGroupARN);
   } catch (e) {
     console.error(`Unable to update awsResources.js`);
     console.error(e);

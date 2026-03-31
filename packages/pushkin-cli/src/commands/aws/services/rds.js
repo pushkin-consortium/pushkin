@@ -1,6 +1,3 @@
-import fs from "graceful-fs";
-import path from "path";
-import jsYaml from "js-yaml";
 import crypto from "crypto";
 import {
   RDSClient,
@@ -11,11 +8,15 @@ import {
   waitUntilDBInstanceAvailable,
 } from "@aws-sdk/client-rds";
 import { AWSClientFactory } from "../utils/aws-client-factory.js";
+import { loadAwsConfig } from "../utils/aws-config.js";
+import { readAwsResources, writeAwsResources } from "../utils/aws-resources.js";
 import { AWS_REGION } from "../constants.js";
 import { dbConfig } from "../awsConfigs.js";
 
+const PROJECT_TAG_KEY = loadAwsConfig().tagging.projectTagKey;
+
 /**
- * Create the Access Control List if it doesn't already exist
+ * Create the Access Control List if it doesn't already exist -> create Main and Transaction databases
  * @param {string} dbType - The type of database (e.g., 'postgres', 'mysql')
  * @param {string} securityGroupID - The security group ID for the database
  * @param {string} projName - The project name
@@ -177,7 +178,7 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
     myDBConfig.DBInstanceIdentifier = dbName.toLowerCase();
     myDBConfig.VpcSecurityGroupIds = [securityGroupID];
     myDBConfig.MasterUserPassword = dbPassword;
-    myDBConfig.Tags = [{ Key: "PUSHKIN", Value: projName }];
+    myDBConfig.Tags = [{ Key: PROJECT_TAG_KEY, Value: projName }];
 
     try {
       const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
@@ -270,19 +271,13 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
     //Updating list of AWS resources
     console.log("Updated awsResources with db information");
     try {
-      let awsResources = jsYaml.load(
-        fs.readFileSync(path.join(process.cwd(), "awsResources.js"), "utf8"),
-      );
+      const awsResources = readAwsResources();
       if (awsResources && awsResources.dbs) {
         awsResources.dbs.push(dbName);
       } else {
         awsResources.dbs = [dbName];
       }
-      fs.writeFileSync(
-        path.join(process.cwd(), "awsResources.js"),
-        jsYaml.dump(awsResources),
-        "utf8",
-      );
+      writeAwsResources(awsResources);
     } catch (e) {
       console.error(`Unable to update awsResources.js`);
       console.error(e);
@@ -350,7 +345,7 @@ const dbsToDeleteFunc = async (useIAM, killTag, awsResources) => {
     } else {
       if (db.TagList.length > 0) {
         db.TagList.forEach((tag) => {
-          if ((tag.Key == "PUSHKIN") & (tag.Value == killTag)) {
+          if ((tag.Key == PROJECT_TAG_KEY) & (tag.Value == killTag)) {
             dbs.push(db.DBInstanceIdentifier);
           }
         });
