@@ -37,8 +37,9 @@ import {
 import { prep, setEnv, updatePasswords } from "./commands/prep/index.js";
 import { setupdb, setupLocalTransactionsDB, securePasswords } from "./commands/setupdb/index.js";
 import { initSite, setupPushkinSite } from "./commands/sites/index.js";
+import { readAwsResources, writeAwsResources } from "./commands/aws/utils/aws-resources.js";
 
-import pacMan from "./pMan.js"; //which package manager is available?
+import pacMan from "./utils/package-manager.js"; //which package manager is available?
 
 // Commander.js setup
 const program = new commander.Command();
@@ -70,9 +71,7 @@ const loadConfig = (configFile) => {
 const updateS3 = async () => {
   let awsName, useIAM;
   try {
-    let awsResources = jsYaml.load(
-      fs.readFileSync(path.join(process.cwd(), "awsResources.js"), "utf8"),
-    );
+    const awsResources = await readAwsResources();
     awsName = awsResources.awsName;
     useIAM = awsResources.iam;
   } catch (e) {

@@ -5,7 +5,7 @@ import jsYaml from "js-yaml";
 import util from "util";
 import { execSync } from "child_process"; // eslint-disable-line
 const exec = util.promisify(require("child_process").exec);
-import pacMan from "../../pMan.js"; //which package manager is available?
+import pacMan from "../../utils/package-manager.js"; //which package manager is available?
 import { env } from "process";
 
 /**

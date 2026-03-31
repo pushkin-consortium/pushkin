@@ -7,7 +7,7 @@ import jsYaml from 'js-yaml';
 import util from 'util';
 const exec = util.promisify(require('child_process').exec);
 const shell = require('shelljs');
-import pacMan from '../../pMan.js'; //which package manager is available?
+import pacMan from '../../utils/package-manager.js'; //which package manager is available?
 
 /**
  * Installs dependencies and builds the front-end and API packages for Pushkin sites (also used for experiment workers).
