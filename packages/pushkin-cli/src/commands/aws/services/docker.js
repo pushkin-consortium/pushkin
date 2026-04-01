@@ -2,52 +2,137 @@ import { execSync } from "child_process";
 import fs from "graceful-fs";
 import path from "path";
 import jsYaml from "js-yaml";
+import { quote } from "shell-quote";
 import { exec } from "../constants.js";
 import { readConfig } from "../../prep/index.js";
 
 /**
- * Publish Docker images to DockerHub
+ * Rebuilds the worker for a given experiment.
+ * WHY: Workers need to be built for Linux/AMD64 in order to be deployed to AWS, and the CLI may be
+ * running on a different platform. By rebuilding the worker and pushing it to DockerHub, we can
+ * ensure that the correct image is available for AWS to pull.
+ * @param {string} exp – The experiment name for which to rebuild the worker
+ * @param {Boolean} verbose – Whether to log details
+ * @returns {Promise} - A promise that resolves when the worker is rebuilt
+ */
+const rebuildWorker = async function (exp, verbose = false) {
+  let pushkinConfig;
+  let stdOut;
+  try {
+    stdOut = await fs.promises.readFile(path.join(process.cwd(), "pushkin.yaml"), "utf8");
+    pushkinConfig = jsYaml.load(stdOut);
+  } catch (error) {
+    console.error(`Couldn't load pushkin.yaml: ${error.message}`);
+    throw error;
+  }
+  if (verbose) {
+    console.log(`Rebuilding AWS-compatible worker for ${exp}`);
+  }
+  const expDir = path.join(process.cwd(), pushkinConfig.experimentsDir, exp);
+  if (!fs.lstatSync(expDir).isDirectory()) return "";
+  let expConfig;
+  try {
+    expConfig = readConfig(expDir);
+  } catch (error) {
+    console.error(`Failed to read experiment config file for ${exp}: ${error.message}`);
+    throw error;
+  }
+  const workerConfig = expConfig.worker;
+  const workerName = `${exp}_worker`.toLowerCase(); // Docker names must all be lower case
+  const workerLoc = path.join(expDir, workerConfig.location);
+
+  let workerBuild;
+  try {
+    const command = [
+      "docker",
+      "buildx",
+      "build",
+      "--platform",
+      "linux/amd64",
+      workerLoc,
+      "-t",
+      workerName,
+      "--load",
+    ];
+    workerBuild = exec(quote(command));
+  } catch (error) {
+    console.error(`Problem building worker for ${exp}: ${error.message}`);
+    throw error;
+  }
+  return workerBuild;
+};
+
+/**
+ * Publish Docker images to DockerHub:
+ * 1. Pushkin API
+ * 2. Experiment workers
+ * WHY: This is necessary for deploying workers to AWS, since they need to be built for Linux/AMD64
+ * and the CLI may be running on a different platform. By pushing to DockerHub, we can ensure that
+ * the correct images are available for AWS to pull.
  * @param {string} DHID - The DockerHub ID
- * @param {Promise} rebuiltWorkers - A promise that resolves when the workers are rebuilt
+ * @param {Promise} rebuiltWorkers - Optional promise to wait for workers that need to be rebuilt
+ * to finish rebuilding before pushing. The function itself pushes all workers on docker-compose.
+ * @param {Boolean} verbose – Whether to log detailed steps
  * @returns {Promise} - A promise that resolves when the images are published
  */
-const publishToDocker = async (DHID, rebuiltWorkers) => {
-  console.log("Publishing images to DockerHub");
-  console.log("Building API");
-  try {
-    execSync(
-      `docker buildx build --platform linux/amd64 -t ${DHID}/api:latest pushkin/api --load`,
-      { cwd: process.cwd() },
+const publishToDocker = async (DHID, rebuiltWorkers = Promise.resolve(), verbose = false) => {
+  if (!DHID) {
+    throw new Error(
+      "DockerHub ID is required to publish images. Please set it using '$ pushkin setDockerHub' and try again.",
     );
-  } catch (e) {
-    console.error(`Problem building API`);
-    throw e;
   }
-  console.log("Pushing API to DockerHub");
-  let pushedAPI;
+  console.log("Publishing images to DockerHub");
+
+  // Build API image
+  if (verbose) {
+    console.log("Building API");
+  }
   try {
-    pushedAPI = exec(`docker push ${DHID}/api:latest`, { cwd: process.cwd() });
-  } catch (e) {
-    console.error(`Couldn't push API to DockerHub`);
-    throw e;
+    const imageTag = `${DHID}/api:latest`;
+    const buildCommand = quote([
+      "docker",
+      "buildx",
+      "build",
+      "--platform",
+      "linux/amd64",
+      "-t",
+      imageTag,
+      "pushkin/api",
+      "--load",
+    ]);
+    execSync(buildCommand, { cwd: process.cwd() });
+  } catch (error) {
+    console.error(`Problem building API: ${error.message}`);
+    throw error;
   }
 
-  //note: don't need to rebuild server, because we use S3
+  // Push API image to DockerHub
+  if (verbose) {
+    console.log("Pushing API to DockerHub");
+  }
+  let pushedAPI;
+  try {
+    const imageTag = `${DHID}/api:latest`;
+    const pushCommand = quote(["docker", "push", imageTag]);
+    pushedAPI = exec(pushCommand, { cwd: process.cwd() }); // async; awaited in Promise.all at the end
+  } catch (error) {
+    console.error(`Couldn't push API to DockerHub: ${error.message}`);
+    throw error;
+  }
+  // NOTE: don't need to build frontend because it's all compiled static files
+
   let docker_compose;
   try {
     docker_compose = jsYaml.load(
       fs.readFileSync(path.join(process.cwd(), "pushkin/docker-compose.dev.yml"), "utf8"),
     );
-  } catch (e) {
-    console.error("Failed to load the docker-compose. That is extremely odd.");
-    throw e;
+  } catch (error) {
+    console.error(`Failed to load the docker-compose: ${error.message}`);
+    throw error;
   }
 
-  /**
-   * Push workers to DockerHub
-   * @param {string} s - The service name
-   * @returns {Promise<string>} - A promise that resolves when the workers of the service is pushed
-   */
+  // Push worker images to DockerHub
+  // WHY: AWS ECS needs to pull worker images from a registry (DockerHub), not from local
   const pushWorkers = async (s) => {
     const service = docker_compose.services[s];
     if (service.labels == null) {
@@ -59,74 +144,34 @@ const publishToDocker = async (DHID, rebuiltWorkers) => {
       return "";
     }
 
-    console.log(`Pushkin ${s}`);
-    try {
-      const imageName = service.image.split(":")[0];
-      execSync(`docker tag ${service.image} ${DHID}/${imageName}:latest`);
-    } catch (e) {
-      console.error(`Unable to tag image ${service.image}`);
-      throw e;
+    if (verbose) {
+      console.log(`Pushing service: ${s}`);
     }
     try {
       const imageName = service.image.split(":")[0];
-      return exec(`docker push ${DHID}/${imageName}:latest`);
-    } catch (e) {
-      console.error(`Unable to push image ${service.image}`);
-      throw e;
+      const targetImage = `${DHID}/${imageName}:latest`;
+      const tagCommand = quote(["docker", "tag", service.image, targetImage]);
+      const pushCommand = quote(["docker", "push", targetImage]);
+      execSync(tagCommand);
+      return exec(pushCommand); // async; awaited in Promise.all at the end 
+    } catch (error) {
+      console.error(`Unable to tag and/or push image ${service.image}: ${error.message}`);
+      throw error;
     }
   };
 
-  await rebuiltWorkers; //can't push until these are built
+  await rebuiltWorkers; // Can't push workers until they finish building
 
   let pushedWorkers;
   try {
     pushedWorkers = Object.keys(docker_compose.services).map(pushWorkers);
-  } catch (e) {
-    console.log(`Unable to push worker images to DockerHub`);
-    throw e;
+  } catch (error) {
+    console.error(`Unable to push worker images to DockerHub: ${error.message}`);
+    throw error;
   }
 
-  return Promise.all([pushedAPI, pushedWorkers]);
+  return Promise.all([pushedAPI].concat(pushedWorkers));
 };
 
-/**
- *
- * @param exp
- */
-const rebuildWorker = async function (exp) {
-  let pushkinConfig;
-  let stdOut;
-  try {
-    stdOut = await fs.promises.readFile(path.join(process.cwd(), "pushkin.yaml"), "utf8");
-    pushkinConfig = jsYaml.load(stdOut);
-  } catch (e) {
-    console.error(`Couldn't load pushkin.yaml`);
-    throw e;
-  }
-  console.log(`Rebuilding AWS-compatible worker for`, exp);
-  const expDir = path.join(path.join(process.cwd(), pushkinConfig.experimentsDir), exp);
-  if (!fs.lstatSync(expDir).isDirectory()) return "";
-  let expConfig;
-  try {
-    expConfig = readConfig(expDir);
-  } catch (err) {
-    console.error(`Failed to read experiment config file for `.concat(exp));
-    throw err;
-  }
-  const workerConfig = expConfig.worker;
-  const workerName = `${exp}_worker`.toLowerCase(); //Docker names must all be lower case
-  const workerLoc = path.join(expDir, workerConfig.location).replace(/ /g, "\\ "); //handle spaces in path
-
-  let workerBuild;
-  try {
-    workerBuild = exec(
-      `docker buildx build --platform linux/amd64 ${workerLoc} -t ${workerName} --load`,
-    );
-  } catch (e) {
-    console.error(`Problem building worker for ${exp}`);
-    throw e;
-  }
-  return workerBuild;
-};
-// Export all functions
-export { publishToDocker, rebuildWorker };
+// Export functions
+export { rebuildWorker, publishToDocker };
