@@ -12,7 +12,7 @@ import { readConfig } from "../../prep/index.js";
  * running on a different platform. By rebuilding the worker and pushing it to DockerHub, we can
  * ensure that the correct image is available for AWS to pull.
  * @param {string} exp – The experiment name for which to rebuild the worker
- * @param {Boolean} verbose – Whether to log details
+ * @param {boolean} verbose – Whether to log details
  * @returns {Promise} - A promise that resolves when the worker is rebuilt
  */
 const rebuildWorker = async function (exp, verbose = false) {
@@ -72,7 +72,7 @@ const rebuildWorker = async function (exp, verbose = false) {
  * @param {string} DHID - The DockerHub ID
  * @param {Promise} rebuiltWorkers - Optional promise to wait for workers that need to be rebuilt
  * to finish rebuilding before pushing. The function itself pushes all workers on docker-compose.
- * @param {Boolean} verbose – Whether to log detailed steps
+ * @param {boolean} verbose – Whether to log detailed steps
  * @returns {Promise} - A promise that resolves when the images are published
  */
 const publishToDocker = async (DHID, rebuiltWorkers = Promise.resolve(), verbose = false) => {

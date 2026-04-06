@@ -19,15 +19,21 @@ import { AWS_REGION } from "../constants.js";
 
 const PROJECT_TAG_KEY = loadAwsConfig().tagging.projectTagKey;
 
-// Creates a CloudFront client with consistent configuration
-// WHY: Ensure all CloudFront operations use the same region and IAM profile.
+/**
+ * (Helper)
+ * Creates a CloudFront client with consistent configuration
+ * WHY: Ensure all CloudFront operations use the same region and IAM profile.
+ */
 const createCloudFrontClient = (useIAM) => {
   const clientFactory = new AWSClientFactory(AWS_REGION, useIAM);
   return clientFactory.createClient(CloudFrontClient);
 };
 
-// Checks if an OAC resource still exists in AWS by ID
-// WHY: Check if an OAC cached in awsResources.js is still valid.
+/**
+ * (Helper)
+ * Checks if an OAC resource still exists in AWS by ID
+ * WHY: Check if an OAC cached in awsResources.js is still valid.
+ */
 const oacExistsById = async (oacId, useIAM) => {
   try {
     const cloudFrontClient = createCloudFrontClient(useIAM);
@@ -38,10 +44,13 @@ const oacExistsById = async (oacId, useIAM) => {
   }
 };
 
-// Finds an existing OAC resource by name
-// WHY: Prevent creating duplicate OACs when redeploying, as they are reusable across deployments.
-// Mostly acts as a fallback if oacExistsById returns false (i.e. local state lost) but the OAC
-// still exists in AWS.
+/**
+ * (Helper)
+ * Finds an existing OAC resource by name
+ * WHY: Prevent creating duplicate OACs when redeploying, as they are reusable across deployments.
+ * Mostly acts as a fallback if oacExistsById returns false (i.e. local state lost) but the OAC
+ * still exists in AWS.
+ */
 const findOACByName = async (oacName, useIAM) => {
   try {
     const cloudFrontClient = createCloudFrontClient(useIAM);
@@ -57,8 +66,11 @@ const findOACByName = async (oacName, useIAM) => {
   }
 };
 
-// Creates a new OAC (Origin Access Control) in AWS if no existing OAC
-// WHY: OACs are required for secure CloudFront-S3 access.
+/**
+ * (Helper)
+ * Creates a new OAC (Origin Access Control) in AWS if no existing OAC
+ * WHY: OACs are required for secure CloudFront-S3 access.
+ */
 const createOAC = async (useIAM) => {
   try {
     const cloudFrontClient = createCloudFrontClient(useIAM);
@@ -189,9 +201,12 @@ const waitForCloudFrontDeployment = async (distributionId, useIAM, verbose = fal
   console.log(); // Add newline after progress dots
 };
 
-// Gets the tags for a CloudFront distribution by ARN
-// WHY: Used to check if a distribution is tagged for this project, which helps prevent
-// accidentally deleting distributions from other projects in shared AWS accounts.
+/**
+ * (Helper)
+ * Gets the tags for a CloudFront distribution by ARN
+ * WHY: Used to check if a distribution is tagged for this project, which helps prevent
+ * accidentally deleting distributions from other projects in shared AWS accounts.
+ */
 const getDistributionTags = async (arn, useIAM) => {
   try {
     const cloudFrontClient = createCloudFrontClient(useIAM);
@@ -202,18 +217,24 @@ const getDistributionTags = async (arn, useIAM) => {
   }
 };
 
-// Verifies a distribution belongs to the current Pushkin project.
-// WHY: This prevents accidentally deleting distributions from other projects or non-Pushkin
-// resources in shared AWS accounts
+/**
+ * (Helper)
+ * Verifies a distribution belongs to the current Pushkin project.
+ * WHY: This prevents accidentally deleting distributions from other projects or non-Pushkin
+ * resources in shared AWS accounts
+ */
 const isDistributionTaggedForProject = async (distribution, projName, useIAM) => {
   const tags = await getDistributionTags(distribution.ARN, useIAM);
   return tags.some((tag) => tag.Key === PROJECT_TAG_KEY && tag.Value === projName);
 };
 
-// Gets list of distribution IDs to delete
-// WHY: Supports two deletion modes: targeted (project-specific) and total (all distributions).
-// The killTag parameter determines behavior - when true, only deletes distributions tagged
-// for this project (safe for shared accounts); when false, deletes all (for cleanup/testing).
+/**
+ * (Helper)
+ * Gets list of distribution IDs to delete
+ * WHY: Supports two deletion modes: targeted (project-specific) and total (all distributions).
+ * The killTag parameter determines behavior - when true, only deletes distributions tagged
+ * for this project (safe for shared accounts); when false, deletes all (for cleanup/testing).
+ */
 const getDistributionsToDelete = async (useIAM, projName, killTag) => {
   const cloudFrontClient = createCloudFrontClient(useIAM);
   const response = await cloudFrontClient.send(new ListDistributionsCommand({}));
@@ -245,10 +266,13 @@ const getDistributionsToDelete = async (useIAM, projName, killTag) => {
   }
 };
 
-// Checks if a CloudFront distribution is disabled and ready for deletion
-// WHY: CloudFront requires a two-step deletion process: first disable the distribution,
-// then delete it after disabling completes. This checks both conditions (Enabled=false
-// and Status!="InProgress") to ensure the distribution is in a safe state for deletion.
+/**
+ * (Helper)
+ * Checks if a CloudFront distribution is disabled and ready for deletion
+ * WHY: CloudFront requires a two-step deletion process: first disable the distribution,
+ * then delete it after disabling completes. This checks both conditions (Enabled=false
+ * and Status!="InProgress") to ensure the distribution is in a safe state for deletion.
+ */
 const isDistributionReadyForDeletion = async (distId, useIAM) => {
   try {
     const cloudFrontClient = createCloudFrontClient(useIAM);
@@ -270,8 +294,7 @@ const isDistributionReadyForDeletion = async (distId, useIAM) => {
 
 /**
  * Delete the CloudFront distribution(s) associated with this project (or all distributions if killTag is false)
- *
- * Why: Orchestrates the complete CloudFront deletion workflow which must follow AWS's
+ * WHY: Orchestrates the complete CloudFront deletion workflow which must follow AWS's
  * required sequence: get config → disable → wait for disable to propagate → get fresh
  * ETag → delete. The ETag must be refreshed after disabling because AWS updates it when
  * the configuration changes. Handles multiple distributions in parallel for efficiency.
@@ -405,10 +428,13 @@ const deleteCloudFront = async (useIAM, projName, killTag, verbose = false) => {
   );
 };
 
-// Deletes an OAC with retry logic for in-use errors
-// Why: AWS CloudFront backend has eventual consistency - even after distributions are
-// deleted, AWS may still report the OAC as "in use" for a short period. Retry attempts
-// and intervals are configurable in aws-deploy.yaml (defaults: 10 retries, 10s intervals).
+/**
+ * (Helper)
+ * Deletes an OAC with retry logic for in-use errors
+ * WHY: AWS CloudFront backend has eventual consistency - even after distributions are
+ * deleted, AWS may still report the OAC as "in use" for a short period. Retry attempts
+ * and intervals are configurable in aws-deploy.yaml (defaults: 10 retries, 10s intervals).
+ */
 const deleteOACWithRetry = async (oacId, etag, useIAM, verbose = false) => {
   const config = loadAwsConfig();
   const { maxRetries, retryInterval } = config.timeouts.cloudfront.oacDeletion;
@@ -443,8 +469,7 @@ const deleteOACWithRetry = async (oacId, etag, useIAM, verbose = false) => {
 
 /**
  * Delete all Origin Access Controls
- *
- * Why: OACs cannot be deleted while still referenced by CloudFront distributions. This
+ * WHY: OACs cannot be deleted while still referenced by CloudFront distributions. This
  * function enforces the correct deletion order: wait for distributions to be deleted
  * first, then wait additional time for AWS backend to fully release the references
  * (eventual consistency), then delete OACs with retry logic. Updates local state to
@@ -512,5 +537,5 @@ const deleteOACs = async (useIAM, deletedCloudFront, verbose = false) => {
   return true;
 };
 
-// Export all functions
+// Export functions
 export { getOAC, waitForCloudFrontDeployment, deleteCloudFront, deleteOACs };
