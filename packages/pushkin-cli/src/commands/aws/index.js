@@ -1,3 +1,18 @@
+/**
+ * A complete Infrastructure-as-Code solution for deploying a containerized web application to AWS with all production concerns handled!
+ * The code follows an async orchestration pattern where:
+  - Multiple AWS resources are created in parallel when possible
+  - Dependencies are managed through await and Promise.all()
+  - Each major component (DB, ECS, Frontend) can be set up independently
+  - Extensive error handling and rollback capabilities
+
+  Notable Features:
+  - Idempotent operations - Can be run multiple times safely
+  - Resource tagging - All resources tagged for easy cleanup
+  - Security-first - Proper VPC, security groups, SSL certificates
+  - Production-ready - Auto-scaling, monitoring, CDN, database backups
+ */
+
 import { v4 as uuid } from "uuid";
 import fs from "graceful-fs";
 import path from "path";
@@ -27,16 +42,17 @@ import { ECSClient, DescribeClustersCommand } from "@aws-sdk/client-ecs";
 import { EC2Client, DescribeSecurityGroupsCommand } from "@aws-sdk/client-ec2";
 import { CloudFormationClient, DescribeStacksCommand } from "@aws-sdk/client-cloudformation";
 import { AWSClientFactory } from "./utils/aws-client-factory.js";
+import { readAwsResources, writeAwsResources } from "./utils/aws-resources.js";
 import { AWS_REGION, exec } from "./constants.js";
 
 // Import from service modules
 import { initDB, recordDBs, dbsToDeleteFunc, deleteDatabases } from "./services/rds.js";
 import { setupECS, deleteStack, deleteCluster } from "./services/ecs.js";
 import { deployFrontEnd, deleteCloudFront, deleteOACs } from "./services/cloudfront.js";
-import { buildFE, deleteBucket } from "./services/s3.js";
+import { buildFrontEnd, deleteBucket } from "./services/s3.js";
 import { deleteResourceRecords } from "./services/route53.js";
 import { forwardAPIWrapper, deleteLoadBalancer, deleteTargetGroup } from "./services/elb.js";
-import { handleSecurityGroups, deleteSecurityGroups } from "./services/security.js";
+import { checkDatabaseSecurityGroup, deleteSecurityGroups } from "./services/security.js";
 import { createLogGroup, chooseCertificate } from "./services/monitoring.js";
 import { publishToDocker, rebuildWorker } from "./services/docker.js";
 
@@ -75,14 +91,21 @@ const setupTransactionsWrapper = async (completedDBs) => {
 };
 
 /**
- * Initialize AWS deployment
+ * Main orchestrator that initializes AWS deployment:
+ * 1. Gets SSL certificates and domain choices from user
+ * 2. Coordinates all the deployment steps
+ * 3. Runs database migrations
+ * 4. Sets up monitoring and scaling
  * @param {string} projName - The project name
  * @param {string} awsName - The AWS resource name
- * @param {string|object} useIAM - The IAM profile or object with IAM info
+ * @param {string} useIAM - The IAM profile name
  * @param {string} DHID - The DockerHub ID
  * @returns {Promise<void>} - A promise that resolves when initialization is complete
  */
 export async function awsInit(projName, awsName, useIAM, DHID) {
+  // Normalize useIAM to always be a string
+  const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+
   let temp;
   let pushkinConfig;
   try {
@@ -95,7 +118,7 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
 
   let myCertificate;
   try {
-    myCertificate = await chooseCertificate(useIAM); //Waiting because otherwise input query gets buried
+    myCertificate = await chooseCertificate(profileName); //Waiting because otherwise input query gets buried
   } catch (e) {
     console.error(`Unable to choose certificate.`);
     throw e;
@@ -106,14 +129,13 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
 
   /**
    * Choose a domain for the site
-   * @param {string|object} useIAM - The IAM profile or object with IAM info
+   * @param {string} profileName - The IAM profile name
    * @returns {Promise<string>} - A promise that resolves to the chosen domain
    */
-  const chooseDomain = async (useIAM) => {
+  const chooseDomain = async (profileName) => {
     console.log("Choosing domain name for site");
     let temp;
     try {
-      const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
       const factory = new AWSClientFactory(AWS_REGION, profileName);
       const route53DomainsClient = factory.createClient(Route53DomainsClient);
       const listDomainsResponse = await route53DomainsClient.send(new ListDomainsCommand({}));
@@ -162,32 +184,24 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
     });
   };
   let myDomain;
-  try {
-    myDomain = await chooseDomain(useIAM); //Waiting because otherwise input query gets buried
-  } catch (e) {
-    throw e;
-  }
+  myDomain = await chooseDomain(profileName); //Waiting because otherwise input query gets buried
 
   pushkinConfig.info.rootDomain = myDomain;
   pushkinConfig.info.projName = projName;
   pushkinConfig.info.awsName = awsName;
-  try {
-    await fs.promises.writeFile(
-      path.join(process.cwd(), "pushkin.yaml"),
-      jsYaml.dump(pushkinConfig),
-      "utf8",
-    );
-    console.log(`Successfully updated pushkin.yaml with custom domain.`);
-    updatePushkinJs();
-  } catch (e) {
-    throw e;
-  }
+  await fs.promises.writeFile(
+    path.join(process.cwd(), "pushkin.yaml"),
+    jsYaml.dump(pushkinConfig),
+    "utf8",
+  );
+  console.log(`Successfully updated pushkin.yaml with custom domain.`);
+  updatePushkinJs();
 
   //Databases take BY FAR the longest, so start them right after certificate (certificate comes first or things get confused)
-  let securityGroupID = await handleSecurityGroups(useIAM, projName);
+  let securityGroupID = await checkDatabaseSecurityGroup(profileName, projName);
 
   console.log(`Creating Main database promise...`);
-  const initializedMainDB = initDB("Main", securityGroupID, projName, awsName, useIAM);
+  const initializedMainDB = initDB("Main", securityGroupID, projName, awsName, profileName);
   console.log(`Main database initialization started`);
 
   console.log(`Creating Transaction database promise...`);
@@ -196,7 +210,7 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
     securityGroupID,
     projName,
     awsName,
-    useIAM,
+    profileName,
   );
   console.log(`Transaction database initialization started`);
 
@@ -220,18 +234,18 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
     throw err;
   }
 
-  createLogGroup(useIAM, projName);
+  createLogGroup(profileName, projName);
 
   //pushing stuff to DockerHub
   let publishedToDocker = publishToDocker(DHID, rebuiltWorkers);
 
   //build front-end
-  const builtFrontEnd = buildFE(projName);
+  const builtFrontEnd = buildFrontEnd(projName);
 
   const deployedFrontEnd = deployFrontEnd(
     projName,
     awsName,
-    useIAM,
+    profileName,
     myDomain,
     myCertificate,
     builtFrontEnd,
@@ -241,7 +255,7 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
   const configuredECS = setupECS(
     projName,
     awsName,
-    useIAM,
+    profileName,
     DHID,
     Promise.resolve(completedDBs),
     myCertificate,
@@ -253,7 +267,7 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
 
   const apiForwarded = forwardAPIWrapper(
     configuredECS,
-    useIAM,
+    profileName,
     projName,
     myDomain,
     deployedFrontEnd,
@@ -325,11 +339,7 @@ export async function nameProject(projName) {
   awsResources.awsName = temp;
   //use regular expressions to remove underscores from project name
   try {
-    fs.writeFileSync(
-      path.join(process.cwd(), "awsResources.js"),
-      jsYaml.dump(awsResources),
-      "utf8",
-    );
+    writeAwsResources(awsResources);
   } catch (e) {
     console.error(
       `Could not write to the pushkin CLI's AWS config file. This is a very strange error. Please contact the dev team.`,
@@ -375,9 +385,7 @@ export async function nameProject(projName) {
 export async function addIAM(iam) {
   let awsResources;
   try {
-    awsResources = jsYaml.load(
-      fs.readFileSync(path.join(process.cwd(), "awsResources.js"), "utf8"),
-    );
+    awsResources = readAwsResources();
   } catch (e) {
     console.error(
       `Could not read the pushkin CLI's AWS config file. This is a very strange error. Please contact the dev team.`,
@@ -386,11 +394,7 @@ export async function addIAM(iam) {
   }
   awsResources.iam = iam;
   try {
-    fs.writeFileSync(
-      path.join(process.cwd(), "awsResources.js"),
-      jsYaml.dump(awsResources),
-      "utf8",
-    );
+    writeAwsResources(awsResources);
   } catch (e) {
     console.error(
       `Could not write to the pushkin CLI's AWS config file. This is a very strange error. Please contact the dev team.`,
@@ -400,18 +404,20 @@ export async function addIAM(iam) {
   return;
 }
 
+// TODO: Change to be less aggressive
 /**
  * Delete all AWS resources
- * @param {string|object} useIAM - The IAM profile or object with IAM info
+ * @param {string} useIAM - The IAM profile name
  * @param {string} killType - The type of kill operation ('kill' or 'armageddon')
  * @returns {Promise<void>} - A promise that resolves when deletion is complete
  */
 export const awsArmageddon = async (useIAM, killType) => {
+  // Normalize useIAM to always be a string
+  const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+
   let awsResources;
   try {
-    awsResources = jsYaml.load(
-      fs.readFileSync(path.join(process.cwd(), "awsResources.js"), "utf8"),
-    );
+    awsResources = readAwsResources();
   } catch (e) {
     console.error(`Unable to load awsResources.js`);
   }
@@ -428,33 +434,33 @@ export const awsArmageddon = async (useIAM, killType) => {
   }
   const killTag = killType == "kill" ? projName : false;
 
-  const deletedStack = deleteStack(useIAM, killTag);
+  const deletedStack = deleteStack(profileName, killTag);
 
-  const deletedCluster = deleteCluster(deletedStack, useIAM, killTag, projName, awsResources);
+  const deletedCluster = deleteCluster(deletedStack, profileName, killTag, projName, awsResources);
 
-  const dbsToDelete = dbsToDeleteFunc(useIAM, killTag, awsResources);
-  const deletedDBs = deleteDatabases(dbsToDelete, useIAM, killTag);
+  const dbsToDelete = dbsToDeleteFunc(profileName, killTag, awsResources);
+  const deletedDBs = deleteDatabases(dbsToDelete, profileName, killTag);
 
-  const deletedLoadBalancer = deleteLoadBalancer(useIAM, killTag);
+  const deletedLoadBalancer = deleteLoadBalancer(profileName, killTag);
 
   // Delete CloudFront first, then OACs (CloudFront must be deleted before OACs can be deleted)
-  const deletedCloudFront = deleteCloudFront(useIAM, projName, killTag);
+  const deletedCloudFront = deleteCloudFront(profileName, projName, killTag);
 
   let deletedOACs;
   try {
-    deletedOACs = deleteOACs(useIAM, deletedCloudFront, killTag);
+    deletedOACs = deleteOACs(profileName, deletedCloudFront, killTag);
   } catch (e) {
     console.warn("\x1b[31m%s\x1b[0m", `Unable to delete origin access controls`);
     console.warn("\x1b[31m%s\x1b[0m", e); // Don't fail the whole process for this
   }
 
-  const deletedResourceRecords = deleteResourceRecords(useIAM, killTag, projName);
+  const deletedResourceRecords = deleteResourceRecords(profileName, killTag, projName);
 
-  const deletedTargetGroup = deleteTargetGroup(useIAM, deletedLoadBalancer);
+  const deletedTargetGroup = deleteTargetGroup(profileName, deletedLoadBalancer);
 
-  const deletedBucket = deleteBucket(useIAM, killTag, awsResources, deletedCloudFront);
+  const deletedBucket = deleteBucket(profileName, killTag, awsResources, deletedCloudFront);
 
-  const deletedGroups = deleteSecurityGroups(useIAM, killTag, deletedDBs);
+  const deletedGroups = deleteSecurityGroups(profileName, killTag, deletedDBs);
 
   //FUBAR Should we delete ACL as well?
 
@@ -462,7 +468,7 @@ export const awsArmageddon = async (useIAM, killType) => {
   let awsResourcesNull = {
     name: projName,
     awsName: null,
-    iam: useIAM,
+    iam: profileName,
     dbs: [],
     cloudFrontId: null,
     ECSName: null,
@@ -475,11 +481,7 @@ export const awsArmageddon = async (useIAM, killType) => {
     }
   });
   try {
-    await fs.promises.writeFile(
-      path.join(process.cwd(), "awsResources.js"),
-      jsYaml.dump(awsResourcesNull),
-      "utf8",
-    );
+    writeAwsResources(awsResourcesNull);
   } catch (e) {
     console.error(`Unable to update awsResources.js`);
     console.error(e);
@@ -501,7 +503,7 @@ export const awsArmageddon = async (useIAM, killType) => {
   console.log(
     `The following resources were either not deleted or are still in the process of being deleted:`,
   );
-  await awsList(useIAM);
+  await awsList(profileName);
   console.log(`
     If this list is non-empty but you expect it to be empty, wait 10 minutes and run 'pushkin aws list'.
     If the list is still non-empty, try re-running 'pushkin aws armageddon'.
@@ -512,7 +514,7 @@ export const awsArmageddon = async (useIAM, killType) => {
 
 /**
  * List all AWS resources
- * @param {string|object} useIAM - The IAM profile or object with IAM info
+ * @param {string} useIAM - The IAM profile name
  * @returns {Promise<void>} - A promise that resolves when listing is complete
  */
 export async function awsList(useIAM) {
@@ -564,28 +566,31 @@ export async function awsList(useIAM) {
   if (describeDBSnapshotsResponse.DBSnapshots.length > 0) {
     console.log("DB Snapshots:\n", describeDBSnapshotsResponse.DBSnapshots);
   }
-  const secretsResult = await exec(`aws secretsmanager list-secrets --profile ${useIAM}`);
+  const secretsResult = await exec(`aws secretsmanager list-secrets --profile ${profileName}`);
   if (JSON.parse(secretsResult.stdout).SecretList.length > 0) {
     console.log("Secrets:\n", JSON.parse(secretsResult.stdout).SecretList);
   }
 }
 
 /**
- * Create auto-scaling configuration and CloudWatch alarms
- * @param {string|object} useIAM - The IAM profile or object with IAM info
+ * Create auto-scaling configuration and CloudWatch alarms:
+ * - Monitors CPU, RAM, database performance
+ * - Configures SNS notifications
+ * @param {string} useIAM - The IAM profile name
  * @param {string} projName - The project name
  * @returns {Promise<Array>} - A promise that resolves to an array of alarm creation results
  */
 export const createAutoScale = async (useIAM, projName) => {
+  // Normalize useIAM to always be a string
+  const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+
   const shortName = projName.replace(/[^A-Za-z0-9]/g, "");
   const snsName = shortName.concat("Alarms");
   let TopicArn, targGroupARN, ECSName, balancerARN, loadBalancerName, useEmail;
 
   console.log("Reading config information to configure autoscaling and alarms");
   try {
-    let awsResources = jsYaml.load(
-      fs.readFileSync(path.join(process.cwd(), "awsResources.js"), "utf8"),
-    );
+    let awsResources = readAwsResources();
     ECSName = awsResources.ECSName;
     targGroupARN = awsResources.targGroupARN;
     loadBalancerName = awsResources.loadBalancerName;
@@ -608,7 +613,6 @@ export const createAutoScale = async (useIAM, projName) => {
   }
 
   try {
-    const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
     const factory = new AWSClientFactory(AWS_REGION, profileName);
     const elbv2Client = factory.createClient(ElasticLoadBalancingV2Client);
     const describedLoadBalancers = await elbv2Client.send(
@@ -622,8 +626,8 @@ export const createAutoScale = async (useIAM, projName) => {
   console.log("Creating SNS topic");
 
   try {
-    // This action is idempotent, so if the requester already owns a topic with the specified name, that topic’s ARN is returned without creating a new topic.
-    let temp = await exec(`aws sns create-topic --name ${snsName} --profile ${useIAM}`);
+    // This action is idempotent, so if the requester already owns a topic with the specified name, that topic's ARN is returned without creating a new topic.
+    let temp = await exec(`aws sns create-topic --name ${snsName} --profile ${profileName}`);
     TopicArn = JSON.parse(temp.stdout).TopicArn;
   } catch (e) {
     console.error(`Unable to create SNS topic`);
@@ -632,7 +636,7 @@ export const createAutoScale = async (useIAM, projName) => {
   try {
     //Looks like this can be repeated
     await exec(
-      `aws sns subscribe --topic-arn ${TopicArn} --protocol email --notification-endpoint ${useEmail} --profile ${useIAM}`,
+      `aws sns subscribe --topic-arn ${TopicArn} --protocol email --notification-endpoint ${useEmail} --profile ${profileName}`,
     );
   } catch (e) {
     console.error(`Unable to subscribe to SNS topic`);
@@ -646,7 +650,7 @@ export const createAutoScale = async (useIAM, projName) => {
   let setAlarmCPUHigh;
   try {
     setAlarmCPUHigh = exec(
-      `aws cloudwatch put-metric-alarm --alarm-name ${alarmCPUHigh.AlarmName} --cli-input-json ${JSON.stringify(alarmCPUHigh)} --profile ${useIAM}`,
+      `aws cloudwatch put-metric-alarm --alarm-name ${alarmCPUHigh.AlarmName} --cli-input-json ${JSON.stringify(alarmCPUHigh)} --profile ${profileName}`,
     );
   } catch (e) {
     console.error(`Unable to set cloudwatch alarm ${alarmCPUHigh.AlarmName}`);
@@ -657,7 +661,7 @@ export const createAutoScale = async (useIAM, projName) => {
   alarmRAMHigh.Dimensions[0].Value = ECSName;
   alarmRAMHigh.AlarmName = shortName.concat("alarmRAMHigh");
   const setAlarmRAMHigh = exec(
-    `aws cloudwatch put-metric-alarm --alarm-name ${alarmRAMHigh.AlarmName} --cli-input-json ${JSON.stringify(alarmRAMHigh)} --profile ${useIAM}`,
+    `aws cloudwatch put-metric-alarm --alarm-name ${alarmRAMHigh.AlarmName} --cli-input-json ${JSON.stringify(alarmRAMHigh)} --profile ${profileName}`,
   );
 
   alarmMainHigh.AlarmActions = TopicArn;
@@ -666,16 +670,16 @@ export const createAutoScale = async (useIAM, projName) => {
   alarmTransactionHigh.AlarmName = shortName.concat("Transaction").concat("alarmRAMHigh");
 
   const dbAlarmMain = exec(
-    `aws cloudwatch put-metric-alarm --alarm-name ${alarmMainHigh.AlarmActions} --cli-input-json ${JSON.stringify(alarmMainHigh)} --profile ${useIAM}`,
+    `aws cloudwatch put-metric-alarm --alarm-name ${alarmMainHigh.AlarmActions} --cli-input-json ${JSON.stringify(alarmMainHigh)} --profile ${profileName}`,
   );
   const dbAlarmTransaction = exec(
-    `aws cloudwatch put-metric-alarm --alarm-name ${alarmTransactionHigh.AlarmActions} --cli-input-json ${JSON.stringify(alarmTransactionHigh)} --profile ${useIAM}`,
+    `aws cloudwatch put-metric-alarm --alarm-name ${alarmTransactionHigh.AlarmActions} --cli-input-json ${JSON.stringify(alarmTransactionHigh)} --profile ${profileName}`,
   );
 
   console.log(`Finding autoscaling launch configuration`);
   let asGroup;
   try {
-    let temp = await exec(`aws autoscaling describe-auto-scaling-groups --profile ${useIAM}`);
+    let temp = await exec(`aws autoscaling describe-auto-scaling-groups --profile ${profileName}`);
     JSON.parse(temp.stdout).AutoScalingGroups.forEach((l) => {
       if (l.AutoScalingGroupName.search(shortName)) {
         asGroup = l.AutoScalingGroupName;
@@ -688,10 +692,10 @@ export const createAutoScale = async (useIAM, projName) => {
 
   try {
     await exec(
-      `aws autoscaling update-auto-scaling-group --auto-scaling-group-name ${asGroup} --min-size 2 --max-size 10 --desired-capacity 2 --profile ${useIAM}`,
+      `aws autoscaling update-auto-scaling-group --auto-scaling-group-name ${asGroup} --min-size 2 --max-size 10 --desired-capacity 2 --profile ${profileName}`,
     );
     await exec(
-      `aws autoscaling attach-load-balancer-target-groups --auto-scaling-group-name ${asGroup} --target-group-arns ${targGroupARN} --profile ${useIAM}`,
+      `aws autoscaling attach-load-balancer-target-groups --auto-scaling-group-name ${asGroup} --target-group-arns ${targGroupARN} --profile ${profileName}`,
     );
   } catch (e) {
     console.error(`Unable to update settings for autoscaling group`);
@@ -707,7 +711,7 @@ export const createAutoScale = async (useIAM, projName) => {
   let policyARN;
   try {
     let temp = await exec(
-      `aws autoscaling put-scaling-policy --policy-name MyPushkinPolicy --auto-scaling-group-name ${asGroup} --policy-type TargetTrackingScaling --target-tracking-configuration ${scalingPolicyTargets} --profile ${useIAM}`,
+      `aws autoscaling put-scaling-policy --policy-name MyPushkinPolicy --auto-scaling-group-name ${asGroup} --policy-type TargetTrackingScaling --target-tracking-configuration ${scalingPolicyTargets} --profile ${profileName}`,
     );
     alarmUp = JSON.parse(temp.stdout).Alarms[0];
     alarmDown = JSON.parse(temp.stdout).Alarms[1];
@@ -719,17 +723,11 @@ export const createAutoScale = async (useIAM, projName) => {
 
   console.log(`Updating awsResources with autoscaling info`);
   try {
-    let awsResources = jsYaml.load(
-      fs.readFileSync(path.join(process.cwd(), "awsResources.js"), "utf8"),
-    );
+    let awsResources = readAwsResources();
     awsResources.alarmUp = alarmUp;
     awsResources.alarmDown = alarmDown;
     awsResources.policyARN = policyARN;
-    fs.writeFileSync(
-      path.join(process.cwd(), "awsResources.js"),
-      jsYaml.dump(awsResources),
-      "utf8",
-    );
+    writeAwsResources(awsResources);
   } catch (e) {
     console.error(`Unable to update awsResources.js`);
     throw e;
