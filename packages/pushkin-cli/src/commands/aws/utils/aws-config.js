@@ -3,7 +3,6 @@
  *
  * Loads user-configurable AWS deployment parameters from aws-deploy.yaml.
  * Falls back to sensible defaults if the file doesn't exist.
- *
  * @module aws-config
  */
 
@@ -21,7 +20,11 @@ const DEFAULT_AWS_CONFIG = {
   timeouts: {
     cloudfront: {
       maxChecks: 40,
-      checkInterval: 30,  // seconds
+      checkInterval: 30, // seconds
+      oacDeletion: {
+        maxRetries: 10,
+        retryInterval: 10, // seconds
+      },
     },
     rds: {
       maxWaitTime: 1200,

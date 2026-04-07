@@ -3,7 +3,6 @@
  *
  * Provides generic retry logic with exponential backoff for AWS operations.
  * Useful for handling transient errors like rate limiting, resource locks, etc.
- *
  * @example
  * // Simple retry
  * await retryWithBackoff(() => client.send(command));
@@ -20,28 +19,28 @@
  */
 
 /**
- * Default function to determine if an error is retryable
- * @param {Error} error - The error to check
- * @returns {boolean} - True if should retry
+ * (Helper)
+ * Function that checks error against list of default retryable AWS errors
+ * WHY: 
  */
 function defaultShouldRetry(error) {
   // Common retryable AWS errors
   const retryableErrors = [
-    'ThrottlingException',
-    'RequestLimitExceeded',
-    'TooManyRequestsException',
-    'ProvisionedThroughputExceededException',
-    'RequestThrottled',
-    'ServiceUnavailable',
-    'InternalError',
-    'ResourceInUseException',
-    'OriginAccessControlInUse',
+    "ThrottlingException",
+    "RequestLimitExceeded",
+    "TooManyRequestsException",
+    "ProvisionedThroughputExceededException",
+    "RequestThrottled",
+    "ServiceUnavailable",
+    "InternalError",
+    "ResourceInUseException",
+    "OriginAccessControlInUse",
   ];
 
   return (
     retryableErrors.includes(error.name) ||
-    error.message?.includes('throttle') ||
-    error.message?.includes('rate limit') ||
+    error.message?.includes("throttle") ||
+    error.message?.includes("rate limit") ||
     error.statusCode === 429 ||
     error.statusCode === 503 ||
     error.statusCode === 504
@@ -61,7 +60,6 @@ function defaultShouldRetry(error) {
  * @param {Function} [options.onRetry] - Callback called before each retry (attempt, error) => void
  * @returns {Promise<*>} - Result of the function
  * @throws {Error} - Last error if all retries exhausted
- *
  * @example
  * const result = await retryWithBackoff(
  *   async () => {
@@ -74,7 +72,7 @@ function defaultShouldRetry(error) {
  *   }
  * );
  */
-export async function retryWithBackoff(fn, options = {}) {
+async function retryWithBackoff(fn, options = {}) {
   const {
     maxRetries = 5,
     initialDelay = 1000,
@@ -146,7 +144,7 @@ export async function retryWithBackoff(fn, options = {}) {
  *   }
  * );
  */
-export async function retryWithConstantDelay(fn, options = {}) {
+async function retryWithConstantDelay(fn, options = {}) {
   const {
     maxRetries = 5,
     delay = 1000,
@@ -190,7 +188,7 @@ export async function retryWithConstantDelay(fn, options = {}) {
  * @returns {Promise<*>} - Result of the function
  * @throws {Error} - Last error if all retries exhausted
  */
-export async function retryImmediate(fn, options = {}) {
+async function retryImmediate(fn, options = {}) {
   const { maxRetries = 3, shouldRetry = defaultShouldRetry } = options;
 
   let lastError;
@@ -212,3 +210,6 @@ export async function retryImmediate(fn, options = {}) {
 
   throw lastError;
 }
+
+// Export functions
+export { retryWithBackoff, retryWithConstantDelay, retryImmediate };
