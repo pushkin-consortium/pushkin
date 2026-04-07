@@ -60,7 +60,7 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
       //First, check to see if database exists
       let dbInstances;
       try {
-        const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+        const profileName = useIAM;
         const factory = new AWSClientFactory(AWS_REGION, profileName);
         const rdsClient = factory.createClient(RDSClient);
         const command = new DescribeDBInstancesCommand({});
@@ -122,7 +122,7 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
     } else {
       let dbInstances;
       try {
-        const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+        const profileName = useIAM;
         const factory = new AWSClientFactory(AWS_REGION, profileName);
         const rdsClient = factory.createClient(RDSClient);
         const command = new DescribeDBInstancesCommand({});
@@ -181,7 +181,7 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
     myDBConfig.Tags = [{ Key: PROJECT_TAG_KEY, Value: projName }];
 
     try {
-      const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+      const profileName = useIAM;
       const factory = new AWSClientFactory(AWS_REGION, profileName);
       const rdsClient = factory.createClient(RDSClient);
       const command = new CreateDBInstanceCommand(myDBConfig);
@@ -199,7 +199,7 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
       // Current change: try to wait for database to be available with a shorter timeout
       console.log(`Waiting for ${dbType} to spool up. This may take a while...`);
       console.log(`${dbType}: Starting waitUntilDBInstanceAvailable with 20 mins timeout...`);
-      const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+      const profileName = useIAM;
       const factory = new AWSClientFactory(AWS_REGION, profileName);
       const rdsClient = factory.createClient(RDSClient);
 
@@ -238,7 +238,7 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
         console.log(
           `${dbType}: Attempting to get database endpoint (attempt ${retryCount + 1}/${maxRetries})...`,
         );
-        const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+        const profileName = useIAM;
         const factory = new AWSClientFactory(AWS_REGION, profileName);
         const rdsClient = factory.createClient(RDSClient);
         const command = new DescribeDBInstancesCommand({ DBInstanceIdentifier: dbName });
@@ -327,7 +327,7 @@ const dbsToDeleteFunc = async (useIAM, killTag, awsResources) => {
   let dbs = [];
   let respDBList;
   try {
-    const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+    const profileName = useIAM;
     const factory = new AWSClientFactory(AWS_REGION, profileName);
     const rdsClient = factory.createClient(RDSClient);
     const describeDBInstancesResponse = await rdsClient.send(new DescribeDBInstancesCommand({}));
@@ -372,7 +372,7 @@ const deleteDatabases = async (dbs, useIAM, killTag) => {
   console.log(`Removing deletion protection from databases ${dbs}.`);
   await Promise.all(
     dbs.map(async (db) => {
-      const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+      const profileName = useIAM;
       const factory = new AWSClientFactory(AWS_REGION, profileName);
       const rdsClient = factory.createClient(RDSClient);
       let temp;
@@ -420,7 +420,7 @@ const deleteDatabases = async (dbs, useIAM, killTag) => {
     let temp;
     console.log(`Checking database ${dbId} for deletion protection`);
     try {
-      const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+      const profileName = useIAM;
       const factory = new AWSClientFactory(AWS_REGION, profileName);
       const rdsClient = factory.createClient(RDSClient);
       const describeDBInstancesResponse = await rdsClient.send(
@@ -455,7 +455,7 @@ const deleteDatabases = async (dbs, useIAM, killTag) => {
       return Promise.all([
         dbs.map(async (db) => {
           //check whether DB is already being deleted
-          const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+          const profileName = useIAM;
           const factory = new AWSClientFactory(AWS_REGION, profileName);
           const rdsClient = factory.createClient(RDSClient);
           let dbStatus;
@@ -515,7 +515,7 @@ const deleteDatabases = async (dbs, useIAM, killTag) => {
       const confirmDBDeleted = async () => {
         let temp;
         try {
-          const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+          const profileName = useIAM;
           const factory = new AWSClientFactory(AWS_REGION, profileName);
           const rdsClient = factory.createClient(RDSClient);
           const describeDBInstancesResponse = await rdsClient.send(

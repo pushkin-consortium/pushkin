@@ -19,7 +19,7 @@ import jsYaml from "js-yaml";
  * @returns {Promise} - A promise that resolves when the record set is created or updated
  */
 const makeRecordSet = async (domainName, projName, useIAM, theCloud) => {
-  const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+  const profileName = useIAM;
   const factory = new AWSClientFactory(AWS_REGION, profileName);
   const route53 = factory.createClient(Route53Client);
 
@@ -259,7 +259,7 @@ const deleteResourceRecords = async (useIAM, killTag, projName) => {
   let zoneID;
   let listedHostedZones;
   try {
-    const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+    const profileName = useIAM;
     const factory = new AWSClientFactory(AWS_REGION, profileName);
     const route53Client = factory.createClient(Route53Client);
     const listHostedZonesResponse = await route53Client.send(
@@ -294,7 +294,7 @@ const deleteResourceRecords = async (useIAM, killTag, projName) => {
 
   let tempRRList;
   try {
-    const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+    const profileName = useIAM;
     const factory = new AWSClientFactory(AWS_REGION, profileName);
     const route53Client = factory.createClient(Route53Client);
     const listResourceRecordSetsResponse = await route53Client.send(
@@ -319,7 +319,7 @@ const deleteResourceRecords = async (useIAM, killTag, projName) => {
     }
   });
   if (resourceRecords.ChangeBatch.Changes.length > 0) {
-    const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+    const profileName = useIAM;
     const factory = new AWSClientFactory(AWS_REGION, profileName);
     const route53Client = factory.createClient(Route53Client);
     return route53Client.send(
@@ -335,14 +335,14 @@ const deleteResourceRecords = async (useIAM, killTag, projName) => {
 
   /**
    * Choose a domain for the site
-   * @param {string|object} useIAM - The IAM profile or object with IAM info
+   * @param {string} useIAM - The IAM profile name
    * @returns {Promise<string>} - A promise that resolves to the chosen domain
    */
   const chooseDomain = async (useIAM) => {
     console.log("Choosing domain name for site");
     let temp;
     try {
-      const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+      const profileName = useIAM;
       const factory = new AWSClientFactory(AWS_REGION, profileName);
       const route53DomainsClient = factory.createClient(Route53DomainsClient);
       const listDomainsResponse = await route53DomainsClient.send(new ListDomainsCommand({}));

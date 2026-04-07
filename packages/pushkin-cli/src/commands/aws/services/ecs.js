@@ -62,7 +62,7 @@ const PROJECT_TAG_KEY = loadAwsConfig().tagging.projectTagKey;
  * @returns {Promise<string>} The ARN of the execution role
  */
 const ensureECSTaskExecutionRole = async (useIAM) => {
-  const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+  const profileName = useIAM;
   const factory = new AWSClientFactory(AWS_REGION, profileName);
   const iamClient = factory.createClient(IAMClient);
   const roleName = "ecsTaskExecutionRole";
@@ -241,7 +241,7 @@ const ecsTaskCreator = async (
    * @returns {Promise<string>} Task definition ARN
    */
   const registerECSTaskDefinition = async (taskDefParams, useIAM) => {
-    const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+    const profileName = useIAM;
     const factory = new AWSClientFactory(AWS_REGION, profileName);
     const ecsClient = factory.createClient(ECSClient);
 
@@ -282,7 +282,7 @@ const ecsTaskCreator = async (
     securityGroup = null,
     useIAM,
   ) => {
-    const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+    const profileName = useIAM;
     const factory = new AWSClientFactory(AWS_REGION, profileName);
     const ecsClient = factory.createClient(ECSClient);
 
@@ -426,7 +426,7 @@ const ecsTaskCreator = async (
     const waitForCluster = async () => {
       try {
         console.log(`Verifying ECS cluster exists: "${ECSName}"`);
-        const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+        const profileName = useIAM;
         const factory = new AWSClientFactory(AWS_REGION, profileName);
         const ecsClient = factory.createClient(ECSClient);
         const response = await ecsClient.send(new DescribeClustersCommand({ clusters: [ECSName] }));
@@ -671,7 +671,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
     let keyPairs;
     let foundPushkinKeyPair = false;
     try {
-      const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+      const profileName = useIAM;
       const factory = new AWSClientFactory(AWS_REGION, profileName);
       const ec2Client = factory.createClient(EC2Client);
       const describeKeyPairsResponse = await ec2Client.send(new DescribeKeyPairsCommand({}));
@@ -692,7 +692,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
       let keyPair;
       try {
         console.error(`Making SSH key`);
-        const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+        const profileName = useIAM;
         const factory = new AWSClientFactory(AWS_REGION, profileName);
         const ec2Client = factory.createClient(EC2Client);
         const createKeyPairResponse = await ec2Client.send(
@@ -722,7 +722,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
     console.log(`Creating security group for load balancer`);
     let groupId;
     try {
-      const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+      const profileName = useIAM;
       const factory = new AWSClientFactory(AWS_REGION, profileName);
       const ec2Client = factory.createClient(EC2Client);
 
@@ -786,7 +786,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
 
   let securityGroups;
   try {
-    const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+    const profileName = useIAM;
     const factory = new AWSClientFactory(AWS_REGION, profileName);
     const ec2Client = factory.createClient(EC2Client);
     const describeSecurityGroupsResponse = await ec2Client.send(
@@ -828,7 +828,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
     console.log(`Creating security group for ECS cluster`);
     let groupId;
     try {
-      const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+      const profileName = useIAM;
       const factory = new AWSClientFactory(AWS_REGION, profileName);
       const ec2Client = factory.createClient(EC2Client);
 
@@ -924,7 +924,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
   const foundSubnets = new Promise(async (resolve, reject) => {
     console.log(`Retrieving subnets for AWS zone`);
     try {
-      const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+      const profileName = useIAM;
       const factory = new AWSClientFactory(AWS_REGION, profileName);
       const ec2Client = factory.createClient(EC2Client);
       const describeSubnetsResponse = await ec2Client.send(new DescribeSubnetsCommand({}));
@@ -948,7 +948,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
     console.log("getting default VPC");
     let describeVpcsResponse;
     try {
-      const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+      const profileName = useIAM;
       const factory = new AWSClientFactory(AWS_REGION, profileName);
       const ec2Client = factory.createClient(EC2Client);
       describeVpcsResponse = await ec2Client.send(new DescribeVpcsCommand({}));
@@ -1051,7 +1051,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
     // Launch Templates and Fargate over ECS EC2. However, as of this writing (2025-09) ecs-cli does not support Launch Templates.
     // Switching to using AWS CLI in this branch, but opening up a new branch to try out migrating to AWS Copilot CLI
     // Create ECS cluster using AWS SDK instead of deprecated ecs-cli
-    const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+    const profileName = useIAM;
     const factory = new AWSClientFactory(AWS_REGION, profileName);
     const ecsClient = factory.createClient(ECSClient);
     try {
@@ -1092,7 +1092,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
 
   let madeBalancer;
   try {
-    const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+    const profileName = useIAM;
     const factory = new AWSClientFactory(AWS_REGION, profileName);
     const elbv2Client = factory.createClient(ElasticLoadBalancingV2Client);
     madeBalancer = elbv2Client.send(
@@ -1112,7 +1112,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
 
   let tempMakeTargetGroup;
   try {
-    const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+    const profileName = useIAM;
     const factory = new AWSClientFactory(AWS_REGION, profileName);
     const elbv2Client = factory.createClient(ElasticLoadBalancingV2Client);
     tempMakeTargetGroup = await elbv2Client.send(
@@ -1143,7 +1143,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
   const balancerZone = aMadeBalancer.LoadBalancers[0].CanonicalHostedZoneId;
   let madeListener;
   try {
-    const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+    const profileName = useIAM;
     const factory = new AWSClientFactory(AWS_REGION, profileName);
     const elbv2Client = factory.createClient(ElasticLoadBalancingV2Client);
     madeListener = await elbv2Client.send(
@@ -1166,7 +1166,7 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
 
   let addedHTTPS;
   try {
-    const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+    const profileName = useIAM;
     const factory = new AWSClientFactory(AWS_REGION, profileName);
     const elbv2Client = factory.createClient(ElasticLoadBalancingV2Client);
     addedHTTPS = elbv2Client.send(
@@ -1229,7 +1229,7 @@ const deleteStack = async (useIAM, killTag) => {
     let stacksToDelete = [];
     let stackList;
     try {
-      const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+      const profileName = useIAM;
       const factory = new AWSClientFactory(AWS_REGION, profileName);
       const cloudFormationClient = factory.createClient(CloudFormationClient);
       const listStacksResponse = await cloudFormationClient.send(new ListStacksCommand({}));
@@ -1279,7 +1279,7 @@ const deleteStack = async (useIAM, killTag) => {
       stacksToDelete.map(async (s) => {
         console.log(`Deleting stack ${s}`);
         try {
-          const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+          const profileName = useIAM;
           const factory = new AWSClientFactory(AWS_REGION, profileName);
           const cloudFormationClient = factory.createClient(CloudFormationClient);
           return await cloudFormationClient.send(new DeleteStackCommand({ StackName: s }));
@@ -1334,7 +1334,7 @@ const deleteCluster = async (deletedStack, useIAM, killTag, projName, awsResourc
   let clustersToKill = [];
   let temp;
   try {
-    const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+    const profileName = useIAM;
     const factory = new AWSClientFactory(AWS_REGION, profileName);
     const ecsClient = factory.createClient(ECSClient);
     const listClustersResponse = await ecsClient.send(new ListClustersCommand({}));
@@ -1362,7 +1362,7 @@ const deleteCluster = async (deletedStack, useIAM, killTag, projName, awsResourc
     }
     let clusterDescription;
     try {
-      const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+      const profileName = useIAM;
       const factory = new AWSClientFactory(AWS_REGION, profileName);
       const ecsClient = factory.createClient(ECSClient);
       const describeClustersResponse = await ecsClient.send(
@@ -1411,7 +1411,7 @@ const deleteCluster = async (deletedStack, useIAM, killTag, projName, awsResourc
     clustersToKill.map(async (c) => {
       let aTaskToKill;
       try {
-        const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+        const profileName = useIAM;
         const factory = new AWSClientFactory(AWS_REGION, profileName);
         const ecsClient = factory.createClient(ECSClient);
         const listTasksResponse = await ecsClient.send(
@@ -1430,7 +1430,7 @@ const deleteCluster = async (deletedStack, useIAM, killTag, projName, awsResourc
         killedTasks = Promise.all(
           tasksToKill.map(async (t) => {
             console.log(`killing task: ` + t);
-            const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+            const profileName = useIAM;
             const factory = new AWSClientFactory(AWS_REGION, profileName);
             const ecsClient = factory.createClient(ECSClient);
             return await ecsClient.send(
@@ -1448,7 +1448,7 @@ const deleteCluster = async (deletedStack, useIAM, killTag, projName, awsResourc
       while (true) {
         let aTaskToKill;
         try {
-          const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+          const profileName = useIAM;
           const factory = new AWSClientFactory(AWS_REGION, profileName);
           const ecsClient = factory.createClient(ECSClient);
           const listTasksResponse = await ecsClient.send(
@@ -1484,7 +1484,7 @@ const deleteCluster = async (deletedStack, useIAM, killTag, projName, awsResourc
         let aServiceToDelete;
 
         try {
-          const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+          const profileName = useIAM;
           const factory = new AWSClientFactory(AWS_REGION, profileName);
           const ecsClient = factory.createClient(ECSClient);
           const listServicesResponse = await ecsClient.send(
@@ -1506,7 +1506,7 @@ const deleteCluster = async (deletedStack, useIAM, killTag, projName, awsResourc
           deletedServices = Promise.all(
             servicesToDelete.map(async (s) => {
               console.log(`deleting service: ` + s);
-              const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+              const profileName = useIAM;
               const factory = new AWSClientFactory(AWS_REGION, profileName);
               const ecsClient = factory.createClient(ECSClient);
               return await ecsClient.send(
@@ -1525,7 +1525,7 @@ const deleteCluster = async (deletedStack, useIAM, killTag, projName, awsResourc
         while (true) {
           let servicesList;
           try {
-            const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+            const profileName = useIAM;
             const factory = new AWSClientFactory(AWS_REGION, profileName);
             const ecsClient = factory.createClient(ECSClient);
             const listServicesResponse = await ecsClient.send(
@@ -1562,7 +1562,7 @@ const deleteCluster = async (deletedStack, useIAM, killTag, projName, awsResourc
   let killedClusters = clustersToKill.map(async (c) => {
     console.log(`Deleting ECS Cluster ${c}.`);
     try {
-      const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+      const profileName = useIAM;
       const factory = new AWSClientFactory(AWS_REGION, profileName);
       const ecsClient = factory.createClient(ECSClient);
       temp = await ecsClient.send(

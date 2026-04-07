@@ -18,7 +18,7 @@ const createLogGroup = async (useIAM, projName) => {
   //Log group for ECS
   let stdOut;
   try {
-    const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+    const profileName = useIAM;
     const factory = new AWSClientFactory(AWS_REGION, profileName);
     const cloudWatchLogsClient = factory.createClient(CloudWatchLogsClient);
     await cloudWatchLogsClient.send(
@@ -40,7 +40,7 @@ const createLogGroup = async (useIAM, projName) => {
     }
   }
   try {
-    const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+    const profileName = useIAM;
     const factory = new AWSClientFactory(AWS_REGION, profileName);
     const cloudWatchLogsClient = factory.createClient(CloudWatchLogsClient);
     await cloudWatchLogsClient.send(
@@ -63,7 +63,7 @@ const createLogGroup = async (useIAM, projName) => {
 const chooseCertificate = async (useIAM) => {
   console.log("Setting up SSL for load-balancer");
 
-  const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+  const profileName = useIAM;
   const factory = new AWSClientFactory(AWS_REGION, profileName);
   const acm = factory.createClient(ACMClient);
 

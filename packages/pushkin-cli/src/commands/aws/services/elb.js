@@ -45,7 +45,7 @@ const forwardAPIWrapper = async (configuredECS, useIAM, projName, myDomain, depl
       // Try to find hosted zone, falling back to parent domains if needed
       while (!foundZone && zoneDomain.split(".").length >= 2) {
         try {
-          const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+          const profileName = useIAM;
           const factory = new AWSClientFactory(AWS_REGION, profileName);
           const route53Client = factory.createClient(Route53Client);
           const data = await route53Client.send(
@@ -101,7 +101,7 @@ const forwardAPIWrapper = async (configuredECS, useIAM, projName, myDomain, depl
       recordSet.Changes[0].ResourceRecordSet.AliasTarget.HostedZoneId = balancerZone;
       recordSet.Changes[0].ResourceRecordSet.SetIdentifier = projName;
       try {
-        const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+        const profileName = useIAM;
         const factory = new AWSClientFactory(AWS_REGION, profileName);
         const route53Client = factory.createClient(Route53Client);
         await route53Client.send(
@@ -144,7 +144,7 @@ const deleteLoadBalancer = async (useIAM, killTag) => {
   //FUBAR Need to killize this
   let temp;
   try {
-    const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+    const profileName = useIAM;
     const factory = new AWSClientFactory(AWS_REGION, profileName);
     const elbv2Client = factory.createClient(ElasticLoadBalancingV2Client);
     const describeLoadBalancersResponse = await elbv2Client.send(
@@ -178,7 +178,7 @@ const deleteLoadBalancer = async (useIAM, killTag) => {
         let temp;
 
         try {
-          const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+          const profileName = useIAM;
           const factory = new AWSClientFactory(AWS_REGION, profileName);
           const elbv2Client = factory.createClient(ElasticLoadBalancingV2Client);
           const describeListenersResponse = await elbv2Client.send(
@@ -193,7 +193,7 @@ const deleteLoadBalancer = async (useIAM, killTag) => {
         listenersToDelete = JSON.parse(temp.stdout).Listeners.map((l) => l.ListenerArn);
 
         if (listenersToDelete.length > 0) {
-          const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+          const profileName = useIAM;
           const factory = new AWSClientFactory(AWS_REGION, profileName);
           const elbv2Client = factory.createClient(ElasticLoadBalancingV2Client);
           deletedListeners = Promise.all(
@@ -212,7 +212,7 @@ const deleteLoadBalancer = async (useIAM, killTag) => {
         while (true) {
           let describedListeners;
           try {
-            const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+            const profileName = useIAM;
             const factory = new AWSClientFactory(AWS_REGION, profileName);
             const elbv2Client = factory.createClient(ElasticLoadBalancingV2Client);
             const describeListenersResponse = await elbv2Client.send(
@@ -246,7 +246,7 @@ const deleteLoadBalancer = async (useIAM, killTag) => {
 
       let deletedLoadBalancer;
       try {
-        const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+        const profileName = useIAM;
         const factory = new AWSClientFactory(AWS_REGION, profileName);
         const elbv2Client = factory.createClient(ElasticLoadBalancingV2Client);
         deletedLoadBalancer = await elbv2Client.send(
@@ -272,7 +272,7 @@ const deleteTargetGroup = async (useIAM, deletedLoadBalancer) => {
   await deletedLoadBalancer;
   let getTargetGroups;
   try {
-    const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+    const profileName = useIAM;
     const factory = new AWSClientFactory(AWS_REGION, profileName);
     const elbv2Client = factory.createClient(ElasticLoadBalancingV2Client);
     const describeTargetGroupsResponse = await elbv2Client.send(
@@ -292,7 +292,7 @@ const deleteTargetGroup = async (useIAM, deletedLoadBalancer) => {
     return Promise.all(
       targetGroups.map(async (tg) => {
         try {
-          const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+          const profileName = useIAM;
           const factory = new AWSClientFactory(AWS_REGION, profileName);
           const elbv2Client = factory.createClient(ElasticLoadBalancingV2Client);
           await elbv2Client.send(new DescribeTargetGroupsCommand({ TargetGroupArns: [tg] }));
@@ -304,7 +304,7 @@ const deleteTargetGroup = async (useIAM, deletedLoadBalancer) => {
           return true;
         }
         try {
-          const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+          const profileName = useIAM;
           const factory = new AWSClientFactory(AWS_REGION, profileName);
           const elbv2Client = factory.createClient(ElasticLoadBalancingV2Client);
           await elbv2Client.send(new DeleteTargetGroupCommand({ TargetGroupArn: tg }));
