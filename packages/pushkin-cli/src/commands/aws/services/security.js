@@ -34,10 +34,11 @@ const createWAFv2Client = (useIAM) => {
 
 /**
  * Check if the IAM user is configured on the AWS SDK
+ * WHY: Can the AWS SDK use the provided IAM user to make API calls to AWS?
  * @param {string} useIAM - The IAM user to check
  * @returns {Promise<void>} - Resolves if the IAM user is configured, rejects with error if not
  */
-const checkIAMUser = async (useIAM) => {
+const verifyIAMCredentials = async (useIAM) => {
   const factory = new AWSClientFactory(AWS_REGION, useIAM);
   const sts = factory.createClient(STSClient);
 
@@ -52,21 +53,42 @@ const checkIAMUser = async (useIAM) => {
 };
 
 /**
- * (Helper)
- * Create security group for database access
- * WHY: RDS instances need a security group with PostgreSQL port (5432) open for incoming connections
+ * Ensure project-specific database security group exists (creates if missing)
+ * WHY: Each project needs its own database security group for network isolation between projects.
  * @param {string} useIAM - The IAM role to use
  * @param {string} projName - The project name
  * @returns {Promise<string>} - The security group ID for the database group
  */
-const createDatabaseSecurityGroup = async (useIAM, projName) => {
+const ensureDatabaseSecurityGroup = async (useIAM, projName) => {
   const ec2Client = createEC2Client(useIAM);
+  const groupName = `${projName}-DatabaseGroup`;
 
+  // Check if security group already exists
+  let securityGroups;
+  try {
+    const describeSecurityGroupsResponse = await ec2Client.send(
+      new DescribeSecurityGroupsCommand({}),
+    );
+    securityGroups = describeSecurityGroupsResponse.SecurityGroups || [];
+  } catch (error) {
+    console.error(`Failed to retrieve list of security groups from AWS: ${error.message}`);
+    throw error;
+  }
+
+  const foundGroup = securityGroups.find((g) => g.GroupName === groupName);
+
+  if (foundGroup) {
+    console.log(`Database security group ${groupName} already exists. Skipping creation.`);
+    return foundGroup.GroupId;
+  }
+
+  // Create new security group
+  console.log(`Creating security group ${groupName} for databases...`);
   try {
     const createSGResponse = await ec2Client.send(
       new CreateSecurityGroupCommand({
-        GroupName: "DatabaseGroup",
-        Description: "For connecting to databases",
+        GroupName: groupName,
+        Description: `Database security group for ${projName}`,
         TagSpecifications: [
           {
             ResourceType: "security-group",
@@ -81,7 +103,7 @@ const createDatabaseSecurityGroup = async (useIAM, projName) => {
     // Configure inbound rules to allow PostgreSQL connections from anywhere
     await ec2Client.send(
       new AuthorizeSecurityGroupIngressCommand({
-        GroupName: "DatabaseGroup",
+        GroupId: groupId,
         IpPermissions: [
           {
             IpProtocol: "tcp",
@@ -103,17 +125,18 @@ const createDatabaseSecurityGroup = async (useIAM, projName) => {
 };
 
 /**
- * Ensures a DatabaseGroup security group exists before creating databases
+ * Ensure project-specific load balancer security group exists (creates if missing)
+ * WHY: Each project needs its own load balancer security group for network isolation.
  * @param {string} useIAM - The IAM role to use
  * @param {string} projName - The project name
- * @returns {Promise<string>} - The security group ID for the database group
+ * @returns {Promise<string>} - The security group ID for the load balancer
  */
-const checkDatabaseSecurityGroup = async (useIAM, projName) => {
-  const ec2Client = createEC2Client(useIAM); // Not actually running EC2 instances anymore, just using the API to manage VPC security groups
+const ensureBalancerSecurityGroup = async (useIAM, projName) => {
+  const ec2Client = createEC2Client(useIAM);
+  const groupName = `${projName}-BalancerGroup`;
 
+  // Check if security group already exists
   let securityGroups;
-
-  // Fetch all security groups
   try {
     const describeSecurityGroupsResponse = await ec2Client.send(
       new DescribeSecurityGroupsCommand({}),
@@ -124,37 +147,167 @@ const checkDatabaseSecurityGroup = async (useIAM, projName) => {
     throw error;
   }
 
-  // Check if DatabaseGroup already exists
-  const foundDBGroup = securityGroups.find((g) => g.GroupName === "DatabaseGroup");
+  const foundGroup = securityGroups.find((g) => g.GroupName === groupName);
 
-  if (foundDBGroup) {
-    console.log(`Database security group already exists. Skipping creation.`);
-    return foundDBGroup.GroupId;
-  } else {
-    console.log("Creating security group for databases...");
-    return await createDatabaseSecurityGroup(useIAM, projName);
+  if (foundGroup) {
+    console.log(`Load balancer security group ${groupName} already exists. Skipping creation.`);
+    return foundGroup.GroupId;
+  }
+
+  // Create new security group
+  console.log(`Creating security group ${groupName} for load balancer...`);
+  try {
+    const createSGResponse = await ec2Client.send(
+      new CreateSecurityGroupCommand({
+        GroupName: groupName,
+        Description: `Load balancer security group for ${projName}`,
+        TagSpecifications: [
+          {
+            ResourceType: "security-group",
+            Tags: [{ Key: PROJECT_TAG_KEY, Value: projName }],
+          },
+        ],
+      }),
+    );
+
+    const groupId = createSGResponse.GroupId;
+
+    // Add rules for HTTP (80) and HTTPS (443)
+    await Promise.all([
+      ec2Client.send(
+        new AuthorizeSecurityGroupIngressCommand({
+          GroupId: groupId,
+          IpPermissions: [
+            {
+              IpProtocol: "tcp",
+              FromPort: 80,
+              ToPort: 80,
+              IpRanges: [{ CidrIp: "0.0.0.0/0" }],
+              Ipv6Ranges: [{ CidrIpv6: "::/0" }],
+            },
+          ],
+        }),
+      ),
+      ec2Client.send(
+        new AuthorizeSecurityGroupIngressCommand({
+          GroupId: groupId,
+          IpPermissions: [
+            {
+              IpProtocol: "tcp",
+              FromPort: 443,
+              ToPort: 443,
+              IpRanges: [{ CidrIp: "0.0.0.0/0" }],
+              Ipv6Ranges: [{ CidrIpv6: "::/0" }],
+            },
+          ],
+        }),
+      ),
+    ]);
+
+    return groupId;
+  } catch (error) {
+    console.error(`Failed to create security group for load balancer: ${error.message}`);
+    throw error;
   }
 };
 
 /**
- * (Helper)
- * Find an existing WAF Web ACL named for CloudFront distributions before creating new one
- * @param {string} useIAM - The IAM profile to use
- * @returns {Promise<string|undefined>} - The ACL ARN if found, undefined otherwise
+ * Ensure project-specific ECS security group exists (creates if missing)
+ * WHY: Each project needs its own ECS security group for network isolation.
+ * @param {string} useIAM - The IAM role to use
+ * @param {string} projName - The project name
+ * @returns {Promise<string>} - The security group ID for the ECS cluster
  */
-const findACL = async (useIAM) => {
-  const wafv2Client = createWAFv2Client(useIAM);
+const ensureECSSecurityGroup = async (useIAM, projName) => {
+  const ec2Client = createEC2Client(useIAM);
+  const groupName = `${projName}-ECSGroup`;
 
+  // Check if security group already exists
+  let securityGroups;
   try {
-    const listWebACLsResponse = await wafv2Client.send(
-      new ListWebACLsCommand({ Scope: "CLOUDFRONT" }),
+    const describeSecurityGroupsResponse = await ec2Client.send(
+      new DescribeSecurityGroupsCommand({}),
     );
-    const webACLs = listWebACLsResponse.WebACLs || [];
-
-    const foundACL = webACLs.find((acl) => acl.Name === pushkinACL.Name);
-    return foundACL?.ARN;
+    securityGroups = describeSecurityGroupsResponse.SecurityGroups || [];
   } catch (error) {
-    console.error(`Unable to get list of ACLs: ${error.message}`);
+    console.error(`Failed to retrieve list of security groups from AWS: ${error.message}`);
+    throw error;
+  }
+
+  const foundGroup = securityGroups.find((g) => g.GroupName === groupName);
+
+  if (foundGroup) {
+    console.log(`ECS security group ${groupName} already exists. Skipping creation.`);
+    return foundGroup.GroupId;
+  }
+
+  // Create new security group
+  console.log(`Creating security group ${groupName} for ECS cluster...`);
+  try {
+    const createSGResponse = await ec2Client.send(
+      new CreateSecurityGroupCommand({
+        GroupName: groupName,
+        Description: `ECS cluster security group for ${projName}`,
+        TagSpecifications: [
+          {
+            ResourceType: "security-group",
+            Tags: [{ Key: PROJECT_TAG_KEY, Value: projName }],
+          },
+        ],
+      }),
+    );
+
+    const groupId = createSGResponse.GroupId;
+
+    // Add ingress rules for HTTP (80), SSH (22), and ephemeral ports (1024-65535)
+    await Promise.all([
+      ec2Client.send(
+        new AuthorizeSecurityGroupIngressCommand({
+          GroupId: groupId,
+          IpPermissions: [
+            {
+              IpProtocol: "tcp",
+              FromPort: 80,
+              ToPort: 80,
+              IpRanges: [{ CidrIp: "0.0.0.0/0" }],
+              Ipv6Ranges: [{ CidrIpv6: "::/0" }],
+            },
+          ],
+        }),
+      ),
+      ec2Client.send(
+        new AuthorizeSecurityGroupIngressCommand({
+          GroupId: groupId,
+          IpPermissions: [
+            {
+              IpProtocol: "tcp",
+              FromPort: 22,
+              ToPort: 22,
+              IpRanges: [{ CidrIp: "0.0.0.0/0" }],
+              Ipv6Ranges: [{ CidrIpv6: "::/0" }],
+            },
+          ],
+        }),
+      ),
+      ec2Client.send(
+        new AuthorizeSecurityGroupIngressCommand({
+          GroupId: groupId,
+          IpPermissions: [
+            {
+              IpProtocol: "tcp",
+              FromPort: 1024,
+              ToPort: 65535,
+              IpRanges: [{ CidrIp: "0.0.0.0/0" }],
+              Ipv6Ranges: [{ CidrIpv6: "::/0" }],
+            },
+          ],
+        }),
+      ),
+    ]);
+
+    return groupId;
+  } catch (error) {
+    console.error(`Failed to create security group for ECS cluster: ${error.message}`);
     throw error;
   }
 };
@@ -167,13 +320,24 @@ const findACL = async (useIAM) => {
  * @returns {Promise<string>} - The ACL ARN
  */
 const getACL = async (useIAM, verbose = false) => {
+  const wafv2Client = createWAFv2Client(useIAM);
+  let ACLarn;
   // Check if ACL already exists
-  let ACLarn = await findACL(useIAM);
+  try {
+    const listWebACLsResponse = await wafv2Client.send(
+      new ListWebACLsCommand({ Scope: "CLOUDFRONT" }),
+    );
+    const webACLs = listWebACLsResponse.WebACLs || [];
+
+    const foundACL = webACLs.find((acl) => acl.Name === pushkinACL.Name);
+    ACLarn = foundACL?.ARN;
+  } catch (error) {
+    console.error(`Unable to get list of ACLs: ${error.message}`);
+    throw error;
+  }
 
   if (!ACLarn) {
     // Create new ACL
-    const wafv2Client = createWAFv2Client(useIAM);
-
     try {
       const createWebACLResponse = await wafv2Client.send(
         new CreateWebACLCommand({
@@ -297,5 +461,13 @@ const deleteSecurityGroups = async (useIAM, killTag, deletedDBs) => {
   console.log(`Deleting ${groupsToDelete.length} security group(s)...`);
   return Promise.all(groupsToDelete.map((g) => deleteSingleSecurityGroup(g, useIAM)));
 };
+
 // Export functions
-export { checkIAMUser, checkDatabaseSecurityGroup, getACL, deleteSecurityGroups };
+export {
+  verifyIAMCredentials,
+  ensureDatabaseSecurityGroup,
+  ensureBalancerSecurityGroup,
+  ensureECSSecurityGroup,
+  getACL,
+  deleteSecurityGroups,
+};
