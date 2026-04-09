@@ -3,7 +3,7 @@ import path from "path";
 import fs from "graceful-fs";
 import jsYaml from "js-yaml";
 import util from "util";
-import { execSync } from 'child_process'; // eslint-disable-line
+import { execSync } from "child_process"; // eslint-disable-line
 const exec = util.promisify(require("child_process").exec);
 const execFile = util.promisify(require("child_process").execFile);
 import pacMan from "../../pMan.js"; //which package manager is available?
@@ -45,8 +45,11 @@ export const updatePasswords = async () => {
   composeFileData.services.test_transaction_db.environment.POSTGRES_PASSWORD = transactionDBPass;
   exps.forEach((exp) => {
     const workerName = exp.toLowerCase().concat("_worker");
-    composeFileData.services[workerName].environment.DB_PASS = testDBPass;
-    composeFileData.services[workerName].environment.TRANS_PASS = transactionDBPass;
+    // Check if worker service exists before trying to update it
+    if (composeFileData.services[workerName] && composeFileData.services[workerName].environment) {
+      composeFileData.services[workerName].environment.DB_PASS = testDBPass;
+      composeFileData.services[workerName].environment.TRANS_PASS = transactionDBPass;
+    }
   });
   const newComposeFile = fs.promises.writeFile(
     "pushkin/docker-compose.dev.yml",
@@ -102,29 +105,33 @@ const publishLocalPackage = async (modDir, modName, verbose) => {
         let pluginsToAdd = [];
         let pluginsToUpgrade = [];
         plugins.forEach((plugin) => {
-          // Create a regex to find the version number specified after the import statement
-          let versionMatch = new RegExp(`(?<=${plugin}'; \/\/ version:).+?(?= \/\/)`, "g");
-          let pluginVersion = "";
-          if (expJs.includes(`${plugin}'; // version:`)) {
-            pluginVersion = expJs.match(versionMatch)[0];
-          }
-          // If any jsPsych plugins are not yet added to package.json, add them
-          if (!packageJson.dependencies[plugin]) {
-            if (pluginVersion === "") {
-              // Just add the plugin name if no version/tag is specified
-              pluginsToAdd.push(plugin);
-            } else {
-              // Append the version/tag if specified
-              pluginsToAdd.push(plugin + "@" + pluginVersion);
+          // Check if plugins exist before iterating (match returns null if no matches)
+          if (plugins) {
+            // Create a regex to find the version number specified after the import statement
+            let versionMatch = new RegExp(`(?<=${plugin}'; \/\/ version:).+?(?= \/\/)`, "g");
+            let pluginVersion = "";
+            if (expJs.includes(`${plugin}'; // version:`)) {
+              pluginVersion = expJs.match(versionMatch)[0];
             }
-          } else {
-            // package is already added to package.json
-            // Check if version/tag is specified and differs from the one in package.json
-            if (pluginVersion !== "" && packageJson.dependencies[plugin] !== pluginVersion) {
-              pluginsToUpgrade.push(plugin + "@" + pluginVersion);
+            // If any jsPsych plugins are not yet added to package.json, add them
+            if (!packageJson.dependencies[plugin]) {
+              if (pluginVersion === "") {
+                // Just add the plugin name if no version/tag is specified
+                pluginsToAdd.push(plugin);
+              } else {
+                // Append the version/tag if specified
+                pluginsToAdd.push(plugin + "@" + pluginVersion);
+              }
+            } else {
+              // package is already added to package.json
+              // Check if version/tag is specified and differs from the one in package.json
+              if (pluginVersion !== "" && packageJson.dependencies[plugin] !== pluginVersion) {
+                pluginsToUpgrade.push(plugin + "@" + pluginVersion);
+              }
             }
           }
         });
+
         // If any plugins need to be added or upgraded, do so
         if (pluginsToAdd.length > 0) {
           if (verbose)
@@ -553,8 +560,8 @@ export const prep = async (experimentsDir, coreDir, verbose) => {
       pushkinYAML.databases.localtransactiondb.host;
     compFile.services[workerName].environment.TRANS_DB =
       pushkinYAML.databases.localtransactiondb.name;
-    compFile.services[workerName].environment.TRANS_PORT =
-      pushkinYAML.databases.localtransactiondb.port;
+    // Use internal container port (5432), not host-mapped port
+    compFile.services[workerName].environment.TRANS_PORT = "5432";
 
     let workerBuild;
     try {
