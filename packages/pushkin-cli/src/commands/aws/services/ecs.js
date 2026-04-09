@@ -23,9 +23,6 @@ import {
   EC2Client,
   DescribeKeyPairsCommand,
   CreateKeyPairCommand,
-  CreateSecurityGroupCommand,
-  AuthorizeSecurityGroupIngressCommand,
-  DescribeSecurityGroupsCommand,
   DescribeSubnetsCommand,
   DescribeVpcsCommand,
 } from "@aws-sdk/client-ec2";
@@ -45,6 +42,7 @@ import { updateAwsResourcesField } from "../utils/aws-resources.js";
 import { AWS_REGION } from "../constants.js";
 import { rabbitTask, apiTask, workerTask } from "../awsConfigs.js";
 import { getDBInfo } from "./rds.js";
+import { ensureBalancerSecurityGroup, ensureECSSecurityGroup } from "./security.js";
 import fs from "graceful-fs";
 import path from "path";
 import jsYaml from "js-yaml";
@@ -712,212 +710,11 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
 
   let madeSSH = makeSSH(useIAM);
 
-  /**
-   * make security group for load balancer. Start this process early, though it doesn't take super long.
-   * @param {any} useIAM -- The IAM role to use
-   * @param {string} projName -- The project name
-   * @returns {Promise<string>} - The project name
-   */
-  const makeBalancerGroup = async (useIAM, projName) => {
-    console.log(`Creating security group for load balancer`);
-    let groupId;
-    try {
-      const profileName = useIAM;
-      const factory = new AWSClientFactory(AWS_REGION, profileName);
-      const ec2Client = factory.createClient(EC2Client);
+  // Ensure load balancer security group exists (delegated to security.js)
+  const BalancerSecurityGroupID = await ensureBalancerSecurityGroup(useIAM, projName);
 
-      // Create security group
-      const createSGResponse = await ec2Client.send(
-        new CreateSecurityGroupCommand({
-          GroupName: "BalancerGroup",
-          Description: "For the load balancer",
-          TagSpecifications: [
-            {
-              ResourceType: "security-group",
-              Tags: [
-                {
-                  Key: PROJECT_TAG_KEY,
-                  Value: projName,
-                },
-              ],
-            },
-          ],
-        }),
-      );
-      groupId = createSGResponse.GroupId;
-
-      // Add rules for HTTP and HTTPS
-      await Promise.all([
-        ec2Client.send(
-          new AuthorizeSecurityGroupIngressCommand({
-            GroupName: "BalancerGroup",
-            IpPermissions: [
-              {
-                IpProtocol: "tcp",
-                FromPort: 80,
-                ToPort: 80,
-                IpRanges: [{ CidrIp: "0.0.0.0/0" }],
-                Ipv6Ranges: [{ CidrIpv6: "::/0" }],
-              },
-            ],
-          }),
-        ),
-        ec2Client.send(
-          new AuthorizeSecurityGroupIngressCommand({
-            GroupName: "BalancerGroup",
-            IpPermissions: [
-              {
-                IpProtocol: "tcp",
-                FromPort: 443,
-                ToPort: 443,
-                IpRanges: [{ CidrIp: "0.0.0.0/0" }],
-                Ipv6Ranges: [{ CidrIpv6: "::/0" }],
-              },
-            ],
-          }),
-        ),
-      ]);
-    } catch (e) {
-      console.error(`Failed to create security group for load balancer`);
-      throw e;
-    }
-    return groupId; //remember security group in order to use later!
-  };
-
-  let securityGroups;
-  try {
-    const profileName = useIAM;
-    const factory = new AWSClientFactory(AWS_REGION, profileName);
-    const ec2Client = factory.createClient(EC2Client);
-    const describeSecurityGroupsResponse = await ec2Client.send(
-      new DescribeSecurityGroupsCommand({}),
-    );
-    securityGroups = {
-      stdout: JSON.stringify({ SecurityGroups: describeSecurityGroupsResponse.SecurityGroups }),
-    };
-  } catch (e) {
-    console.error(`Failed to retrieve list of security groups from aws`);
-    throw e;
-  }
-  let foundBalancerGroup = false;
-  let madeBalancerGroup;
-  let BalancerSecurityGroupID;
-  JSON.parse(securityGroups.stdout).SecurityGroups.forEach((g) => {
-    if (g.GroupName == "BalancerGroup") {
-      foundBalancerGroup = g.GroupId;
-    }
-  });
-  if (foundBalancerGroup) {
-    console.log(`Security group 'BalancerGroup' already exists. Skipping create.`);
-    BalancerSecurityGroupID = foundBalancerGroup;
-  } else {
-    try {
-      madeBalancerGroup = makeBalancerGroup(useIAM, projName); //start this process early. Will use much later.
-    } catch (e) {
-      throw e;
-    }
-  }
-
-  //make security group for ECS cluster. Start this process early, though it doesn't take super long.
-  /**
-   *
-   * @param useIAM
-   * @param projName
-   */
-  const makeECSGroup = async (useIAM, projName) => {
-    console.log(`Creating security group for ECS cluster`);
-    let groupId;
-    try {
-      const profileName = useIAM;
-      const factory = new AWSClientFactory(AWS_REGION, profileName);
-      const ec2Client = factory.createClient(EC2Client);
-
-      const createSecurityGroupResponse = await ec2Client.send(
-        new CreateSecurityGroupCommand({
-          GroupName: "ECSGroup",
-          Description: "For the ECS cluster",
-          TagSpecifications: [
-            {
-              ResourceType: "security-group",
-              Tags: [
-                {
-                  Key: PROJECT_TAG_KEY,
-                  Value: projName,
-                },
-              ],
-            },
-          ],
-        }),
-      );
-
-      groupId = createSecurityGroupResponse.GroupId;
-
-      // Add ingress rules
-      await Promise.all([
-        ec2Client.send(
-          new AuthorizeSecurityGroupIngressCommand({
-            GroupId: groupId,
-            IpPermissions: [
-              {
-                IpProtocol: "tcp",
-                FromPort: 80,
-                ToPort: 80,
-                IpRanges: [{ CidrIp: "0.0.0.0/0" }],
-                Ipv6Ranges: [{ CidrIpv6: "::/0" }],
-              },
-            ],
-          }),
-        ),
-        ec2Client.send(
-          new AuthorizeSecurityGroupIngressCommand({
-            GroupId: groupId,
-            IpPermissions: [
-              {
-                IpProtocol: "tcp",
-                FromPort: 22,
-                ToPort: 22,
-                IpRanges: [{ CidrIp: "0.0.0.0/0" }],
-                Ipv6Ranges: [{ CidrIpv6: "::/0" }],
-              },
-            ],
-          }),
-        ),
-        ec2Client.send(
-          new AuthorizeSecurityGroupIngressCommand({
-            GroupId: groupId,
-            IpPermissions: [
-              {
-                IpProtocol: "tcp",
-                FromPort: 1024,
-                ToPort: 65535,
-                IpRanges: [{ CidrIp: "0.0.0.0/0" }],
-                Ipv6Ranges: [{ CidrIpv6: "::/0" }],
-              },
-            ],
-          }),
-        ),
-      ]);
-    } catch (e) {
-      console.error(`Failed to create security group for ECS cluster`);
-      throw e;
-    }
-    return groupId;
-  };
-
-  let ecsSecurityGroupID;
-  let foundECSGroup = false;
-  let madeECSGroup;
-  JSON.parse(securityGroups.stdout).SecurityGroups.forEach((g) => {
-    if (g.GroupName == "ECSGroup") {
-      foundECSGroup = g.GroupId;
-    }
-  });
-  if (foundECSGroup) {
-    console.log(`Security group 'foundECSGroup' already exists. Skipping create.`);
-    ecsSecurityGroupID = foundECSGroup;
-  } else {
-    madeECSGroup = makeECSGroup(useIAM, projName); //start this process early. Will use much later.
-  }
+  // Ensure ECS security group exists (delegated to security.js)
+  const ecsSecurityGroupID = await ensureECSSecurityGroup(useIAM, projName);
 
   //need one subnet per availability zone in region. Region is based on region for the profile.
   //Start this process early to use later.
@@ -1038,11 +835,6 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
     throw e;
   }
 
-  if (!ecsSecurityGroupID) {
-    //If we didn't find one, we must be making it
-    console.log("Waiting for ecsSecurityGroupID");
-    ecsSecurityGroupID = await madeECSGroup;
-  }
   const myVPC = await gotVPC;
   try {
     console.log("Launching ECS cluster");
@@ -1077,9 +869,6 @@ const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertifi
   }
 
   console.log(`Creating application load balancer`);
-  if (!foundBalancerGroup) {
-    BalancerSecurityGroupID = await madeBalancerGroup;
-  }
   const loadBalancerName = ECSName.concat("Balancer");
 
   try {

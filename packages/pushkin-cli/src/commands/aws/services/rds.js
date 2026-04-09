@@ -7,6 +7,9 @@ import {
   DeleteDBInstanceCommand,
   waitUntilDBInstanceAvailable,
 } from "@aws-sdk/client-rds";
+import fs from "graceful-fs";
+import path from "path";
+import jsYaml from "js-yaml";
 import { AWSClientFactory } from "../utils/aws-client-factory.js";
 import { loadAwsConfig } from "../utils/aws-config.js";
 import { readAwsResources, writeAwsResources } from "../utils/aws-resources.js";
@@ -14,6 +17,16 @@ import { AWS_REGION } from "../constants.js";
 import { dbConfig } from "../awsConfigs.js";
 
 const PROJECT_TAG_KEY = loadAwsConfig().tagging.projectTagKey;
+
+/**
+ * (Helper)
+ * Creates an RDS client with consistent configuration
+ * WHY: Ensure all RDS operations use the same region and IAM profile.
+ */
+const createRDSClient = (useIAM) => {
+  const factory = new AWSClientFactory(AWS_REGION, useIAM);
+  return factory.createClient(RDSClient);
+};
 
 /**
  * Create the Access Control List if it doesn't already exist -> create Main and Transaction databases
@@ -26,7 +39,7 @@ const PROJECT_TAG_KEY = loadAwsConfig().tagging.projectTagKey;
  */
 const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
   console.log(`Handling ${dbType} database.`);
-  let stdOut, dbName, dbPassword;
+  let dbName, dbPassword;
   dbName = projName.concat(dbType).replace(/[^A-Za-z0-9]/g, "");
 
   /**
@@ -60,11 +73,8 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
       //First, check to see if database exists
       let dbInstances;
       try {
-        const profileName = useIAM;
-        const factory = new AWSClientFactory(AWS_REGION, profileName);
-        const rdsClient = factory.createClient(RDSClient);
-        const command = new DescribeDBInstancesCommand({});
-        const response = await rdsClient.send(command);
+        const rdsClient = createRDSClient(useIAM);
+        const response = await rdsClient.send(new DescribeDBInstancesCommand({}));
         dbInstances = response.DBInstances;
       } catch (e) {
         console.error(`Unable to get list of RDS databases`);
@@ -122,11 +132,8 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
     } else {
       let dbInstances;
       try {
-        const profileName = useIAM;
-        const factory = new AWSClientFactory(AWS_REGION, profileName);
-        const rdsClient = factory.createClient(RDSClient);
-        const command = new DescribeDBInstancesCommand({});
-        const response = await rdsClient.send(command);
+        const rdsClient = createRDSClient(useIAM);
+        const response = await rdsClient.send(new DescribeDBInstancesCommand({}));
         dbInstances = response.DBInstances;
       } catch (e) {
         console.error(`Unable to get list of RDS databases`);
@@ -181,11 +188,8 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
     myDBConfig.Tags = [{ Key: PROJECT_TAG_KEY, Value: projName }];
 
     try {
-      const profileName = useIAM;
-      const factory = new AWSClientFactory(AWS_REGION, profileName);
-      const rdsClient = factory.createClient(RDSClient);
-      const command = new CreateDBInstanceCommand(myDBConfig);
-      await rdsClient.send(command);
+      const rdsClient = createRDSClient(useIAM);
+      await rdsClient.send(new CreateDBInstanceCommand(myDBConfig));
     } catch (e) {
       console.error(`Unable to create database ${dbType}`);
       throw e;
@@ -195,13 +199,10 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
     console.log(`Database ${dbType} created.`);
 
     try {
-      // Previously: should hang until instance is available
-      // Current change: try to wait for database to be available with a shorter timeout
+      // Wait for database to be available with timeout
       console.log(`Waiting for ${dbType} to spool up. This may take a while...`);
       console.log(`${dbType}: Starting waitUntilDBInstanceAvailable with 20 mins timeout...`);
-      const profileName = useIAM;
-      const factory = new AWSClientFactory(AWS_REGION, profileName);
-      const rdsClient = factory.createClient(RDSClient);
+      const rdsClient = createRDSClient(useIAM);
 
       const waitStart = Date.now();
       await waitUntilDBInstanceAvailable(
@@ -238,11 +239,10 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
         console.log(
           `${dbType}: Attempting to get database endpoint (attempt ${retryCount + 1}/${maxRetries})...`,
         );
-        const profileName = useIAM;
-        const factory = new AWSClientFactory(AWS_REGION, profileName);
-        const rdsClient = factory.createClient(RDSClient);
-        const command = new DescribeDBInstancesCommand({ DBInstanceIdentifier: dbName });
-        dbEndpoint = await rdsClient.send(command);
+        const rdsClient = createRDSClient(useIAM);
+        dbEndpoint = await rdsClient.send(
+          new DescribeDBInstancesCommand({ DBInstanceIdentifier: dbName }),
+        );
 
         // Check if we got a valid endpoint
         if (dbEndpoint?.DBInstances?.[0]?.Endpoint?.Address) {
@@ -324,31 +324,28 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
  */
 const dbsToDeleteFunc = async (useIAM, killTag, awsResources) => {
   // Get list of DBs to delete
-  let dbs = [];
-  let respDBList;
+  const dbs = [];
+  let dbInstances;
   try {
-    const profileName = useIAM;
-    const factory = new AWSClientFactory(AWS_REGION, profileName);
-    const rdsClient = factory.createClient(RDSClient);
-    const describeDBInstancesResponse = await rdsClient.send(new DescribeDBInstancesCommand({}));
-    respDBList = {
-      stdout: JSON.stringify({ DBInstances: describeDBInstancesResponse.DBInstances }),
-    };
+    const rdsClient = createRDSClient(useIAM);
+    const response = await rdsClient.send(new DescribeDBInstancesCommand({}));
+    dbInstances = response.DBInstances || [];
   } catch (e) {
     console.error(`Unable to list databases`);
     throw e;
   }
-  JSON.parse(respDBList.stdout).DBInstances.forEach((db) => {
+
+  dbInstances.forEach((db) => {
     if (!killTag) {
-      //kill them all
+      // Armageddon mode: delete all databases
       dbs.push(db.DBInstanceIdentifier);
     } else {
-      if (db.TagList.length > 0) {
-        db.TagList.forEach((tag) => {
-          if ((tag.Key == PROJECT_TAG_KEY) & (tag.Value == killTag)) {
-            dbs.push(db.DBInstanceIdentifier);
-          }
-        });
+      // Kill mode: delete only databases tagged with the project name
+      const hasProjectTag = db.TagList?.some(
+        (tag) => tag.Key === PROJECT_TAG_KEY && tag.Value === killTag,
+      );
+      if (hasProjectTag) {
+        dbs.push(db.DBInstanceIdentifier);
       }
     }
   });
@@ -370,36 +367,21 @@ const deleteDatabases = async (dbs, useIAM, killTag) => {
     return true;
   }
   console.log(`Removing deletion protection from databases ${dbs}.`);
+  const rdsClient = createRDSClient(useIAM);
+
   await Promise.all(
     dbs.map(async (db) => {
-      const profileName = useIAM;
-      const factory = new AWSClientFactory(AWS_REGION, profileName);
-      const rdsClient = factory.createClient(RDSClient);
-      let temp;
       try {
-        const describeDBInstancesResponse = await rdsClient.send(
-          new DescribeDBInstancesCommand({ DBInstanceIdentifier: db }),
-        );
-        temp = Buffer.from(
-          JSON.stringify({ DBInstances: describeDBInstancesResponse.DBInstances }),
-        );
+        // Check if database exists
+        await rdsClient.send(new DescribeDBInstancesCommand({ DBInstanceIdentifier: db }));
       } catch (e) {
-        console.warn(
-          "\x1b[31m%s\x1b[0m",
-          `Unable to find database ${db}. Possibly it was already deleted.`,
-        );
-        /**
-         *
-         * @param x
-         */
-        let tempFunc = (x) => {
-          return x.filter((d) => {
-            return d != db;
-          }); // remove from list
-        };
-        dbs = tempFunc(dbs);
+        console.warn(`Unable to find database ${db}. Possibly it was already deleted.`);
+        // Remove from list
+        dbs = dbs.filter((d) => d !== db);
         return;
       }
+
+      // Disable deletion protection
       await rdsClient.send(
         new ModifyDBInstanceCommand({
           DBInstanceIdentifier: db,
@@ -412,144 +394,87 @@ const deleteDatabases = async (dbs, useIAM, killTag) => {
 
   console.log(`Deleting databases`);
 
-  /**
-   *
-   * @param dbId
-   */
-  const checkDatabases = async (dbId) => {
-    let temp;
+  const checkDatabaseDeletable = async (dbId) => {
     console.log(`Checking database ${dbId} for deletion protection`);
     try {
-      const profileName = useIAM;
-      const factory = new AWSClientFactory(AWS_REGION, profileName);
-      const rdsClient = factory.createClient(RDSClient);
-      const describeDBInstancesResponse = await rdsClient.send(
+      const response = await rdsClient.send(
         new DescribeDBInstancesCommand({ DBInstanceIdentifier: dbId }),
       );
-      temp = JSON.stringify({ DBInstances: describeDBInstancesResponse.DBInstances });
+      return response.DBInstances?.[0]?.DeletionProtection === false;
     } catch (e) {
       console.error(
         `Unable to get information for db ${dbId}. Possibly it was already deleted. Skipping`,
       );
-      return;
-    }
-    if (temp != "") {
-      return JSON.parse(temp).DBInstances[0].DeletionProtection == false;
-    } else {
       return false;
     }
   };
 
-  /**
-   *
-   */
-  const wait = async () => {
-    //Sometimes, I really miss loops
-    let checked = dbs.map((db) => {
-      checkDatabases(db);
-    });
-    if (checked.includes(false)) {
+  // Wait for deletion protection to be disabled, then delete databases
+  const waitAndDelete = async () => {
+    // Check all databases are deletable (deletion protection removed)
+    const checkResults = await Promise.all(dbs.map((db) => checkDatabaseDeletable(db)));
+
+    if (checkResults.includes(false)) {
       console.log("Waiting for DBs to be deletable...");
-      setTimeout(wait, 20000);
-    } else {
-      return Promise.all([
-        dbs.map(async (db) => {
-          //check whether DB is already being deleted
-          const profileName = useIAM;
-          const factory = new AWSClientFactory(AWS_REGION, profileName);
-          const rdsClient = factory.createClient(RDSClient);
-          let dbStatus;
-          try {
-            const describeDBInstancesResponse = await rdsClient.send(
-              new DescribeDBInstancesCommand({ DBInstanceIdentifier: db }),
-            );
-            dbStatus = {
-              stdout: JSON.stringify({ DBInstances: describeDBInstancesResponse.DBInstances }),
-            };
-          } catch (e) {
-            console.error(`Unable to get information about ${db}`);
-            console.error(e);
-          }
-          if (JSON.parse(dbStatus.stdout).DBInstances[0].DBInstanceStatus != "deleting") {
-            let dbDeletionResponse;
-            console.log(`Deleting database ${db}`);
-            try {
-              dbDeletionResponse = rdsClient.send(
-                new DeleteDBInstanceCommand({
-                  DBInstanceIdentifier: db,
-                  SkipFinalSnapshot: true,
-                }),
-              );
-            } catch (e) {
-              if (e.message.includes("already being deleted")) {
-                console.warn("\x1b[31m%s\x1b[0m", `Database ${db} already being deleted.`);
-                return true;
-              } else {
-                console.error(`Uncaught db deletion error: ` + e);
-                throw e;
-              }
-            }
-          }
-        }),
-      ]);
+      await new Promise((resolve) => setTimeout(resolve, 20000));
+      return waitAndDelete(); // Recursively check again
     }
-    console.log("really shouldn't ever get to this line of wait()!");
+
+    // All databases are deletable, proceed with deletion
+    await Promise.all(
+      dbs.map(async (db) => {
+        try {
+          // Check current database status
+          const response = await rdsClient.send(
+            new DescribeDBInstancesCommand({ DBInstanceIdentifier: db }),
+          );
+          const dbStatus = response.DBInstances?.[0]?.DBInstanceStatus;
+
+          if (dbStatus !== "deleting") {
+            console.log(`Deleting database ${db}`);
+            await rdsClient.send(
+              new DeleteDBInstanceCommand({
+                DBInstanceIdentifier: db,
+                SkipFinalSnapshot: true,
+              }),
+            );
+          }
+        } catch (e) {
+          if (e.message.includes("already being deleted")) {
+            console.warn(`Database ${db} already being deleted.`);
+          } else {
+            console.error(`Unable to get information about ${db}: ${e.message}`);
+            throw e;
+          }
+        }
+      }),
+    );
   };
 
-  try {
-    await wait();
-  } catch (e) {
-    throw e;
-  }
+  await waitAndDelete();
 
-  //now, wait for them to be deleted
-  /**
-   *
-   */
-  const wait2 = async () => {
-    //Sometimes, I really miss loops
-    return new Promise(async (resolve, reject) => {
-      /**
-       *
-       */
-      const confirmDBDeleted = async () => {
-        let temp;
-        try {
-          const profileName = useIAM;
-          const factory = new AWSClientFactory(AWS_REGION, profileName);
-          const rdsClient = factory.createClient(RDSClient);
-          const describeDBInstancesResponse = await rdsClient.send(
-            new DescribeDBInstancesCommand({}),
-          );
-          temp = JSON.stringify({ DBInstances: describeDBInstancesResponse.DBInstances });
-        } catch (e) {
-          console.error(`Unable to get list of databases`);
-          throw e;
-        }
-        return JSON.parse(temp).DBInstances.length == 0;
-      };
-      let confirmedDeleted;
-      try {
-        confirmedDeleted = await confirmDBDeleted();
-      } catch (e) {
-        throw e;
-      }
-      if (confirmedDeleted) {
+  // Wait for databases to be fully deleted
+  const waitForDeletion = async () => {
+    try {
+      const response = await rdsClient.send(new DescribeDBInstancesCommand({}));
+      const remainingDBs = response.DBInstances || [];
+
+      if (remainingDBs.length === 0) {
         console.log(`Databases confirmed deleted`);
-        resolve(true);
+        return true;
       } else {
         console.log("Waiting for DBs to be deleted...");
-        setTimeout(wait2, 20000);
+        await new Promise((resolve) => setTimeout(resolve, 20000));
+        return waitForDeletion(); // Recursively check again
       }
-      //console.log("really shouldn't ever get to this line of wait2()!")
-    });
+    } catch (e) {
+      console.error(`Unable to get list of databases: ${e.message}`);
+      throw e;
+    }
   };
 
-  return wait2();
+  return waitForDeletion();
 };
-
-// Export all functions
-export { initDB, getDBInfo, recordDBs, dbsToDeleteFunc, deleteDatabases };
 
 /**
  * Retrieve database connection information from pushkin.yaml
@@ -618,10 +543,9 @@ const recordDBs = async (dbDone) => {
 
     console.log(`Databases created. Adding to local config definitions.`);
     let pushkinConfig;
-    let stdOut;
     try {
-      stdOut = await fs.promises.readFile(path.join(process.cwd(), "pushkin.yaml"), "utf8");
-      pushkinConfig = jsYaml.load(stdOut);
+      const yamlContent = await fs.promises.readFile(path.join(process.cwd(), "pushkin.yaml"), "utf8");
+      pushkinConfig = jsYaml.load(yamlContent);
     } catch (e) {
       console.error(`Couldn't load pushkin.yaml`);
       throw e;
@@ -630,7 +554,6 @@ const recordDBs = async (dbDone) => {
     // Would have made sense for local databases and production databases to be nested within 'databases'
     // But poor planning prevents that. And we'd like to avoid breaking changes, so...
     if (pushkinConfig.productionDBs == null) {
-      // initialize
       pushkinConfig.productionDBs = {};
     }
     if (transactionDB) {
@@ -642,7 +565,7 @@ const recordDBs = async (dbDone) => {
       pushkinConfig.productionDBs[mainDB.type] = mainDB;
     }
     try {
-      stdOut = await fs.promises.writeFile(
+      await fs.promises.writeFile(
         path.join(process.cwd(), "pushkin.yaml"),
         jsYaml.dump(pushkinConfig),
         "utf8",
@@ -659,3 +582,6 @@ const recordDBs = async (dbDone) => {
     throw error;
   }
 };
+
+// Export all functions
+export { initDB, getDBInfo, recordDBs, dbsToDeleteFunc, deleteDatabases };

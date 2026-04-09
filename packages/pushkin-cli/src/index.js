@@ -17,7 +17,7 @@ import shelljs from "shelljs";
 
 // Subcommands
 import {
-  checkIAMUser,
+  verifyIAMCredentials,
   awsInit,
   nameProject,
   addIAM,
@@ -1017,7 +1017,7 @@ const handleAWSInit = async (force) => {
   }
 
   try {
-    await checkIAMUser(useIAM.iam);
+    await verifyIAMCredentials(useIAM.iam);
   } catch (e) {
     console.error(
       `The IAM user ${useIAM.iam} is not configured on the AWS CLI. For more information see https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html`,

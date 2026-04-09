@@ -52,7 +52,7 @@ import { deployFrontEnd, deleteCloudFront, deleteOACs } from "./services/cloudfr
 import { buildFrontEnd, deleteBucket } from "./services/s3.js";
 import { deleteResourceRecords } from "./services/route53.js";
 import { forwardAPIWrapper, deleteLoadBalancer, deleteTargetGroup } from "./services/elb.js";
-import { checkDatabaseSecurityGroup, deleteSecurityGroups } from "./services/security.js";
+import { ensureDatabaseSecurityGroup, deleteSecurityGroups } from "./services/security.js";
 import { createLogGroup, chooseCertificate } from "./services/monitoring.js";
 import { publishToDocker, rebuildWorker } from "./services/docker.js";
 
@@ -198,7 +198,7 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
   updatePushkinJs();
 
   //Databases take BY FAR the longest, so start them right after certificate (certificate comes first or things get confused)
-  let securityGroupID = await checkDatabaseSecurityGroup(profileName, projName);
+  let securityGroupID = await ensureDatabaseSecurityGroup(profileName, projName);
 
   console.log(`Creating Main database promise...`);
   const initializedMainDB = initDB("Main", securityGroupID, projName, awsName, profileName);
