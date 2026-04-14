@@ -650,14 +650,14 @@ const ecsTaskCreator = async (
  * - Auto-scaling configuration
  * - Network setup (VPC, subnets)
  * @param {string} projName - The name of the project
- * @param {string} awsName - The name of the AWS account
+ * @param {string} s3BucketName - The S3 bucket name (sanitized, globally unique, AWS-compliant) [UNUSED in this function]
  * @param {boolean} useIAM - Whether to use IAM roles
  * @param {string} DHID - The Docker Hub ID
  * @param {Promise} completedDBs - A promise that resolves when the databases are set up
  * @param {string} myCertificate - The certificate for the project
  * @returns {Promise} - A promise that resolves when the ECS setup is complete
  */
-const setupECS = async (projName, awsName, useIAM, DHID, completedDBs, myCertificate) => {
+const setupECS = async (projName, s3BucketName, useIAM, DHID, completedDBs, myCertificate) => {
   console.log(`Starting ECS setup`);
   let temp;
 

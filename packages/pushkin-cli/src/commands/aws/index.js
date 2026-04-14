@@ -97,12 +97,12 @@ const setupTransactionsWrapper = async (completedDBs) => {
  * 3. Runs database migrations
  * 4. Sets up monitoring and scaling
  * @param {string} projName - The project name
- * @param {string} awsName - The AWS resource name
+ * @param {string} s3BucketName - The AWS resource name
  * @param {string} useIAM - The IAM profile name
  * @param {string} DHID - The DockerHub ID
  * @returns {Promise<void>} - A promise that resolves when initialization is complete
  */
-export async function awsInit(projName, awsName, useIAM, DHID) {
+export async function awsInit(projName, s3BucketName, useIAM, DHID) {
   // Normalize useIAM to always be a string
   const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
 
@@ -188,7 +188,7 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
 
   pushkinConfig.info.rootDomain = myDomain;
   pushkinConfig.info.projName = projName;
-  pushkinConfig.info.awsName = awsName;
+  pushkinConfig.info.s3BucketName = s3BucketName;
   await fs.promises.writeFile(
     path.join(process.cwd(), "pushkin.yaml"),
     jsYaml.dump(pushkinConfig),
@@ -201,17 +201,11 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
   let securityGroupID = await ensureDatabaseSecurityGroup(profileName, projName);
 
   console.log(`Creating Main database promise...`);
-  const initializedMainDB = initDB("Main", securityGroupID, projName, awsName, profileName);
+  const initializedMainDB = initDB("Main", securityGroupID, projName, profileName);
   console.log(`Main database initialization started`);
 
   console.log(`Creating Transaction database promise...`);
-  const initializedTransactionDB = initDB(
-    "Transaction",
-    securityGroupID,
-    projName,
-    awsName,
-    profileName,
-  );
+  const initializedTransactionDB = initDB("Transaction", securityGroupID, projName, profileName);
   console.log(`Transaction database initialization started`);
 
   let completedDBs;
@@ -244,7 +238,7 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
 
   const deployedFrontEnd = deployFrontEnd(
     projName,
-    awsName,
+    s3BucketName,
     profileName,
     myDomain,
     myCertificate,
@@ -254,7 +248,7 @@ export async function awsInit(projName, awsName, useIAM, DHID) {
   publishedToDocker = await publishedToDocker; //need this to configure ECS
   const configuredECS = setupECS(
     projName,
-    awsName,
+    s3BucketName,
     profileName,
     DHID,
     Promise.resolve(completedDBs),
@@ -326,18 +320,24 @@ export async function nameProject(projName) {
   let awsResources = {};
   let temp, pushkinConfig;
   awsResources.name = projName;
-  // make a name for use as a bucket (AWS has rules)
+
+  // Generate S3-compliant bucket name from project name
+  // AWS S3 bucket naming rules:
+  // - Must be globally unique across ALL AWS accounts
+  // - Must be 3-63 characters long
+  // - Can only contain lowercase letters, numbers, hyphens
+  // - Must start with a letter or number (not hyphen)
+  // We append a UUID to ensure global uniqueness
   temp = projName
-    .replace(/[^\w\s]/g, "")
-    .replace(/ /g, "-")
-    .replace(/_/g, "-")
-    .concat(uuid())
-    .toLowerCase();
+    .replace(/[^\w\s]/g, "") // Remove special chars except word chars and spaces
+    .replace(/ /g, "-") // Replace spaces with hyphens
+    .replace(/_/g, "-") // Replace underscores with hyphens
+    .concat(uuid()) // Add UUID for global uniqueness
+    .toLowerCase(); // Convert to lowercase
   if (temp.search(/[a-zA-Z]/g) != 0) {
-    temp = "p".concat(temp);
+    temp = "p".concat(temp); // Prepend 'p' if doesn't start with letter
   }
-  awsResources.awsName = temp;
-  //use regular expressions to remove underscores from project name
+  awsResources.s3BucketName = temp;
   try {
     writeAwsResources(awsResources);
   } catch (e) {
@@ -374,7 +374,7 @@ export async function nameProject(projName) {
     }
   }
 
-  return awsResources.awsName;
+  return awsResources.s3BucketName;
 }
 
 /**
@@ -467,7 +467,7 @@ export const awsArmageddon = async (useIAM, killType) => {
   console.log(`Updating awsResources.js`);
   let awsResourcesNull = {
     name: projName,
-    awsName: null,
+    s3BucketName: null,
     iam: profileName,
     dbs: [],
     cloudFrontId: null,

@@ -136,13 +136,13 @@ const uploadFileToS3 = async (s3Client, bucketName, filePath, s3Key, verbose = f
  * WHY: We need to sync the local build with the S3 bucket to deploy the front-end to AWS.
  * This implementation uses the AWS SDK instead of the AWS CLI for better error handling
  * and to avoid external CLI dependencies.
- * @param {string} awsName - The S3 bucket name
+ * @param {string} s3BucketName - The S3 bucket name (sanitized, globally unique, AWS-compliant)
  * @param {string} useIAM - The IAM profile to use
  * @param {boolean} verbose - Whether to log detailed steps in syncing local front-end build with S3 bucket
  * @returns {Promise} - A promise that resolves when the sync is complete
  */
-const syncS3 = async (awsName, useIAM, verbose = false) => {
-  console.log(`Syncing static front-end files to S3 bucket ${awsName}`);
+const syncS3 = async (s3BucketName, useIAM, verbose = false) => {
+  console.log(`Syncing static front-end files to S3 bucket ${s3BucketName}`);
   try {
     const buildDir = path.join(process.cwd(), "pushkin/front-end/build");
 
@@ -167,7 +167,7 @@ const syncS3 = async (awsName, useIAM, verbose = false) => {
       const batch = files.slice(i, i + BATCH_SIZE);
       await Promise.all(
         batch.map(({ absolutePath, relativePath }) =>
-          uploadFileToS3(s3Client, awsName, absolutePath, relativePath, verbose),
+          uploadFileToS3(s3Client, s3BucketName, absolutePath, relativePath, verbose),
         ),
       );
 
@@ -176,7 +176,7 @@ const syncS3 = async (awsName, useIAM, verbose = false) => {
       }
     }
 
-    console.log(`Successfully synced ${files.length} files to S3 bucket ${awsName}`);
+    console.log(`Successfully synced ${files.length} files to S3 bucket ${s3BucketName}`);
   } catch (error) {
     console.error(`Unable to sync local build with S3 bucket: ${error.message}`);
     throw error;
@@ -241,7 +241,7 @@ const deleteSingleBucket = async (s3Client, bucketName) => {
  * WHY: S3 bucket needs to be deleted during teardown to avoid orphaned resources and potential costs.
  * @param {string} useIAM - The IAM profile name
  * @param {string|boolean} killTag - If string (project name), only delete project bucket; if false, delete all buckets
- * @param {object} awsResources - The AWS resources object (contains awsName = bucket name)
+ * @param {object} awsResources - The AWS resources object (contains s3BucketName)
  * @param {Promise} deletedCloudFront - Promise that resolves when CloudFront distribution is deleted
  * @returns {Promise} - A promise that resolves when deletion is complete
  */
@@ -274,7 +274,7 @@ const deleteBucket = async (useIAM, killTag, awsResources, deletedCloudFront, ve
     console.log(`Deleting all ${buckets.length} S3 buckets (armageddon mode) in AWS account.`);
   } else {
     // Kill mode: delete only the project bucket (match by name)
-    const projectBucketName = awsResources?.awsName;
+    const projectBucketName = awsResources?.s3BucketName;
     if (!projectBucketName) {
       if (verbose) {
         console.log(`No project bucket name found in awsResources. Skipping S3 deletion.`);

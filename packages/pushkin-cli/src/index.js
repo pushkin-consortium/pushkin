@@ -69,10 +69,10 @@ const loadConfig = (configFile) => {
 };
 
 const updateS3 = async () => {
-  let awsName, useIAM;
+  let s3BucketName, useIAM;
   try {
     const awsResources = await readAwsResources();
-    awsName = awsResources.awsName;
+    s3BucketName = awsResources.s3BucketName;
     useIAM = awsResources.iam;
   } catch (e) {
     console.error(`Unable to read deployment config`);
@@ -81,7 +81,7 @@ const updateS3 = async () => {
 
   let syncMe;
   try {
-    return syncS3(awsName, useIAM);
+    return syncS3(s3BucketName, useIAM);
   } catch (e) {
     console.error(`Unable to sync local build with s3 bucket`);
     throw e;
@@ -948,7 +948,7 @@ const handleAWSInit = async (force) => {
     throw e;
   }
 
-  let projName, useIAM, awsName;
+  let projName, useIAM, s3BucketName;
 
   try {
     execSync("aws --version");
@@ -974,12 +974,12 @@ const handleAWSInit = async (force) => {
     }
     if (projName.name != "new") {
       newProj = false;
-      awsName = config.info.awsName;
+      s3BucketName = config.info.s3BucketName;
     }
     if (force) {
       try {
         //Run this anyway to reset awsResources.js and remove productionDBs from pushkin.yaml
-        awsName = await nameProject(projName.name);
+        s3BucketName = await nameProject(projName.name);
       } catch (e) {
         throw e;
       }
@@ -996,7 +996,7 @@ const handleAWSInit = async (force) => {
       process.exit();
     }
     try {
-      awsName = await nameProject(projName.name);
+      s3BucketName = await nameProject(projName.name);
     } catch (e) {
       throw e;
     }
@@ -1033,7 +1033,7 @@ const handleAWSInit = async (force) => {
   }
 
   try {
-    await Promise.all([awsInit(projName.name, awsName, useIAM.iam, config.DockerHubID), addedIAM]);
+    await Promise.all([awsInit(projName.name, s3BucketName, useIAM.iam, config.DockerHubID), addedIAM]);
   } catch (e) {
     throw e;
   }
