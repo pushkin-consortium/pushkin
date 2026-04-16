@@ -39,7 +39,7 @@ const buildFrontEnd = async (projName, verbose = false) => {
   try {
     packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
   } catch (error) {
-    console.error(`Failed to parse front-end package.json: ${error.message}`);
+    console.error(`Failed to parse front-end package.json:`, error);
     throw error;
   }
 
@@ -69,7 +69,7 @@ const buildFrontEnd = async (projName, verbose = false) => {
       console.log("Built combined front-end");
     }
   } catch (error) {
-    console.error(`Problem installing and building combined front-end: ${error.message}`);
+    console.error(`Problem installing and building combined front-end:`, error);
     throw error;
   }
 };
@@ -178,7 +178,7 @@ const syncS3 = async (s3BucketName, useIAM, verbose = false) => {
 
     console.log(`Successfully synced ${files.length} files to S3 bucket ${s3BucketName}`);
   } catch (error) {
-    console.error(`Unable to sync local build with S3 bucket: ${error.message}`);
+    console.error(`Unable to sync local build with S3 bucket:`, error);
     throw error;
   }
 };
@@ -232,7 +232,7 @@ const deleteSingleBucket = async (s3Client, bucketName) => {
     await s3Client.send(new DeleteBucketCommand({ Bucket: bucketName }));
     console.log(`Successfully deleted S3 bucket ${bucketName}`);
   } catch (error) {
-    console.warn(`Unable to delete S3 bucket ${bucketName}: ${error.message}`);
+    console.warn(`Unable to delete S3 bucket ${bucketName}:`, error);
   }
 };
 
@@ -257,7 +257,7 @@ const deleteBucket = async (useIAM, killTag, awsResources, deletedCloudFront, ve
     const listBucketsResponse = await s3Client.send(new ListBucketsCommand({}));
     buckets = listBucketsResponse.Buckets || [];
   } catch (error) {
-    console.error(`Unable to list buckets: ${error.message}`);
+    console.error(`Unable to list buckets:`, error);
     throw error;
   }
 

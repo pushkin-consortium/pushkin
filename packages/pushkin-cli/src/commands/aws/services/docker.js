@@ -21,7 +21,7 @@ const rebuildWorker = async function (exp, verbose = false) {
   try {
     pushkinConfig = await loadPushkinConfig();
   } catch (error) {
-    console.error(`Failed to load pushkin.yaml: ${error.message}`);
+    console.error(`Failed to load pushkin.yaml:`, error);
     throw error;
   }
   if (verbose) {
@@ -33,7 +33,7 @@ const rebuildWorker = async function (exp, verbose = false) {
   try {
     expConfig = readConfig(expDir);
   } catch (error) {
-    console.error(`Failed to read experiment config file for ${exp}: ${error.message}`);
+    console.error(`Failed to read experiment config file for ${exp}:`, error);
     throw error;
   }
   const workerConfig = expConfig.worker;
@@ -55,7 +55,7 @@ const rebuildWorker = async function (exp, verbose = false) {
     ];
     workerBuild = exec(quote(command));
   } catch (error) {
-    console.error(`Problem building worker for ${exp}: ${error.message}`);
+    console.error(`Problem building worker for ${exp}:`, error);
     throw error;
   }
   return workerBuild;
@@ -101,7 +101,7 @@ const publishToDocker = async (DHID, rebuiltWorkers = Promise.resolve(), verbose
     ]);
     execSync(buildCommand, { cwd: process.cwd() });
   } catch (error) {
-    console.error(`Problem building API: ${error.message}`);
+    console.error(`Problem building API:`, error);
     throw error;
   }
 
@@ -115,7 +115,7 @@ const publishToDocker = async (DHID, rebuiltWorkers = Promise.resolve(), verbose
     const pushCommand = quote(["docker", "push", imageTag]);
     pushedAPI = exec(pushCommand, { cwd: process.cwd() }); // async; awaited in Promise.all at the end
   } catch (error) {
-    console.error(`Couldn't push API to DockerHub: ${error.message}`);
+    console.error(`Couldn't push API to DockerHub:`, error);
     throw error;
   }
   // NOTE: don't need to build frontend because it's all compiled static files
@@ -126,7 +126,7 @@ const publishToDocker = async (DHID, rebuiltWorkers = Promise.resolve(), verbose
       fs.readFileSync(path.join(process.cwd(), "pushkin/docker-compose.dev.yml"), "utf8"),
     );
   } catch (error) {
-    console.error(`Failed to load the docker-compose: ${error.message}`);
+    console.error(`Failed to load the docker-compose:`, error);
     throw error;
   }
 
@@ -152,9 +152,9 @@ const publishToDocker = async (DHID, rebuiltWorkers = Promise.resolve(), verbose
       const tagCommand = quote(["docker", "tag", service.image, targetImage]);
       const pushCommand = quote(["docker", "push", targetImage]);
       execSync(tagCommand);
-      return exec(pushCommand); // async; awaited in Promise.all at the end 
+      return exec(pushCommand); // async; awaited in Promise.all at the end
     } catch (error) {
-      console.error(`Unable to tag and/or push image ${service.image}: ${error.message}`);
+      console.error(`Unable to tag and/or push image ${service.image}:`, error);
       throw error;
     }
   };
@@ -165,7 +165,7 @@ const publishToDocker = async (DHID, rebuiltWorkers = Promise.resolve(), verbose
   try {
     pushedWorkers = Object.keys(docker_compose.services).map(pushWorkers);
   } catch (error) {
-    console.error(`Unable to push worker images to DockerHub: ${error.message}`);
+    console.error(`Unable to push worker images to DockerHub:`, error);
     throw error;
   }
 

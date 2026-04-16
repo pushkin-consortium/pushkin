@@ -46,7 +46,7 @@ import { loadPushkinConfig, savePushkinConfig } from "./utils/config.js";
 import { AWS_REGION, exec } from "./constants.js";
 
 // Import from service modules
-import { initDB, recordDBs, dbsToDeleteFunc, deleteDatabases } from "./services/rds.js";
+import { initDB, recordDBs, getDBsToDelete, deleteDBs } from "./services/rds.js";
 import { setupECS, deleteStack, deleteCluster } from "./services/ecs.js";
 import { deployFrontEnd, deleteCloudFront, deleteOACs } from "./services/cloudfront.js";
 import { buildFrontEnd, deleteBucket } from "./services/s3.js";
@@ -110,7 +110,7 @@ export async function awsInit(projName, s3BucketName, useIAM, DHID) {
   try {
     pushkinConfig = await loadPushkinConfig();
   } catch (error) {
-    console.error(`Failed to load pushkin.yaml: ${error.message}`);
+    console.error(`Failed to load pushkin.yaml:`, error);
     throw error;
   }
 
@@ -341,7 +341,7 @@ export async function nameProject(projName) {
   try {
     pushkinConfig = await loadPushkinConfig();
   } catch (error) {
-    console.error(`Failed to load pushkin.yaml: ${error.message}`);
+    console.error(`Failed to load pushkin.yaml:`, error);
     throw error;
   }
 
@@ -355,7 +355,7 @@ export async function nameProject(projName) {
     try {
       await savePushkinConfig(pushkinConfig);
     } catch (error) {
-      console.error(`Failed to save pushkin.yaml: ${error.message}`);
+      console.error(`Failed to save pushkin.yaml:`, error);
       throw error;
     }
   }
@@ -424,8 +424,8 @@ export const awsArmageddon = async (useIAM, killType) => {
 
   const deletedCluster = deleteCluster(deletedStack, profileName, killTag, projName, awsResources);
 
-  const dbsToDelete = dbsToDeleteFunc(profileName, killTag, awsResources);
-  const deletedDBs = deleteDatabases(dbsToDelete, profileName, killTag);
+  const dbsToDelete = getDBsToDelete(profileName, killTag, awsResources);
+  const deletedDBs = deleteDBs(dbsToDelete, profileName, killTag);
 
   const deletedLoadBalancer = deleteLoadBalancer(profileName, killTag);
 
@@ -593,7 +593,7 @@ export const createAutoScale = async (useIAM, projName) => {
     alarmTransactionHigh.Dimensions[0].Value = config.productionDBs.Transaction.name;
     useEmail = config.info.email;
   } catch (error) {
-    console.error(`Failed to load pushkin.yaml: ${error.message}`);
+    console.error(`Failed to load pushkin.yaml:`, error);
     throw error;
   }
 

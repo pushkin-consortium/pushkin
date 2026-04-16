@@ -251,7 +251,7 @@ const ecsTaskCreator = async (
       );
       return response.taskDefinition.taskDefinitionArn;
     } catch (error) {
-      console.error(`Failed to register task definition ${taskDefParams.family}:`, error.message);
+      console.error(`Failed to register task definition ${taskDefParams.family}:`, error);
       throw error;
     }
   };
@@ -357,7 +357,7 @@ const ecsTaskCreator = async (
     } catch (error) {
       console.error(`\n\n========== ECS SERVICE CREATION ERROR ==========`);
       console.error(`Service: ${serviceName}`);
-      console.error(`Error: ${error.name} - ${error.message}`);
+      console.error(`Error:`, error);
       if (error.$metadata) {
         console.error(`HTTP Status: ${error.$metadata.httpStatusCode}`);
       }
@@ -438,7 +438,7 @@ const ecsTaskCreator = async (
         // For Fargate, we don't need to wait for EC2 instances - deploy immediately
         return await deployService();
       } catch (error) {
-        console.error(`Error checking cluster: ${error.message}`);
+        console.error(`Error checking cluster:`, error);
         throw error;
       }
     };

@@ -71,7 +71,7 @@ const ensureDatabaseSecurityGroup = async (useIAM, projName) => {
     );
     securityGroups = describeSecurityGroupsResponse.SecurityGroups || [];
   } catch (error) {
-    console.error(`Failed to retrieve list of security groups from AWS: ${error.message}`);
+    console.error(`Failed to retrieve list of security groups from AWS:`, error);
     throw error;
   }
 
@@ -119,7 +119,7 @@ const ensureDatabaseSecurityGroup = async (useIAM, projName) => {
 
     return groupId;
   } catch (error) {
-    console.error(`Failed to create security group for databases: ${error.message}`);
+    console.error(`Failed to create security group for databases:`, error);
     throw error;
   }
 };
@@ -143,7 +143,7 @@ const ensureBalancerSecurityGroup = async (useIAM, projName) => {
     );
     securityGroups = describeSecurityGroupsResponse.SecurityGroups || [];
   } catch (error) {
-    console.error(`Failed to retrieve list of security groups from AWS: ${error.message}`);
+    console.error(`Failed to retrieve list of security groups from AWS:`, error);
     throw error;
   }
 
@@ -206,7 +206,7 @@ const ensureBalancerSecurityGroup = async (useIAM, projName) => {
 
     return groupId;
   } catch (error) {
-    console.error(`Failed to create security group for load balancer: ${error.message}`);
+    console.error(`Failed to create security group for load balancer:`, error);
     throw error;
   }
 };
@@ -230,7 +230,7 @@ const ensureECSSecurityGroup = async (useIAM, projName) => {
     );
     securityGroups = describeSecurityGroupsResponse.SecurityGroups || [];
   } catch (error) {
-    console.error(`Failed to retrieve list of security groups from AWS: ${error.message}`);
+    console.error(`Failed to retrieve list of security groups from AWS:`, error);
     throw error;
   }
 
@@ -307,7 +307,7 @@ const ensureECSSecurityGroup = async (useIAM, projName) => {
 
     return groupId;
   } catch (error) {
-    console.error(`Failed to create security group for ECS cluster: ${error.message}`);
+    console.error(`Failed to create security group for ECS cluster:`, error);
     throw error;
   }
 };
@@ -332,7 +332,7 @@ const getACL = async (useIAM, verbose = false) => {
     const foundACL = webACLs.find((acl) => acl.Name === pushkinACL.Name);
     ACLarn = foundACL?.ARN;
   } catch (error) {
-    console.error(`Unable to get list of ACLs: ${error.message}`);
+    console.error(`Unable to get list of ACLs:`, error);
     throw error;
   }
 
@@ -353,7 +353,7 @@ const getACL = async (useIAM, verbose = false) => {
         console.log(`Created new ${pushkinACL.Name} Web ACL`);
       }
     } catch (error) {
-      console.error(`Unable to create ACL: ${error.message}`);
+      console.error(`Unable to create ACL:`, error);
       throw error;
     }
   } else {
@@ -398,7 +398,7 @@ const deleteSingleSecurityGroup = async (groupName, useIAM, verbose = false) => 
       // TODO: killize
       `Unable to delete security group ${groupName}. This is usually because AWS needs something else deleted first (e.g., RDS database instances).\nWe recommend you retry 'pushkin aws kill' or 'pushkin aws armageddon' in a few minutes.`,
     );
-    console.warn(error.message);
+    console.warn(error);
   }
 
   return true;
@@ -426,7 +426,7 @@ const deleteSecurityGroups = async (useIAM, killTag, deletedDBs) => {
     );
     securityGroups = describeSecurityGroupsResponse.SecurityGroups || [];
   } catch (error) {
-    console.error(`Unable to list security groups: ${error.message}`);
+    console.error(`Unable to list security groups:`, error);
     throw error;
   }
 

@@ -80,7 +80,7 @@ const createOAC = async (useIAM) => {
     );
     return response.OriginAccessControl.Id;
   } catch (error) {
-    console.error(`Unable to create Origin Access Control: ${error.message}`);
+    console.error(`Unable to create Origin Access Control:`, error);
     throw error;
   }
 };
@@ -180,7 +180,7 @@ const waitForCloudFrontDeployment = async (distributionId, useIAM, verbose = fal
         await new Promise((resolve) => setTimeout(resolve, checkInterval * 1000));
       }
     } catch (error) {
-      console.error(`\nError checking CloudFront status: ${error.message}`);
+      console.error(`\nError checking CloudFront status:`, error);
       throw error;
     }
   }
@@ -286,7 +286,7 @@ const isDistributionReadyForDeletion = async (distId, useIAM) => {
     if (error.name === "NoSuchDistribution") {
       return true;
     }
-    console.error(`Unable to check cloudfront distribution status: ${error.message}`);
+    console.error(`Unable to check cloudfront distribution status:`, error);
     throw error;
   }
 };
@@ -309,7 +309,7 @@ const deleteCloudFront = async (useIAM, projName, killTag, verbose = false) => {
   try {
     distributions = await getDistributionsToDelete(useIAM, projName, killTag);
   } catch (error) {
-    console.error(`Unable to get list of cloudfront distributions: ${error.message}`);
+    console.error(`Unable to get list of cloudfront distributions:`, error);
     throw error;
   }
 
@@ -387,7 +387,7 @@ const deleteCloudFront = async (useIAM, projName, killTag, verbose = false) => {
               updateAwsResourcesField("cloudFrontId", null); // TODO: maybe don't hardcode
               resolve(true);
             } catch (error) {
-              console.error(`Error during CloudFront deletion: ${error.message}`);
+              console.error(`Error during CloudFront deletion:`, error);
 
               // Check if distribution is still in progress
               try {
@@ -460,7 +460,7 @@ const deleteOACWithRetry = async (oacId, etag, useIAM, verbose = false) => {
       }
 
       // Other error or final attempt - throw
-      console.error(`Failed to delete origin access control ${oacId}: ${error.message}`);
+      console.error(`Failed to delete origin access control ${oacId}:`, error);
       throw error;
     }
   }
@@ -499,7 +499,7 @@ const deleteOACs = async (useIAM, deletedCloudFront, verbose = false) => {
     const response = await cloudFrontClient.send(new ListOriginAccessControlsCommand({}));
     oacList = response.OriginAccessControlList?.Items || [];
   } catch (error) {
-    console.error(`Unable to get list of origin access controls: ${error.message}`);
+    console.error(`Unable to get list of origin access controls:`, error);
     throw error;
   }
 
@@ -519,7 +519,7 @@ const deleteOACs = async (useIAM, deletedCloudFront, verbose = false) => {
       );
       etag = response.ETag;
     } catch (error) {
-      console.error(`Unable to get etag for origin access control ${oac.Id}: ${error.message}`);
+      console.error(`Unable to get etag for origin access control ${oac.Id}:`, error);
       throw error;
     }
 
