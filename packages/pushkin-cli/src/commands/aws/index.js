@@ -16,7 +16,6 @@
 import { v4 as uuid } from "uuid";
 import fs from "graceful-fs";
 import path from "path";
-import jsYaml from "js-yaml";
 import {
   alarmRAMHigh,
   alarmCPUHigh,
@@ -43,6 +42,7 @@ import { EC2Client, DescribeSecurityGroupsCommand } from "@aws-sdk/client-ec2";
 import { CloudFormationClient, DescribeStacksCommand } from "@aws-sdk/client-cloudformation";
 import { AWSClientFactory } from "./utils/aws-client-factory.js";
 import { readAwsResources, writeAwsResources } from "./utils/aws-resources.js";
+import { loadPushkinConfig, savePushkinConfig } from "./utils/config.js";
 import { AWS_REGION, exec } from "./constants.js";
 
 // Import from service modules
@@ -106,14 +106,12 @@ export async function awsInit(projName, s3BucketName, useIAM, DHID) {
   // Normalize useIAM to always be a string
   const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
 
-  let temp;
   let pushkinConfig;
   try {
-    temp = await fs.promises.readFile(path.join(process.cwd(), "pushkin.yaml"), "utf8");
-    pushkinConfig = jsYaml.load(temp);
-  } catch (e) {
-    console.error(`Couldn't load pushkin.yaml`);
-    throw e;
+    pushkinConfig = await loadPushkinConfig();
+  } catch (error) {
+    console.error(`Failed to load pushkin.yaml: ${error.message}`);
+    throw error;
   }
 
   let myCertificate;
@@ -189,11 +187,7 @@ export async function awsInit(projName, s3BucketName, useIAM, DHID) {
   pushkinConfig.info.rootDomain = myDomain;
   pushkinConfig.info.projName = projName;
   pushkinConfig.info.s3BucketName = s3BucketName;
-  await fs.promises.writeFile(
-    path.join(process.cwd(), "pushkin.yaml"),
-    jsYaml.dump(pushkinConfig),
-    "utf8",
-  );
+  await savePushkinConfig(pushkinConfig);
   console.log(`Successfully updated pushkin.yaml with custom domain.`);
   updatePushkinJs();
 
@@ -301,11 +295,7 @@ export async function awsInit(projName, s3BucketName, useIAM, DHID) {
 
   console.log("DEBUG: All final operations completed");
 
-  await fs.promises.writeFile(
-    path.join(process.cwd(), "pushkin.yaml"),
-    jsYaml.dump(pushkinConfig),
-    "utf8",
-  );
+  await savePushkinConfig(pushkinConfig);
 
   return;
 }
@@ -349,10 +339,10 @@ export async function nameProject(projName) {
 
   console.log("Resetting db info");
   try {
-    pushkinConfig = jsYaml.load(fs.readFileSync(path.join(process.cwd(), "pushkin.yaml"), "utf8"));
-  } catch (e) {
-    console.error(`Couldn't load pushkin.yaml`);
-    throw e;
+    pushkinConfig = await loadPushkinConfig();
+  } catch (error) {
+    console.error(`Failed to load pushkin.yaml: ${error.message}`);
+    throw error;
   }
 
   if (pushkinConfig.productionDBs) {
@@ -363,14 +353,10 @@ export async function nameProject(projName) {
       // Leave port and user in place, since those are unlikely to change
     });
     try {
-      fs.promises.writeFile(
-        path.join(process.cwd(), "pushkin.yaml"),
-        jsYaml.dump(pushkinConfig),
-        "utf8",
-      );
-    } catch (e) {
-      console.error(`Couldn't save pushkin.yaml`);
-      throw e;
+      await savePushkinConfig(pushkinConfig);
+    } catch (error) {
+      console.error(`Failed to save pushkin.yaml: ${error.message}`);
+      throw error;
     }
   }
 
@@ -602,14 +588,13 @@ export const createAutoScale = async (useIAM, projName) => {
   let alarmMainHigh = JSON.parse(JSON.stringify(alarmRDSWriteLatencyHigh));
   let alarmTransactionHigh = JSON.parse(JSON.stringify(alarmRDSWriteLatencyHigh));
   try {
-    let temp = await fs.promises.readFile(path.join(process.cwd(), "pushkin.yaml"), "utf8");
-    let config = jsYaml.load(temp);
+    const config = await loadPushkinConfig();
     alarmMainHigh.Dimensions[0].Value = config.productionDBs.Main.name;
     alarmTransactionHigh.Dimensions[0].Value = config.productionDBs.Transaction.name;
     useEmail = config.info.email;
-  } catch (e) {
-    console.error(`Couldn't load pushkin.yaml`);
-    throw e;
+  } catch (error) {
+    console.error(`Failed to load pushkin.yaml: ${error.message}`);
+    throw error;
   }
 
   try {

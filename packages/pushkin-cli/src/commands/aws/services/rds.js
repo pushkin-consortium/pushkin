@@ -7,12 +7,10 @@ import {
   DeleteDBInstanceCommand,
   waitUntilDBInstanceAvailable,
 } from "@aws-sdk/client-rds";
-import fs from "graceful-fs";
-import path from "path";
-import jsYaml from "js-yaml";
 import { AWSClientFactory } from "../utils/aws-client-factory.js";
 import { loadAwsConfig } from "../utils/aws-config.js";
 import { readAwsResources, writeAwsResources } from "../utils/aws-resources.js";
+import { loadPushkinConfig, savePushkinConfig } from "../utils/config.js";
 import { AWS_REGION } from "../constants.js";
 import { dbConfig } from "../awsConfigs.js";
 
@@ -29,36 +27,33 @@ const createRDSClient = (useIAM) => {
 };
 
 /**
- * Create the Access Control List if it doesn't already exist -> create Main and Transaction databases
+ * Create the Access Control List if it doesn't already exist
  * @param {string} dbType - The type of database (e.g., 'postgres', 'mysql')
  * @param {string} securityGroupID - The security group ID for the database
  * @param {string} projName - The project name
- * @param {string} awsName - The AWS resource name
  * @param {string} useIAM - The IAM profile to use
  * @returns {Promise<object>} - The database connection details
  */
-const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
-  console.log(`Handling ${dbType} database.`);
+const initDB = async (dbType, securityGroupID, projName, useIAM) => {
+  console.log(`Initializing ${dbType} database.`);
   let dbName, dbPassword;
   dbName = projName.concat(dbType).replace(/[^A-Za-z0-9]/g, "");
 
   /**
-   * Determine if a new database is needed
+   * Determine if a new database should be created
    * @param {string} dbName - The name of the database
    * @param {string} dbType - The type of database (e.g., 'postgres', 'mysql')
    * @param {string} useIAM - The IAM profile to use
-   * @returns {Promise<boolean>} - Whether a new database is needed
+   * @returns {Promise<boolean>} - True if new database should be created, false if already exists
    */
-  const doINeedDB = async (dbName, dbType, useIAM) => {
-    //First, check pushkin.yaml -- do we have a database already?
-    let temp;
+  const shouldCreateNewDB = async (dbName, dbType, useIAM) => {
+    // Check pushkin.yaml to see if database already exists
     let pushkinConfig;
     try {
-      temp = await fs.promises.readFile(path.join(process.cwd(), "pushkin.yaml"), "utf8");
-      pushkinConfig = jsYaml.load(temp);
-    } catch (e) {
-      console.error(`Couldn't load pushkin.yaml`);
-      throw e;
+      pushkinConfig = await loadPushkinConfig();
+    } catch (error) {
+      console.error(`Failed to load pushkin.yaml: ${error.message}`);
+      throw error;
     }
     if (
       pushkinConfig.productionDBs &&
@@ -160,8 +155,8 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
     }
   };
 
-  let needDB = await doINeedDB(dbName, dbType, useIAM);
-  if (needDB) {
+  let shouldCreate = await shouldCreateNewDB(dbName, dbType, useIAM);
+  if (shouldCreate) {
     /**
      * Function to generate a secure random password
      * @returns {string} - A secure random password
@@ -298,14 +293,12 @@ const initDB = async (dbType, securityGroupID, projName, awsName, useIAM) => {
   } else {
     //Already set up. Just return the info.
     console.log(`${dbType}: Database already exists, returning existing config`);
-    let temp;
     let pushkinConfig;
     try {
-      temp = await fs.promises.readFile(path.join(process.cwd(), "pushkin.yaml"), "utf8");
-      pushkinConfig = jsYaml.load(temp);
-    } catch (e) {
-      console.error(`Couldn't load pushkin.yaml`);
-      throw e;
+      pushkinConfig = await loadPushkinConfig();
+    } catch (error) {
+      console.error(`Failed to load pushkin.yaml: ${error.message}`);
+      throw error;
     }
     console.log(
       `${dbType}: Returning existing database config:`,
@@ -481,14 +474,12 @@ const deleteDatabases = async (dbs, useIAM, killTag) => {
  * @returns {Promise<object>} - The database connection details
  */
 const getDBInfo = async () => {
-  let temp;
   let pushkinConfig;
   try {
-    temp = await fs.promises.readFile(path.join(process.cwd(), "pushkin.yaml"), "utf8");
-    pushkinConfig = jsYaml.load(temp);
-  } catch (e) {
-    console.error(`Couldn't load pushkin.yaml`);
-    throw e;
+    pushkinConfig = await loadPushkinConfig();
+  } catch (error) {
+    console.error(`Failed to load pushkin.yaml: ${error.message}`);
+    throw error;
   }
   if (pushkinConfig.productionDBs && Object.keys(pushkinConfig.productionDBs).length >= 2) {
     let dbsByType = {};
@@ -544,11 +535,10 @@ const recordDBs = async (dbDone) => {
     console.log(`Databases created. Adding to local config definitions.`);
     let pushkinConfig;
     try {
-      const yamlContent = await fs.promises.readFile(path.join(process.cwd(), "pushkin.yaml"), "utf8");
-      pushkinConfig = jsYaml.load(yamlContent);
-    } catch (e) {
-      console.error(`Couldn't load pushkin.yaml`);
-      throw e;
+      pushkinConfig = await loadPushkinConfig();
+    } catch (error) {
+      console.error(`Failed to load pushkin.yaml: ${error.message}`);
+      throw error;
     }
 
     // Would have made sense for local databases and production databases to be nested within 'databases'
@@ -565,15 +555,11 @@ const recordDBs = async (dbDone) => {
       pushkinConfig.productionDBs[mainDB.type] = mainDB;
     }
     try {
-      await fs.promises.writeFile(
-        path.join(process.cwd(), "pushkin.yaml"),
-        jsYaml.dump(pushkinConfig),
-        "utf8",
-      );
+      await savePushkinConfig(pushkinConfig);
       console.log(`Successfully updated pushkin.yaml with databases.`);
-    } catch (e) {
-      console.error(`Couldn't write updated pushkin.yaml`);
-      throw e;
+    } catch (error) {
+      console.error(`Failed to write pushkin.yaml: ${error.message}`);
+      throw error;
     }
 
     return pushkinConfig;

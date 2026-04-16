@@ -5,10 +5,8 @@ import {
   ChangeResourceRecordSetsCommand,
 } from "@aws-sdk/client-route-53";
 import { AWSClientFactory } from "../utils/aws-client-factory.js";
+import { loadPushkinConfig } from "../utils/config.js";
 import { AWS_REGION } from "../constants.js";
-import fs from "graceful-fs";
-import path from "path";
-import jsYaml from "js-yaml";
 
 /**
  * This function is called from within deployFrontEnd(). It creates four Route53 DNS records for the specified domainName for the CloudFront distribution created in deployFrontEnd().
@@ -243,14 +241,12 @@ const makeRecordSet = async (domainName, projName, useIAM, theCloud) => {
  * @param projName
  */
 const deleteResourceRecords = async (useIAM, killTag, projName) => {
-  let temp;
   let pushkinConfig;
   try {
-    temp = await fs.promises.readFile(path.join(process.cwd(), "pushkin.yaml"), "utf8");
-    pushkinConfig = jsYaml.load(temp);
-  } catch (e) {
-    console.error(`Couldn't load pushkin.yaml`);
-    throw e;
+    pushkinConfig = await loadPushkinConfig();
+  } catch (error) {
+    console.error(`Failed to load pushkin.yaml: ${error.message}`);
+    throw error;
   }
   let myDomain = pushkinConfig.info.rootDomain;
 

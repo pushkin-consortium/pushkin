@@ -5,6 +5,7 @@ import jsYaml from "js-yaml";
 import { quote } from "shell-quote";
 import { exec } from "../constants.js";
 import { readConfig } from "../../prep/index.js";
+import { loadPushkinConfig } from "../utils/config.js";
 
 /**
  * Rebuilds the worker for a given experiment.
@@ -17,12 +18,10 @@ import { readConfig } from "../../prep/index.js";
  */
 const rebuildWorker = async function (exp, verbose = false) {
   let pushkinConfig;
-  let stdOut;
   try {
-    stdOut = await fs.promises.readFile(path.join(process.cwd(), "pushkin.yaml"), "utf8");
-    pushkinConfig = jsYaml.load(stdOut);
+    pushkinConfig = await loadPushkinConfig();
   } catch (error) {
-    console.error(`Couldn't load pushkin.yaml: ${error.message}`);
+    console.error(`Failed to load pushkin.yaml: ${error.message}`);
     throw error;
   }
   if (verbose) {
