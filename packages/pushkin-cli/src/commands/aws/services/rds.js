@@ -470,21 +470,27 @@ const deleteDBs = async (dbs, useIAM) => {
 
   // Wait for databases to be fully deleted
   const waitForDeletion = async () => {
-    try {
-      const response = await rdsClient.send(new DescribeDBInstancesCommand({}));
-      const remainingDBs = response.DBInstances || [];
-
-      if (remainingDBs.length === 0) {
-        console.log(`Databases confirmed deleted`);
-        return true;
-      } else {
-        console.log("Waiting for DBs to be deleted...");
-        await new Promise((resolve) => setTimeout(resolve, 20000));
-        return waitForDeletion(); // Recursively check again
+    // Check if our target databases still exist
+    const stillExisting = [];
+    for (const dbId of dbs) {
+      try {
+        await rdsClient.send(new DescribeDBInstancesCommand({ DBInstanceIdentifier: dbId }));
+        stillExisting.push(dbId);
+      } catch {
+        // Database not found - it's been deleted
+        console.log(`Database ${dbId} confirmed deleted`);
       }
-    } catch (e) {
-      console.error(`Unable to get list of databases:`, e);
-      throw e;
+    }
+
+    if (stillExisting.length === 0) {
+      console.log(`All target databases confirmed deleted`);
+      return true;
+    } else {
+      console.log(
+        `Waiting for ${stillExisting.length} database(s) to be deleted: ${stillExisting.join(", ")}`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, 20000));
+      return waitForDeletion(); // Recursively check again
     }
   };
 
