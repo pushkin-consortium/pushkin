@@ -1,3 +1,9 @@
+/**
+ * Pushkin File Utility
+ * Utility module for reading and writing files in Pushkin projects (synchronous).
+ * @module file
+ */
+
 import fs from "graceful-fs";
 import path from "path";
 
@@ -7,7 +13,7 @@ import path from "path";
  * @returns {object} - Parsed JSON object
  * @throws {Error} - If file doesn't exist or JSON is invalid
  */
-export function readJSON(filePath) {
+function readJSON(filePath) {
   try {
     const content = fs.readFileSync(filePath, "utf8");
     return JSON.parse(content);
@@ -29,7 +35,7 @@ export function readJSON(filePath) {
  * @param {number} indent - Number of spaces for indentation (default: 2)
  * @throws {Error} - If write fails
  */
-export function writeJSON(filePath, data, indent = 2) {
+function writeJSON(filePath, data, indent = 2) {
   try {
     const content = JSON.stringify(data, null, indent);
     fs.writeFileSync(filePath, content, "utf8");
@@ -43,7 +49,7 @@ export function writeJSON(filePath, data, indent = 2) {
  * @param {string} filePath - Absolute path to check
  * @returns {boolean} - True if file exists
  */
-export function fileExists(filePath) {
+function fileExists(filePath) {
   return fs.existsSync(filePath);
 }
 
@@ -52,7 +58,7 @@ export function fileExists(filePath) {
  * @param {string} dirPath - Absolute path to check
  * @returns {boolean} - True if path is a directory
  */
-export function isDirectory(dirPath) {
+function isDirectory(dirPath) {
   try {
     return fs.statSync(dirPath).isDirectory();
   } catch {
@@ -67,7 +73,7 @@ export function isDirectory(dirPath) {
  * @returns {Array<{absolutePath: string, relativePath: string}>} - Array of file path objects
  * @throws {Error} - If directory doesn't exist or can't be read
  */
-export function walkDirectory(dir, baseDir = dir) {
+function walkDirectory(dir, baseDir = dir) {
   if (!fs.existsSync(dir)) {
     throw new Error(`Directory not found: ${dir}`);
   }
@@ -105,7 +111,7 @@ export function walkDirectory(dir, baseDir = dir) {
  * @returns {string|Buffer} - File contents as string or Buffer
  * @throws {Error} - If file doesn't exist or can't be read
  */
-export function readFile(filePath, encoding = "utf8") {
+function readFile(filePath, encoding = "utf8") {
   try {
     return fs.readFileSync(filePath, encoding);
   } catch (error) {
@@ -123,7 +129,7 @@ export function readFile(filePath, encoding = "utf8") {
  * @param {string} encoding - File encoding (default: 'utf8')
  * @throws {Error} - If write fails
  */
-export function writeFile(filePath, content, encoding = "utf8") {
+function writeFile(filePath, content, encoding = "utf8") {
   try {
     fs.writeFileSync(filePath, content, encoding);
   } catch (error) {
@@ -136,7 +142,7 @@ export function writeFile(filePath, content, encoding = "utf8") {
  * @param {string} filePath - Absolute path to the file
  * @returns {fs.Stats|null} - File stats or null if file doesn't exist
  */
-export function getFileStats(filePath) {
+function getFileStats(filePath) {
   try {
     return fs.statSync(filePath);
   } catch {
@@ -149,7 +155,7 @@ export function getFileStats(filePath) {
  * @param {string} dirPath - Absolute path to the directory
  * @throws {Error} - If directory creation fails
  */
-export function createDirectory(dirPath) {
+function createDirectory(dirPath) {
   try {
     fs.mkdirSync(dirPath, { recursive: true });
   } catch (error) {
@@ -162,7 +168,7 @@ export function createDirectory(dirPath) {
  * @param {string} filePath - Absolute path to the file
  * @throws {Error} - If deletion fails
  */
-export function deleteFile(filePath) {
+function deleteFile(filePath) {
   try {
     fs.unlinkSync(filePath);
   } catch (error) {
@@ -170,4 +176,17 @@ export function deleteFile(filePath) {
       throw new Error(`Failed to delete ${filePath}: ${error.message}`);
     }
   }
+}
+
+export {
+  readJSON,
+  writeJSON,
+  fileExists,
+  isDirectory,
+  walkDirectory,
+  readFile,
+  writeFile,
+  getFileStats,
+  createDirectory,
+  deleteFile,
 }

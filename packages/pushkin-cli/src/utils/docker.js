@@ -1,11 +1,16 @@
-import fs from "graceful-fs";
+/**
+ * Pushkin Docker Utility
+ * Utility module for building and publishing Docker images for Pushkin experiments.
+ * @module docker
+ */
+
 import path from "path";
 import jsYaml from "js-yaml";
 import { quote } from "shell-quote";
 import { exec } from "../commands/aws/constants.js";
 import { readConfig } from "../commands/prep/index.js";
-import { loadPushkinConfig } from "./config.js";
-import { readFile } from "./file.js";
+import { loadPushkinConfig } from "./pushkin-config.js";
+import { readFile, isDirectory } from "./file.js";
 
 /**
  * Rebuilds the worker for a given experiment
@@ -29,7 +34,7 @@ const rebuildWorker = async function (experiment, verbose = false) {
   }
   const expDir = path.join(process.cwd(), pushkinConfig.experimentsDir, experiment);
   try {
-    if (!fs.lstatSync(expDir).isDirectory()) return "";
+    if (!isDirectory(expDir)) return "";
   } catch (error) {
     console.warn(`Experiment directory not found: ${expDir}`, error);
     return "";
