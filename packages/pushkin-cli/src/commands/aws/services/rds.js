@@ -239,23 +239,23 @@ const createRDSDatabase = async (
     const rdsClient = createRDSClient(useIAM);
     await rdsClient.send(new CreateDBInstanceCommand(myDBConfig));
   } catch (error) {
-    console.error(`Unable to create database ${dbName} (${dbType}):`, error);
+    console.error(`Unable to create database ${dbName}:`, error);
     throw error;
   }
 
   if (verbose) {
     console.log(
-      `Database ${dbName} (${dbType}) created with the following configuration:\n${JSON.stringify(myDBConfig, null, 2)}`,
+      `Database ${dbName} created with the following configuration:\n${JSON.stringify(myDBConfig, null, 2)}`,
     );
   } else {
-    console.log(`Database ${dbName} (${dbType}) created.`);
+    console.log(`Database ${dbName} created.`);
   }
 
   // Wait for database to be available with timeout
   try {
     const rdsClient = createRDSClient(useIAM);
     console.log(
-      `Waiting for ${dbName} (${dbType}) to spool up. This may take a while, but will timeout if not completed within 20 minutes...`,
+      `Waiting for ${dbName} to spool up. This may take a while, but will timeout if not completed within 20 minutes...`,
     );
     const waitStart = Date.now();
     await waitUntilDBInstanceAvailable(
@@ -265,17 +265,17 @@ const createRDSDatabase = async (
         minDelay: 10, // Check every 10 seconds
         maxDelay: 20, // Maximum 20 seconds between checks
       },
-      { DBInstanceIdentifier: dbName },
+      { DBInstanceIdentifier: dbName.toLowerCase() },
     );
     const waitTime = Date.now() - waitStart;
     console.log(
-      `${dbName} (${dbType}) is spooled up after ${Math.floor(waitTime / 60000)} minutes ${Math.floor((waitTime % 60000) / 1000)} seconds!`,
+      `${dbName} is spooled up after ${Math.floor(waitTime / 60000)} minutes ${Math.floor((waitTime % 60000) / 1000)} seconds!`,
     );
   } catch (error) {
     if (error.name === "TimeoutError" || error.message.toLowerCase().includes("timeout")) {
-      console.warn(`Warning: spooling up ${dbName} (${dbType}) timed out after 20 minutes.`);
+      console.warn(`Warning: spooling up ${dbName} timed out after 20 minutes.`);
     } else {
-      console.warn(`Warning: spooling up ${dbName} (${dbType}) failed with error:`, error);
+      console.warn(`Warning: spooling up ${dbName} failed with error:`, error);
     }
   }
 
@@ -284,7 +284,7 @@ const createRDSDatabase = async (
   let retryCount = 0;
   const maxRetries = 3;
 
-  console.log(`${dbName} (${dbType}): Attempting to get database endpoint from RDS...`);
+  console.log(`${dbName}: Attempting to get database endpoint from RDS...`);
   const dbInstanceIdentifier = dbName.toLowerCase();
   const rdsClient = createRDSClient(useIAM);
   while (retryCount < maxRetries) {
@@ -295,7 +295,7 @@ const createRDSDatabase = async (
       );
       if (dbEndpoint?.DBInstances?.[0]?.Endpoint?.Address) {
         console.log(
-          `${dbName} (${dbType}): Successfully retrieved database endpoint: ${dbEndpoint.DBInstances[0].Endpoint.Address}`,
+          `${dbName}: Successfully retrieved database endpoint: ${dbEndpoint.DBInstances[0].Endpoint.Address}`,
         );
         break;
       } else {
@@ -303,22 +303,19 @@ const createRDSDatabase = async (
       }
     } catch (error) {
       retryCount++;
-      console.warn(`${dbName} (${dbType}): Attempt ${retryCount} failed to get endpoint:`, error);
+      console.warn(`${dbName}: Attempt ${retryCount} failed to get endpoint:`, error);
 
       if (retryCount >= maxRetries) {
-        console.error(
-          `${dbName} (${dbType}): Failed to get database endpoint after ${maxRetries} attempts`,
-        );
+        console.error(`${dbName}: Failed to get database endpoint after ${maxRetries} attempts`);
         throw error;
       }
 
-      console.log(`${dbName} (${dbType}): Waiting 30 seconds before retry...`);
+      console.log(`${dbName}: Waiting 30 seconds before retry...`);
       await new Promise((resolve) => setTimeout(resolve, 30000));
     }
   }
 
   // Update list of AWS resources
-  console.log("Updated awsResources with DB information");
   try {
     const awsResources = readAwsResources();
     if (awsResources && awsResources.dbs) {
@@ -327,6 +324,7 @@ const createRDSDatabase = async (
       awsResources.dbs = [dbName];
     }
     writeAwsResources(awsResources);
+    console.log("Updated awsResources with DB information");
   } catch (error) {
     console.error(`Unable to update awsResources.js:`, error);
   }
@@ -341,7 +339,7 @@ const createRDSDatabase = async (
     port: myDBConfig.Port,
   };
 
-  console.log(`${dbName} (${dbType}): Returning created database object:`, newDB);
+  console.log(`${dbName}: Returning created database object:`, newDB);
   return newDB;
 };
 
@@ -350,7 +348,7 @@ const createRDSDatabase = async (
  * Get existing database configuration from pushkin.yaml
  */
 const getExistingDBConfig = async (dbName, dbType, verbose = false) => {
-  console.log(`${dbName} (${dbType}): Database already exists, returning existing config`);
+  console.log(`${dbName}: Database already exists, returning existing config`);
   let pushkinConfig;
   try {
     pushkinConfig = await loadPushkinConfig();
@@ -360,7 +358,7 @@ const getExistingDBConfig = async (dbName, dbType, verbose = false) => {
   }
   if (verbose) {
     console.log(
-      `${dbName} (${dbType}): Returning existing database config:`,
+      `${dbName}: Returning existing database config:`,
       pushkinConfig.productionDBs[dbType],
     );
   }
@@ -485,24 +483,19 @@ const recordDBs = async (dbDone) => {
   try {
     const databases = await Promise.race([dbDone, timeout]);
 
-    if (!Array.isArray(databases) || databases.length === 0) {
+    if (!Array.isArray(databases)) {
       throw new Error(`Expected array of databases, got: ${typeof databases}`);
+    }
+
+    if (databases.length ===0) {
+      throw new Error(`No new databases were created, received empty array.`);
     }
 
     console.log(`recordDBs: Received ${databases.length} database(s)`);
 
-    // Log all database results
     databases.forEach((db, index) => {
       console.log(`recordDBs: Database ${index} (${db?.type || "unknown"}):`, db);
     });
-
-    // Check if any database is undefined/null
-    const undefinedDBs = databases.filter((db) => !db);
-    if (undefinedDBs.length > 0) {
-      throw new Error(
-        `${undefinedDBs.length} database(s) returned undefined - database creation may have failed`,
-      );
-    }
 
     console.log(
       `All ${databases.length} databases created successfully. Adding to pushkin.yaml...`,
@@ -601,7 +594,7 @@ const checkDBExists = async (dbName, rdsClient) => {
 const disableDeletionProtection = async (dbName, rdsClient) => {
   await rdsClient.send(
     new ModifyDBInstanceCommand({
-      DBInstanceIdentifier: dbName,
+      DBInstanceIdentifier: dbName.toLowerCase(),
       DeletionProtection: false,
       ApplyImmediately: true,
     }),
@@ -617,7 +610,7 @@ const waitForDeletionProtectionDisabled = async (dbName, rdsClient, timeoutMs = 
     while (true) {
       try {
         const response = await rdsClient.send(
-          new DescribeDBInstancesCommand({ DBInstanceIdentifier: dbName }),
+          new DescribeDBInstancesCommand({ DBInstanceIdentifier: dbName.toLowerCase() }),
         );
 
         if (response.DBInstances?.[0]?.DeletionProtection === false) {
