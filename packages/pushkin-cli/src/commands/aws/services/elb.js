@@ -208,36 +208,47 @@ const deleteLoadBalancer = async (useIAM, killTag) => {
           await deletedListeners;
         }
 
-        // Wait for listeners to be deleted
-        while (true) {
-          let describedListeners;
-          try {
-            const profileName = useIAM;
-            const factory = new AWSClientFactory(AWS_REGION, profileName);
-            const elbv2Client = factory.createClient(ElasticLoadBalancingV2Client);
-            const describeListenersResponse = await elbv2Client.send(
-              new DescribeListenersCommand({ LoadBalancerArn: loadBalancerName }),
-            );
-            describedListeners = {
-              stdout: JSON.stringify({ Listeners: describeListenersResponse.Listeners }),
-            };
-          } catch (e) {
-            console.error(`Unable to list listeners for load balancer ${loadBalancerName}.`);
-            throw e;
-          }
+        const factory = new AWSClientFactory(AWS_REGION, useIAM);
+        const elbv2Client = factory.createClient(ElasticLoadBalancingV2Client);
 
-          listenersToDelete = JSON.parse(describedListeners.stdout).Listeners.map(
-            (l) => l.ListenerArn,
+        // Wait for listeners to be deleted
+        const waitForListenersDeletion = async (
+          loadBalancerArn,
+          elbv2Client,
+          timeoutMs = 300000,
+        ) => {
+          const checkDeletion = async () => {
+            while (true) {
+              const response = await elbv2Client.send(
+                new DescribeListenersCommand({ LoadBalancerArn: loadBalancerArn }),
+              );
+
+              if (response.Listeners.length === 0) {
+                console.log("All listeners have been deleted.");
+                return true;
+              }
+
+              console.log(`Waiting for ${response.Listeners.length} listeners to be deleted...`);
+              await new Promise((resolve) => setTimeout(resolve, 5000));
+            }
+          };
+
+          const timeout = new Promise((_, reject) =>
+            setTimeout(
+              () =>
+                reject(
+                  new Error(
+                    `Timeout waiting for listeners to be deleted after ${timeoutMs / 1000}s`,
+                  ),
+                ),
+              timeoutMs,
+            ),
           );
 
-          if (listenersToDelete.length === 0) {
-            console.log("All listeners have been deleted.");
-            break;
-          }
+          return Promise.race([checkDeletion(), timeout]);
+        };
 
-          console.log(`Waiting for ${listenersToDelete.length} listeners to be deleted...`);
-          await new Promise((resolve) => setTimeout(resolve, 5000));
-        }
+        await waitForListenersDeletion(loadBalancerName, elbv2Client);
 
         return true;
       }
@@ -268,7 +279,7 @@ const deleteLoadBalancer = async (useIAM, killTag) => {
  * @param deletedLoadBalancer
  */
 const deleteTargetGroup = async (useIAM, deletedLoadBalancer) => {
-  //FUBAR Need to killize this
+  //TODO: Need to killize this
   await deletedLoadBalancer;
   let getTargetGroups;
   try {
