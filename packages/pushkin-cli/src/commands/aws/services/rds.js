@@ -6,6 +6,7 @@ import {
   ModifyDBInstanceCommand,
   DeleteDBInstanceCommand,
   waitUntilDBInstanceAvailable,
+  waitUntilDBInstanceDeleted,
 } from "@aws-sdk/client-rds";
 import { AWSClientFactory } from "../utils/aws-client-factory.js";
 import { loadAwsConfig } from "../utils/aws-config.js";
@@ -33,7 +34,7 @@ const generateDBName = (projName, dbType) => {
   return projName
     .concat(dbType)
     .replace(/[^A-Za-z0-9]/g, "")
-    .toLowerCase(); // lowercase, alphanumeric; matches RDS DB names
+    .toLowerCase(); // lowercase + alphanumeric to match RDS DB names
 };
 
 /**
@@ -61,26 +62,81 @@ const findDBInRDS = async (dbName, useIAM) => {
 
 /**
  * (Helper)
+ * Get nested property from object using dot notation
+ * @param {object} obj - The object to traverse
+ * @param {string} path - Dot-notation path (e.g., "Endpoint.Port")
+ * @returns {*} The value at the specified path, or undefined if not found
+ */
+const getNestedValue = (obj, path) => {
+  return path.split(".").reduce((curr, key) => curr?.[key], obj);
+};
+
+/**
+ * (Helper)
  * Validate that RDS database matches pushkin.yaml configuration
+ * @param {string} dbType - The database type (e.g., "transaction", "messageQueue")
+ * @param {object} pushkinConfig - The parsed pushkin.yaml configuration
+ * @param {object} rdsDB - The RDS database instance description from AWS
  * @returns {Array<string>} List of mismatch descriptions (empty if all match)
  */
 const validateDBMatch = (dbType, pushkinConfig, rdsDB) => {
   const yamlDB = pushkinConfig.productionDBs[dbType];
   const mismatches = [];
 
-  // Note: We compare DBName (the actual database name inside RDS instance)
-  // Some engines may have null DBName, in which case we skip this validation
-  if (rdsDB.DBName && yamlDB.name.toLowerCase() !== rdsDB.DBName.toLowerCase()) {
-    mismatches.push(`Database name: RDS has "${rdsDB.DBName}", pushkin.yaml has "${yamlDB.name}"`);
-  }
-  if (yamlDB.user !== rdsDB.MasterUsername) {
-    mismatches.push(`User: RDS has "${rdsDB.MasterUsername}", pushkin.yaml has "${yamlDB.user}"`);
-  }
-  if (yamlDB.port !== rdsDB.Endpoint.Port) {
-    mismatches.push(`Port: RDS has ${rdsDB.Endpoint.Port}, pushkin.yaml has ${yamlDB.port}`);
-  }
-  if (yamlDB.host !== rdsDB.Endpoint.Address) {
-    mismatches.push(`Host: RDS has "${rdsDB.Endpoint.Address}", pushkin.yaml has "${yamlDB.host}"`);
+  /**
+   * Field mapping between pushkin.yaml and RDS API response
+   * Each entry defines how to compare a field between the two sources
+   */
+  const DB_FIELD_MAPPINGS = [
+    {
+      name: "Database name",
+      yamlPath: "name",
+      rdsPath: "DBName",
+      required: false, // Some engines may have null DBName
+      transform: (val) => val?.toLowerCase(),
+    },
+    {
+      name: "User",
+      yamlPath: "user",
+      rdsPath: "MasterUsername",
+      required: true,
+    },
+    {
+      name: "Port",
+      yamlPath: "port",
+      rdsPath: "Endpoint.Port",
+      required: true,
+      transform: (val) => Number(val),
+    },
+    {
+      name: "Host",
+      yamlPath: "host",
+      rdsPath: "Endpoint.Address",
+      required: true,
+    },
+  ];
+
+  for (const mapping of DB_FIELD_MAPPINGS) {
+    const yamlValue = getNestedValue(yamlDB, mapping.yamlPath);
+    let rdsValue = getNestedValue(rdsDB, mapping.rdsPath);
+
+    // Skip if field doesn't exist in RDS and isn't required
+    if (rdsValue == null && !mapping.required) {
+      continue;
+    }
+
+    // Skip if field doesn't exist in yaml config (may be optional)
+    if (yamlValue == null) {
+      continue;
+    }
+
+    // Apply transformations if specified
+    const yamlCompare = mapping.transform ? mapping.transform(yamlValue) : yamlValue;
+    const rdsCompare = mapping.transform ? mapping.transform(rdsValue) : rdsValue;
+
+    if (yamlCompare !== rdsCompare) {
+      mismatches.push(`${mapping.name}: RDS has "${rdsValue}", pushkin.yaml has "${yamlValue}"`);
+    }
   }
 
   return mismatches;
@@ -89,6 +145,11 @@ const validateDBMatch = (dbType, pushkinConfig, rdsDB) => {
 /**
  * (Helper)
  * Determine if a new database of given name and type should be created
+ * Four cases:
+ * 1. In both YAML and RDS – validate they match
+ * 2. In YAML but not RDS – recreate in RDS
+ * 3. In RDS but not in YAML – throw error
+ * 4. Not in YAML or RDS – create new
  */
 const shouldCreateNewDB = async (dbName, dbType, useIAM) => {
   let pushkinConfig;
@@ -99,16 +160,13 @@ const shouldCreateNewDB = async (dbName, dbType, useIAM) => {
     throw error;
   }
 
-  // Check if DB is in pushkin.yaml
   const inYAML =
     pushkinConfig.productionDBs &&
     Object.keys(pushkinConfig.productionDBs).includes(dbType) &&
     pushkinConfig.productionDBs[dbType].name === dbName;
 
-  // Query RDS once for this database
   const rdsDB = await findDBInRDS(dbName, useIAM);
 
-  // Decision matrix based on (inYAML, inRDS)
   if (inYAML && rdsDB) {
     // Case 1: In both YAML and RDS - validate they match
     console.warn(`${dbName} found in both pushkin.yaml and RDS. Validating configuration...`);
@@ -181,22 +239,21 @@ const createRDSDatabase = async (
     const rdsClient = createRDSClient(useIAM);
     await rdsClient.send(new CreateDBInstanceCommand(myDBConfig));
   } catch (error) {
-    console.error(`Unable to create database ${dbType}:`, error);
+    console.error(`Unable to create database ${dbName} (${dbType}):`, error);
     throw error;
   }
 
   if (verbose) {
     console.log(
-      `Database ${dbType} created with the following configuration:\n${JSON.stringify(myDBConfig, null, 2)}`,
+      `Database ${dbName} (${dbType}) created with the following configuration:\n${JSON.stringify(myDBConfig, null, 2)}`,
     );
   } else {
-    console.log(`Database ${dbType} created.`);
+    console.log(`Database ${dbName} (${dbType}) created.`);
   }
 
   // Wait for database to be available with timeout
   try {
     const rdsClient = createRDSClient(useIAM);
-
     console.log(
       `Waiting for ${dbName} (${dbType}) to spool up. This may take a while, but will timeout if not completed within 20 minutes...`,
     );
@@ -212,10 +269,10 @@ const createRDSDatabase = async (
     );
     const waitTime = Date.now() - waitStart;
     console.log(
-      `${dbType} is spooled up after ${Math.floor(waitTime / 60000)} minutes ${Math.floor((waitTime % 60000) / 1000)} seconds!`,
+      `${dbName} (${dbType}) is spooled up after ${Math.floor(waitTime / 60000)} minutes ${Math.floor((waitTime % 60000) / 1000)} seconds!`,
     );
   } catch (error) {
-    if (error.name === "TimeoutError" || error.message.includes("timeout")) {
+    if (error.name === "TimeoutError" || error.message.toLowerCase().includes("timeout")) {
       console.warn(`Warning: spooling up ${dbName} (${dbType}) timed out after 20 minutes.`);
     } else {
       console.warn(`Warning: spooling up ${dbName} (${dbType}) failed with error:`, error);
@@ -261,7 +318,7 @@ const createRDSDatabase = async (
   }
 
   // Update list of AWS resources
-  console.log("Updated awsResources with db information");
+  console.log("Updated awsResources with DB information");
   try {
     const awsResources = readAwsResources();
     if (awsResources && awsResources.dbs) {
@@ -284,7 +341,7 @@ const createRDSDatabase = async (
     port: myDBConfig.Port,
   };
 
-  console.log(`${dbType}: Returning created database object:`, newDB);
+  console.log(`${dbName} (${dbType}): Returning created database object:`, newDB);
   return newDB;
 };
 
@@ -336,8 +393,163 @@ const initDB = async (dbType, securityGroupID, projName, useIAM) => {
 };
 
 /**
- * (Helper)
+ * Retrieve connection information about all production databases from pushkin.yaml
+ * @returns {Promise<object>} - The database connection details keyed by database type
+ */
+const getDBInfo = async () => {
+  let pushkinConfig;
+  try {
+    pushkinConfig = await loadPushkinConfig();
+  } catch (error) {
+    console.error(`Failed to load pushkin.yaml:`, error);
+    throw error;
+  }
+
+  // Check if productionDBs exists and is an object
+  if (!pushkinConfig.productionDBs || typeof pushkinConfig.productionDBs !== "object") {
+    throw new Error(
+      `Error: No productionDBs found in pushkin.yaml. This suggests database creation did not complete properly.`,
+    );
+  }
+
+  const dbKeys = Object.keys(pushkinConfig.productionDBs);
+
+  // Check if there's at least one database
+  if (dbKeys.length === 0) {
+    throw new Error(
+      `Error: productionDBs exists but is empty in pushkin.yaml. This suggests database creation did not complete properly.`,
+    );
+  }
+
+  console.log(`Found ${dbKeys.length} database(s) in pushkin.yaml`);
+
+  // Build database info object keyed by type
+  const dbsByType = {};
+  dbKeys.forEach((key) => {
+    const db = pushkinConfig.productionDBs[key];
+
+    // Validate that the database has required fields
+    if (!db.type) {
+      console.warn(`Warning: Database entry "${key}" missing type field, skipping...`);
+      return;
+    }
+
+    if (!db.name || !db.user || !db.pass || !db.port || !db.host) {
+      console.warn(
+        `Warning: Database "${key}" (type: ${db.type}) missing required fields, skipping...`,
+      );
+      return;
+    }
+
+    dbsByType[db.type] = {
+      name: db.name,
+      username: db.user,
+      password: db.pass,
+      port: db.port,
+      endpoint: db.host,
+    };
+
+    console.log(`Loaded ${db.type} database: ${db.name}`);
+  });
+
+  // Final check - ensure we have at least one valid database after filtering
+  if (Object.keys(dbsByType).length === 0) {
+    throw new Error(
+      `Error: No valid databases found in pushkin.yaml. All database entries are missing required fields.`,
+    );
+  }
+
+  return dbsByType;
+};
+
+/**
+ * Record databases in pushkin.yaml
+ * WHY: When we create databases, we get the connection information back in this function.
+ * This information needs to be recorded in pushkin.yaml so that the application can connect to the databases.
+ * We wait to record the databases until they are created and we have all the necessary information
+ * (e.g. host and port) to avoid having incomplete database entries in pushkin.yaml if something goes wrong during creation
+ * @param {Promise<Array>} dbDone - A promise that resolves to an array of database objects
+ * @returns {Promise<object>} - The updated pushkin configuration
+ */
+const recordDBs = async (dbDone) => {
+  console.log("recordDBs: Waiting for database promises to resolve...");
+
+  // Add timeout to prevent indefinite hanging (30 minutes)
+  const timeout = new Promise((_, reject) =>
+    setTimeout(
+      () => reject(new Error("Database recording timeout after 30 minutes")),
+      30 * 60 * 1000,
+    ),
+  );
+
+  try {
+    const databases = await Promise.race([dbDone, timeout]);
+
+    if (!Array.isArray(databases) || databases.length === 0) {
+      throw new Error(`Expected array of databases, got: ${typeof databases}`);
+    }
+
+    console.log(`recordDBs: Received ${databases.length} database(s)`);
+
+    // Log all database results
+    databases.forEach((db, index) => {
+      console.log(`recordDBs: Database ${index} (${db?.type || "unknown"}):`, db);
+    });
+
+    // Check if any database is undefined/null
+    const undefinedDBs = databases.filter((db) => !db);
+    if (undefinedDBs.length > 0) {
+      throw new Error(
+        `${undefinedDBs.length} database(s) returned undefined - database creation may have failed`,
+      );
+    }
+
+    console.log(
+      `All ${databases.length} databases created successfully. Adding to pushkin.yaml...`,
+    );
+    let pushkinConfig;
+    try {
+      pushkinConfig = await loadPushkinConfig();
+    } catch (error) {
+      console.error(`Failed to load pushkin.yaml:`, error);
+      throw error;
+    }
+
+    // Initialize productionDBs if it doesn't exist
+    if (pushkinConfig.productionDBs == null) {
+      pushkinConfig.productionDBs = {};
+    }
+
+    // Record all databases using their type as the key
+    databases.forEach((db) => {
+      if (db && db.type) {
+        pushkinConfig.productionDBs[db.type] = db;
+        console.log(`Recorded ${db.type} database: ${db.name}`);
+      } else {
+        console.warn(`Skipping database with missing type:`, db);
+      }
+    });
+
+    try {
+      await savePushkinConfig(pushkinConfig);
+      console.log(`Successfully updated pushkin.yaml with ${databases.length} database(s).`);
+    } catch (error) {
+      console.error(`Failed to write pushkin.yaml:`, error);
+      throw error;
+    }
+
+    return pushkinConfig;
+  } catch (error) {
+    console.error("recordDBs: Error or timeout occurred:", error);
+    throw error;
+  }
+};
+
+/**
  * Get list of databases to delete
+ * @param {string} useIAM - The IAM profile to use
+ * @param {string} killTag - Whether to delete only DBs tagged with project tag
+ * @returns {Promise<Array<string>>} - List of database identifiers to delete
  */
 const getDBsToDelete = async (useIAM, killTag) => {
   const dbs = [];
@@ -371,7 +583,139 @@ const getDBsToDelete = async (useIAM, killTag) => {
 
 /**
  * (Helper)
- * Delete the specified databases.
+ * Check if database exists in RDS
+ */
+const checkDBExists = async (dbName, rdsClient) => {
+  try {
+    await rdsClient.send(new DescribeDBInstancesCommand({ DBInstanceIdentifier: dbName }));
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * (Helper)
+ * Disable deletion protection for a single database
+ */
+const disableDeletionProtection = async (dbName, rdsClient) => {
+  await rdsClient.send(
+    new ModifyDBInstanceCommand({
+      DBInstanceIdentifier: dbName,
+      DeletionProtection: false,
+      ApplyImmediately: true,
+    }),
+  );
+};
+
+/**
+ * (Helper)
+ * Wait until deletion protection is disabled for a database
+ */
+const waitForDeletionProtectionDisabled = async (dbName, rdsClient, timeoutMs = 300000) => {
+  const checkProtection = async () => {
+    while (true) {
+      try {
+        const response = await rdsClient.send(
+          new DescribeDBInstancesCommand({ DBInstanceIdentifier: dbName }),
+        );
+
+        if (response.DBInstances?.[0]?.DeletionProtection === false) {
+          return true;
+        }
+
+        console.log(`Waiting for deletion protection to be disabled for ${dbName}...`);
+        await new Promise((resolve) => setTimeout(resolve, 10000)); // 10s intervals
+      } catch (error) {
+        console.warn(
+          `Database ${dbName} no longer exists (may have been deleted externally):`,
+          error,
+        );
+        return false;
+      }
+    }
+  };
+
+  const timeout = new Promise((_, reject) =>
+    setTimeout(
+      () =>
+        reject(new Error(`Timeout waiting for deletion protection to be disabled for ${dbName}`)),
+      timeoutMs,
+    ),
+  );
+
+  return Promise.race([checkProtection(), timeout]);
+};
+
+/**
+ * (Helper)
+ * Delete a single database
+ */
+const deleteSingleDB = async (dbName, rdsClient) => {
+  try {
+    const response = await rdsClient.send(
+      new DescribeDBInstancesCommand({ DBInstanceIdentifier: dbName }),
+    );
+    const dbStatus = response.DBInstances?.[0]?.DBInstanceStatus;
+
+    if (dbStatus === "deleting") {
+      console.log(`Database ${dbName} already being deleted`);
+      return;
+    }
+
+    console.log(`Deleting database ${dbName}`);
+    await rdsClient.send(
+      new DeleteDBInstanceCommand({
+        DBInstanceIdentifier: dbName,
+        SkipFinalSnapshot: true,
+      }),
+    );
+  } catch (error) {
+    if (error.message.includes("already being deleted")) {
+      console.warn(`Database ${dbName} already being deleted`);
+    } else {
+      console.error(`Failed to delete database ${dbName}:`, error);
+      throw error;
+    }
+  }
+};
+
+/**
+ * (Helper)
+ * Wait until specific databases are fully deleted
+ */
+const waitForDBsDeletion = async (dbNames, rdsClient, timeoutMs = 1200000) => {
+  console.log(`Waiting for ${dbNames.length} database(s) to be deleted...`);
+
+  // Wait for each database to be deleted in parallel
+  await Promise.all(
+    dbNames.map(async (dbName) => {
+      try {
+        await waitUntilDBInstanceDeleted(
+          {
+            client: rdsClient,
+            maxWaitTime: Math.floor(timeoutMs / 1000), // Convert ms to seconds
+            minDelay: 20, // Check every 20 seconds
+            maxDelay: 30, // Maximum 30 seconds between checks
+          },
+          { DBInstanceIdentifier: dbName },
+        );
+        console.log(`Database ${dbName} confirmed deleted`);
+      } catch (error) {
+        if (error.name === "TimeoutError" || error.message.toLowerCase().includes("timeout")) {
+          throw new Error(`Timeout waiting for ${dbName} to be deleted after ${timeoutMs / 1000}s`);
+        }
+        throw error;
+      }
+    }),
+  );
+
+  console.log(`All target databases confirmed deleted`);
+  return true;
+};
+
+/**
+ * Delete specified list of databases
  * @param {Promise<Array<string>>} dbs - Promise that resolves to list of database identifiers
  * @param {string} useIAM - The IAM profile to use
  * @returns {Promise<boolean>} - Promise that resolves when databases are deleted
@@ -379,223 +723,58 @@ const getDBsToDelete = async (useIAM, killTag) => {
 const deleteDBs = async (dbs, useIAM) => {
   dbs = await dbs;
 
-  if (dbs.length == 0) {
+  if (dbs.length === 0) {
     console.log(`No databases to delete.`);
     return true;
   }
-  console.log(`Removing deletion protection from databases ${dbs}...`);
+
   const rdsClient = createRDSClient(useIAM);
 
-  await Promise.all(
-    dbs.map(async (db) => {
-      try {
-        await rdsClient.send(new DescribeDBInstancesCommand({ DBInstanceIdentifier: db }));
-      } catch (error) {
-        console.warn(`Unable to find database ${db}. Possibly it was already deleted.`, error);
-        // Remove from list
-        dbs = dbs.filter((d) => d !== db);
-        return;
-      }
+  console.log(`Checking which databases exist: ${dbs.join(", ")}`);
+  const existingDBs = [];
+  for (const dbName of dbs) {
+    const exists = await checkDBExists(dbName, rdsClient);
+    if (exists) {
+      existingDBs.push(dbName);
+    } else {
+      console.log(`Database ${dbName} not found. Skipping.`);
+    }
+  }
 
-      await rdsClient.send(
-        new ModifyDBInstanceCommand({
-          DBInstanceIdentifier: db,
-          DeletionProtection: false,
-          ApplyImmediately: true,
-        }),
-      );
+  if (existingDBs.length === 0) {
+    console.log(`No databases to delete (all already deleted).`);
+    return true;
+  }
+
+  console.log(`Disabling deletion protection for ${existingDBs.length} database(s)...`);
+  await Promise.all(
+    existingDBs.map(async (dbName) => {
+      try {
+        await disableDeletionProtection(dbName, rdsClient);
+        await waitForDeletionProtectionDisabled(dbName, rdsClient);
+      } catch (error) {
+        console.error(`Failed to disable deletion protection for ${dbName}:`, error);
+        throw error;
+      }
     }),
   );
 
-  console.log(`Deleting databases ${dbs}...`);
-
-  const checkDBDeletable = async (dbId) => {
-    console.log(`Checking database ${dbId} for deletion protection`);
-    try {
-      const response = await rdsClient.send(
-        new DescribeDBInstancesCommand({ DBInstanceIdentifier: dbId }),
-      );
-      return response.DBInstances?.[0]?.DeletionProtection === false;
-    } catch (error) {
-      console.error(
-        `Unable to get information for db ${dbId}. Possibly it was already deleted. Skipping.`,
-        error,
-      );
-      return false;
-    }
-  };
-
-  // Wait for deletion protection to be disabled, then delete databases
-  const waitAndDeleteDBs = async () => {
-    const checkResults = await Promise.all(dbs.map((db) => checkDBDeletable(db)));
-
-    if (checkResults.includes(false)) {
-      console.log("Waiting for DBs to be deletable...");
-      await new Promise((resolve) => setTimeout(resolve, 20000));
-      return waitAndDeleteDBs(); // Recursively check again
-    }
-
-    // All databases are deletable, proceed with deletion
-    await Promise.all(
-      dbs.map(async (db) => {
-        try {
-          // Check current database status
-          const response = await rdsClient.send(
-            new DescribeDBInstancesCommand({ DBInstanceIdentifier: db }),
-          );
-          const dbStatus = response.DBInstances?.[0]?.DBInstanceStatus;
-
-          if (dbStatus !== "deleting") {
-            console.log(`Deleting database ${db}`);
-            await rdsClient.send(
-              new DeleteDBInstanceCommand({
-                DBInstanceIdentifier: db,
-                SkipFinalSnapshot: true,
-              }),
-            );
-          }
-        } catch (error) {
-          if (error.message.includes("already being deleted")) {
-            console.warn(`Database ${db} already being deleted.`);
-          } else {
-            console.error(`Unable to get information about ${db}:`, error);
-            throw error;
-          }
-        }
-      }),
-    );
-  };
-
-  await waitAndDeleteDBs();
-
-  // Wait for databases to be fully deleted
-  const waitForDeletion = async () => {
-    // Check if our target databases still exist
-    const stillExisting = [];
-    for (const dbId of dbs) {
+  console.log(`Deleting ${existingDBs.length} database(s)...`);
+  await Promise.all(
+    existingDBs.map(async (dbName) => {
       try {
-        await rdsClient.send(new DescribeDBInstancesCommand({ DBInstanceIdentifier: dbId }));
-        stillExisting.push(dbId);
-      } catch {
-        // Database not found - it's been deleted
-        console.log(`Database ${dbId} confirmed deleted`);
+        await deleteSingleDB(dbName, rdsClient);
+      } catch (error) {
+        console.error(`Failed to delete ${dbName}:`, error);
+        throw error;
       }
-    }
-
-    if (stillExisting.length === 0) {
-      console.log(`All target databases confirmed deleted`);
-      return true;
-    } else {
-      console.log(
-        `Waiting for ${stillExisting.length} database(s) to be deleted: ${stillExisting.join(", ")}`,
-      );
-      await new Promise((resolve) => setTimeout(resolve, 20000));
-      return waitForDeletion(); // Recursively check again
-    }
-  };
-
-  return waitForDeletion();
-};
-
-/**
- * Retrieve database connection information from pushkin.yaml
- * @returns {Promise<object>} - The database connection details
- */
-const getDBInfo = async () => {
-  let pushkinConfig;
-  try {
-    pushkinConfig = await loadPushkinConfig();
-  } catch (error) {
-    console.error(`Failed to load pushkin.yaml:`, error);
-    throw error;
-  }
-  if (pushkinConfig.productionDBs && Object.keys(pushkinConfig.productionDBs).length >= 2) {
-    let dbsByType = {};
-    Object.keys(pushkinConfig.productionDBs).forEach((d) => {
-      dbsByType[pushkinConfig.productionDBs[d].type] = {
-        name: pushkinConfig.productionDBs[d].name,
-        username: pushkinConfig.productionDBs[d].user,
-        password: pushkinConfig.productionDBs[d].pass,
-        port: pushkinConfig.productionDBs[d].port,
-        endpoint: pushkinConfig.productionDBs[d].host,
-      };
-    });
-    return dbsByType;
-  } else {
-    throw new Error(
-      `Error finding production DBs in pushkin.yaml. This suggests database creation did not complete properly.`,
-    );
-  }
-};
-
-/**
- * Record databases in pushkin.yaml
- * WHY: When we create databases, we get the connection information back in this function. This information needs to be recorded in pushkin.yaml so that the application can connect to the databases. We wait to record the databases until they are created and we have all the necessary information (like host and port) to avoid having incomplete database entries in pushkin.yaml if something goes wrong during creation.
- * @param {*} dbDone - A promise that resolves when the databases are set up
- * @returns {Promise<object>} - The updated pushkin configuration
- */
-const recordDBs = async (dbDone) => {
-  console.log("recordDBs: Waiting for database promises to resolve...");
-
-  // Add timeout to prevent indefinite hanging (30 minutes)
-  const timeout = new Promise((_, reject) =>
-    setTimeout(
-      () => reject(new Error("Database recording timeout after 30 minutes")),
-      30 * 60 * 1000,
-    ),
+    }),
   );
 
-  try {
-    const returnedPromises = await Promise.race([dbDone, timeout]);
-    console.log("recordDBs: Database promises resolved, processing results...");
-    console.log("recordDBs: mainDB result:", returnedPromises[0]);
-    console.log("recordDBs: transactionDB result:", returnedPromises[1]);
+  console.log(`Waiting for databases to be fully deleted...`);
+  await waitForDBsDeletion(existingDBs, rdsClient);
 
-    // Check if either database result is undefined
-    if (!returnedPromises[0] || !returnedPromises[1]) {
-      throw new Error(
-        "One or both databases returned undefined - database creation may have failed",
-      );
-    }
-
-    const mainDB = returnedPromises[0]; //this is why it has to be first
-    const transactionDB = returnedPromises[1]; //this is why it has to be second
-
-    console.log(`Databases created. Adding to local config definitions.`);
-    let pushkinConfig;
-    try {
-      pushkinConfig = await loadPushkinConfig();
-    } catch (error) {
-      console.error(`Failed to load pushkin.yaml:`, error);
-      throw error;
-    }
-
-    // Would have made sense for local databases and production databases to be nested within 'databases'
-    // But poor planning prevents that. And we'd like to avoid breaking changes, so...
-    if (pushkinConfig.productionDBs == null) {
-      pushkinConfig.productionDBs = {};
-    }
-    if (transactionDB) {
-      // false means it is preexisting, doesn't need to be updated
-      pushkinConfig.productionDBs[transactionDB.type] = transactionDB;
-    }
-    if (mainDB) {
-      // false means it is preexisting, doesn't need to be updated
-      pushkinConfig.productionDBs[mainDB.type] = mainDB;
-    }
-    try {
-      await savePushkinConfig(pushkinConfig);
-      console.log(`Successfully updated pushkin.yaml with databases.`);
-    } catch (error) {
-      console.error(`Failed to write pushkin.yaml:`, error);
-      throw error;
-    }
-
-    return pushkinConfig;
-  } catch (error) {
-    console.error("recordDBs: Error or timeout occurred:", error);
-    throw error;
-  }
+  return true;
 };
 
 // Export all functions
