@@ -87,7 +87,6 @@ const publishToDocker = async (DHID, rebuiltWorkers = Promise.resolve(), verbose
   }
   console.log("Publishing images to DockerHub");
 
-  // Build API image
   if (verbose) {
     console.log("Building API");
   }
@@ -110,7 +109,6 @@ const publishToDocker = async (DHID, rebuiltWorkers = Promise.resolve(), verbose
     throw error;
   }
 
-  // Push API image to DockerHub
   if (verbose) {
     console.log("Pushing API to DockerHub");
   }
@@ -134,16 +132,12 @@ const publishToDocker = async (DHID, rebuiltWorkers = Promise.resolve(), verbose
     throw error;
   }
 
-  // Push worker images to DockerHub
-  // WHY: AWS ECS needs to pull worker images from a registry (DockerHub), not from local
   const pushWorkers = async (s) => {
     const service = docker_compose.services[s];
     if (service.labels == null) {
-      // not a worker
       return "";
     }
     if (service.labels.isPushkinWorker != true) {
-      // not a worker
       return "";
     }
 
