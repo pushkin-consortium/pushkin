@@ -8,6 +8,7 @@ import {
   ListDistributionsCommand,
   UpdateDistributionCommand,
   DeleteDistributionCommand,
+  waitUntilDistributionDeployed,
   GetDistributionConfigCommand,
   ListTagsForResourceCommand,
 } from "@aws-sdk/client-cloudfront";
@@ -148,53 +149,30 @@ const getOAC = async (useIAM, verbose = false) => {
 const waitForCloudFrontDeployment = async (distributionId, useIAM, verbose = false) => {
   const config = loadAwsConfig();
   const cloudFrontClient = createCloudFrontClient(useIAM);
-  const { maxChecks, checkInterval } = config.timeouts.cloudfront;
-  const totalMinutes = Math.round((maxChecks * checkInterval) / 60);
+  const cloudfrontTimeouts = config.timeouts.cloudfront;
 
   console.log(`\nWaiting for CloudFront distribution to be fully deployed...`);
-  console.log(
-    `This can take 5-15 minutes. Checking status every ${checkInterval} seconds (max ${totalMinutes} min).`,
-  );
-
-  let deployed = false;
-  let checkCount = 0;
-
-  // Poll the distribution status until it's "Deployed" or we hit the max check limit
-  while (!deployed && checkCount < maxChecks) {
-    try {
-      const response = await cloudFrontClient.send(
-        new GetDistributionCommand({ Id: distributionId }),
-      );
-
-      const status = response.Distribution.Status;
-      checkCount++;
-
-      if (status === "Deployed") {
-        deployed = true;
-        console.log(`\n✓ CloudFront distribution is now fully deployed and ready!`);
-      } else {
-        process.stdout.write(`.`); // Show progress without newline
-        if (verbose) {
-          process.stdout.write(` (Check ${checkCount}/${maxChecks}, Status: ${status})`);
-        }
-        await new Promise((resolve) => setTimeout(resolve, checkInterval * 1000));
-      }
-    } catch (error) {
-      console.error(`\nError checking CloudFront status:`, error);
-      throw error;
-    }
+  if (verbose) {
+    console.log(
+      `This can take 5-20 minutes. Timeout set to ${cloudfrontTimeouts.maxWaitTime / 60} minutes.`,
+    );
   }
 
-  // If we exit the loop without deployment, log a warning but continue (the distribution may still deploy soon)
-  if (!deployed) {
-    const totalMinutesElapsed = (maxChecks * checkInterval) / 60;
+  try {
+    await waitUntilDistributionDeployed(
+      {
+        client: cloudFrontClient,
+        maxWaitTime: cloudfrontTimeouts.maxWaitTime,
+      },
+      { Id: distributionId },
+    );
+    console.log(`\n✓ CloudFront distribution is now fully deployed and ready!`);
+  } catch {
     console.log(
-      `\n⚠ CloudFront distribution is still deploying after ${totalMinutesElapsed} minutes.`,
+      `\n⚠️ CloudFront distribution is still deploying after ${cloudfrontTimeouts.maxWaitTime / 60} minutes.`,
     );
     console.log(`Your site may not be immediately accessible. Check the status with:`);
-    console.log(
-      `aws cloudfront get-distribution --id ${distributionId} --query 'Distribution.Status'`,
-    );
+    console.log(`  pushkin aws status`);
   }
 
   console.log(); // Add newline after progress dots
@@ -304,7 +282,6 @@ const isDistributionReadyForDeletion = async (distId, useIAM) => {
  * @returns {Promise<boolean>} – Resolves true if deletion process initiated successfully, false if there was a problem
  */
 const deleteCloudFront = async (useIAM, projName, killTag, verbose = false) => {
-  // Get list of distributions to delete
   let distributions;
   try {
     distributions = await getDistributionsToDelete(useIAM, projName, killTag);
@@ -321,7 +298,6 @@ const deleteCloudFront = async (useIAM, projName, killTag, verbose = false) => {
   // Disable and delete each distribution
   return Promise.all(
     distributions.map(async (distId) => {
-      // Get current distribution config
       let cloudConfig;
       let ETag;
       try {
@@ -338,7 +314,6 @@ const deleteCloudFront = async (useIAM, projName, killTag, verbose = false) => {
         return true;
       }
 
-      // Disable the distribution
       cloudConfig.Enabled = false;
       if (verbose) {
         console.log(`Disabling cloudfront distribution ${distId}`);
@@ -355,7 +330,7 @@ const deleteCloudFront = async (useIAM, projName, killTag, verbose = false) => {
         );
       } catch {
         console.error(
-          `Possibly unable to disable cloudfront distribution ${distId}.\n Sometimes this throws errors but works anyway, so we'll continue and see what happens...\n`,
+          `Unable to disable cloudfront distribution ${distId}.\n Sometimes this throws errors but works anyway, so we'll continue and see what happens...\n`, error
         );
       }
 
@@ -410,7 +385,7 @@ const deleteCloudFront = async (useIAM, projName, killTag, verbose = false) => {
             }
           } else {
             const config = loadAwsConfig();
-            const waitInterval = config.timeouts.cloudfront.checkInterval1000;
+            const waitInterval = config.timeouts.cloudfront.checkInterval * 1000;
             if (verbose) {
               console.log(`Waiting for cloudfront distribution ${distId} to be disabled...`);
             }
@@ -436,10 +411,10 @@ const deleteCloudFront = async (useIAM, projName, killTag, verbose = false) => {
  */
 const deleteOACWithRetry = async (oacId, etag, useIAM, verbose = false) => {
   const config = loadAwsConfig();
-  const { maxRetries, retryInterval } = config.timeouts.cloudfront.oacDeletion;
-  const waitTime = retryInterval * 1000; // Convert s to ms
+  const oacDeletionTimeouts = config.timeouts.cloudfront.oacDeletion;
+  const waitTime = oacDeletionTimeouts.retryInterval * 1000; // Convert s to ms
 
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
+  for (let attempt = 0; attempt < oacDeletionTimeouts.maxRetries; attempt++) {
     try {
       const cloudFrontClient = createCloudFrontClient(useIAM);
       await cloudFrontClient.send(
@@ -451,9 +426,12 @@ const deleteOACWithRetry = async (oacId, etag, useIAM, verbose = false) => {
       return; // Success
     } catch (error) {
       // If it's still in use and we have retries left, wait and retry
-      if (error.name === "OriginAccessControlInUse" && attempt < maxRetries - 1) {
+      if (
+        error.name === "OriginAccessControlInUse" &&
+        attempt < oacDeletionTimeouts.maxRetries - 1
+      ) {
         console.log(
-          `OAC ${oacId} still in use, waiting ${waitTime / 1000}s before retry ${attempt + 1}/${maxRetries}...`,
+          `OAC ${oacId} still in use, waiting ${waitTime / 1000}s before retry ${attempt + 1}/${oacDeletionTimeouts.maxRetries}...`,
         );
         await new Promise((resolve) => setTimeout(resolve, waitTime));
         continue;
