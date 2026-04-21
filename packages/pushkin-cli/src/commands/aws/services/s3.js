@@ -11,6 +11,7 @@ import mime from "mime-types";
 import { AWSClientFactory } from "../utils/aws-client-factory.js";
 import { AWS_REGION as myRegion, exec } from "../constants.js";
 import pacMan from "../../../utils/package-manager.js";
+import { quote } from "shell-quote";
 import { readJSON, fileExists, walkDirectory, readFile } from "../../../utils/file.js";
 
 /**
@@ -45,27 +46,27 @@ const buildFrontEnd = async (projName, verbose = false) => {
   }
 
   // Determine build command based on build-if-changed availability
-  let buildCmd;
+  let buildCommand;
   if (packageJson.dependencies["build-if-changed"] == null) {
     if (verbose) {
       console.log(
         `Project ${projName} does not have build-if-changed installed. Recommend installation for faster prep.`,
       );
     }
-    buildCmd = pacMan + " --mutex network run build";
+    buildCommand = [pacMan, "--mutex", "network", "run", "build"];
   } else {
     if (verbose) {
       console.log(`Using build-if-changed for project ${projName} for faster builds.`);
     }
     const pacRunner = pacMan == "yarn" ? "yarn" : "npx";
-    buildCmd = pacRunner + " build-if-changed --mutex network";
+    buildCommand = [pacRunner, "build-if-changed", "--mutex", "network"];
   }
 
   if (verbose) {
     console.log("Building combined front-end...");
   }
   try {
-    await exec(buildCmd, { cwd: path.join(process.cwd(), "pushkin/front-end") });
+    await exec(quote(buildCommand), { cwd: path.join(process.cwd(), "pushkin/front-end") });
     if (verbose) {
       console.log("Built combined front-end");
     }
@@ -194,7 +195,7 @@ const emptyBucket = async (s3Client, bucketName, verbose = false) => {
       }
 
       isTruncated = listResponse.IsTruncated;
-      continuationToken = listResponse.NextContinuationToken;f
+      continuationToken = listResponse.NextContinuationToken;
     } catch (error) {
       console.log(`Failed to empty bucket ${bucketName}:`, error);
       throw error;
@@ -233,7 +234,13 @@ const deleteSingleBucket = async (s3Client, bucketName) => {
  * @param {Promise} deletedCloudFront - Promise that resolves when CloudFront distribution is deleted
  * @returns {Promise} - A promise that resolves when deletion is complete
  */
-const deleteS3Buckets = async (useIAM, killTag, awsResources, deletedCloudFront, verbose = false) => {
+const deleteS3Buckets = async (
+  useIAM,
+  killTag,
+  awsResources,
+  deletedCloudFront,
+  verbose = false,
+) => {
   // Wait for CloudFront distribution to be deleted first (S3 buckets can't be deleted while CloudFront uses them)
   await deletedCloudFront;
 
