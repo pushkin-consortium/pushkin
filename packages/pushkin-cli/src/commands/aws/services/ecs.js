@@ -18,6 +18,7 @@ import {
   ListServicesCommand,
   DeleteServiceCommand,
   DeleteClusterCommand,
+  waitUntilTasksStopped,
 } from "@aws-sdk/client-ecs";
 import {
   EC2Client,
@@ -1234,39 +1235,22 @@ const deleteCluster = async (deletedStack, useIAM, killTag, projName, awsResourc
       killedTasks = await killedTasks;
 
       //wait for tasks to stop
-      while (true) {
-        let aTaskToKill;
-        try {
-          const profileName = useIAM;
-          const factory = new AWSClientFactory(AWS_REGION, profileName);
-          const ecsClient = factory.createClient(ECSClient);
-          const listTasksResponse = await ecsClient.send(
-            new ListTasksCommand({
-              cluster: c,
-            }),
+      // Wait for all tasks to stop in parallel
+      await Promise.all(
+        killedTasks.map(async (taskArn) => {
+          await waitUntilTasksStopped(
+            {
+              client: ecsClient,
+              maxWaitTime: 600, // 10 minutes
+              minDelay: 5,
+              maxDelay: 10,
+            },
+            { cluster: c, tasks: [taskArn] },
           );
-          aTaskToKill = { stdout: JSON.stringify({ taskArns: listTasksResponse.taskArns }) };
-        } catch (e) {
-          console.error(`Unable to list tasks for cluster ${c}.`);
-          throw e;
-        }
+        }),
+      );
+      console.log("All tasks have stopped.");
 
-        tasksToKill = JSON.parse(aTaskToKill.stdout).taskArns;
-
-        if (tasksToKill.length === 0) {
-          console.log("All tasks have stopped.");
-          break;
-        }
-
-        console.log(`Waiting for ${tasksToKill.length} tasks to stop...`);
-        await new Promise((resolve) => setTimeout(resolve, 5000));
-      }
-
-      /**
-       *
-       * @param clusterName
-       * @param useIAM
-       */
       async function deleteAllServices(clusterName, useIAM) {
         let servicesToDelete = [];
         let deletedServices = [];
@@ -1310,6 +1294,24 @@ const deleteCluster = async (deletedStack, useIAM, killTag, projName, awsResourc
         }
 
         await deletedServices;
+
+        // TODO: implement in AWS SDK waiter as follows:
+        // Wait for all services to become inactive in parallel
+        // await Promise.all(
+        //   deletedServices.map(async (serviceArn) => {
+        //     await waitUntilServicesInactive(
+        //       {
+        //         client: ecsClient,
+        //         maxWaitTime: 900, // 15 minutes
+        //         minDelay: 5,
+        //         maxDelay: 10,
+        //       },
+        //       { cluster: clusterName, services: [serviceArn] }
+        //     );
+        //   })
+        // );
+        // console.log("All services have been deleted.");
+
         // Wait for services to be deleted
         while (true) {
           let servicesList;
