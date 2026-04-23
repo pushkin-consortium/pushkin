@@ -1,9 +1,6 @@
 #!/usr/bin/env node
 
 import { execSync, exec, execFile } from "child_process";
-/* eslint-disable-next-line no-unused-vars */
-import commandLineArgs from "command-line-args"; // commandLineArgs is necessary for the CLI to run
-//import { Command } from "commander";
 import * as commander from "commander";
 import "core-js/stable";
 import * as compose from "docker-compose";
@@ -23,6 +20,7 @@ import {
   addIAM,
   awsArmageddon,
   awsList,
+  awsStatus,
   createAutoScale,
 } from "./commands/aws/index.js";
 import {
@@ -37,24 +35,24 @@ import {
 import { prep, setEnv, updatePasswords } from "./commands/prep/index.js";
 import { setupdb, setupLocalTransactionsDB, securePasswords } from "./commands/setupdb/index.js";
 import { initSite, setupPushkinSite } from "./commands/sites/index.js";
-import { readAwsResources, writeAwsResources } from "./commands/aws/utils/aws-resources.js";
+import { readAwsResources } from "./commands/aws/utils/aws-resources.js";
 
-import pacMan from "./utils/package-manager.js"; //which package manager is available?
+import pacMan from "./utils/package-manager.js";
+import { getPushkinConfigPath } from "./utils/pushkin-config.js";
+
+const setCwdToProjectRoot = () => {
+  try {
+    process.chdir(path.dirname(getPushkinConfigPath()));
+  } catch (error) {
+    console.error(error.message);
+    process.exit(1);
+  }
+};
 
 // Commander.js setup
 const program = new commander.Command();
 const version = require("../package.json").version;
 program.version(version);
-
-const moveToProjectRoot = () => {
-  // better checking to make sure this is indeed a pushkin project would be good
-  while (process.cwd() != path.parse(process.cwd()).root) {
-    if (fs.existsSync(path.join(process.cwd(), "pushkin.yaml"))) return;
-    process.chdir("..");
-  }
-  console.error("No pushkin project found here or in any above directories");
-  process.exit();
-};
 
 const loadConfig = (configFile) => {
   // could add some validation to make sure everything expected in the config is there
@@ -88,6 +86,42 @@ const updateS3 = async () => {
   }
 };
 
+// Helper function to interactively set up Docker Hub credentials
+const setupDockerCredentials = async (DHID) => {
+  console.log("\nDocker Hub now requires Personal Access Tokens (PAT) for authentication.");
+  console.log("To create a PAT:");
+  console.log("1. Go to https://hub.docker.com/settings/security");
+  console.log("2. Click 'New Access Token'");
+  console.log("3. Give it a description and select 'Read, Write, Delete' permissions");
+  console.log("4. Copy the generated token\n");
+
+  const tokenAnswer = await inquirer.prompt([
+    {
+      type: "password",
+      name: "token",
+      message: "What is your DockerHub Personal Access Token?",
+      mask: "*",
+    },
+  ]);
+
+  try {
+    // Save token to .docker file
+    fs.writeFileSync(path.join(process.cwd(), ".docker"), tokenAnswer.token);
+
+    // Try to log in with the token
+    execSync(`docker login --username ${DHID} --password-stdin`, {
+      input: tokenAnswer.token,
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    console.log("Successfully authenticated with Docker Hub!");
+    return true;
+  } catch (error) {
+    console.error("Failed to authenticate with Docker Hub.");
+    console.error("Please verify your token is correct.");
+    throw error;
+  }
+};
+
 const dockerLogin = async () => {
   //get dockerhub id
   let DHID;
@@ -104,16 +138,104 @@ const dockerLogin = async () => {
       If you run '$ pushkin setDockerHub' and then retry aws update, it might work. Depending on exactly why your DockerHub ID wasn't in pushkin.yaml.`);
   }
 
+  // Check if already logged in to Docker Hub
+  // Docker Hub now uses access tokens stored in ~/.docker/config.json
+  // If the user is already logged in, we don't need to log in again
+  console.log(`Checking Docker authentication...`);
+
+  const dockerConfigPath = path.join(
+    process.env.HOME || process.env.USERPROFILE,
+    ".docker",
+    "config.json",
+  );
+  let isLoggedIn = false;
+
   try {
-    console.log(`Confirming docker login.`);
-    execSync(`cat .docker | docker login --username ${DHID} --password-stdin`);
-  } catch (e) {
-    console.error(`Automatic login to DockerHub failed. This might be because your ID or password are wrong.\n
-      Try running '$ pushkin setDockerHub' and reset then try again.\n
-      If that still fails, report an issue to Pushkin on GitHub. In the meantime, you can probably login manually\n
-      by typing '$ docker login' into the console.\n Provide your username and password when asked.\n
-      Then try '$ pushkin aws update' again.`);
-    process.exit();
+    if (fs.existsSync(dockerConfigPath)) {
+      const dockerConfig = JSON.parse(fs.readFileSync(dockerConfigPath, "utf8"));
+
+      // Check if Docker Hub auth exists in auths section
+      // Note: auths entries can be empty objects {}, so we need to check if they contain an 'auth' field
+      const dockerHubAuth =
+        dockerConfig.auths &&
+        (dockerConfig.auths["https://index.docker.io/v1/"] || dockerConfig.auths["docker.io"]);
+      if (dockerHubAuth && (dockerHubAuth.auth || dockerHubAuth.identitytoken)) {
+        isLoggedIn = true;
+      }
+      // If using credential store, need to check if credentials actually exist
+      else if (dockerConfig.credStore || dockerConfig.credsStore) {
+        const credHelper = dockerConfig.credStore || dockerConfig.credsStore;
+        try {
+          // Try to query the credential helper for Docker Hub credentials
+          const result = execSync(`docker-credential-${credHelper} list`, {
+            encoding: "utf8",
+            stdio: ["pipe", "pipe", "pipe"],
+          });
+          const creds = JSON.parse(result);
+          // Check if Docker Hub credentials exist in the credential store
+          isLoggedIn = creds["https://index.docker.io/v1/"] || creds["docker.io"] || false;
+        } catch {
+          // If credential helper fails, assume not logged in
+          isLoggedIn = false;
+        }
+      }
+    }
+  } catch {
+    // Ignore errors reading Docker config
+    console.log("Could not verify Docker login status");
+  }
+
+  if (isLoggedIn) {
+    console.log(`Using existing Docker authentication.`);
+  } else {
+    // No existing authentication found - offer interactive options
+    console.log(`No existing Docker authentication found.`);
+
+    const tokenPath = path.join(process.cwd(), ".docker");
+    const hasStoredToken = fs.existsSync(tokenPath);
+
+    if (hasStoredToken) {
+      // Try to log in using stored token first
+      try {
+        const token = fs.readFileSync(tokenPath, "utf8").trim();
+        execSync(`docker login --username ${DHID} --password-stdin`, {
+          input: token,
+          stdio: ["pipe", "pipe", "pipe"],
+        });
+        console.log(`Successfully authenticated with Docker Hub using stored credentials!`);
+        return DHID;
+      } catch {
+        console.log(`Failed to authenticate with stored credentials.`);
+      }
+    }
+
+    // Prompt user for what they want to do
+    const choice = await inquirer.prompt([
+      {
+        type: "list",
+        name: "authMethod",
+        message: "How would you like to authenticate with Docker Hub?",
+        choices: [
+          { name: "Enter Docker Hub Personal Access Token (recommended)", value: "token" },
+          { name: "I'll log in manually with 'docker login'", value: "manual" },
+        ],
+        default: "token",
+      },
+    ]);
+
+    if (choice.authMethod === "token") {
+      await setupDockerCredentials(DHID);
+    } else {
+      console.log("\nPlease run 'docker login' in another terminal and press Enter when done.");
+      await inquirer.prompt([
+        {
+          type: "input",
+          name: "continue",
+          message: "Press Enter to continue...",
+        },
+      ]);
+      console.log("Continuing with AWS deployment...");
+    }
   }
 
   return DHID;
@@ -274,15 +396,15 @@ const handleCreateAutoScale = async () => {
 };
 
 const handleViewConfig = async (what) => {
-  moveToProjectRoot();
+  setCwdToProjectRoot();
   let x = await ((what == "site") | !what ?
     loadConfig(path.join(process.cwd(), "pushkin.yaml"))
-    : "");
+  : "");
   let exps = fs.readdirSync(path.join(process.cwd(), "experiments"));
   let y = await Promise.all(
     exps.map(async (exp) => {
       return (await ((what == exp) | !what)) ?
-        loadConfig(path.join(process.cwd(), "experiments", exp, "config.yaml"))
+          loadConfig(path.join(process.cwd(), "experiments", exp, "config.yaml"))
         : "";
     }),
   );
@@ -291,7 +413,7 @@ const handleViewConfig = async (what) => {
 
 const handleUpdateDB = async (verbose) => {
   if (verbose) console.log("--verbose flag set inside handleUpdateDB()");
-  moveToProjectRoot();
+  setCwdToProjectRoot();
   let settingUpDB, config;
   try {
     config = await loadConfig(path.join(process.cwd(), "pushkin.yaml"));
@@ -343,7 +465,7 @@ const removeDS = (verbose) => {
 
 const handlePrep = async (verbose) => {
   if (verbose) console.log("--verbose flag set inside handlePrep()");
-  moveToProjectRoot();
+  setCwdToProjectRoot();
   const config = await loadConfig(path.join(process.cwd(), "pushkin.yaml"));
   let out;
   if (verbose) {
@@ -379,6 +501,24 @@ const handleAWSList = async () => {
     process.exit();
   }
   return awsList(useIAM.iam);
+};
+
+const handleAWSStatus = async (verbose = false) => {
+  let useIAM;
+  try {
+    useIAM = await inquirer.prompt([
+      {
+        type: "input",
+        name: "iam",
+        message:
+          "Provide your AWS profile username that you want to use for managing this project.",
+      },
+    ]);
+  } catch (e) {
+    console.error("Problem getting AWS IAM username.\n", e);
+    process.exit();
+  }
+  return awsStatus(useIAM.iam, verbose);
 };
 
 const handleAWSKill = async () => {
@@ -605,7 +745,7 @@ const handleInstall = async (templateType, options, verbose) => {
   } else {
     // templateType === "experiment"}
     // Make sure we're in the root of the site directory
-    moveToProjectRoot();
+    setCwdToProjectRoot();
     // Check if the experiment name was provided in the command
     if (!options.expName) {
       // If not, ask the user for the name of their experiment
@@ -1018,11 +1158,9 @@ const handleAWSInit = async (force) => {
 
   try {
     await verifyIAMCredentials(useIAM.iam);
-  } catch (e) {
-    console.error(
-      `The IAM user ${useIAM.iam} is not configured on the AWS CLI. For more information see https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html`,
-    );
-    process.exit();
+  } catch (error) {
+    console.log(error);
+    // process.exit();
   }
   let addedIAM;
   try {
@@ -1033,7 +1171,10 @@ const handleAWSInit = async (force) => {
   }
 
   try {
-    await Promise.all([awsInit(projName.name, s3BucketName, useIAM.iam, config.DockerHubID), addedIAM]);
+    await Promise.all([
+      awsInit(projName.name, s3BucketName, useIAM.iam, config.DockerHubID),
+      addedIAM,
+    ]);
   } catch (e) {
     throw e;
   }
@@ -1046,7 +1187,7 @@ const killLocal = async () => {
   console.log(
     "Removing all containers and volumes, as well as pushkin images. To additionally remove third-party images, run `pushkin armageddon`.",
   );
-  moveToProjectRoot();
+  setCwdToProjectRoot();
   try {
     await compose.stop({
       cwd: path.join(process.cwd(), "pushkin"),
@@ -1089,7 +1230,7 @@ const killLocal = async () => {
 const handleRemove = async (experiments, mode, force, verbose) => {
   if (verbose) console.log("--verbose flag set inside handleRemove()");
   // Make sure we're in the root of the site directory
-  moveToProjectRoot();
+  setCwdToProjectRoot();
   // Load the pushkin.yaml file
   const config = jsYaml.load(fs.readFileSync(path.join(process.cwd(), "pushkin.yaml"), "utf8"));
   // Get the path to the experiments directory
@@ -1674,7 +1815,7 @@ async function main() {
     .action((packages, options) => {
       const packagesPath = options.path ? path.resolve(options.path) : undefined;
       // Make sure we're in the root of the site directory
-      moveToProjectRoot();
+      setCwdToProjectRoot();
       // Make sure there are no DS_Store files
       removeDS(options.verbose);
       // Check that the path is valid
@@ -1726,9 +1867,10 @@ async function main() {
   program
     .command("aws <cmd>")
     .description(
-      `For working with AWS. Commands include:\n 
-      init: initialize an AWS deployment.\n 
+      `For working with AWS. Commands include:\n
+      init: initialize an AWS deployment.\n
       update: update an AWS deployment.\n
+      status: show detailed status of current project's AWS resources.\n
       kill: delete AWS resources of current project.\n
       armageddon: delete AWS resources created by Pushkin.\n
       list: list AWS resources created by Pushkin (and possibly others).`,
@@ -1740,7 +1882,7 @@ async function main() {
     )
     .option("-v, --verbose", "output extra debugging info")
     .action(async (cmd, options) => {
-      moveToProjectRoot();
+      setCwdToProjectRoot();
       switch (cmd) {
         case "init":
           try {
@@ -1786,6 +1928,14 @@ async function main() {
             process.exit();
           }
           break;
+        case "status":
+          try {
+            await handleAWSStatus(options.verbose);
+          } catch (e) {
+            console.error(e);
+            process.exit();
+          }
+          break;
         default:
           console.error("Command not recognized. For help, run 'pushkin help aws'.");
       }
@@ -1795,7 +1945,7 @@ async function main() {
     .command("setDockerHub")
     .description(`Set (or change) your DockerHub ID. This must be run before deploying to AWS.`)
     .action(() => {
-      moveToProjectRoot();
+      setCwdToProjectRoot();
       inquirer
         .prompt([{ type: "input", name: "ID", message: "What is your DockerHub ID?" }])
         .then(async (answers) => {
@@ -1814,21 +1964,44 @@ async function main() {
             console.error(e);
             process.exit();
           }
+          console.log("\nDocker Hub now requires Personal Access Tokens (PAT) for authentication.");
+          console.log("To create a PAT:");
+          console.log("1. Go to https://hub.docker.com/settings/security");
+          console.log("2. Click 'New Access Token'");
+          console.log("3. Give it a description and select 'Read, Write, Delete' permissions");
+          console.log("4. Copy the generated token\n");
           inquirer
             .prompt([
               {
-                type: "input",
-                name: "pw",
-                message: "What is your DockerHub password?",
+                type: "password",
+                name: "token",
+                message: "What is your DockerHub Personal Access Token?",
+                mask: "*",
               },
             ])
-            .then(async (answers) => {
-              fs.writeFileSync(".docker", answers.pw, (err) => {
-                if (err) {
-                  console.error(err);
+            .then(async (tokenAnswers) => {
+              // Save token to .docker file (legacy compatibility)
+              try {
+                fs.writeFileSync(".docker", tokenAnswers.token);
+                console.log("\nDockerHub credentials saved!");
+                console.log("Attempting to log in to Docker Hub...");
+
+                // Try to log in to Docker using the token
+                try {
+                  execSync(`docker login --username ${answers.ID} --password-stdin`, {
+                    input: tokenAnswers.token,
+                    stdio: ["pipe", "pipe", "pipe"],
+                  });
+                  console.log("Successfully authenticated with Docker Hub!");
+                } catch {
+                  console.error("Failed to authenticate with Docker Hub.");
+                  console.error("Please verify your token is correct and try running:");
+                  console.error(`  docker login --username ${answers.ID}`);
                 }
-                // file written successfully
-              });
+              } catch (err) {
+                console.error("Failed to save Docker credentials:", err);
+                process.exit(1);
+              }
             });
         });
     });
@@ -1889,7 +2062,7 @@ async function main() {
     .option("-v, --verbose", "output extra debugging info")
     .action(async (options) => {
       if (options.verbose) console.log("Starting start...");
-      moveToProjectRoot();
+      setCwdToProjectRoot();
       if (options.verbose) console.log("Copying experiments.js to front-end");
       try {
         fs.copyFileSync("pushkin/front-end/src/experiments.js", "pushkin/front-end/experiments.js");
@@ -1940,7 +2113,7 @@ async function main() {
       "Stops the local deploy. This will not remove the local docker images. To do that, see documentation for pushkin kill and pushkin armageddon.",
     )
     .action(() => {
-      moveToProjectRoot();
+      setCwdToProjectRoot();
       compose
         .stop({
           cwd: path.join(process.cwd(), "pushkin"),
@@ -2008,7 +2181,7 @@ async function main() {
     .action(async (cmd) => {
       switch (cmd) {
         case "updateDB":
-          moveToProjectRoot();
+          setCwdToProjectRoot();
           try {
             await handleUpdateDB();
           } catch (e) {
@@ -2017,7 +2190,7 @@ async function main() {
           }
           break;
         case "setup-transaction-db":
-          moveToProjectRoot();
+          setCwdToProjectRoot();
           try {
             await setupLocalTransactionsDB();
           } catch (e) {
@@ -2034,7 +2207,7 @@ async function main() {
           }
           break;
         case "aws-auto-scale":
-          moveToProjectRoot();
+          setCwdToProjectRoot();
           try {
             await handleCreateAutoScale();
           } catch (e) {
