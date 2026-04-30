@@ -1,4 +1,5 @@
 import path from "path";
+import os from "os";
 //import { promises as fs } from 'fs';
 import fs from "graceful-fs";
 import jsYaml from "js-yaml";
@@ -694,6 +695,17 @@ export const prep = async (experimentsDir, coreDir, verbose) => {
     process.exit();
   }
 
+  // The API Dockerfile always copies .yalc/ and yalc.lock (added by `yalc add` when
+  // experiments are installed). On a fresh site with no experiments, these don't exist
+  // yet and Docker COPY fails. Create empty placeholders if needed.
+  const apiDir = path.join(coreDir, "api");
+  if (!fs.existsSync(path.join(apiDir, ".yalc"))) {
+    fs.mkdirSync(path.join(apiDir, ".yalc"));
+  }
+  if (!fs.existsSync(path.join(apiDir, "yalc.lock"))) {
+    fs.writeFileSync(path.join(apiDir, "yalc.lock"), '{"version":"v1","packages":{}}');
+  }
+
   if (verbose) console.log("Building API");
   let builtAPI;
   try {
@@ -702,6 +714,15 @@ export const prep = async (experimentsDir, coreDir, verbose) => {
     console.error(`Problem building API`);
     throw e;
   }
+  // Same as above — front-end Dockerfile also copies .yalc/ and yalc.lock.
+  const feDir = path.join(coreDir, "front-end");
+  if (!fs.existsSync(path.join(feDir, ".yalc"))) {
+    fs.mkdirSync(path.join(feDir, ".yalc"));
+  }
+  if (!fs.existsSync(path.join(feDir, "yalc.lock"))) {
+    fs.writeFileSync(path.join(feDir, "yalc.lock"), '{"version":"v1","packages":{}}');
+  }
+
   if (verbose) console.log("Building server");
   let builtServer;
   try {
