@@ -564,17 +564,15 @@ export const prep = async (experimentsDir, coreDir, verbose) => {
     // Use internal container port (5432), not host-mapped port
     compFile.services[workerName].environment.TRANS_PORT = "5432";
 
-    let workerBuild;
     try {
       if (verbose) console.log(`Building docker image for ${workerName}`);
       const dockerArgs = ["build", workerLoc, "-t", workerName, "--load"];
       if (verbose) console.log("docker", dockerArgs.join(" "));
-      workerBuild = execFile("docker", dockerArgs);
+      await execFile("docker", dockerArgs);
     } catch (e) {
       console.error(`Problem building worker for ${exp}`);
       throw e;
     }
-    return workerBuild;
   };
 
   const composeFileLoc = path.join(path.join(process.cwd(), "pushkin"), "docker-compose.dev.yml");

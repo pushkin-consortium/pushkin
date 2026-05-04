@@ -3034,9 +3034,8 @@ const rebuildWorker = async function (exp) {
   const workerName = `${exp}_worker`.toLowerCase(); //Docker names must all be lower case
   const workerLoc = path.join(expDir, workerConfig.location);
 
-  let workerBuild;
   try {
-    workerBuild = execFile("docker", [
+    await execFile("docker", [
       "buildx",
       "build",
       "--platform",
@@ -3047,10 +3046,15 @@ const rebuildWorker = async function (exp) {
       "--load",
     ]);
   } catch (e) {
+    if (e.stderr && (e.stderr.includes("timeout") || e.stderr.includes("network"))) {
+      throw new Error(
+        `Network error while building worker image for ${exp}. ` +
+          `This is usually transient — please try running the command again.`,
+      );
+    }
     console.error(`Problem building worker for ${exp}`);
     throw e;
   }
-  return workerBuild;
 };
 
 /**
