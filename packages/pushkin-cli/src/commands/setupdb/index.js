@@ -531,6 +531,65 @@ async function ensureCleanState(verbose) {
   }
 }
 
+export async function setupdb(coreDBs, mainExpDir, verbose) {
+  if (verbose) console.log("--verbose flag set inside setupdb()");
+  // load up all migrations for same dbs to be run at same time (knex requires this)
+
+  // Ensure clean state before starting databases
+  await ensureCleanState(verbose);
+
+  let dbPromise;
+  if (verbose) console.log("Spooling up databases.");
+  try {
+    dbPromise = compose.upMany(["test_db", "test_transaction_db"], {
+      cwd: path.join(process.cwd(), "pushkin"),
+      config: "docker-compose.dev.yml",
+    });
+  } catch (e) {
+    console.error("something went wrong starting database containers.");
+    throw e;
+  }
+
+  try {
+    // Check if database containers are running or stopped
+    const { stdout } = await exec(
+      `docker ps -a --format "{{.Names}}" | grep -E "pushkin[-_](test_db|test_transaction_db)[-_]"`
+    );
+
+    if (stdout.trim()) {
+      // Found existing containers - clean them up
+      console.log('⚠️  Found existing database containers. Cleaning up...');
+
+      const dockerPath = path.join(process.cwd(), "pushkin");
+      const dockerConfig = "docker-compose.dev.yml";
+
+      try {
+        // Remove containers and named volumes so new containers start with fresh credentials
+        await compose.down({
+          cwd: dockerPath,
+          config: dockerConfig,
+          commandOptions: ["--volumes"], // removes named volumes (e.g. test_transaction_db_volume)
+        });
+      } catch (err) {
+        if (verbose) console.warn("Warning removing containers:", err.message);
+      }
+
+      console.log('✓ Cleanup complete. Starting fresh databases...');
+    } else {
+      if (verbose) console.log("No existing database containers found. Proceeding with fresh setup.");
+    }
+  } catch (e) {
+    // If grep finds nothing, it returns exit code 1, which throws an error
+    // This is expected when no containers exist, so we can safely ignore it
+    if (e.code === 1 && e.stderr === '') {
+      if (verbose) console.log("No existing database containers found (grep returned no matches).");
+    } else {
+      // Actual error - log it but don't fail the entire setup
+      console.warn("Warning: Could not check for existing containers:", e.message);
+    }
+  }
+}
+
 /**
  * Set up all databases by running migrations and seeds.
  * This is the main orchestration function that:
