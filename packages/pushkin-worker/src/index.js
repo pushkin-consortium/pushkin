@@ -150,13 +150,11 @@ class DefaultHandler {
       `setting up main db connection with user: ${connection.user}, database: ${connection.database}, host: ${connection.host}`,
     );
 
-    // Auto-detect if SSL should be enabled for RDS or non-localhost connections
+    // Auto-detect SSL only for RDS endpoints; local Docker service names (e.g. "test_db") must not trigger SSL
     const shouldUseSSL =
       connection.ssl !== undefined ?
         connection.ssl
-      : connection.host &&
-        (connection.host.endsWith(".rds.amazonaws.com") ||
-          (connection.host !== "localhost" && !connection.host.includes("localhost")));
+      : connection.host && connection.host.endsWith(".rds.amazonaws.com");
 
     this.knexInfo = {
       client: "pg",
@@ -195,15 +193,12 @@ class DefaultHandler {
       try {
         this.trans_table = transactionOps.tableName;
 
-        // Auto-detect if SSL should be enabled for transaction DB
+        // Auto-detect SSL only for RDS endpoints; local Docker service names (e.g. "test_transaction_db") must not trigger SSL
         const transConnection = transactionOps.connection;
         const transShouldUseSSL =
           transConnection.ssl !== undefined ?
             transConnection.ssl
-          : transConnection.host &&
-            (transConnection.host.endsWith(".rds.amazonaws.com") ||
-              (transConnection.host !== "localhost" &&
-                !transConnection.host.includes("localhost")));
+          : transConnection.host && transConnection.host.endsWith(".rds.amazonaws.com");
 
         this.pg_trans = knex({
           client: "pg",
