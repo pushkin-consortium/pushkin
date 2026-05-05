@@ -379,9 +379,8 @@ class DefaultHandler {
       return { user_id: userId };
     } else {
       console.log(`Adding ${userId} to users ${this.tables.users}.`);
-      let returnVal;
       try {
-        returnVal = this.logTransaction(this.pg_main(this.tables.users).insert(toInsert));
+        await this.logTransaction(this.pg_main(this.tables.users).insert(toInsert));
       } catch (error) {
         console.error(`Problem inserting user: ${error}`);
         throw error;
