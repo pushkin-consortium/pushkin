@@ -232,14 +232,11 @@ function buildKnexConfig(dbInfo) {
       port: dbInfo.port,
       password: dbInfo.pass,
       database: dbInfo.name,
-      // Enable SSL for AWS RDS or non-localhost connections
+      // Enable SSL only for RDS endpoints; localhost and any local Docker service names should not trigger SSL
       ssl:
-        (
-          (parsedHost && parsedHost.endsWith(".rds.amazonaws.com")) ||
-          (parsedHost !== "localhost" && !parsedHost.includes("localhost"))
-        ) ?
+        parsedHost && parsedHost.endsWith(".rds.amazonaws.com") ?
           { rejectUnauthorized: false }
-          : false,
+        : false,
     },
     // Connection pool settings optimized for migration stability
     pool: {
