@@ -488,43 +488,56 @@ async function migrateExperimentsDB(dbMigrationsMap, coreDBs, verbose) {
 async function ensureCleanState(verbose) {
   if (verbose) console.log("--verbose flag set inside ensureCleanState()");
 
+  // Check for existing containers (stopped or running)
+  let containersExist = false;
   try {
-    // Check if database containers are running or stopped
     const { stdout } = await exec(
-      `docker ps -a --format "{{.Names}}" | grep -E "pushkin[-_](test_db|test_transaction_db)[-_]"`
+      `docker ps -a --format "{{.Names}}" | grep -E "pushkin[-_](test_db|test_transaction_db)[-_]"`,
     );
-
-    if (stdout.trim()) {
-      // Found existing containers - clean them up
-      console.log('⚠️  Found existing database containers. Cleaning up...');
-
-      const dockerPath = path.join(process.cwd(), "pushkin");
-      const dockerConfig = "docker-compose.dev.yml";
-
-      try {
-        // Remove containers and named volumes so new containers start with fresh credentials
-        await compose.down({
-          cwd: dockerPath,
-          config: dockerConfig,
-          commandOptions: ["--volumes"], // removes named volumes (e.g. test_transaction_db_volume)
-        });
-      } catch (err) {
-        if (verbose) console.warn("Warning removing containers:", err.message);
-      }
-
-      console.log('✓ Cleanup complete. Starting fresh databases...');
-    } else {
-      if (verbose) console.log("No existing database containers found. Proceeding with fresh setup.");
-    }
+    containersExist = stdout.trim().length > 0;
   } catch (e) {
     // If grep finds nothing, it returns exit code 1, which throws an error
     // This is expected when no containers exist, so we can safely ignore it
-    if (e.code === 1 && e.stderr === '') {
-      if (verbose) console.log("No existing database containers found (grep returned no matches).");
-    } else {
-      // Actual error - log it but don't fail the entire setup
+    if (!(e.code === 1 && e.stderr === "")) {
       console.warn("Warning: Could not check for existing containers:", e.message);
     }
+  }
+
+  // Check for orphaned volumes (containers removed without removing their volumes)
+  let volumesExist = false;
+  try {
+    // The Docker Compose project name is always "pushkin" because every compose.* call uses
+    // cwd: path.join(..., "pushkin").
+    // Compose v2 stamps volumes with a com.docker.compose.project label we can query.
+    const { stdout } = await exec(
+      `docker volume ls --filter "label=com.docker.compose.project=pushkin" -q`,
+    );
+    volumesExist = stdout.trim().length > 0;
+  } catch (e) {
+    console.warn("Warning: Could not check for existing volumes:", e.message);
+  }
+
+  if (containersExist || volumesExist) {
+    if (verbose) {
+      console.log(
+        `⚠️  Found existing state (containers: ${containersExist}, orphaned volumes: ${volumesExist && !containersExist}). Cleaning up...`,
+      );
+    }
+    const dockerPath = path.join(process.cwd(), "pushkin");
+    const dockerConfig = "docker-compose.dev.yml";
+    try {
+      await compose.down({
+        cwd: dockerPath,
+        config: dockerConfig,
+        commandOptions: ["--volumes"],
+      });
+      if (verbose) console.log("✓ Cleanup complete.");
+    } catch (err) {
+      console.warn("Warning during cleanup:", err.message || JSON.stringify(err));
+    }
+  } else {
+    if (verbose)
+      console.log("✓ No existing containers or volumes found. Proceeding with fresh setup.");
   }
 }
 
