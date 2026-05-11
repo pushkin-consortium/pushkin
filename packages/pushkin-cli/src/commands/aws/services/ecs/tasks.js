@@ -17,12 +17,12 @@ import { ensureECSTaskExecutionRole } from "../iam.js";
 import { getDBInfo } from "../rds.js";
 import { buildRabbitTask, buildAPITask, buildWorkerTask } from "./environment.js";
 import { createECSService } from "./services.js";
-import fs from "graceful-fs";
 import path from "path";
 import jsYaml from "js-yaml";
 import crypto from "crypto";
 import { v4 as uuid } from "uuid";
-import { createDirectory } from "../../../../utils/file.js";
+import { createDirectory, readFile, writeFile } from "../../../../utils/file.js";
+import { loadPushkinConfig, savePushkinConfig } from "../../../../utils/pushkin-config.js";
 
 /**
  * (Helper)
@@ -215,7 +215,7 @@ const createECSTask = async (
     const deployService = async () => {
       // 1. Write YAML file (for debugging/reference)
       const yamlPath = path.join(process.cwd(), "ECStasks", yaml);
-      await fs.promises.writeFile(yamlPath, jsYaml.dump(task), "utf8");
+      writeFile(yamlPath, jsYaml.dump(task));
       console.log(`Wrote ECS task definition to ${yaml}`);
 
       // 2. Convert Docker Compose to ECS Task Definition
@@ -264,11 +264,7 @@ const createECSTask = async (
   // Load pushkin.yaml to check for existing RabbitMQ credentials
   let pushkinConfig;
   try {
-    const configContent = await fs.promises.readFile(
-      path.join(process.cwd(), "pushkin.yaml"),
-      "utf8",
-    );
-    pushkinConfig = jsYaml.load(configContent);
+    pushkinConfig = loadPushkinConfig();
   } catch (e) {
     console.error("Failed to load pushkin.yaml");
     throw e;
@@ -297,11 +293,7 @@ const createECSTask = async (
     pushkinConfig.rabbitmq.erlangCookie = rabbitCookie;
 
     try {
-      await fs.promises.writeFile(
-        path.join(process.cwd(), "pushkin.yaml"),
-        jsYaml.dump(pushkinConfig),
-        "utf8",
-      );
+      savePushkinConfig(pushkinConfig);
       console.log("Saved RabbitMQ credentials to pushkin.yaml");
     } catch (e) {
       console.error("Failed to save RabbitMQ credentials to pushkin.yaml");
@@ -317,7 +309,7 @@ const createECSTask = async (
   let docker_compose;
   try {
     docker_compose = jsYaml.load(
-      fs.readFileSync(path.join(process.cwd(), "pushkin/docker-compose.dev.yml"), "utf8"),
+      readFile(path.join(process.cwd(), "pushkin/docker-compose.dev.yml"), "utf8"),
     );
   } catch (e) {
     console.error("Failed to load the docker-compose. That is extremely odd.");
