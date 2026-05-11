@@ -1,6 +1,9 @@
 /**
  * AWS ECS Service Management
  * Handles ECS cluster, task, and service creation and deletion for Pushkin deployments
+ * ECS is used to run containerized applications on AWS, and this module abstracts the setup and management of ECS resources
+ * including clusters, task definitions, services, load balancers, and security groups.
+ * Containers we run include the Pushkin API, worker, and any other services defined in the project.
  * @module ecs
  */
 
@@ -23,10 +26,7 @@ import { updateAwsResourcesField } from "../../utils/aws-resources.js";
 import { AWS_REGION } from "../../constants.js";
 import { ensureBalancerSecurityGroup, ensureECSSecurityGroup } from "../security.js";
 import { createECSTask } from "./tasks.js";
-import fs from "graceful-fs";
 import path from "path";
-import jsYaml from "js-yaml";
-import { mkdir } from "fs/promises";
 import { exec as execCallback } from "child_process";
 import { promisify } from "util";
 import { quote } from "shell-quote";
@@ -40,13 +40,63 @@ const exec = promisify(execCallback);
 const PROJECT_TAG_KEY = loadAwsConfig().tagging.projectTagKey;
 
 /**
+ * (Helper)
+ * Create an SSH key pair
+ * @param {string} useIAM - The IAM role to use
+ */
+async function makeSSH(useIAM) {
+  let keyPairs;
+  let foundPushkinKeyPair = false;
+  try {
+    const profileName = useIAM;
+    const factory = new AWSClientFactory(AWS_REGION, profileName);
+    const ec2Client = factory.createClient(EC2Client);
+    const describeKeyPairsResponse = await ec2Client.send(new DescribeKeyPairsCommand({}));
+    keyPairs = { stdout: JSON.stringify({ KeyPairs: describeKeyPairsResponse.KeyPairs }) };
+  } catch (error) {
+    console.error(`Failed to get list of key pairs`, error);
+  }
+  JSON.parse(keyPairs.stdout).KeyPairs.forEach((k) => {
+    if (k.KeyName == "my-pushkin-key-pair") {
+      foundPushkinKeyPair = true;
+    }
+  });
+
+  if (foundPushkinKeyPair) {
+    console.log(`Pushkin key pair already exists. Skipping creation.`);
+    return;
+  } else {
+    try {
+      console.error(`Making SSH key`);
+      const profileName = useIAM;
+      const factory = new AWSClientFactory(AWS_REGION, profileName);
+      const ec2Client = factory.createClient(EC2Client);
+      const createKeyPairResponse = await ec2Client.send(
+        new CreateKeyPairCommand({
+          KeyName: "my-pushkin-key-pair",
+        }),
+      );
+      // Write the key material to file
+      const keyPath = path.join(process.cwd(), "pushkinKey");
+      writeFile(keyPath, createKeyPairResponse.KeyMaterial);
+      // Set file permissions to be read-only by owner
+      const chmodCmd = quote(["chmod", "400", keyPath]);
+      await exec(chmodCmd);
+    } catch (error) {
+      console.error(`Problem creating AWS SSH key`, error);
+    }
+    return;
+  }
+};
+
+/**
  * Set up ECS cluster and related resources:
  * - Security groups and SSH keys
  * - Load balancers and target groups
  * - Auto-scaling configuration
  * - Network setup (VPC, subnets)
  * @param {string} projName - The name of the project
- * @param {boolean} useIAM - Whether to use IAM roles
+ * @param {string} useIAM - The IAM role to use
  * @param {string} DHID - The Docker Hub ID
  * @param {Promise} completedDBs - A promise that resolves when the databases are set up
  * @param {string} myCertificate - The certificate for the project
@@ -54,55 +104,6 @@ const PROJECT_TAG_KEY = loadAwsConfig().tagging.projectTagKey;
  */
 const setupECS = async (projName, useIAM, DHID, completedDBs, myCertificate) => {
   console.log(`Starting ECS setup`);
-
-  /**
-   * Create an SSH key pair
-   * @param {boolean} useIAM - Whether to use IAM roles
-   */
-  const makeSSH = async (useIAM) => {
-    let keyPairs;
-    let foundPushkinKeyPair = false;
-    try {
-      const profileName = useIAM;
-      const factory = new AWSClientFactory(AWS_REGION, profileName);
-      const ec2Client = factory.createClient(EC2Client);
-      const describeKeyPairsResponse = await ec2Client.send(new DescribeKeyPairsCommand({}));
-      keyPairs = { stdout: JSON.stringify({ KeyPairs: describeKeyPairsResponse.KeyPairs }) };
-    } catch (error) {
-      console.error(`Failed to get list of key pairs`, error);
-    }
-    JSON.parse(keyPairs.stdout).KeyPairs.forEach((k) => {
-      if (k.KeyName == "my-pushkin-key-pair") {
-        foundPushkinKeyPair = true;
-      }
-    });
-
-    if (foundPushkinKeyPair) {
-      console.log(`Pushkin key pair already exists. Skipping creation.`);
-      return;
-    } else {
-      try {
-        console.error(`Making SSH key`);
-        const profileName = useIAM;
-        const factory = new AWSClientFactory(AWS_REGION, profileName);
-        const ec2Client = factory.createClient(EC2Client);
-        const createKeyPairResponse = await ec2Client.send(
-          new CreateKeyPairCommand({
-            KeyName: "my-pushkin-key-pair",
-          }),
-        );
-        // Write the key material to file
-        const keyPath = path.join(process.cwd(), "pushkinKey");
-        writeFile(keyPath, createKeyPairResponse.KeyMaterial);
-        // Set file permissions to be read-only by owner
-        const chmodCmd = quote(["chmod", "400", keyPath]);
-        await exec(chmodCmd);
-      } catch (error) {
-        console.error(`Problem creating AWS SSH key`, error);
-      }
-      return;
-    }
-  };
 
   let madeSSH = makeSSH(useIAM);
 
@@ -156,37 +157,6 @@ const setupECS = async (projName, useIAM, DHID, completedDBs, myCertificate) => 
   };
   let gotVPC;
   gotVPC = getVPC(useIAM);
-
-  try {
-    if (fs.existsSync(path.join(process.cwd(), "ECStasks"))) {
-      //nothing
-    } else {
-      console.log("Making ECSTasks folder");
-      await mkdir(path.join(process.cwd(), "ECStasks"));
-    }
-  } catch (e) {
-    console.error(`Problem with ECSTasks folder`);
-    throw e;
-  }
-  try {
-    console.log(`Making ecs-params.yml`);
-    // This lets us set the network mode for all services.
-    // Currently that cannot be done through the task docker file
-    let ecsParams = {
-      version: 1,
-      task_definition: {
-        ecs_network_mode: "host",
-      },
-    };
-    await fs.promises.writeFile(
-      path.join(process.cwd(), "ECStasks/ecs-params.yml"),
-      jsYaml.dump(ecsParams),
-      "utf8",
-    );
-  } catch (e) {
-    console.error(`Unable to create ecs-params.yml`);
-    throw e;
-  }
 
   const ECSName = projName.replace(/[^A-Za-z0-9]/g, "");
   // Note: Previously used ECS-CLI with AWS CLI credentials, now using AWS SDK directly

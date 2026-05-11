@@ -1,16 +1,10 @@
 /**
  * ECS Task Definition Operations
- * Handles IAM role setup, task definition registration, environment configuration,
+ * Handles task definition registration, environment configuration,
  * and service deployment for Pushkin deployments
  * @module ecs/tasks
  */
 
-import {
-  IAMClient,
-  GetRoleCommand,
-  CreateRoleCommand,
-  AttachRolePolicyCommand,
-} from "@aws-sdk/client-iam";
 import {
   ECSClient,
   RegisterTaskDefinitionCommand,
@@ -19,74 +13,16 @@ import {
 import { AWSClientFactory } from "../../utils/aws-client-factory.js";
 import { updateAwsResourcesField } from "../../utils/aws-resources.js";
 import { AWS_REGION } from "../../constants.js";
-import { rabbitTask, apiTask, workerTask } from "../../awsConfigs.js";
+import { ensureECSTaskExecutionRole } from "../iam.js";
 import { getDBInfo } from "../rds.js";
+import { buildRabbitTask, buildAPITask, buildWorkerTask } from "./environment.js";
 import { createECSService } from "./services.js";
 import fs from "graceful-fs";
 import path from "path";
 import jsYaml from "js-yaml";
 import crypto from "crypto";
 import { v4 as uuid } from "uuid";
-import { isDirectory, createDirectory } from "../../../../utils/file.js";
-
-/**
- * (Helper)
- * Ensure ECS task execution IAM role exists, creating it if necessary
- * @returns {Promise<string>} The ARN of the execution role
- */
-const ensureECSTaskExecutionRole = async (useIAM, verbose = false) => {
-  const profileName = useIAM;
-  const factory = new AWSClientFactory(AWS_REGION, profileName);
-  const iamClient = factory.createClient(IAMClient);
-  const roleName = "ecsTaskExecutionRole";
-
-  try {
-    const getRoleCommand = new GetRoleCommand({ RoleName: roleName });
-    const roleResponse = await iamClient.send(getRoleCommand);
-    if (verbose) console.log(`ECS Task Execution Role already exists: ${roleResponse.Role.Arn}`);
-    return roleResponse.Role.Arn;
-  } catch (error) {
-    if (error.name === "NoSuchEntityException") {
-      if (verbose) console.log(`Creating ECS Task Execution Role: ${roleName}`);
-
-      const assumeRolePolicyDocument = {
-        Version: "2012-10-17",
-        Statement: [
-          {
-            Effect: "Allow",
-            Principal: {
-              Service: "ecs-tasks.amazonaws.com",
-            },
-            Action: "sts:AssumeRole",
-          },
-        ],
-      };
-
-      const createRoleCommand = new CreateRoleCommand({
-        RoleName: roleName,
-        AssumeRolePolicyDocument: JSON.stringify(assumeRolePolicyDocument),
-        Description: "Allows ECS tasks to call AWS services on user's behalf",
-      });
-
-      const createRoleResponse = await iamClient.send(createRoleCommand);
-      const roleArn = createRoleResponse.Role.Arn;
-
-      // Attach the managed policy for ECS task execution
-      const attachPolicyCommand = new AttachRolePolicyCommand({
-        RoleName: roleName,
-        PolicyArn: "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
-      });
-
-      await iamClient.send(attachPolicyCommand);
-      console.log(`Created and configured ECS Task Execution Role: ${roleArn}`);
-
-      return roleArn;
-    } else {
-      console.error(`Error checking for ECS Task Execution Role:`, error);
-      throw error;
-    }
-  }
-};
+import { createDirectory } from "../../../../utils/file.js";
 
 /**
  * (Helper)
@@ -221,12 +157,7 @@ const createECSTask = async (
   subnets,
   ecsSecurityGroupID,
 ) => {
-  if (isDirectory(path.join(process.cwd(), "ECStasks"))) {
-    return;
-  } else {
-    console.log("Making ECSTasks folder");
-    createDirectory(path.join(process.cwd(), "ECStasks"));
-  }
+  createDirectory(path.join(process.cwd(), "ECStasks"));
 
   const executionRoleArn = await ensureECSTaskExecutionRole(useIAM);
 
@@ -379,22 +310,9 @@ const createECSTask = async (
   }
 
   const rabbitUser = projName.replace(/[^A-Za-z0-9]/g, "");
-  const rabbitAddress = "amqp://"
-    .concat(rabbitUser)
-    .concat(":")
-    .concat(rabbitPW)
-    .concat("@localhost:5672");
-  let myRabbitTask = JSON.parse(JSON.stringify(rabbitTask));
-  myRabbitTask.services["message-queue"].environment.RABBITMQ_DEFAULT_USER = rabbitUser;
-  myRabbitTask.services["message-queue"].environment.RABBITMQ_DEFAULT_PASS = rabbitPW;
-  myRabbitTask.services["message-queue"].environment.RABBITMQ_ERLANG_COOKIE = rabbitCookie;
-  myRabbitTask.services["message-queue"].logging.options["awslogs-group"] = `ecs/${projName}`;
-  myRabbitTask.services["message-queue"].logging.options["awslogs-stream-prefix"] =
-    `ecs/rabbit/${projName}`;
-  apiTask.services["api"].environment.AMQP_ADDRESS = rabbitAddress;
-  apiTask.services["api"].image = `${DHID}/api:latest`;
-  apiTask.services["api"].logging.options["awslogs-group"] = `ecs/${projName}`;
-  apiTask.services["api"].logging.options["awslogs-stream-prefix"] = `ecs/api/${projName}`;
+  const rabbitAddress = `amqp://${rabbitUser}:${rabbitPW}@localhost:5672`;
+  const myRabbitTask = buildRabbitTask(projName, rabbitUser, rabbitPW, rabbitCookie);
+  const myAPITask = buildAPITask(projName, DHID, rabbitAddress);
 
   let docker_compose;
   try {
@@ -434,7 +352,7 @@ const createECSTask = async (
   );
   composedAPI = ecsCompose(
     "apiTask.yml",
-    apiTask,
+    myAPITask,
     "api",
     80,
     targGroupARN,
@@ -442,42 +360,11 @@ const createECSTask = async (
     ecsSecurityGroupID,
   );
   composedWorkers = workerList.map((w) => {
-    const yaml = w.concat(".yml");
-    const name = w;
-    let task = {};
-    task.version = workerTask.version;
-    task.services = {};
-    task.services[w] = workerTask.services["EXPERIMENT_NAME"];
-    task.services[w].image = `${DHID}/${w}:latest`;
-    task.services[w].logging.options["awslogs-group"] = `ecs/${projName}`;
-    task.services[w].logging.options["awslogs-stream-prefix"] = `ecs/${w}/${projName}`;
-    //Note that "DB_USER", "DB_NAME", "DB_PASS", "DB_URL" are redundant with "DB_SMARTURL"
-    //For simplicity, newer versions of pushkin-worker will expect DB_SMARTURL
-    //However, existing deploys won't have that. So both sets of information are maintained
-    //for backwards compatibility, at least for the time being.
-    task.services[w].environment = {
-      AMQP_ADDRESS: rabbitAddress,
-      DB_HOST: dbInfoByTask["Main"].endpoint,
-      DB_USER: dbInfoByTask["Main"].username,
-      DB_DB: dbInfoByTask["Main"].name,
-      DB_PASS: dbInfoByTask["Main"].password,
-      DB_URL: dbInfoByTask["Main"].endpoint,
-      //"TRANS_URL": `postgres://${dbInfoByTask['Transaction'].username}:${dbInfoByTask['Transaction'].password}@${dbInfoByTask['Transaction'].endpoint}:/${dbInfoByTask['Transaction'].port}/${dbInfoByTask['Transaction'].name}`
-      TRANS_HOST: dbInfoByTask["Transaction"].endpoint,
-      TRANS_USER: dbInfoByTask["Transaction"].username,
-      TRANS_DB: dbInfoByTask["Transaction"].name,
-      TRANS_PASS: dbInfoByTask["Transaction"].password,
-      TRANS_URL: dbInfoByTask["Transaction"].endpoint,
-    };
-    return ecsCompose(yaml, task, name, 0, false, subnets, ecsSecurityGroupID);
+    const task = buildWorkerTask(w, projName, DHID, rabbitAddress, dbInfoByTask);
+    return ecsCompose(w.concat(".yml"), task, w, 0, false, subnets, ecsSecurityGroupID);
   });
 
   return Promise.all([composedRabbit, composedAPI, composedWorkers]);
 };
 
-export {
-  ensureECSTaskExecutionRole,
-  convertComposeToTaskDef,
-  registerECSTaskDefinition,
-  createECSTask,
-};
+export { convertComposeToTaskDef, registerECSTaskDefinition, createECSTask };
