@@ -1,5 +1,23 @@
 # @pushkin-templates/site-basic
 
+## 1.2.1
+
+### Patch Changes
+
+- [#376](https://github.com/pushkin-consortium/pushkin/pull/376) [`a5290a0`](https://github.com/pushkin-consortium/pushkin/commit/a5290a03af2be7edf8d17b0fc0b08f5c6c796241) Thanks [@cherriechang](https://github.com/cherriechang)! - Fix RabbitMQ heartbeat timeout causing worker crashes
+
+  **Bug Fix:**
+  - Resolves "Heartbeat timeout" errors that prevented experiment workers from completing database operations
+  - Workers would crash with "Error: Heartbeat timeout at Heart.<anonymous>" during experiment execution
+
+  **Changes:**
+  - Added `heartbeat: 30` configuration to `amqp.connect()` in pushkin-worker to send heartbeats every 30 seconds
+  - Upgraded RabbitMQ from version 3.6 to 3.12 in docker-compose.dev.yml template
+  - Added `RABBITMQ_HEARTBEAT: '30'` environment variable to RabbitMQ service configuration
+
+  **Impact:**
+  This fix ensures stable RabbitMQ connections during long-running experiment tasks and prevents connection timeouts that were blocking database persistence of user data and experiment results.
+
 ## 1.2.0
 
 ### Minor Changes
@@ -25,7 +43,6 @@
 - [#334](https://github.com/pushkin-consortium/pushkin/pull/334) [`66b4edb`](https://github.com/pushkin-consortium/pushkin/commit/66b4edb90d1026b1f78f49b8cd303f31a05a7584) Thanks [@dependabot](https://github.com/apps/dependabot)! - Bump @babel/traverse from 7.10.5 to 7.24.1
 
 - [#337](https://github.com/pushkin-consortium/pushkin/pull/337) [`4188d63`](https://github.com/pushkin-consortium/pushkin/commit/4188d63b4111856c0475fea80a9d6ea3b54d0528) Thanks [@dependabot](https://github.com/apps/dependabot)! - Bump API dependencies:
-
   - json5 from 2.1.3 to 2.2.3
   - decode-uri-component from 0.2.0 to 0.2.2
 
@@ -40,12 +57,10 @@
 - [#308](https://github.com/pushkin-consortium/pushkin/pull/308) [`b028ea9`](https://github.com/pushkin-consortium/pushkin/commit/b028ea9eb9214839e7bed54db1e1eff699d48935) Thanks [@dependabot](https://github.com/apps/dependabot)! - Bump @babel/traverse from 7.10.5 to 7.24.1 in /templates/sites/basic/src/pushkin/front-end
 
 - [#310](https://github.com/pushkin-consortium/pushkin/pull/310) [`81d9aab`](https://github.com/pushkin-consortium/pushkin/commit/81d9aab753b85d05d8ad572329803fbdfaa2279f) Thanks [@jessestorbeck](https://github.com/jessestorbeck)! - - Added logic to front end's `config.js` to automatically detect use in GitHub Codespaces and appropriately set API endpoints
-
   - Similar logic added to front end's craco config to set WebSocket URL appropriately for Codespaces
   - Added detection of Codespaces-specific environment variables to CLI's `setEnv()` function
 
 - [#330](https://github.com/pushkin-consortium/pushkin/pull/330) [`26a630f`](https://github.com/pushkin-consortium/pushkin/commit/26a630f9fc65fb933cd65430936a9695282a24f9) Thanks [@dependabot](https://github.com/apps/dependabot)! - Bump front-end dependencies:
-
   - path-parse from 1.0.6 to 1.0.7
   - minimatch from 3.0.4 to 3.1.2
   - ansi-regex from 5.0.0 to 5.0.1
@@ -54,13 +69,11 @@
 - [#310](https://github.com/pushkin-consortium/pushkin/pull/310) [`1b08109`](https://github.com/pushkin-consortium/pushkin/commit/1b0810971292c87afbb7d716469afdde7497ef11) Thanks [@jessestorbeck](https://github.com/jessestorbeck)! - Switched to self-hosting main site font
 
 - [#333](https://github.com/pushkin-consortium/pushkin/pull/333) [`7751db8`](https://github.com/pushkin-consortium/pushkin/commit/7751db8b3ebcb5a9731b13ba7a32c429c2e51365) Thanks [@dependabot](https://github.com/apps/dependabot)! - Bump front-end dependencies:
-
   - browserslist from 4.13.0 to 4.23.0
   - lodash from 4.17.19 to 4.17.21
   - ini from 1.3.5 to 1.3.8
 
 - [#318](https://github.com/pushkin-consortium/pushkin/pull/318) [`6e7335a`](https://github.com/pushkin-consortium/pushkin/commit/6e7335aed06b185b7d686147765d034c023969c6) Thanks [@dependabot](https://github.com/apps/dependabot)! - Bump front-end dependencies:
-
   - minimist from 1.2.5 to 1.2.8
   - word-wrap from 1.2.3 to 1.2.5
   - lodash-es from 4.17.15 to 4.17.21

@@ -1,5 +1,12 @@
 # @pushkin-templates/exp-lexical-decision
 
+## 6.3.1
+
+### Patch Changes
+
+- [#383](https://github.com/pushkin-consortium/pushkin/pull/383) [`15ad62a`](https://github.com/pushkin-consortium/pushkin/commit/15ad62a502b2839c808f373e7850214554e2934d) Thanks [@becky-gilbert](https://github.com/becky-gilbert)! - **Bug Fix:**
+  Fix logic error that caused the post-experiment feedback page to show the "Oops! Something went wrong" message when the percentile rank and/or summary stat values was 0, which are valid values. Now it checks for null/undefined.
+
 ## 6.3.0
 
 ### Minor Changes
