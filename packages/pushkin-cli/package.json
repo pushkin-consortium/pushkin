@@ -10,7 +10,7 @@
     "pushkin": "build/index.js"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest",
     "build": "babel --root-mode upward src -d build",
     "prepack": "cp ../../LICENSE ."
   },
@@ -29,8 +29,24 @@
   "bugs": {
     "url": "https://github.com/pushkin-consortium/pushkin/issues"
   },
-  "devDependencies": {},
   "dependencies": {
+    "@aws-sdk/client-acm": "^3.454.0",
+    "@aws-sdk/client-cloudformation": "^3.890.0",
+    "@aws-sdk/client-cloudfront": "^3.893.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.893.0",
+    "@aws-sdk/client-ec2": "^3.893.0",
+    "@aws-sdk/client-ecs": "^3.893.0",
+    "@aws-sdk/client-elastic-load-balancing-v2": "^3.893.0",
+    "@aws-sdk/client-iam": "^3.901.0",
+    "@aws-sdk/client-rds": "^3.451.0",
+    "@aws-sdk/client-route-53": "^3.552.0",
+    "@aws-sdk/client-route-53-domains": "^3.552.0",
+    "@aws-sdk/client-s3": "^3.884.0",
+    "@aws-sdk/client-servicediscovery": "^3.918.0",
+    "@aws-sdk/client-sts": "^3.454.0",
+    "@aws-sdk/client-wafv2": "^3.893.0",
+    "@aws-sdk/credential-providers": "^3.896.0",
+    "adm-zip": "^0.4.16",
     "balanced-match": "^1.0.0",
     "command-line-args": "^5.1.1",
     "commander": "^11.1.0",

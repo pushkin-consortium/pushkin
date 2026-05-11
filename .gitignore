@@ -79,6 +79,8 @@ docker-compose.production.noEnvDependency.yml
 # next.js build output
 .next
 
+# yarn cache files
+**/.yarn
 # Docs build
 site/
 venv/
@@ -91,3 +93,8 @@ test-results/
 playwright-report/
 blob-report/
 playwright/.cache/
+
+# CLAUDE files
+CLAUDE.local.md
+CLAUDE/*
+.claude

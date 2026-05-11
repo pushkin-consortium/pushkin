@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { execSync, exec } from "child_process";
+import { execSync, exec, execFile } from "child_process";
 /* eslint-disable-next-line no-unused-vars */
 import commandLineArgs from "command-line-args"; // commandLineArgs is necessary for the CLI to run
 //import { Command } from "commander";
@@ -17,6 +17,7 @@ import shelljs from "shelljs";
 
 // Subcommands
 import {
+  checkIAMUser,
   awsInit,
   nameProject,
   addIAM,
@@ -34,7 +35,7 @@ import {
   updateExpConfig,
 } from "./commands/experiments/index.js";
 import { prep, setEnv, updatePasswords } from "./commands/prep/index.js";
-import { setupdb, setupTestTransactionsDB, securePasswords } from "./commands/setupdb/index.js";
+import { setupdb, setupLocalTransactionsDB, securePasswords } from "./commands/setupdb/index.js";
 import { initSite, setupPushkinSite } from "./commands/sites/index.js";
 
 import pacMan from "./pMan.js"; //which package manager is available?
@@ -45,7 +46,7 @@ const version = require("../package.json").version;
 program.version(version);
 
 const moveToProjectRoot = () => {
-  // better checking to make sure this is indeed a pushkin project would be goodf
+  // better checking to make sure this is indeed a pushkin project would be good
   while (process.cwd() != path.parse(process.cwd()).root) {
     if (fs.existsSync(path.join(process.cwd(), "pushkin.yaml"))) return;
     process.chdir("..");
@@ -131,10 +132,11 @@ const updateDocker = async () => {
 };
 
 const updateMigrations = async () => {
-  let experimentsDir, productionDBs;
+  let experimentsDir, usersDir, productionDBs;
   try {
     let config = await loadConfig(path.join(process.cwd(), "pushkin.yaml"));
     experimentsDir = config.experimentsDir;
+    usersDir = config.usersDir || "users";
     productionDBs = config.productionDBs;
   } catch (e) {
     console.error(`Unable to load pushkin.yaml`);
@@ -143,7 +145,11 @@ const updateMigrations = async () => {
   console.log(`Handling migrations`);
   let ranMigrations, dbsToExps;
   try {
-    dbsToExps = await getMigrations(path.join(process.cwd(), experimentsDir), true);
+    dbsToExps = await getMigrations(
+      path.join(process.cwd(), usersDir),
+      path.join(process.cwd(), experimentsDir),
+      true,
+    );
   } catch (e) {
     console.error(`Unable to run database migrations`);
     throw e;
@@ -174,11 +180,25 @@ const updateECS = async () => {
   return Promise.all(
     yamls.forEach((yaml) => {
       if (yaml != "ecs-params.yml") {
-        let composeCommand = `ecs-cli compose -f ${yaml} -p ${yaml.split(".")[0]} service up --ecs-profile ${useIAM} --cluster-config ${ECSName} --force-deployment`;
         try {
-          temp = exec(composeCommand, {
-            cwd: path.join(process.cwd(), "ECStasks"),
-          });
+          temp = execFile(
+            "ecs-cli",
+            [
+              "compose",
+              "-f",
+              yaml,
+              "-p",
+              yaml.split(".")[0],
+              "service",
+              "up",
+              "--ecs-profile",
+              useIAM,
+              "--cluster-config",
+              ECSName,
+              "--force-deployment",
+            ],
+            { cwd: path.join(process.cwd(), "ECStasks") },
+          );
         } catch (e) {
           console.warn("\x1b[31m%s\x1b[0m", `Unable to update service ${yaml}.`);
           console.warn("\x1b[31m%s\x1b[0m", e);
@@ -258,12 +278,12 @@ const handleViewConfig = async (what) => {
   moveToProjectRoot();
   let x = await ((what == "site") | !what ?
     loadConfig(path.join(process.cwd(), "pushkin.yaml"))
-  : "");
+    : "");
   let exps = fs.readdirSync(path.join(process.cwd(), "experiments"));
   let y = await Promise.all(
     exps.map(async (exp) => {
       return (await ((what == exp) | !what)) ?
-          loadConfig(path.join(process.cwd(), "experiments", exp, "config.yaml"))
+        loadConfig(path.join(process.cwd(), "experiments", exp, "config.yaml"))
         : "";
     }),
   );
@@ -284,12 +304,31 @@ const handleUpdateDB = async (verbose) => {
   try {
     settingUpDB = await setupdb(
       config.databases,
+      path.join(process.cwd(), config.usersDir || "users"),
       path.join(process.cwd(), config.experimentsDir),
       verbose,
     );
+    console.log("✅ Database setup complete!");
   } catch (err) {
-    console.error(err);
-    process.exit();
+    console.error("❌ Database setup failed");
+
+    // Provide actionable error messages based on error type
+    const msg = err?.message;
+    if (msg?.includes("docker")) {
+      console.error("  → Make sure Docker is running");
+    } else if (msg?.includes("config.yaml")) {
+      console.error("  → Check your experiment config files");
+    } else if (msg?.includes("Database") && msg?.includes("not configured")) {
+      console.error("  → Check database configuration in pushkin.yaml");
+    }
+
+    if (verbose) {
+      console.error("\nFull error:", err.stack || err);
+    } else {
+      console.error(`\nError: ${msg ?? JSON.stringify(err)}`);
+      console.error("Run with --verbose flag for more details");
+    }
+    process.exit(1);
   }
   return settingUpDB;
 };
@@ -870,7 +909,7 @@ const handleInstall = async (templateType, options, verbose) => {
     if (verbose) console.log("Finished setting up site template files");
     // Set up the transactions database
     if (verbose) console.log("Setting up transactions db");
-    await setupTestTransactionsDB(verbose); // Not distributed with sites since it's the same for all of them.
+    await setupLocalTransactionsDB(verbose); // Not distributed with sites since it's the same for all of them.
     if (verbose) console.log("Overwriting DB passwords with secure defaults");
     securePasswords();
   } else {
@@ -911,7 +950,7 @@ const handleAWSInit = async (force) => {
     throw e;
   }
 
-  let projName, useIAM, awsName, stdOut;
+  let projName, useIAM, awsName;
 
   try {
     execSync("aws --version");
@@ -978,8 +1017,9 @@ const handleAWSInit = async (force) => {
     console.error("Problem getting AWS IAM username.\n", e);
     process.exit();
   }
+
   try {
-    stdOut = execSync(`aws configure list --profile ${useIAM.iam}`).toString();
+    await checkIAMUser(useIAM.iam);
   } catch (e) {
     console.error(
       `The IAM user ${useIAM.iam} is not configured on the AWS CLI. For more information see https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html`,
@@ -988,11 +1028,12 @@ const handleAWSInit = async (force) => {
   }
   let addedIAM;
   try {
-    addedIAM = addIAM(useIAM.iam); //this doesn't need to be synchronous
+    addedIAM = addIAM(useIAM.iam); //this records which IAM user we are using, doesn't need to be synchronous
   } catch (e) {
     console.error(e);
     process.exit();
   }
+
   try {
     await Promise.all([awsInit(projName.name, awsName, useIAM.iam, config.DockerHubID), addedIAM]);
   } catch (e) {
@@ -1690,6 +1731,7 @@ async function main() {
       `For working with AWS. Commands include:\n 
       init: initialize an AWS deployment.\n 
       update: update an AWS deployment.\n
+      kill: delete AWS resources of current project.\n
       armageddon: delete AWS resources created by Pushkin.\n
       list: list AWS resources created by Pushkin (and possibly others).`,
     )
@@ -1706,15 +1748,25 @@ async function main() {
           try {
             setEnv(false, options.verbose); // synchronous
             await handleAWSInit(options.force);
+            // Give async operations a moment to clean up, then exit
+            setTimeout(() => process.exit(0), 1000);
           } catch (e) {
             console.error(e);
-            process.exit();
+            process.exit(1);
           }
           break;
         case "update":
           try {
             //await handleAWSUpdate();
             console.warn("\x1b[31m%s\x1b[0m", `Not currently implemented. Sorry.`);
+          } catch (e) {
+            console.error(e);
+            process.exit();
+          }
+          break;
+        case "kill":
+          try {
+            await handleAWSKill();
           } catch (e) {
             console.error(e);
             process.exit();
@@ -1969,7 +2021,7 @@ async function main() {
         case "setup-transaction-db":
           moveToProjectRoot();
           try {
-            await setupTestTransactionsDB();
+            await setupLocalTransactionsDB();
           } catch (e) {
             console.error(e);
             process.exit();

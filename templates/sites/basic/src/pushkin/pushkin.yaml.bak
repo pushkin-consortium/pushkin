@@ -1,5 +1,6 @@
 # main directories relative to project root ('..')
 experimentsDir: 'experiments'
+usersDir: 'users'
 coreDir: 'pushkin'
 DockerHubID: ''
 

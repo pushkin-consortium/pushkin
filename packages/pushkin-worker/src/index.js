@@ -48,7 +48,7 @@ class PushkinWorker {
   async init() {
     return new Promise((resolve, reject) => {
       amqp
-        .connect(this.amqpAddress)
+        .connect(`${this.amqpAddress}?heartbeat=30`)
         .then((conn) => {
           this.conn = conn;
           this.initialized = true;
@@ -149,10 +149,20 @@ class DefaultHandler {
     console.log(
       `setting up main db connection with user: ${connection.user}, database: ${connection.database}, host: ${connection.host}`,
     );
+
+    // Auto-detect SSL only for RDS endpoints; local Docker service names (e.g. "test_db") must not trigger SSL
+    const shouldUseSSL =
+      connection.ssl !== undefined ?
+        connection.ssl
+      : connection.host && connection.host.endsWith(".rds.amazonaws.com");
+
     this.knexInfo = {
       client: "pg",
       version: "11",
-      connection: connection,
+      connection: {
+        ...connection,
+        ssl: shouldUseSSL ? { rejectUnauthorized: false } : false,
+      },
       debug: true,
     }; //fubar -- get rid of debug
 
@@ -163,13 +173,11 @@ class DefaultHandler {
       throw error;
     }
     console.log("check that we are connected to the main db");
-    try {
-      this.pg_main(this.tables.users).then((rows) => {
-        console.log("testing: " + rows);
-      });
-    } catch (error) {
-      console.error(`Problem with simple select from transaction DB: ${error}`);
-    }
+    this.pg_main(this.tables.users).then((rows) => {
+      console.log("testing: " + rows);
+    }).catch((error) => {
+      console.error(`Could not query main DB (host: ${connection.host}, database: ${connection.database}): ${error.message}`);
+    });
     console.log(
       `checking logging: ${JSON.stringify({
         tableName: transactionOps.tableName,
@@ -184,10 +192,21 @@ class DefaultHandler {
     if (this.logging) {
       try {
         this.trans_table = transactionOps.tableName;
+
+        // Auto-detect SSL only for RDS endpoints; local Docker service names (e.g. "test_transaction_db") must not trigger SSL
+        const transConnection = transactionOps.connection;
+        const transShouldUseSSL =
+          transConnection.ssl !== undefined ?
+            transConnection.ssl
+          : transConnection.host && transConnection.host.endsWith(".rds.amazonaws.com");
+
         this.pg_trans = knex({
           client: "pg",
           version: "11",
-          connection: transactionOps.connection,
+          connection: {
+            ...transConnection,
+            ssl: transShouldUseSSL ? { rejectUnauthorized: false } : false,
+          },
           debug: true,
         }); //fubar get rid of debug when not needed
       } catch (error) {
@@ -196,13 +215,11 @@ class DefaultHandler {
         this.logging = false;
       }
       console.log("check that we are connected to the transaction db");
-      try {
-        this.pg_trans(this.trans_table).then((rows) => {
-          console.log("testing: " + rows);
-        });
-      } catch (error) {
-        console.error(`Problem with simple select from transaction DB: ${error}`);
-      }
+      this.pg_trans(this.trans_table).then((rows) => {
+        console.log("testing: " + rows);
+      }).catch((error) => {
+        console.error(`Could not query transaction DB (host: ${transactionOps.connection.host}, database: ${transactionOps.connection.database}): ${error.message}`);
+      });
     }
     console.log(`Checked logging`);
   }
@@ -362,9 +379,8 @@ class DefaultHandler {
       return { user_id: userId };
     } else {
       console.log(`Adding ${userId} to users ${this.tables.users}.`);
-      let returnVal;
       try {
-        returnVal = this.logTransaction(this.pg_main(this.tables.users).insert(toInsert));
+        await this.logTransaction(this.pg_main(this.tables.users).insert(toInsert));
       } catch (error) {
         console.error(`Problem inserting user: ${error}`);
         throw error;
