@@ -1,5 +1,53 @@
 # pushkin-cli
 
+## 5.0.0
+
+### Major Changes
+
+- [#373](https://github.com/pushkin-consortium/pushkin/pull/373) [`1d5f32e`](https://github.com/pushkin-consortium/pushkin/commit/1d5f32e165194c2d68effb772609e1649372697a) Thanks [@cherriechang](https://github.com/cherriechang)! - Complete AWS Fargate deployment modernization and critical bug fixes
+
+  This major update completely modernizes the AWS deployment infrastructure with critical bug fixes and improvements:
+
+  **Breaking Changes:**
+  - Migrated from AWS CLI to AWS SDK v3 for all AWS operations
+  - Standardized database configuration to use `url` instead of `host` throughout
+
+  **Critical Bug Fixes:**
+  - Fix #364: Replace localhost with Service Discovery DNS for RabbitMQ in Fargate awsvpc networking mode
+  - Fix #363: RabbitMQ passwords now persist across multiple deployments (idempotent behavior)
+
+  **New Features:**
+  - Added AWS Cloud Map (Service Discovery) support for ECS Fargate service-to-service communication
+  - Improved DNS handling with subdomain fallback to parent hosted zones
+  - Enhanced OAC (Origin Access Control) handling with retry logic
+  - Added comprehensive CloudWatch logging for ECS tasks
+  - Improved database connection reliability with exponential backoff retry logic
+
+  **Improvements:**
+  - Complete JSDoc documentation for all AWS-related functions
+  - Better error messages and logging throughout deployment process
+  - Standardized async/await patterns for better error handling
+  - Improved security group and VPC configuration handling
+  - Enhanced RDS instance management with proper wait conditions
+
+  **Infrastructure Updates:**
+  - Modernized all AWS service clients (S3, CloudFront, RDS, ECS, EC2, Route53, etc.)
+  - Better handling of AWS resource lifecycle (create, update, delete)
+  - Improved idempotency for AWS resource creation
+  - Enhanced cleanup with aws armageddon command
+
+  This update has been manually tested on AWS Fargate deployments and significantly improves the reliability and maintainability of AWS infrastructure management.
+
+### Patch Changes
+
+- [#406](https://github.com/pushkin-consortium/pushkin/pull/406) [`7a704f2`](https://github.com/pushkin-consortium/pushkin/commit/7a704f2e2d321974481bb41e16384f5686775118) Thanks [@becky-gilbert](https://github.com/becky-gilbert)! - **Bug Fix:**
+  Fix Docker COPY error when running pushkin prep on a site with no experiments installed.
+  Fix TypeError that can be thrown when pushkin prep fails to set up the database.
+  Fix pushkin prep failure that results from orphaned database volumes.
+
+  **Improvements:**
+  Improve error catching/handling for docker build commands.
+
 ## 4.2.1
 
 ### Patch Changes
@@ -43,7 +91,6 @@
 ### Patch Changes
 
 - [#305](https://github.com/pushkin-consortium/pushkin/pull/305) [`ffba8bb`](https://github.com/pushkin-consortium/pushkin/commit/ffba8bbbb62d901d271655d71453f95648d5f5aa) Thanks [@jessestorbeck](https://github.com/jessestorbeck)! - - Fixed issue where workers for experiments including capital letters would not be deleted by `rm exp --mode delete`.
-
   - Fixed issue where it was possible to create two experiments which would yield workers with the same name.
 
 - [#310](https://github.com/pushkin-consortium/pushkin/pull/310) [`81d9aab`](https://github.com/pushkin-consortium/pushkin/commit/81d9aab753b85d05d8ad572329803fbdfaa2279f) Thanks [@jessestorbeck](https://github.com/jessestorbeck)! - - Added logic to front end's `config.js` to automatically detect use in GitHub Codespaces and appropriately set API endpoints

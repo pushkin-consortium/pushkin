@@ -1,11 +1,31 @@
 # pushkin-worker
 
+## 3.1.1
+
+### Patch Changes
+
+- [#376](https://github.com/pushkin-consortium/pushkin/pull/376) [`a5290a0`](https://github.com/pushkin-consortium/pushkin/commit/a5290a03af2be7edf8d17b0fc0b08f5c6c796241) Thanks [@cherriechang](https://github.com/cherriechang)! - Fix RabbitMQ heartbeat timeout causing worker crashes
+
+  **Bug Fix:**
+  - Resolves "Heartbeat timeout" errors that prevented experiment workers from completing database operations
+  - Workers would crash with "Error: Heartbeat timeout at Heart.<anonymous>" during experiment execution
+
+  **Changes:**
+  - Added `heartbeat: 30` configuration to `amqp.connect()` in pushkin-worker to send heartbeats every 30 seconds
+  - Upgraded RabbitMQ from version 3.6 to 3.12 in docker-compose.dev.yml template
+  - Added `RABBITMQ_HEARTBEAT: '30'` environment variable to RabbitMQ service configuration
+
+  **Impact:**
+  This fix ensures stable RabbitMQ connections during long-running experiment tasks and prevents connection timeouts that were blocking database persistence of user data and experiment results.
+
+- [#373](https://github.com/pushkin-consortium/pushkin/pull/373) [`2dcff8c`](https://github.com/pushkin-consortium/pushkin/commit/2dcff8c29f7a8113f93b02b81f49f547cb4aff42) Thanks [@cherriechang](https://github.com/cherriechang)! - **Bug Fix:**
+  Fix bug that caused a race condition between adding a user to the database when the experiment starts and adding stimulus/response data that references that user.
+
 ## 3.1.0
 
 ### Minor Changes
 
 - [#359](https://github.com/pushkin-consortium/pushkin/pull/359) [`44d9667`](https://github.com/pushkin-consortium/pushkin/commit/44d9667138989717ac13f9f5144e236386ccc3d3) Thanks [@jessestorbeck](https://github.com/jessestorbeck)! - Pushkin helper packages have been updated to support new API endpoints for showing experiment feedback to participants. The client methods of interest which are used in the experiment's results page are:
-
   - `getPercentileRank(userID, experiment)` for fetching the percentile rank of a participant in an experiment
   - `getExpData(userID, experiment)` for fetching all of a participant's data for an experiment
   - `getModelPrediction(modelInput, modelPath)` for fetching a prediction from a Python model in the experiment's worker component
