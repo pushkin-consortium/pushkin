@@ -1,3 +1,9 @@
+/**
+ * AWS RDS Service Management Module
+ * Handles creation, configuration, and deletion of RDS database instances for Pushkin deployments
+ * @module rds
+ */
+
 import crypto from "crypto";
 import {
   RDSClient,
@@ -11,7 +17,7 @@ import {
 import { AWSClientFactory } from "../utils/aws-client-factory.js";
 import { loadAwsConfig } from "../utils/aws-config.js";
 import { readAwsResources, writeAwsResources } from "../utils/aws-resources.js";
-import { loadPushkinConfig, savePushkinConfig } from "../utils/config.js";
+import { loadPushkinConfig, savePushkinConfig } from "../../../utils/pushkin-config.js";
 import { AWS_REGION } from "../constants.js";
 import { dbConfig } from "../awsConfigs.js";
 
