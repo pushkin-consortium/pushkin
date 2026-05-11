@@ -25,10 +25,55 @@ import { loadAwsConfig } from "../../utils/aws-config.js";
 export { deleteStack, deleteCluster } from "./clusters.js";
 
 /**
+ * (Helper)
+ * Asynchronously retrieves available subnets in the AWS zone and maps them by availability zone.
+ * This is used to specify subnets when creating the load balancer and ECS tasks.
+ * @param {string} useIAM - The IAM role to use for AWS API calls
+ * @returns {Promise} A promise that resolves to an object mapping availability zones to subnet IDs
+ */
+async function getSubnets(useIAM) {
+  console.log(`Retrieving subnets for AWS zone`);
+  try {
+    const factory = new AWSClientFactory(AWS_REGION, useIAM);
+    const ec2Client = factory.createClient(EC2Client);
+    const describeSubnetsResponse = await ec2Client.send(new DescribeSubnetsCommand({}));
+    const subnets = {};
+    describeSubnetsResponse.Subnets.forEach((subnet) => {
+      subnets[subnet.AvailabilityZone] = subnet.SubnetId;
+    });
+    return subnets;
+  } catch (e) {
+    console.error(`Failed to retrieve available subnets.`);
+    throw e;
+  }
+}
+
+/**
+ * (Helper)
+ * Get the default VPC ID for the current region
+ * @param {string} useIAM - IAM profile name
+ * @returns {Promise<string>} Default VPC ID
+ */
+async function getDefaultVPC(useIAM) {
+  console.log("Getting default VPC");
+  try {
+    const factory = new AWSClientFactory(AWS_REGION, useIAM);
+    const ec2Client = factory.createClient(EC2Client);
+    const { Vpcs } = await ec2Client.send(new DescribeVpcsCommand({}));
+    const defaultVPC = Vpcs.find((v) => v.IsDefault);
+    if (!defaultVPC) throw new Error("No default VPC found in region");
+    console.log("Default VPC:", defaultVPC.VpcId);
+    return defaultVPC.VpcId;
+  } catch (e) {
+    console.error(`Unable to find VPC`);
+    throw e;
+  }
+}
+
+/**
  * Set up ECS cluster and related resources:
- * - Security groups and SSH keys
+ * - Security groups
  * - Load balancers and target groups
- * - Auto-scaling configuration
  * - Network setup (VPC, subnets)
  * @param {string} projName - The name of the project
  * @param {string} useIAM - The IAM role to use
@@ -42,62 +87,16 @@ const setupECS = async (projName, useIAM, DHID, completedDBs, myCertificate) => 
 
   const PROJECT_TAG_KEY = loadAwsConfig().tagging.projectTagKey;
 
-  // Ensure load balancer security group exists (delegated to security.js)
+  // Start network lookups concurrently while security groups are being set up
+  const subnetLookup = getSubnets(useIAM);
+  const vpcLookup = getDefaultVPC(useIAM);
   const BalancerSecurityGroupID = await ensureBalancerSecurityGroup(useIAM, projName);
-
-  // Ensure ECS security group exists (delegated to security.js)
   const ecsSecurityGroupID = await ensureECSSecurityGroup(useIAM, projName);
 
-  //need one subnet per availability zone in region. Region is based on region for the profile.
-  //Start this process early to use later.
-  const foundSubnets = new Promise(async (resolve, reject) => {
-    console.log(`Retrieving subnets for AWS zone`);
-    try {
-      const profileName = useIAM;
-      const factory = new AWSClientFactory(AWS_REGION, profileName);
-      const ec2Client = factory.createClient(EC2Client);
-      const describeSubnetsResponse = await ec2Client.send(new DescribeSubnetsCommand({}));
-      let subnets = {};
-      describeSubnetsResponse.Subnets.forEach((subnet) => {
-        subnets[subnet.AvailabilityZone] = subnet.SubnetId;
-      });
-      resolve(subnets);
-    } catch (e) {
-      console.error(`Failed to retrieve available subnets.`);
-      reject(e);
-    }
-  });
-
-  //CLI uses the default VPC by default. Retrieve the ID.
-  const getVPC = async (useIAM) => {
-    console.log("getting default VPC");
-    let describeVpcsResponse;
-    try {
-      const profileName = useIAM;
-      const factory = new AWSClientFactory(AWS_REGION, profileName);
-      const ec2Client = factory.createClient(EC2Client);
-      describeVpcsResponse = await ec2Client.send(new DescribeVpcsCommand({}));
-    } catch (e) {
-      console.error(`Unable to find VPC`);
-      throw e;
-    }
-    let useVPC;
-    describeVpcsResponse.Vpcs.forEach((v) => {
-      if (v.IsDefault == true) {
-        useVPC = v.VpcId;
-      }
-    });
-    console.log("Default VPC: ", useVPC);
-    return useVPC;
-  };
-  let gotVPC;
-  gotVPC = getVPC(useIAM);
-
   const ECSName = projName.replace(/[^A-Za-z0-9]/g, "");
-  // Note: Previously used ECS-CLI with AWS CLI credentials, now using AWS SDK directly
 
   let launchedECS;
-  const zones = await foundSubnets;
+  const zones = await subnetLookup;
   console.log(`Subnets identified`);
   let subnets;
   try {
@@ -107,14 +106,9 @@ const setupECS = async (projName, useIAM, DHID, completedDBs, myCertificate) => 
     throw e;
   }
 
-  const myVPC = await gotVPC;
+  const myVPC = await vpcLookup;
   try {
     console.log("Launching ECS cluster");
-    //Note that cluster is named here, although that should match the default anyway.
-    // ecs-cli uses the deprecated Launch Configuration, which AWS is phasing out in favor of
-    // Launch Templates and Fargate over ECS EC2. However, as of this writing (2025-09) ecs-cli does not support Launch Templates.
-    // Switching to using AWS CLI in this branch, but opening up a new branch to try out migrating to AWS Copilot CLI
-    // Create ECS cluster using AWS SDK instead of deprecated ecs-cli
     const profileName = useIAM;
     const factory = new AWSClientFactory(AWS_REGION, profileName);
     const ecsClient = factory.createClient(ECSClient);
@@ -126,7 +120,7 @@ const setupECS = async (projName, useIAM, DHID, completedDBs, myCertificate) => 
         }),
       );
       console.log(`Created ECS cluster: ${ECSName}`);
-      launchedECS = Promise.resolve(); // Maintain compatibility with existing code
+      launchedECS = Promise.resolve();
     } catch (error) {
       if (error.name === "ClusterAlreadyExistsException") {
         console.log(`ECS cluster ${ECSName} already exists, continuing...`);
