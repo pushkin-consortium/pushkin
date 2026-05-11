@@ -1,6 +1,6 @@
 /**
  * AWS ECS Service Management
- * Handles ECS cluster, task, and service creation and deletion for Pushkin deployments
+ * Orchestrates ECS cluster, task, and service creation and deletion for Pushkin deployments
  * ECS is used to run containerized applications on AWS, and this module abstracts the setup and management of ECS resources
  * including clusters, task definitions, services, load balancers, and security groups.
  * Containers we run include the Pushkin API, worker, and any other services defined in the project.
@@ -8,13 +8,7 @@
  */
 
 import { ECSClient, CreateClusterCommand } from "@aws-sdk/client-ecs";
-import {
-  EC2Client,
-  DescribeKeyPairsCommand,
-  CreateKeyPairCommand,
-  DescribeSubnetsCommand,
-  DescribeVpcsCommand,
-} from "@aws-sdk/client-ec2";
+import { EC2Client, DescribeSubnetsCommand, DescribeVpcsCommand } from "@aws-sdk/client-ec2";
 import {
   ElasticLoadBalancingV2Client,
   CreateLoadBalancerCommand,
@@ -26,68 +20,9 @@ import { updateAwsResourcesField } from "../../utils/aws-resources.js";
 import { AWS_REGION } from "../../constants.js";
 import { ensureBalancerSecurityGroup, ensureECSSecurityGroup } from "../security.js";
 import { createECSTask } from "./tasks.js";
-import path from "path";
-import { exec as execCallback } from "child_process";
-import { promisify } from "util";
-import { quote } from "shell-quote";
 import { loadAwsConfig } from "../../utils/aws-config.js";
-import { writeFile } from "../../../../utils/file.js";
 
 export { deleteStack, deleteCluster } from "./clusters.js";
-
-const exec = promisify(execCallback);
-
-const PROJECT_TAG_KEY = loadAwsConfig().tagging.projectTagKey;
-
-/**
- * (Helper)
- * Create an SSH key pair
- * @param {string} useIAM - The IAM role to use
- */
-async function makeSSH(useIAM) {
-  let keyPairs;
-  let foundPushkinKeyPair = false;
-  try {
-    const profileName = useIAM;
-    const factory = new AWSClientFactory(AWS_REGION, profileName);
-    const ec2Client = factory.createClient(EC2Client);
-    const describeKeyPairsResponse = await ec2Client.send(new DescribeKeyPairsCommand({}));
-    keyPairs = { stdout: JSON.stringify({ KeyPairs: describeKeyPairsResponse.KeyPairs }) };
-  } catch (error) {
-    console.error(`Failed to get list of key pairs`, error);
-  }
-  JSON.parse(keyPairs.stdout).KeyPairs.forEach((k) => {
-    if (k.KeyName == "my-pushkin-key-pair") {
-      foundPushkinKeyPair = true;
-    }
-  });
-
-  if (foundPushkinKeyPair) {
-    console.log(`Pushkin key pair already exists. Skipping creation.`);
-    return;
-  } else {
-    try {
-      console.error(`Making SSH key`);
-      const profileName = useIAM;
-      const factory = new AWSClientFactory(AWS_REGION, profileName);
-      const ec2Client = factory.createClient(EC2Client);
-      const createKeyPairResponse = await ec2Client.send(
-        new CreateKeyPairCommand({
-          KeyName: "my-pushkin-key-pair",
-        }),
-      );
-      // Write the key material to file
-      const keyPath = path.join(process.cwd(), "pushkinKey");
-      writeFile(keyPath, createKeyPairResponse.KeyMaterial);
-      // Set file permissions to be read-only by owner
-      const chmodCmd = quote(["chmod", "400", keyPath]);
-      await exec(chmodCmd);
-    } catch (error) {
-      console.error(`Problem creating AWS SSH key`, error);
-    }
-    return;
-  }
-};
 
 /**
  * Set up ECS cluster and related resources:
@@ -105,7 +40,7 @@ async function makeSSH(useIAM) {
 const setupECS = async (projName, useIAM, DHID, completedDBs, myCertificate) => {
   console.log(`Starting ECS setup`);
 
-  let madeSSH = makeSSH(useIAM);
+  const PROJECT_TAG_KEY = loadAwsConfig().tagging.projectTagKey;
 
   // Ensure load balancer security group exists (delegated to security.js)
   const BalancerSecurityGroupID = await ensureBalancerSecurityGroup(useIAM, projName);
@@ -162,8 +97,6 @@ const setupECS = async (projName, useIAM, DHID, completedDBs, myCertificate) => 
   // Note: Previously used ECS-CLI with AWS CLI credentials, now using AWS SDK directly
 
   let launchedECS;
-  await madeSSH; //need this shortly
-  console.log(`SSH set up`);
   const zones = await foundSubnets;
   console.log(`Subnets identified`);
   let subnets;
