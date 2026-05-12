@@ -134,19 +134,19 @@ const registerECSTaskDefinition = async (taskDefParams, useIAM) => {
 
 /**
  * Convert a Docker Compose task definition and deploy it as a Fargate service.
- * @param {string} yaml - Filename for the debug YAML snapshot written to ECStasks/
- * @param {object} task - Docker Compose service definition
  * @param {string} name - ECS service/task-family name
+ * @param {object} task - Docker Compose service definition
  * @param {object} context - Shared deployment context
  * @param {string} context.ECSName - ECS cluster name
  * @param {string} context.useIAM - IAM profile to use
  * @param {string} context.executionRoleArn - ARN of the ECS task execution role
  * @param {Array<string>} context.subnets - Subnet IDs for the Fargate task
  * @param {string} context.ecsSecurityGroupID - Security group ID for the Fargate task
- * @param {number|null} port - Container port to expose (null = no load balancer attachment)
- * @param {string|null} targetGroupARN - Target group ARN (null = no load balancer attachment)
+ * @param {object|null} loadBalancer - Load balancer attachment (null = no LB attachment)
+ * @param {number} loadBalancer.port - Container port to forward traffic to
+ * @param {string} loadBalancer.targetGroupARN - Target group ARN to register the service with
  */
-const deployService = async (yaml, task, name, context, port = null, targetGroupARN = null) => {
+const deployService = async (name, task, context, loadBalancer = null) => {
   const { ECSName, useIAM, executionRoleArn, subnets, ecsSecurityGroupID } = context;
 
   console.log(`Verifying ECS cluster exists: "${ECSName}"`);
@@ -156,8 +156,7 @@ const deployService = async (yaml, task, name, context, port = null, targetGroup
   const cluster = response.clusters?.[0];
   if (!cluster) throw new Error(`Cluster ${ECSName} not found`);
 
-  writeFile(path.join(process.cwd(), "ECStasks", yaml), jsYaml.dump(task));
-  console.log(`Wrote ECS task definition to ${yaml}`);
+  writeFile(path.join(process.cwd(), "ECStasks", `${name}.yml`), jsYaml.dump(task));
 
   const serviceName = Object.keys(task.services)[0];
   const taskDefParams = dockerComposeToECSTaskDefinition(
@@ -175,9 +174,9 @@ const deployService = async (yaml, task, name, context, port = null, targetGroup
     name,
     taskDefArn,
     ECSName,
-    targetGroupARN,
+    loadBalancer?.targetGroupARN ?? null,
     serviceName,
-    port,
+    loadBalancer?.port ?? null,
     subnets,
     ecsSecurityGroupID,
     useIAM,
@@ -277,24 +276,20 @@ const createECSTask = async (
   const context = { ECSName, useIAM, executionRoleArn, subnets, ecsSecurityGroupID };
 
   const composedRabbit = deployService(
-    "rabbitTask.yml",
-    buildRabbitTask(projName, rabbitUser, rabbitPW, rabbitCookie),
     "message-queue",
+    buildRabbitTask(projName, rabbitUser, rabbitPW, rabbitCookie),
     context,
   );
   const composedAPI = deployService(
-    "apiTask.yml",
-    buildAPITask(projName, DHID, rabbitAddress),
     "api",
+    buildAPITask(projName, DHID, rabbitAddress),
     context,
-    80,
-    targGroupARN,
+    { port: 80, targetGroupARN: targGroupARN },
   );
   const composedWorkers = workerList.map((worker) =>
     deployService(
-      `${worker}.yml`,
-      buildWorkerTask(worker, projName, DHID, rabbitAddress, dbInfoByTask),
       worker,
+      buildWorkerTask(worker, projName, DHID, rabbitAddress, dbInfoByTask),
       context,
     ),
   );
