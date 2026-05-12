@@ -5,32 +5,29 @@
  * @module ecs/tasks
  */
 
+import path from "path";
+import jsYaml from "js-yaml";
+import crypto from "crypto";
+import { v4 as uuid } from "uuid";
 import {
   ECSClient,
   RegisterTaskDefinitionCommand,
   DescribeClustersCommand,
 } from "@aws-sdk/client-ecs";
+import { createDirectory, readFile, writeFile } from "../../../../utils/file.js";
+import { AWS_REGION } from "../../constants.js";
 import { AWSClientFactory } from "../../utils/aws-client-factory.js";
 import { updateAwsResourcesField } from "../../utils/aws-resources.js";
-import { AWS_REGION } from "../../constants.js";
+import { loadPushkinConfig, savePushkinConfig } from "../../../../utils/pushkin-config.js";
 import { ensureECSTaskExecutionRole } from "../iam.js";
 import { getDBInfo } from "../rds.js";
 import { buildRabbitTask, buildAPITask, buildWorkerTask } from "./environment.js";
 import { createECSService } from "./services.js";
-import path from "path";
-import jsYaml from "js-yaml";
-import crypto from "crypto";
-import { v4 as uuid } from "uuid";
-import { createDirectory, readFile, writeFile } from "../../../../utils/file.js";
-import { loadPushkinConfig, savePushkinConfig } from "../../../../utils/pushkin-config.js";
 
 /**
- * (Helper)
- * Convert Docker Compose YAML to ECS Task Definition format
- * WHY: AWS ECS can use Docker Compose files as a reference, but we need to convert them into the
- * specific format required for ECS task definitions. This function takes a single service definition
- * from a Docker Compose file and translates it into the parameters needed to register an ECS task
- * definition, including handling memory/CPU requirements, port mappings, environment variables,
+ * Build ECS task definition from a Docker Compose service definition.
+ * WHY: Docker Compose files need to be converted into the specific format required by ECS task
+ * definitions, with parameters like memory/CPU requirements, port mappings, environment variables,
  * and logging configuration.
  * @param {object} composeService - Single service from docker-compose YAML
  * @param {string} family - Task definition family name
@@ -38,29 +35,33 @@ import { loadPushkinConfig, savePushkinConfig } from "../../../../utils/pushkin-
  * @param {string} executionRoleArn - ARN of the ECS task execution role
  * @returns {object} ECS Task Definition parameters
  */
-const convertComposeToTaskDef = (composeService, family, serviceName, executionRoleArn) => {
-  // Parse memory limit (e.g., "512m" → 512)
+const dockerComposeToECSTaskDefinition = (
+  composeService,
+  family,
+  serviceName,
+  executionRoleArn,
+) => {
   const parseMemory = (mem) => {
     if (!mem) return 512;
     if (typeof mem === "number") return mem;
     return parseInt(mem.toString().replace(/[^0-9]/g, ""));
   };
 
-  // Fargate has specific CPU/Memory combinations
-  // Memory options: 512, 1024, 2048, 3072, 4096, etc.
+  // Fargate memory options: 512, 1024, 2048, 3072, 4096, etc.
   const containerMemory = parseMemory(composeService.mem_limit);
-  const taskMemory = Math.max(512, containerMemory); // Fargate minimum is 512
+  const taskMemory = Math.max(512, containerMemory);
 
-  // CPU must match memory (0.25 vCPU = 256 units)
-  // For 512 MB: 0.25 vCPU (256)
-  // For 1024 MB: 0.5 vCPU (512) or 1 vCPU (1024)
-  // For 2048 MB: 1 vCPU (1024) or 2 vCPU (2048)
+  // Minimum CPU for each Fargate memory tier (AWS-defined valid combinations)
   const taskCPU =
     taskMemory <= 512 ? "256"
-    : taskMemory <= 1024 ? "512"
-    : "1024";
+    : taskMemory <= 2048 ? "512"
+    : taskMemory <= 8192 ? "1024"
+    : taskMemory <= 16384 ? "2048"
+    : taskMemory <= 30720 ? "4096"
+    : taskMemory <= 61440 ? "8192"
+    : "16384";
 
-  // Parse port mappings - Fargate doesn't use hostPort in awsvpc mode
+  // Parse port mappings
   const portMappings = [];
   if (composeService.ports) {
     composeService.ports.forEach((portDef) => {
@@ -68,7 +69,7 @@ const convertComposeToTaskDef = (composeService, family, serviceName, executionR
       portMappings.push({
         containerPort: containerPort || hostPort,
         protocol: "tcp",
-        // Note: hostPort is not used in awsvpc network mode (Fargate requirement)
+        // NOTE: hostPort is not used in awsvpc network mode (Fargate requirement)
       });
     });
   }
@@ -81,7 +82,6 @@ const convertComposeToTaskDef = (composeService, family, serviceName, executionR
     });
   }
 
-  // Build container definition
   const containerDefinition = {
     name: serviceName,
     image: composeService.image,
@@ -91,7 +91,6 @@ const convertComposeToTaskDef = (composeService, family, serviceName, executionR
     environment,
   };
 
-  // Add logging if specified
   if (composeService.logging) {
     containerDefinition.logConfiguration = {
       logDriver: composeService.logging.driver,
@@ -102,28 +101,27 @@ const convertComposeToTaskDef = (composeService, family, serviceName, executionR
   return {
     family,
     containerDefinitions: [containerDefinition],
-    requiresCompatibilities: ["FARGATE"], // Using Fargate instead of EC2
-    networkMode: "awsvpc", // Required for Fargate
-    cpu: taskCPU, // Task-level CPU (required for Fargate)
-    memory: taskMemory.toString(), // Task-level memory (required for Fargate)
-    executionRoleArn, // Required for Fargate to pull images and write logs
+    requiresCompatibilities: ["FARGATE"],
+    networkMode: "awsvpc",
+    cpu: taskCPU,
+    memory: taskMemory.toString(),
+    executionRoleArn,
   };
 };
 
 /**
- * Register an ECS task definition with AWS
+ * Register an ECS task definition with AWS.
+ * WHY: Before we can run tasks on ECS, we need to register the task definition with AWS.
  * @param {object} taskDefParams - Task definition parameters
  * @param {string} useIAM - IAM profile to use
  * @returns {Promise<string>} Task definition ARN
  */
 const registerECSTaskDefinition = async (taskDefParams, useIAM) => {
-  const profileName = useIAM;
-  const factory = new AWSClientFactory(AWS_REGION, profileName);
+  const factory = new AWSClientFactory(AWS_REGION, useIAM);
   const ecsClient = factory.createClient(ECSClient);
 
   try {
-    const command = new RegisterTaskDefinitionCommand(taskDefParams);
-    const response = await ecsClient.send(command);
+    const response = await ecsClient.send(new RegisterTaskDefinitionCommand(taskDefParams));
     console.log(
       `Registered task definition: ${response.taskDefinition.family}:${response.taskDefinition.revision}`,
     );
@@ -135,17 +133,72 @@ const registerECSTaskDefinition = async (taskDefParams, useIAM) => {
 };
 
 /**
- * (Helper)
- * Create ECS tasks for the API and worker containers
+ * Convert a Docker Compose task definition and deploy it as a Fargate service.
+ * @param {string} yaml - Filename for the debug YAML snapshot written to ECStasks/
+ * @param {object} task - Docker Compose service definition
+ * @param {string} name - ECS service/task-family name
+ * @param {object} context - Shared deployment context
+ * @param {string} context.ECSName - ECS cluster name
+ * @param {string} context.useIAM - IAM profile to use
+ * @param {string} context.executionRoleArn - ARN of the ECS task execution role
+ * @param {Array<string>} context.subnets - Subnet IDs for the Fargate task
+ * @param {string} context.ecsSecurityGroupID - Security group ID for the Fargate task
+ * @param {number|null} port - Container port to expose (null = no load balancer attachment)
+ * @param {string|null} targetGroupARN - Target group ARN (null = no load balancer attachment)
+ */
+const deployService = async (yaml, task, name, context, port = null, targetGroupARN = null) => {
+  const { ECSName, useIAM, executionRoleArn, subnets, ecsSecurityGroupID } = context;
+
+  console.log(`Verifying ECS cluster exists: "${ECSName}"`);
+  const factory = new AWSClientFactory(AWS_REGION, useIAM);
+  const ecsClient = factory.createClient(ECSClient);
+  const response = await ecsClient.send(new DescribeClustersCommand({ clusters: [ECSName] }));
+  const cluster = response.clusters?.[0];
+  if (!cluster) throw new Error(`Cluster ${ECSName} not found`);
+
+  writeFile(path.join(process.cwd(), "ECStasks", yaml), jsYaml.dump(task));
+  console.log(`Wrote ECS task definition to ${yaml}`);
+
+  const serviceName = Object.keys(task.services)[0];
+  const taskDefParams = dockerComposeToECSTaskDefinition(
+    task.services[serviceName],
+    name,
+    serviceName,
+    executionRoleArn,
+  );
+
+  console.log(`Registering task definition for ${name}`);
+  const taskDefArn = await registerECSTaskDefinition(taskDefParams, useIAM);
+
+  console.log(`Creating ECS service for ${name}`);
+  await createECSService(
+    name,
+    taskDefArn,
+    ECSName,
+    targetGroupARN,
+    serviceName,
+    port,
+    subnets,
+    ecsSecurityGroupID,
+    useIAM,
+  );
+
+  console.log(`Successfully deployed ${name}`);
+};
+
+/**
+ * Deploy all ECS services (RabbitMQ, API, and experiment workers).
+ * WHY: This is the final step in the deployment process — takes all the infrastructure set up
+ * earlier and actually deploys the application containers to run in the ECS cluster.
  * @param {string} projName - The name of the project
- * @param {boolean} useIAM - Whether to use IAM roles
+ * @param {string} useIAM - IAM role to use
  * @param {string} DHID - The DockerHub ID
- * @param {Array} completedDBs - The list of completed databases
+ * @param {Promise} completedDBs - Resolves when the databases are ready
  * @param {string} ECSName - The name of the ECS cluster
  * @param {string} targGroupARN - The target group ARN
  * @param {Array<string>} subnets - Array of subnet IDs for Fargate tasks
  * @param {string} ecsSecurityGroupID - Security group ID for Fargate tasks
- * @returns {Promise} - A promise that resolves when the ECS tasks are created
+ * @returns {Promise} Resolves when all services are deployed
  */
 const createECSTask = async (
   projName,
@@ -161,122 +214,24 @@ const createECSTask = async (
 
   const executionRoleArn = await ensureECSTaskExecutionRole(useIAM);
 
-  /**
-   * (Helper)
-   * Create and deploy an ECS task using AWS SDK (replaces ecs-cli compose)
-   * @param {string} yaml - The name of the YAML file to create
-   * @param {object} task - The Docker Compose task definition
-   * @param {string} name - The name of the ECS service
-   * @param {number} port - The port for the ECS service
-   * @param {string} targGroupARN - The target group ARN for the ECS service
-   * @param {Array<string>} subnetsParam - Array of subnet IDs for Fargate tasks
-   * @param {string} ecsSecurityGroupIDParam - Security group ID for Fargate tasks
-   * @returns {Promise} - A promise that resolves when the ECS task is created
-   */
-  const ecsCompose = async (
-    yaml,
-    task,
-    name,
-    port = 0,
-    targGroupARN = false,
-    subnetsParam,
-    ecsSecurityGroupIDParam,
-  ) => {
-    /**
-     * Wait for the ECS cluster to be ready, then deploy the service
-     * For Fargate, cluster just needs to exist (no EC2 instances needed)
-     * @returns {Promise} - A promise that resolves when deployment completes
-     */
-    const waitForCluster = async () => {
-      try {
-        console.log(`Verifying ECS cluster exists: "${ECSName}"`);
-        const profileName = useIAM;
-        const factory = new AWSClientFactory(AWS_REGION, profileName);
-        const ecsClient = factory.createClient(ECSClient);
-        const response = await ecsClient.send(new DescribeClustersCommand({ clusters: [ECSName] }));
-
-        const cluster = response.clusters?.[0];
-        if (!cluster) {
-          throw new Error(`Cluster ${ECSName} not found`);
-        }
-
-        console.log(`ECS cluster ready. Deploying Fargate service...`);
-        return await deployService();
-      } catch (error) {
-        console.error(`Error checking cluster:`, error);
-        throw error;
-      }
-    };
-
-    /**
-     * Deploy the ECS service using AWS SDK
-     * @returns {Promise} - A promise that resolves when deployment completes
-     */
-    const deployService = async () => {
-      // 1. Write YAML file (for debugging/reference)
-      const yamlPath = path.join(process.cwd(), "ECStasks", yaml);
-      writeFile(yamlPath, jsYaml.dump(task));
-      console.log(`Wrote ECS task definition to ${yaml}`);
-
-      // 2. Convert Docker Compose to ECS Task Definition
-      const serviceName = Object.keys(task.services)[0];
-      const composeService = task.services[serviceName];
-      const taskDefParams = convertComposeToTaskDef(
-        composeService,
-        name,
-        serviceName,
-        executionRoleArn,
-      );
-
-      // 3. Register Task Definition
-      console.log(`Registering task definition for ${name}`);
-      const taskDefArn = await registerECSTaskDefinition(taskDefParams, useIAM);
-
-      // 4. Create Service
-      console.log(`Creating ECS service for ${name}`);
-      await createECSService(
-        name,
-        taskDefArn,
-        ECSName,
-        targGroupARN,
-        serviceName,
-        port,
-        subnetsParam, // Pass subnets from parameters
-        ecsSecurityGroupIDParam, // Pass security group from parameters
-        useIAM,
-      );
-
-      console.log(`Successfully deployed ${name}`);
-    };
-
-    // Update awsResources
-    try {
-      updateAwsResourcesField("ECSName", ECSName);
-      console.log("Updated awsResources with ECS information");
-    } catch (error) {
-      console.error("Unable to update awsResources.js:", error);
-    }
-
-    console.log("Waiting for ECS cluster to start...");
-    return await waitForCluster();
-  };
+  try {
+    updateAwsResourcesField("ECSName", ECSName);
+    console.log("Updated awsResources with ECS information");
+  } catch (error) {
+    console.error("Unable to update awsResources.js:", error);
+  }
 
   // Load pushkin.yaml to check for existing RabbitMQ credentials
   let pushkinConfig;
   try {
     pushkinConfig = loadPushkinConfig();
-  } catch (e) {
-    console.error("Failed to load pushkin.yaml");
-    throw e;
+  } catch (error) {
+    console.error(`Failed to load pushkin.yaml: ${error}`);
+    throw error;
   }
 
-  // Use existing RabbitMQ credentials if available, otherwise generate new ones
   let rabbitPW, rabbitCookie;
-  if (
-    pushkinConfig.rabbitmq &&
-    pushkinConfig.rabbitmq.password &&
-    pushkinConfig.rabbitmq.erlangCookie
-  ) {
+  if (pushkinConfig.rabbitmq?.password && pushkinConfig.rabbitmq?.erlangCookie) {
     console.log("Using existing RabbitMQ credentials from pushkin.yaml");
     rabbitPW = pushkinConfig.rabbitmq.password;
     rabbitCookie = pushkinConfig.rabbitmq.erlangCookie;
@@ -285,78 +240,66 @@ const createECSTask = async (
     rabbitPW = crypto.randomBytes(16).toString("hex");
     rabbitCookie = uuid();
 
-    // Save to pushkin.yaml
-    if (!pushkinConfig.rabbitmq) {
-      pushkinConfig.rabbitmq = {};
-    }
+    if (!pushkinConfig.rabbitmq) pushkinConfig.rabbitmq = {};
     pushkinConfig.rabbitmq.password = rabbitPW;
     pushkinConfig.rabbitmq.erlangCookie = rabbitCookie;
 
     try {
       savePushkinConfig(pushkinConfig);
       console.log("Saved RabbitMQ credentials to pushkin.yaml");
-    } catch (e) {
-      console.error("Failed to save RabbitMQ credentials to pushkin.yaml");
-      throw e;
+    } catch (error) {
+      console.error(`Failed to save RabbitMQ credentials to pushkin.yaml: ${error}`);
+      throw error;
     }
   }
 
   const rabbitUser = projName.replace(/[^A-Za-z0-9]/g, "");
   const rabbitAddress = `amqp://${rabbitUser}:${rabbitPW}@localhost:5672`;
-  const myRabbitTask = buildRabbitTask(projName, rabbitUser, rabbitPW, rabbitCookie);
-  const myAPITask = buildAPITask(projName, DHID, rabbitAddress);
 
   let docker_compose;
   try {
     docker_compose = jsYaml.load(
       readFile(path.join(process.cwd(), "pushkin/docker-compose.dev.yml"), "utf8"),
     );
-  } catch (e) {
-    console.error("Failed to load the docker-compose. That is extremely odd.");
-    throw e;
+  } catch (error) {
+    console.error(`Failed to load the docker-compose: ${error}`);
+    throw error;
   }
 
-  let workerList = [];
-  Object.keys(docker_compose.services).forEach((s) => {
-    if (
-      docker_compose.services[s].labels != null &&
-      docker_compose.services[s].labels.isPushkinWorker
-    ) {
-      workerList.push(s);
-    }
-  });
+  const workerList = Object.keys(docker_compose.services).filter(
+    (s) => docker_compose.services[s].labels?.isPushkinWorker,
+  );
 
   console.log(`ECS task creation waiting on DBs`);
-  await completedDBs; //Next part won't run if DBs aren't done
+  await completedDBs;
   const dbInfoByTask = await getDBInfo();
 
-  let composedRabbit;
-  let composedAPI;
-  let composedWorkers;
-  composedRabbit = ecsCompose(
+  const context = { ECSName, useIAM, executionRoleArn, subnets, ecsSecurityGroupID };
+
+  const composedRabbit = deployService(
     "rabbitTask.yml",
-    myRabbitTask,
+    buildRabbitTask(projName, rabbitUser, rabbitPW, rabbitCookie),
     "message-queue",
-    0,
-    false,
-    subnets,
-    ecsSecurityGroupID,
+    context,
   );
-  composedAPI = ecsCompose(
+  const composedAPI = deployService(
     "apiTask.yml",
-    myAPITask,
+    buildAPITask(projName, DHID, rabbitAddress),
     "api",
+    context,
     80,
     targGroupARN,
-    subnets,
-    ecsSecurityGroupID,
   );
-  composedWorkers = workerList.map((w) => {
-    const task = buildWorkerTask(w, projName, DHID, rabbitAddress, dbInfoByTask);
-    return ecsCompose(w.concat(".yml"), task, w, 0, false, subnets, ecsSecurityGroupID);
-  });
+  const composedWorkers = workerList.map((worker) =>
+    deployService(
+      `${worker}.yml`,
+      buildWorkerTask(worker, projName, DHID, rabbitAddress, dbInfoByTask),
+      worker,
+      context,
+    ),
+  );
 
-  return Promise.all([composedRabbit, composedAPI, composedWorkers]);
+  return Promise.all([composedRabbit, composedAPI, ...composedWorkers]);
 };
 
-export { convertComposeToTaskDef, registerECSTaskDefinition, createECSTask };
+export { createECSTask };
