@@ -9,7 +9,7 @@
 import { rabbitTask, apiTask, workerTask } from "../../awsConfigs.js";
 
 /**
- * Builds a configured RabbitMQ task definition
+ * Build a configured RabbitMQ task definition
  * @param {string} projName - Project name
  * @param {string} rabbitUser - RabbitMQ username
  * @param {string} rabbitPW - RabbitMQ password
@@ -28,7 +28,7 @@ const buildRabbitTask = (projName, rabbitUser, rabbitPW, rabbitCookie) => {
 };
 
 /**
- * Builds a configured API task definition
+ * Build a configured API task definition
  * @param {string} projName - Project name
  * @param {string} DHID - Docker Hub ID
  * @param {string} rabbitAddress - Full AMQP connection string
@@ -44,7 +44,7 @@ const buildAPITask = (projName, DHID, rabbitAddress) => {
 };
 
 /**
- * Builds a configured worker task definition for a single experiment worker
+ * Build a configured worker task definition for a single experiment worker
  * @param {string} workerName - Worker service name (experiment name)
  * @param {string} projName - Project name
  * @param {string} DHID - Docker Hub ID

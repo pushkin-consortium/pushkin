@@ -1,3 +1,10 @@
+/**
+ * AWS CloudFront Service Management
+ * Handles CloudFront distribution and Origin Access Control operations for Pushkin deployments
+ * CloudFront is what serves the Pushkin frontend to users
+ * @module cloudfront
+ */
+
 import {
   CloudFrontClient,
   GetOriginAccessControlCommand,
@@ -21,8 +28,7 @@ import { AWS_REGION } from "../constants.js";
 const PROJECT_TAG_KEY = loadAwsConfig().tagging.projectTagKey;
 
 /**
- * (Helper)
- * Creates a CloudFront client with consistent configuration using the same region and IAM profile
+ * Creates a CloudFront client with consistent configuration using the same region and IAM profile.
  */
 const createCloudFrontClient = (useIAM) => {
   const clientFactory = new AWSClientFactory(AWS_REGION, useIAM);
@@ -30,9 +36,8 @@ const createCloudFrontClient = (useIAM) => {
 };
 
 /**
- * (Helper)
- * Checks if an OAC resource still exists in AWS by ID
- * WHY: Check if an OAC cached in awsResources.js is still valid
+ * Checks if an OAC resource still exists in AWS by ID.
+ * WHY: Check if an OAC cached in awsResources.js is still valid.
  */
 const oacExistsById = async (oacId, useIAM) => {
   try {
@@ -45,11 +50,10 @@ const oacExistsById = async (oacId, useIAM) => {
 };
 
 /**
- * (Helper)
- * Finds an existing OAC resource by name
+ * Finds an existing OAC resource by name.
  * WHY: Prevent creating duplicate OACs when redeploying, as they are reusable across deployments.
  * Mostly acts as a fallback if oacExistsById returns false (i.e. local state lost) but the OAC
- * still exists in AWS
+ * still exists in AWS.
  */
 const findOACByName = async (oacName, useIAM) => {
   try {
@@ -67,9 +71,8 @@ const findOACByName = async (oacName, useIAM) => {
 };
 
 /**
- * (Helper)
- * Creates a new OAC (Origin Access Control) in AWS if no existing OAC
- * WHY: OACs are required for secure CloudFront-S3 access
+ * Creates a new OAC (Origin Access Control) in AWS if no existing OAC.
+ * WHY: OACs are required for secure CloudFront-S3 access.
  */
 const createOAC = async (useIAM) => {
   try {
@@ -87,7 +90,7 @@ const createOAC = async (useIAM) => {
 };
 
 /**
- * Gets or creates the Origin Access Control (OAC)
+ * Gets or creates the Origin Access Control (OAC).
  * WHY: Implements idempotent OAC management with three fallback strategies:
  * 1. Use saved OAC ID if it exists in AWS
  * 2. Find existing OAC by name (recovery path if local state is stale)
@@ -137,8 +140,8 @@ const getOAC = async (useIAM, verbose = false) => {
 };
 
 /**
- * Waits for CloudFront distribution to be fully deployed
- * WHY: So we don't try to access site or make changes before it's ready, which will fail
+ * Waits for CloudFront distribution to be fully deployed.
+ * WHY: So we don't try to access site or make changes before it's ready, which will fail.
  * @param {string} distributionId - The CloudFront distribution ID
  * @param {string} useIAM - The IAM profile to use
  * @param {boolean} verbose - Whether to log detailed info about the deployment status checks
@@ -179,10 +182,9 @@ const waitForCloudFrontDeployment = async (distributionId, useIAM, verbose = fal
 };
 
 /**
- * (Helper)
- * Gets the tags for a CloudFront distribution by ARN
+ * Gets the tags for a CloudFront distribution by ARN.
  * WHY: Used to check if a distribution is tagged for this project, which helps prevent
- * accidentally deleting distributions from other projects in shared AWS accounts
+ * accidentally deleting distributions from other projects in shared AWS accounts.
  */
 const getDistributionTags = async (arn, useIAM) => {
   try {
@@ -195,10 +197,9 @@ const getDistributionTags = async (arn, useIAM) => {
 };
 
 /**
- * (Helper)
- * Verifies a distribution belongs to the current Pushkin project
+ * Verifies a distribution belongs to the current Pushkin project.
  * WHY: This prevents accidentally deleting distributions from other projects or non-Pushkin
- * resources in shared AWS accounts
+ * resources in shared AWS accounts.
  */
 const isDistributionTaggedForProject = async (distribution, projName, useIAM) => {
   const tags = await getDistributionTags(distribution.ARN, useIAM);
@@ -206,8 +207,7 @@ const isDistributionTaggedForProject = async (distribution, projName, useIAM) =>
 };
 
 /**
- * (Helper)
- * Gets list of distribution IDs to delete
+ * Gets list of distribution IDs to delete.
  * WHY: Supports two deletion modes: targeted (project-specific) and total (all distributions)
  * The killTag parameter determines behavior - when true, only deletes distributions tagged
  * for this project (safe for shared accounts); when false, deletes all (for cleanup/testing).
@@ -244,11 +244,10 @@ const getDistributionsToDelete = async (useIAM, projName, killTag) => {
 };
 
 /**
- * (Helper)
- * Checks if a CloudFront distribution is disabled and ready for deletion
+ * Checks if a CloudFront distribution is disabled and ready for deletion.
  * WHY: CloudFront requires a two-step deletion process: first disable the distribution,
  * then delete it after disabling completes. This checks both conditions (Enabled=false
- * and Status!="InProgress") to ensure the distribution is in a safe state for deletion
+ * and Status!="InProgress") to ensure the distribution is in a safe state for deletion.
  */
 const isDistributionReadyForDeletion = async (distId, useIAM) => {
   try {
@@ -270,11 +269,11 @@ const isDistributionReadyForDeletion = async (distId, useIAM) => {
 };
 
 /**
- * Delete the CloudFront distribution(s) associated with this project (or all distributions if killTag is false)
+ * Delete the CloudFront distribution(s) associated with this project (or all distributions if killTag is false).
  * WHY: Orchestrates the complete CloudFront deletion workflow which must follow AWS's
  * required sequence: get config → disable → wait for disable to propagate → get fresh
  * ETag → delete. The ETag must be refreshed after disabling because AWS updates it when
- * the configuration changes. Handles multiple distributions in parallel for efficiency
+ * the configuration changes. Handles multiple distributions in parallel for efficiency.
  * @param {string} useIAM – The IAM profile to use
  * @param {string} projName – The Pushkin project name
  * @param {boolean} killTag – Whether to delete only distributions tagged with the project name
@@ -328,9 +327,10 @@ const deleteCloudFront = async (useIAM, projName, killTag, verbose = false) => {
             DistributionConfig: cloudConfig,
           }),
         );
-      } catch {
+      } catch (error) {
         console.error(
-          `Unable to disable cloudfront distribution ${distId}.\n Sometimes this throws errors but works anyway, so we'll continue and see what happens...\n`, error
+          `Unable to disable cloudfront distribution ${distId}.\n Sometimes this throws errors but works anyway, so we'll continue and see what happens...\n`,
+          error,
         );
       }
 
@@ -403,11 +403,10 @@ const deleteCloudFront = async (useIAM, projName, killTag, verbose = false) => {
 };
 
 /**
- * (Helper)
- * Deletes an OAC with retry logic for in-use errors
+ * Deletes an OAC with retry logic for in-use errors.
  * WHY: AWS CloudFront backend has eventual consistency - even after distributions are
  * deleted, AWS may still report the OAC as "in use" for a short period. Retry attempts
- * and intervals are configurable in aws-deploy.yaml (defaults: 10 retries, 10s intervals)
+ * and intervals are configurable in aws-deploy.yaml (defaults: 10 retries, 10s intervals).
  */
 const deleteOACWithRetry = async (oacId, etag, useIAM, verbose = false) => {
   const config = loadAwsConfig();
@@ -445,12 +444,12 @@ const deleteOACWithRetry = async (oacId, etag, useIAM, verbose = false) => {
 };
 
 /**
- * Delete all Origin Access Controls
+ * Delete all Origin Access Controls.
  * WHY: OACs cannot be deleted while still referenced by CloudFront distributions. This
  * function enforces the correct deletion order: wait for distributions to be deleted
  * first, then wait additional time for AWS backend to fully release the references
  * (eventual consistency), then delete OACs with retry logic. Updates local state to
- * keep awsResources.js in sync
+ * keep awsResources.js in sync.
  * @param {string} useIAM - The IAM profile to use
  * @param {Promise} deletedCloudFront - Promise that resolves when CloudFront distributions are deleted
  * @param {boolean} verbose - Whether to log detailed info about the deletion process

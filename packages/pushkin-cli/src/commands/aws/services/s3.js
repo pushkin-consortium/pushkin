@@ -15,9 +15,8 @@ import { quote } from "shell-quote";
 import { readJSON, fileExists, walkDirectory, readFile } from "../../../utils/file.js";
 
 /**
- * (Helper)
- * Creates an S3 client with consistent configuration
- * WHY: Ensure all S3 operations use the same region and IAM profile
+ * Creates an S3 client with consistent configuration.
+ * WHY: Ensure all S3 operations use the same region and IAM profile.
  */
 const createS3Client = (useIAM) => {
   const profileName = useIAM;
@@ -26,9 +25,9 @@ const createS3Client = (useIAM) => {
 };
 
 /**
- * Build the project's React front-end
+ * Build the project's React front-end.
  * WHY: We need to build the front-end before deploying to S3 because we need the built static files
- * to sync with the S3 bucket
+ * to sync with the S3 bucket.
  * @param {string} projName - The project name
  * @param {boolean} verbose - Whether to log detailed steps in building the front-end
  * @returns {Promise} - A promise that resolves when the front-end is built
@@ -77,9 +76,8 @@ const buildFrontEnd = async (projName, verbose = false) => {
 };
 
 /**
- * (Helper)
- * Upload a single file to S3 with appropriate Content-Type
- * WHY: Each file needs to be uploaded with the correct MIME type so browsers render them correctly
+ * Upload a single file to S3 with appropriate Content-Type.
+ * WHY: Each file needs to be uploaded with the correct MIME type so browsers render them correctly.
  * @param {S3Client} s3Client - The S3 client instance
  * @param {string} bucketName - The S3 bucket name
  * @param {string} filePath - The absolute path to the file
@@ -111,10 +109,10 @@ const uploadFileToS3 = async (s3Client, bucketName, filePath, s3Key, verbose = f
 };
 
 /**
- * Sync the local build with the S3 bucket
- * WHY: We need to sync the local build with the S3 bucket to deploy the front-end to AWS
+ * Sync the local build with the S3 bucket.
+ * WHY: We need to sync the local build with the S3 bucket to deploy the front-end to AWS.
  * This implementation uses the AWS SDK instead of the AWS CLI for better error handling
- * and to avoid external CLI dependencies
+ * and to avoid external CLI dependencies.
  * @param {string} s3BucketName - The S3 bucket name (sanitized, globally unique, AWS-compliant)
  * @param {string} useIAM - The IAM profile to use
  * @param {boolean} verbose - Whether to log detailed steps in syncing local front-end build with S3 bucket
@@ -159,9 +157,8 @@ const syncS3 = async (s3BucketName, useIAM, verbose = false) => {
 };
 
 /**
- * (Helper)
- * Delete all objects in an S3 bucket
- * WHY: S3 buckets must be empty before they can be deleted
+ * Delete all objects in an S3 bucket.
+ * WHY: S3 buckets must be empty before they can be deleted.
  * @param {S3Client} s3Client - The S3 client instance
  * @param {string} bucketName - The S3 bucket name
  * @param {boolean} verbose – Whether to log details in bucket emptying process
@@ -208,8 +205,7 @@ const emptyBucket = async (s3Client, bucketName, verbose = false) => {
 };
 
 /**
- * (Helper)
- * Delete a single S3 bucket (after emptying it)
+ * Delete a single S3 bucket (after emptying it).
  * @param {S3Client} s3Client - The S3 client instance
  * @param {string} bucketName - The S3 bucket name
  * @returns {Promise} - A promise that resolves when the bucket is deleted
@@ -226,8 +222,8 @@ const deleteSingleBucket = async (s3Client, bucketName) => {
 };
 
 /**
- * Delete S3 buckets
- * WHY: S3 bucket needs to be deleted during teardown to avoid orphaned resources and potential costs
+ * Delete S3 buckets.
+ * WHY: S3 bucket needs to be deleted during teardown to avoid orphaned resources and potential costs.
  * @param {string} useIAM - The IAM profile name
  * @param {string|boolean} killTag - If string (project name), only delete project bucket; if false, delete all buckets
  * @param {object} awsResources - The AWS resources object (contains s3BucketName)

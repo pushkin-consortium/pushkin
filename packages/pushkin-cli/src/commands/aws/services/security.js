@@ -1,3 +1,9 @@
+/**
+ * AWS Security Service Management
+ * Handles security groups, IAM verification, and WAF Web ACLs for Pushkin deployments
+ * @module security
+ */
+
 import { STSClient, GetCallerIdentityCommand } from "@aws-sdk/client-sts";
 import {
   EC2Client,
@@ -15,8 +21,7 @@ import { pushkinACL } from "../awsConfigs.js";
 const PROJECT_TAG_KEY = loadAwsConfig().tagging.projectTagKey;
 
 /**
- * (Helper)
- * Creates an EC2 client using the same region and IAM profile
+ * Creates an EC2 client using the same region and IAM profile.
  */
 const createEC2Client = (useIAM) => {
   const factory = new AWSClientFactory(AWS_REGION, useIAM);
@@ -24,8 +29,7 @@ const createEC2Client = (useIAM) => {
 };
 
 /**
- * (Helper)
- * Creates a WAFv2 client using the same region and IAM profile
+ * Creates a WAFv2 client using the same region and IAM profile.
  */
 const createWAFv2Client = (useIAM) => {
   const factory = new AWSClientFactory(AWS_REGION, useIAM);
@@ -33,8 +37,8 @@ const createWAFv2Client = (useIAM) => {
 };
 
 /**
- * Check if the IAM user is configured on the AWS SDK
- * WHY: Can the AWS SDK use the provided IAM user to make API calls to AWS?
+ * Check if the IAM user is configured on the AWS SDK.
+ * WHY: Check if the AWS SDK uses the provided IAM user to make API calls to AWS.
  * @param {string} useIAM - The IAM user to check
  * @returns {Promise<void>} - Resolves if the IAM user is configured, rejects with error if not
  */
@@ -46,14 +50,14 @@ const verifyIAMCredentials = async (useIAM) => {
     await sts.send(new GetCallerIdentityCommand({}));
   } catch (error) {
     console.error(
-      `The IAM user ${useIAM} is not configured on the AWS SDK: ${error.message}\nFor more information see https://docs.aws.amazon.com/sdk-for-javascript/v2/developer-guide/iam-examples.html`,
+      `The IAM user ${useIAM} is not configured on the AWS SDK: ${error}\nFor more information see https://docs.aws.amazon.com/STS/latest/APIReference/API_GetCallerIdentity.html`,
     );
     throw error;
   }
 };
 
 /**
- * Ensure project-specific database security group exists (creates if missing)
+ * Ensure project-specific database security group exists (creates if missing).
  * WHY: Each project needs its own database security group for network isolation between projects.
  * @param {string} useIAM - The IAM role to use
  * @param {string} projName - The project name
@@ -125,7 +129,7 @@ const ensureDatabaseSecurityGroup = async (useIAM, projName) => {
 };
 
 /**
- * Ensure project-specific load balancer security group exists (creates if missing)
+ * Ensure project-specific load balancer security group exists (creates if missing).
  * WHY: Each project needs its own load balancer security group for network isolation.
  * @param {string} useIAM - The IAM role to use
  * @param {string} projName - The project name
@@ -212,7 +216,7 @@ const ensureBalancerSecurityGroup = async (useIAM, projName) => {
 };
 
 /**
- * Ensure project-specific ECS security group exists (creates if missing)
+ * Ensure project-specific ECS security group exists (creates if missing).
  * WHY: Each project needs its own ECS security group for network isolation.
  * @param {string} useIAM - The IAM role to use
  * @param {string} projName - The project name
@@ -313,8 +317,8 @@ const ensureECSSecurityGroup = async (useIAM, projName) => {
 };
 
 /**
- * Retrieve WAF Web ACL for CloudFront protection or create if it doesn't exist
- * WHY: CloudFront distributions need a Web ACL to protect against common web exploits
+ * Retrieve WAF Web ACL for CloudFront protection or create if it doesn't exist.
+ * WHY: CloudFront distributions need a Web ACL to protect against common web exploits.
  * @param {string} useIAM - The IAM profile to use
  * @param {boolean} verbose – Whether to log details about getting WAF Web ACL
  * @returns {Promise<string>} - The ACL ARN
@@ -366,8 +370,7 @@ const getACL = async (useIAM, verbose = false) => {
 };
 
 /**
- * (Helper)
- * Delete a single security group
+ * Delete a single security group.
  * WHY: Security groups must be deleted individually, with proper error handling for dependencies.
  * @param {string} groupName - The security group name to delete
  * @param {string} useIAM - The IAM profile to use
@@ -405,7 +408,7 @@ const deleteSingleSecurityGroup = async (groupName, useIAM, verbose = false) => 
 };
 
 /**
- * Delete security groups
+ * Delete security groups.
  * WHY: Security groups must be deleted as part of teardown, but only after dependent resources (like RDS) are deleted.
  * @param {string} useIAM - The IAM profile to use
  * @param {string|boolean} killTag - If string (project name), only delete project groups; if false, delete all (except default)

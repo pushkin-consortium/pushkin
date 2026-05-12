@@ -24,8 +24,7 @@ import { dbConfig } from "../awsConfigs.js";
 const PROJECT_TAG_KEY = loadAwsConfig().tagging.projectTagKey;
 
 /**
- * (Helper)
- * Creates an RDS client with consistent configuration
+ * Creates an RDS client with consistent configuration.
  */
 const createRDSClient = (useIAM) => {
   const factory = new AWSClientFactory(AWS_REGION, useIAM);
@@ -33,8 +32,7 @@ const createRDSClient = (useIAM) => {
 };
 
 /**
- * (Helper)
- * Generate database name from project name and database type
+ * Generate database name from project name and database type.
  */
 const generateDBName = (projName, dbType) => {
   return projName
@@ -44,16 +42,14 @@ const generateDBName = (projName, dbType) => {
 };
 
 /**
- * (Helper)
- * Generate a secure random password for databases
+ * Generate a secure random password for databases.
  */
 const generateSecurePassword = () => {
   return crypto.randomBytes(16).toString("base64url").slice(0, 16);
 };
 
 /**
- * (Helper)
- * Check if database exists in RDS
+ * Check if database exists in RDS.
  */
 const findDBInRDS = async (dbName, useIAM) => {
   try {
@@ -67,8 +63,7 @@ const findDBInRDS = async (dbName, useIAM) => {
 };
 
 /**
- * (Helper)
- * Get nested property from object using dot notation
+ * Get nested property from object using dot notation.
  * @param {object} obj - The object to traverse
  * @param {string} path - Dot-notation path (e.g., "Endpoint.Port")
  * @returns {*} The value at the specified path, or undefined if not found
@@ -78,8 +73,7 @@ const getNestedValue = (obj, path) => {
 };
 
 /**
- * (Helper)
- * Validate that RDS database matches pushkin.yaml configuration
+ * Validate that RDS database matches pushkin.yaml configuration.
  * @param {string} dbType - The database type (e.g., "transaction", "messageQueue")
  * @param {object} pushkinConfig - The parsed pushkin.yaml configuration
  * @param {object} rdsDB - The RDS database instance description from AWS
@@ -149,8 +143,7 @@ const validateDBMatch = (dbType, pushkinConfig, rdsDB) => {
 };
 
 /**
- * (Helper)
- * Determine if a new database of given name and type should be created
+ * Determine if a new database of given name and type should be created.
  * Four cases:
  * 1. In both YAML and RDS – validate they match
  * 2. In YAML but not RDS – recreate in RDS
@@ -221,8 +214,7 @@ const shouldCreateNewDB = async (dbName, dbType, useIAM) => {
 };
 
 /**
- * (Helper)
- * Create an RDS database instance with the specified configuration
+ * Create an RDS database instance with the specified configuration.
  */
 const createRDSDatabase = async (
   dbName,
@@ -350,7 +342,6 @@ const createRDSDatabase = async (
 };
 
 /**
- * (Helper)
  * Get existing database configuration from pushkin.yaml
  */
 const getExistingDBConfig = async (dbName, dbType, verbose = false) => {
@@ -372,7 +363,7 @@ const getExistingDBConfig = async (dbName, dbType, verbose = false) => {
 };
 
 /**
- * Initialize a database (create new or return existing)
+ * Initialize a database (create new or return existing).
  * Orchestrates the entire database initialization process:
  * 1. Generate database name
  * 2. Check if database should be created (validates against RDS and pushkin.yaml)
@@ -467,11 +458,11 @@ const getDBInfo = async () => {
 };
 
 /**
- * Record databases in pushkin.yaml
+ * Record databases in pushkin.yaml.
  * WHY: When we create databases, we get the connection information back in this function.
  * This information needs to be recorded in pushkin.yaml so that the application can connect to the databases.
  * We wait to record the databases until they are created and we have all the necessary information
- * (e.g. host and port) to avoid having incomplete database entries in pushkin.yaml if something goes wrong during creation
+ * (e.g. host and port) to avoid having incomplete database entries in pushkin.yaml if something goes wrong during creation.
  * @param {Promise<Array>} dbDone - A promise that resolves to an array of database objects
  * @returns {Promise<object>} - The updated pushkin configuration
  */
@@ -545,7 +536,7 @@ const recordDBs = async (dbDone) => {
 };
 
 /**
- * Get list of databases to delete
+ * Get list of databases to delete.
  * @param {string} useIAM - The IAM profile to use
  * @param {string} killTag - Whether to delete only DBs tagged with project tag
  * @returns {Promise<Array<string>>} - List of database identifiers to delete
@@ -581,8 +572,7 @@ const getDBsToDelete = async (useIAM, killTag) => {
 };
 
 /**
- * (Helper)
- * Check if database exists in RDS
+ * Check if database exists in RDS.
  */
 const checkDBExists = async (dbName, rdsClient) => {
   try {
@@ -594,8 +584,7 @@ const checkDBExists = async (dbName, rdsClient) => {
 };
 
 /**
- * (Helper)
- * Disable deletion protection for a single database
+ * Disable deletion protection for a single database.
  */
 const disableDeletionProtection = async (dbName, rdsClient) => {
   await rdsClient.send(
@@ -608,8 +597,7 @@ const disableDeletionProtection = async (dbName, rdsClient) => {
 };
 
 /**
- * (Helper)
- * Wait until deletion protection is disabled for a database
+ * Wait until deletion protection is disabled for a database.
  */
 const waitForDeletionProtectionDisabled = async (dbName, rdsClient, timeoutMs = 300000) => {
   const checkProtection = async () => {
@@ -647,8 +635,7 @@ const waitForDeletionProtectionDisabled = async (dbName, rdsClient, timeoutMs = 
 };
 
 /**
- * (Helper)
- * Delete a single database
+ * Delete a single database.
  */
 const deleteSingleDB = async (dbName, rdsClient) => {
   try {
@@ -680,8 +667,7 @@ const deleteSingleDB = async (dbName, rdsClient) => {
 };
 
 /**
- * (Helper)
- * Wait until specific databases are fully deleted
+ * Wait until specific databases are fully deleted.
  */
 const waitForDBsDeletion = async (dbNames, rdsClient, timeoutMs = 1200000) => {
   console.log(`Waiting for ${dbNames.length} database(s) to be deleted...`);
@@ -714,7 +700,7 @@ const waitForDBsDeletion = async (dbNames, rdsClient, timeoutMs = 1200000) => {
 };
 
 /**
- * Delete specified list of databases
+ * Delete specified list of databases.
  * @param {Promise<Array<string>>} dbs - Promise that resolves to list of database identifiers
  * @param {string} useIAM - The IAM profile to use
  * @returns {Promise<boolean>} - Promise that resolves when databases are deleted

@@ -1,3 +1,10 @@
+/**
+ * AWS Route53 Service Management
+ * Manages Route53 DNS records for the Pushkin project, including creating/updating record sets
+ * for CloudFront distributions and deleting records during cleanup.
+ * @module route53
+ */
+
 import {
   Route53Client,
   ListHostedZonesByNameCommand,
@@ -5,11 +12,11 @@ import {
   ChangeResourceRecordSetsCommand,
 } from "@aws-sdk/client-route-53";
 import { AWSClientFactory } from "../utils/aws-client-factory.js";
-import { loadPushkinConfig } from "../utils/config.js";
+import { loadPushkinConfig } from "../../../utils/pushkin-config.js";
 import { AWS_REGION } from "../constants.js";
 
 /**
- * This function is called from within deployFrontEnd(). It creates four Route53 DNS records for the specified domainName for the CloudFront distribution created in deployFrontEnd().
+ * Creates four Route53 DNS records for the specified domain pointing to the CloudFront distribution.
  * @param {string} domainName - The domain name
  * @param {string} projName - The project name
  * @param {string} useIAM - The IAM profile to use
@@ -119,7 +126,7 @@ const makeRecordSet = async (domainName, projName, useIAM, theCloud) => {
   }
 
   /**
-   * Creates a recordset change object for the DNS record
+   * Creates a recordset change object for the DNS record.
    * @param {string} name - The DNS record name users will access
    * @param {string} dnsName - The DNS name of the CloudFront distribution
    * @param {string} type - The DNS record type (A or AAAA)
@@ -152,7 +159,7 @@ const makeRecordSet = async (domainName, projName, useIAM, theCloud) => {
   };
 
   /**
-   * Waits for all resource record sets to be deleted for a given hosted zone
+   * Waits for all resource record sets to be deleted for a given hosted zone.
    * @param zoneID - The hosted zone ID
    */
   const waitForRecordSetDeletion = async (zoneID) => {
@@ -212,7 +219,11 @@ const makeRecordSet = async (domainName, projName, useIAM, theCloud) => {
     }
   };
 
-  await waitForRecordSetDeletion(zoneID);
+  const timeout = new Promise(
+    (_, reject) =>
+      setTimeout(() => reject(new Error(`Timeout waiting for record sets deletion`)), 600000), // 10 mins
+  );
+  await Promise.race([waitForRecordSetDeletion(zoneID), timeout]);
 
   // create the new record set
   let returnVal;
@@ -235,7 +246,7 @@ const makeRecordSet = async (domainName, projName, useIAM, theCloud) => {
 };
 
 /**
- *
+ * Delete all Route53 resource records for the current project's domain.
  * @param useIAM
  * @param killTag
  * @param projName
