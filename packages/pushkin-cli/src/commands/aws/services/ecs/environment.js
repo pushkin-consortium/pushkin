@@ -9,14 +9,14 @@
 import { rabbitTask, apiTask, workerTask } from "../../awsConfigs.js";
 
 /**
- * Build a configured RabbitMQ task definition
+ * Builds a configured RabbitMQ task definition
  * @param {string} projName - Project name
  * @param {string} rabbitUser - RabbitMQ username
  * @param {string} rabbitPW - RabbitMQ password
  * @param {string} rabbitCookie - RabbitMQ Erlang cookie
  * @returns {object} Configured Docker Compose service definition
  */
-export const buildRabbitTask = (projName, rabbitUser, rabbitPW, rabbitCookie) => {
+const buildRabbitTask = (projName, rabbitUser, rabbitPW, rabbitCookie) => {
   const task = JSON.parse(JSON.stringify(rabbitTask));
   task.services["message-queue"].environment.RABBITMQ_DEFAULT_USER = rabbitUser;
   task.services["message-queue"].environment.RABBITMQ_DEFAULT_PASS = rabbitPW;
@@ -28,13 +28,13 @@ export const buildRabbitTask = (projName, rabbitUser, rabbitPW, rabbitCookie) =>
 };
 
 /**
- * Build a configured API task definition
+ * Builds a configured API task definition
  * @param {string} projName - Project name
  * @param {string} DHID - Docker Hub ID
  * @param {string} rabbitAddress - Full AMQP connection string
  * @returns {object} Configured Docker Compose service definition
  */
-export const buildAPITask = (projName, DHID, rabbitAddress) => {
+const buildAPITask = (projName, DHID, rabbitAddress) => {
   const task = JSON.parse(JSON.stringify(apiTask));
   task.services["api"].environment.AMQP_ADDRESS = rabbitAddress;
   task.services["api"].image = `${DHID}/api:latest`;
@@ -44,7 +44,7 @@ export const buildAPITask = (projName, DHID, rabbitAddress) => {
 };
 
 /**
- * Build a configured worker task definition for a single experiment worker
+ * Builds a configured worker task definition for a single experiment worker
  * @param {string} workerName - Worker service name (experiment name)
  * @param {string} projName - Project name
  * @param {string} DHID - Docker Hub ID
@@ -52,7 +52,7 @@ export const buildAPITask = (projName, DHID, rabbitAddress) => {
  * @param {object} dbInfoByTask - Database connection info, keyed by DB type (Main, Transaction)
  * @returns {object} Configured Docker Compose service definition
  */
-export const buildWorkerTask = (workerName, projName, DHID, rabbitAddress, dbInfoByTask) => {
+const buildWorkerTask = (workerName, projName, DHID, rabbitAddress, dbInfoByTask) => {
   const task = {
     version: workerTask.version,
     services: {},
@@ -62,8 +62,6 @@ export const buildWorkerTask = (workerName, projName, DHID, rabbitAddress, dbInf
   task.services[workerName].logging.options["awslogs-group"] = `ecs/${projName}`;
   task.services[workerName].logging.options["awslogs-stream-prefix"] =
     `ecs/${workerName}/${projName}`;
-  // DB_USER/DB_NAME/DB_PASS/DB_URL are redundant with DB_SMARTURL but kept for backwards
-  // compatibility: older pushkin-worker versions don't support DB_SMARTURL yet.
   task.services[workerName].environment = {
     AMQP_ADDRESS: rabbitAddress,
     DB_HOST: dbInfoByTask["Main"].endpoint,
@@ -79,3 +77,5 @@ export const buildWorkerTask = (workerName, projName, DHID, rabbitAddress, dbInf
   };
   return task;
 };
+
+export { buildRabbitTask, buildAPITask, buildWorkerTask };
