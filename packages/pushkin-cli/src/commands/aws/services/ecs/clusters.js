@@ -1,11 +1,12 @@
 /**
  * ECS Cluster Management
- * Handles ECS cluster lifecycle and CloudFormation stack cleanup for Pushkin deployments
+ * Handles ECS cluster lifecycle and CloudFormation stack cleanup
  * @module ecs/clusters
  */
 
 import {
   ECSClient,
+  CreateClusterCommand,
   ListClustersCommand,
   DescribeClustersCommand,
   ListTasksCommand,
@@ -17,247 +18,200 @@ import {
   CloudFormationClient,
   ListStacksCommand,
   DeleteStackCommand,
+  waitUntilStackDeleteComplete,
 } from "@aws-sdk/client-cloudformation";
 import { AWSClientFactory } from "../../utils/aws-client-factory.js";
 import { AWS_REGION } from "../../constants.js";
 import { deleteAllServices } from "./services.js";
 
+/**
+ * Create an ECS cluster for the project, or skip if it already exists.
+ * WHY: ECS clusters are the logical grouping of resources for running containers.
+ * @param {string} ECSName - Cluster name (alphanumeric project name)
+ * @param {string} projName - Project name (for tagging)
+ * @param {string} useIAM - IAM profile to use
+ * @param {string} projectTagKey - Tag key for identifying Pushkin resources
+ */
+const createCluster = async (ECSName, projName, useIAM, projectTagKey) => {
+  console.log("Launching ECS cluster");
+  const factory = new AWSClientFactory(AWS_REGION, useIAM);
+  const ecsClient = factory.createClient(ECSClient);
+  try {
+    await ecsClient.send(
+      new CreateClusterCommand({
+        clusterName: ECSName,
+        tags: [{ key: projectTagKey, value: projName }],
+      }),
+    );
+    console.log(`Created ECS cluster: ${ECSName}`);
+  } catch (error) {
+    if (error.name === "ClusterAlreadyExistsException") {
+      console.log(`ECS cluster ${ECSName} already exists, continuing...`);
+    } else {
+      console.error(`Unable to launch cluster ${ECSName}: ${error}`);
+      throw error;
+    }
+  }
+};
+
+/**
+ * Delete all CloudFormation stacks, optionally filtered by tag.
+ * CloudFormation is the AWS service used to manage CRUD operations of AWS resources as a stack.
+ * @param {string} useIAM - IAM profile to use
+ * @param {string|null} killTag - If set, only delete stacks whose first tag value matches
+ * @returns {Promise<boolean>} Resolves when all stacks are deleted
+ */
 const deleteStack = async (useIAM, killTag) => {
-  console.log(`Deleting cloudformation stacks`);
-  const getStackList = async (stackType) => {
-    let stacksToDelete = [];
-    let stackList;
-    try {
-      const profileName = useIAM;
-      const factory = new AWSClientFactory(AWS_REGION, profileName);
-      const cloudFormationClient = factory.createClient(CloudFormationClient);
-      const listStacksResponse = await cloudFormationClient.send(new ListStacksCommand({}));
-      stackList = { stdout: JSON.stringify({ StackSummaries: listStacksResponse.StackSummaries }) };
-    } catch (e) {
-      console.error(`Unable to list cloudformation stacks`);
-      throw e;
-    }
-    if (JSON.parse(stackList.stdout).StackSummaries) {
-      JSON.parse(stackList.stdout).StackSummaries.forEach((s) => {
-        if (stackType == "deletable") {
-          if ((s.StackStatus == "Active") | (s.StackStatus == "CREATE_COMPLETE")) {
-            if (killTag && s.Tags.length > 0) {
-              if (s.Tags[0].Value == killTag) {
-                stacksToDelete.push(s.StackId);
-              }
-            } else {
-              stacksToDelete.push(s.StackId);
-            }
-          }
-        }
-        if (stackType == "alive") {
-          if (s.StackStatus != "DELETE_COMPLETE") {
-            if (killTag && s.Tags.length > 0) {
-              if (s.Tags[0].Value == killTag) {
-                stacksToDelete.push(s.StackId);
-              }
-            } else {
-              stacksToDelete.push(s.StackId);
-            }
-          }
-        }
-      });
-    }
-    return stacksToDelete;
+  console.log(`Deleting CloudFormation stacks`);
+
+  const factory = new AWSClientFactory(AWS_REGION, useIAM);
+  const cfClient = factory.createClient(CloudFormationClient);
+
+  const listStacks = async () => {
+    const response = await cfClient.send(new ListStacksCommand({}));
+    return response.StackSummaries ?? [];
   };
 
-  let stacksToDelete;
-  stacksToDelete = await getStackList("deletable");
+  const isDeletable = (stack) =>
+    stack.StackStatus === "CREATE_COMPLETE" || stack.StackStatus === "UPDATE_COMPLETE";
 
-  return new Promise(async (resolve) => {
-    if (stacksToDelete.length > 0) {
-      stacksToDelete.map(async (s) => {
-        console.log(`Deleting stack ${s}`);
-        try {
-          const profileName = useIAM;
-          const factory = new AWSClientFactory(AWS_REGION, profileName);
-          const cloudFormationClient = factory.createClient(CloudFormationClient);
-          return await cloudFormationClient.send(new DeleteStackCommand({ StackName: s }));
-        } catch (error) {
-          console.warn(
-            "\x1b[31m%s\x1b[0m",
-            `Unable to find cloudformation stack ${s}. May have already been deleted. Skipping.`,
-          );
-          return true;
-        }
-      });
-      const awaitStacks = async () => {
-        let remainingStacks = [];
-        remainingStacks = await getStackList("alive");
-        if (remainingStacks.length > 0) {
-          setTimeout(awaitStacks, 5000);
-        } else {
-          resolve(true);
-        }
-      };
-      awaitStacks();
-    } else {
-      resolve(true);
-    }
-  });
-};
+  // TODO: killize
+  const matchesTag = (stack) =>
+    !killTag || (stack.Tags?.length > 0 && stack.Tags[0].Value === killTag);
 
-const deleteCluster = async (deletedStack, useIAM, killTag, projName, awsResources) => {
-  deletedStack = await deletedStack; //probably need this gone first.
-  console.log(`Deleted stack: ${deletedStack}`);
-  let runningClusters = [];
-  let clustersToKill = [];
-  let temp;
-  try {
-    const profileName = useIAM;
-    const factory = new AWSClientFactory(AWS_REGION, profileName);
-    const ecsClient = factory.createClient(ECSClient);
-    const listClustersResponse = await ecsClient.send(new ListClustersCommand({}));
-    temp = { stdout: JSON.stringify({ clusterArns: listClustersResponse.clusterArns }) };
-  } catch (e) {
-    console.error(`Unable to list ECS clusters.\n` + e);
-    throw e;
-  }
-  if (JSON.parse(temp.stdout).clusterArns.length > 0) {
-    JSON.parse(temp.stdout).clusterArns.map((c) => {
-      runningClusters.push(c);
-    });
-  }
+  const stacks = await listStacks();
+  const stacksToDelete = stacks
+    .filter((stack) => isDeletable(stack) && matchesTag(stack))
+    .map((stack) => stack.StackId);
 
-  if (!killTag) {
-    clustersToKill = runningClusters;
-  } else {
-    console.warn(
-      "\x1b[31m%s\x1b[0m",
-      `Only nuking clusters associated with this project. Full list of clusters includes:`,
-    );
-    console.warn("\x1b[31m%s\x1b[0m", runningClusters);
-    if (awsResources && !awsResources.ECSName) {
-      awsResources.ECSName = projName.replace(/[^A-Za-z0-9]/g, ""); //won't be permanent. Doesn't matter.
-    }
-    let clusterDescription;
-    try {
-      const profileName = useIAM;
-      const factory = new AWSClientFactory(AWS_REGION, profileName);
-      const ecsClient = factory.createClient(ECSClient);
-      const describeClustersResponse = await ecsClient.send(
-        new DescribeClustersCommand({
-          clusters: [awsResources.ECSName],
-        }),
-      );
-      clusterDescription = {
-        stdout: JSON.stringify({ clusters: describeClustersResponse.clusters }),
-      };
-    } catch (error) {
-      console.warn(
-        "\x1b[31m%s\x1b[0m",
-        `Unable to find ECS cluster ${awsResources.ECSName}. May have already been deleted.`,
-      );
-      awsResources.ECSName = null;
-      return true;
-    }
-    if (JSON.parse(clusterDescription.stdout).clusters.length == 0) {
-      console.warn(
-        "\x1b[31m%s\x1b[0m",
-        `Unable to find ECS cluster ${awsResources.ECSName}. May have already been deleted.`,
-      );
-      awsResources.ECSName = null;
-      return true;
-    } else {
-      JSON.parse(clusterDescription.stdout).clusters.forEach((c) => {
-        if (c.clusterName == awsResources.ECSName) {
-          clustersToKill.push(c.clusterArn);
-        }
-      });
-      if (clustersToKill.length == 0) {
-        console.warn(
-          "\x1b[31m%s\x1b[0m",
-          `Unable to find ECS cluster ${awsResources.ECSName}. May have already been deleted.`,
-        );
-        awsResources.ECSName = null;
-        return true;
-      }
-    }
-  }
-  console.log(`Deleting these ECS clusters: ` + clustersToKill.join(", "));
+  if (stacksToDelete.length === 0) return true;
 
-  console.log(`Stopping ECS services.`);
+  // Send delete commands
   await Promise.all(
-    clustersToKill.map(async (c) => {
-      let aTaskToKill;
+    stacksToDelete.map(async (stackId) => {
+      console.log(`Deleting stack ${stackId}`);
       try {
-        const profileName = useIAM;
-        const factory = new AWSClientFactory(AWS_REGION, profileName);
-        const ecsClient = factory.createClient(ECSClient);
-        const listTasksResponse = await ecsClient.send(
-          new ListTasksCommand({
-            cluster: c,
-          }),
-        );
-        aTaskToKill = { stdout: JSON.stringify({ taskArns: listTasksResponse.taskArns }) };
-      } catch (e) {
-        console.error(`Unable to list tasks for cluster ${c}.`);
-        throw e;
+        await cfClient.send(new DeleteStackCommand({ StackName: stackId }));
+      } catch (error) {
+        if (error.name === "ValidationError" && error.message.includes("does not exist")) {
+          console.warn(`Stack ${stackId} already deleted, skipping.`);
+        } else {
+          throw error;
+        }
       }
-      let tasksToKill = JSON.parse(aTaskToKill.stdout).taskArns;
-      // Create ECS client for this cluster
-      const profileName = useIAM;
-      const factory = new AWSClientFactory(AWS_REGION, profileName);
-      const ecsClient = factory.createClient(ECSClient);
-
-      let killedTasks;
-      if (tasksToKill.length > 0) {
-        killedTasks = Promise.all(
-          tasksToKill.map(async (t) => {
-            console.log(`killing task: ` + t);
-            return await ecsClient.send(
-              new StopTaskCommand({
-                cluster: c,
-                task: t,
-              }),
-            );
-          }),
-        );
-      }
-      killedTasks = await killedTasks;
-
-      // Wait for all tasks to stop in parallel
-      await Promise.all(
-        killedTasks.map(async (taskArn) => {
-          await waitUntilTasksStopped(
-            {
-              client: ecsClient,
-              maxWaitTime: 600, // 10 minutes
-              minDelay: 5,
-              maxDelay: 10,
-            },
-            { cluster: c, tasks: [taskArn] },
-          );
-        }),
-      );
-      console.log("All tasks have stopped.");
-
-      return deleteAllServices(c, useIAM);
     }),
   );
-  let killedClusters = clustersToKill.map(async (c) => {
-    console.log(`Deleting ECS Cluster ${c}.`);
-    try {
-      const profileName = useIAM;
-      const factory = new AWSClientFactory(AWS_REGION, profileName);
-      const ecsClient = factory.createClient(ECSClient);
-      temp = await ecsClient.send(
-        new DeleteClusterCommand({
-          cluster: c,
-        }),
-      );
-    } catch (e) {
-      console.error(`Unable to delete cluster ${c}.`);
-      console.error(e);
-    }
-    return temp;
-  });
-  return killedClusters;
+
+  // Wait for stacks to be deleted
+  await Promise.all(
+    stacksToDelete.map((stackId) =>
+      waitUntilStackDeleteComplete(
+        { client: cfClient, maxWaitTime: 600, minDelay: 5, maxDelay: 30 },
+        { StackName: stackId },
+      ),
+    ),
+  );
+
+  return true;
 };
 
-export { deleteStack, deleteCluster };
+/**
+ * Delete ECS cluster(s) and all running tasks and services within them.
+ * Deletes CloudFormation stacks first, then stops tasks and services before removing clusters.
+ * @param {string} useIAM - IAM profile to use
+ * @param {boolean} killTag - If true, only delete the cluster for this project
+ * @param {string} projName - Project name
+ * @param {object} awsResources - Tracked AWS resource IDs
+ * @returns {Promise} Resolves when clusters are deleted
+ */
+const deleteCluster = async (useIAM, killTag, projName, awsResources) => {
+  await deleteStack(useIAM, killTag);
+
+  const factory = new AWSClientFactory(AWS_REGION, useIAM);
+  const ecsClient = factory.createClient(ECSClient);
+
+  // Get all running clusters
+  const { clusterArns } = await ecsClient.send(new ListClustersCommand({})).catch((error) => {
+    console.error(`Unable to list ECS clusters: ${error}`);
+    throw error;
+  });
+
+  let clustersToKill;
+
+  // TODO: killize
+  if (!killTag) {
+    clustersToKill = clusterArns;
+  } else {
+    const ECSName = awsResources?.ECSName ?? projName.replace(/[^A-Za-z0-9]/g, "");
+    console.warn(
+      `Only deleting cluster for project "${projName}". All clusters: ${clusterArns.join(", ")}`,
+    );
+
+    const response = await ecsClient.send(new DescribeClustersCommand({ clusters: [ECSName] }));
+    const activeCluster = response.clusters?.find(
+      (c) => c.clusterName === ECSName && c.status !== "INACTIVE",
+    );
+
+    if (!activeCluster) {
+      console.warn(`ECS cluster ${ECSName} not found or already deleted, skipping.`);
+      return true;
+    }
+
+    clustersToKill = [activeCluster.clusterArn];
+  }
+
+  console.log(`Deleting ECS clusters: ${clustersToKill.join(", ")}`);
+
+  // Stop all tasks and services in each cluster first
+  await Promise.all(
+    clustersToKill.map(async (clusterArn) => {
+      const { taskArns } = await ecsClient
+        .send(new ListTasksCommand({ cluster: clusterArn }))
+        .catch((error) => {
+          console.error(`Unable to list tasks for cluster ${clusterArn}: ${error}`);
+          throw error;
+        });
+
+      if (taskArns.length > 0) {
+        await Promise.all(
+          taskArns.map((taskArn) => {
+            console.log(`Stopping task: ${taskArn}`);
+            return ecsClient.send(new StopTaskCommand({ cluster: clusterArn, task: taskArn }));
+          }),
+        );
+
+        await Promise.all(
+          taskArns.map((taskArn) =>
+            waitUntilTasksStopped(
+              { client: ecsClient, maxWaitTime: 600, minDelay: 5, maxDelay: 10 },
+              { cluster: clusterArn, tasks: [taskArn] },
+            ),
+          ),
+        );
+
+        console.log("All tasks have stopped.");
+      }
+
+      await deleteAllServices(clusterArn, useIAM);
+    }),
+  );
+
+  // Then delete the cluster(s)
+  return Promise.all(
+    clustersToKill.map(async (clusterArn) => {
+      console.log(`Deleting ECS cluster ${clusterArn}.`);
+      try {
+        return await ecsClient.send(new DeleteClusterCommand({ cluster: clusterArn }));
+      } catch (error) {
+        if (error.name === "ClusterNotFoundException") {
+          console.warn(`Cluster ${clusterArn} already deleted, skipping.`);
+        } else {
+          console.error(`Unable to delete cluster ${clusterArn}: ${error}`);
+          throw error;
+        }
+      }
+    }),
+  );
+};
+
+export { createCluster, deleteCluster };
