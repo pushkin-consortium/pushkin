@@ -1,12 +1,11 @@
 /**
  * AWS ECS Service Management
- * Orchestrates ECS cluster, task, and service creation and deletion for Pushkin deployments.
+ * Orchestrates ECS cluster, task, and service creation and deletion .
  * Abstracts the setup and management of ECS resources including clusters, task definitions,
  * services, load balancers, and security groups.
  * @module ecs
  */
 
-import { ECSClient, CreateClusterCommand } from "@aws-sdk/client-ecs";
 import { EC2Client, DescribeSubnetsCommand, DescribeVpcsCommand } from "@aws-sdk/client-ec2";
 import {
   ElasticLoadBalancingV2Client,
@@ -16,16 +15,17 @@ import {
 } from "@aws-sdk/client-elastic-load-balancing-v2";
 import { AWSClientFactory } from "../../utils/aws-client-factory.js";
 import { updateAwsResourcesField } from "../../utils/aws-resources.js";
+import { loadAwsConfig } from "../../utils/aws-config.js";
 import { AWS_REGION } from "../../constants.js";
 import { ensureBalancerSecurityGroup, ensureECSSecurityGroup } from "../security.js";
-import { loadAwsConfig } from "../../utils/aws-config.js";
 import { createECSTask } from "./tasks.js";
+import { createCluster } from "./clusters.js";
 
-export { deleteStack, deleteCluster } from "./clusters.js";
+export { deleteCluster } from "./clusters.js";
 
 /**
  * Asynchronously retrieves available subnets in the AWS zone and maps them by availability zone.
- * This is used to specify subnets when creating the load balancer and ECS tasks.
+ * WHY: Subnets are needed for both the load balancer and Fargate tasks to define the network environment they run in.
  * @param {string} useIAM - The IAM role to use for AWS API calls
  * @returns {Promise} A promise that resolves to an object mapping availability zones to subnet IDs
  */
@@ -48,6 +48,7 @@ async function getSubnets(useIAM) {
 
 /**
  * Get the default VPC ID for the current region.
+ * WHY: VPC is needed for both the load balancer and Fargate tasks to define the network environment they run in.
  * @param {string} useIAM - IAM profile name
  * @returns {Promise<string>} Default VPC ID
  */
@@ -68,24 +69,27 @@ async function getDefaultVPC(useIAM) {
 }
 
 /**
- * Set up ECS cluster and related resources:
- * - Security groups
- * - Network setup (VPC, subnets)
- * - Load balancers and target groups
+ * Orchestrates setting up ECS cluster and related resources:
+ * - Security groups: one for the load balancer, one for ECS tasks
+ * - Network setup (VPC, subnets): defines the network environment for the load balancer and Fargate tasks
+ * - ECS cluster: resources that will run the Fargate tasks for the API, RabbitMQ, and experiment workers
+ * - Load balancer: the public DNS entry point for the deployed API and workers
+ * - Target groups: defines the list of IPs the load balancer forwards to (the Fargate tasks)
+ * - HTTP/HTTPS listeners: tells the load balancer to forward incoming traffic on ports 80 and 443 to the target group
+ * - ECS task definitions and services: defines how to run the API, RabbitMQ, and experiment workers on Fargate
  * @param {string} projName - The name of the project
  * @param {string} useIAM - The IAM role to use
  * @param {string} DHID - The Docker Hub ID
  * @param {Promise} completedDBs - A promise that resolves when the databases are set up
  * @param {string} myCertificate - The certificate for the project
- * @returns {Promise} - A promise that resolves when the ECS setup is complete
+ * @returns {Promise<Array<string>>} An array containing the load balancer endpoint and hosted zone ID
  */
 const setupECS = async (projName, useIAM, DHID, completedDBs, myCertificate) => {
   console.log(`Starting ECS setup`);
 
   const PROJECT_TAG_KEY = loadAwsConfig().tagging.projectTagKey;
 
-  // 1: Network lookups + security groups
-  // WHY: Subnets and VPC are needed later for both the load balancer and Fargate tasks.
+  // Network lookups (VPC, subnets) + security groups 
   const subnetLookup = getSubnets(useIAM);
   const vpcLookup = getDefaultVPC(useIAM);
   const BalancerSecurityGroupID = await ensureBalancerSecurityGroup(useIAM, projName);
@@ -105,34 +109,11 @@ const setupECS = async (projName, useIAM, DHID, completedDBs, myCertificate) => 
     throw error;
   }
 
-  // 2: ECS cluster
-  // WHY: ECS needs a cluster to run tasks in, and it's easier to manage resources when they're grouped in a cluster.
-  // Just a logical namespace for our services — with Fargate there are no EC2 instances
-  // to spin up, so this is nearly instant and idempotent across re-deploys.
+  // Create ECS cluster
   const myVPC = await vpcLookup;
-  console.log("Launching ECS cluster");
-  try {
-    const factory = new AWSClientFactory(AWS_REGION, useIAM);
-    const ecsClient = factory.createClient(ECSClient);
-    await ecsClient.send(
-      new CreateClusterCommand({
-        clusterName: ECSName,
-        tags: [{ key: PROJECT_TAG_KEY, value: projName }],
-      }),
-    );
-    console.log(`Created ECS cluster: ${ECSName}`);
-  } catch (error) {
-    if (error.name === "ClusterAlreadyExistsException") {
-      console.log(`ECS cluster ${ECSName} already exists, continuing...`);
-    } else {
-      console.error(`Unable to launch cluster ${ECSName}: ${error}`);
-      throw error;
-    }
-  }
+  await createCluster(ECSName, projName, useIAM, PROJECT_TAG_KEY);
 
-  // 3: Load balancer + target group
-  // WHY: The load balancer is the public DNS entry point; the target group is the list of
-  // Fargate task IPs it forwards to
+  // Create load balancer
   console.log(`Creating application load balancer`);
   const loadBalancerName = ECSName.concat("Balancer");
 
@@ -157,6 +138,7 @@ const setupECS = async (projName, useIAM, DHID, completedDBs, myCertificate) => 
     }),
   );
 
+  // Create target groups
   let targGroupARN;
   try {
     const targetGroupResponse = await elbv2Client.send(
@@ -191,9 +173,7 @@ const setupECS = async (projName, useIAM, DHID, completedDBs, myCertificate) => 
   const balancerEndpoint = lb.LoadBalancers[0].DNSName;
   const balancerZone = lb.LoadBalancers[0].CanonicalHostedZoneId;
 
-  // 4: HTTP/HTTPS Listeners
-  // WHY: Listeners tell the load balancer what to do with traffic on a given port.
-  // Both HTTP and HTTPS just forward to the target group; HTTPS attaches the SSL cert.
+  // Set up HTTP/HTTPS listeners
   try {
     await elbv2Client.send(
       new CreateListenerCommand({
@@ -224,9 +204,7 @@ const setupECS = async (projName, useIAM, DHID, completedDBs, myCertificate) => 
     throw error;
   }
 
-  // 5: ECS tasks (RabbitMQ, API, experiment workers)
-  // WHY: Workers need DB connection strings, so createECSTask internally waits on completedDBs
-  // before deploying them. RabbitMQ and API deploy in parallel with the DB wait.
+  // Create ECS tasks (RabbitMQ, API, experiment workers)
   console.log("Creating ECS tasks");
   await createECSTask(
     projName,

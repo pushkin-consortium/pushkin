@@ -1,7 +1,7 @@
 /**
  * ECS Task Definition Operations
  * Handles task definition registration, environment configuration,
- * and service deployment for Pushkin deployments
+ * and service deployment 
  * @module ecs/tasks
  */
 
@@ -61,7 +61,6 @@ const dockerComposeToECSTaskDefinition = (
     : taskMemory <= 61440 ? "8192"
     : "16384";
 
-  // Parse port mappings
   const portMappings = [];
   if (composeService.ports) {
     composeService.ports.forEach((portDef) => {
@@ -74,7 +73,6 @@ const dockerComposeToECSTaskDefinition = (
     });
   }
 
-  // Convert environment variables
   const environment = [];
   if (composeService.environment) {
     Object.entries(composeService.environment).forEach(([name, value]) => {
@@ -149,13 +147,6 @@ const registerECSTaskDefinition = async (taskDefParams, useIAM) => {
 const deployService = async (name, task, context, loadBalancer = null) => {
   const { ECSName, useIAM, executionRoleArn, subnets, ecsSecurityGroupID } = context;
 
-  console.log(`Verifying ECS cluster exists: "${ECSName}"`);
-  const factory = new AWSClientFactory(AWS_REGION, useIAM);
-  const ecsClient = factory.createClient(ECSClient);
-  const response = await ecsClient.send(new DescribeClustersCommand({ clusters: [ECSName] }));
-  const cluster = response.clusters?.[0];
-  if (!cluster) throw new Error(`Cluster ${ECSName} not found`);
-
   writeFile(path.join(process.cwd(), "ECStasks", `${name}.yml`), jsYaml.dump(task));
 
   const serviceName = Object.keys(task.services)[0];
@@ -220,7 +211,6 @@ const createECSTask = async (
     console.error("Unable to update awsResources.js:", error);
   }
 
-  // Load pushkin.yaml to check for existing RabbitMQ credentials
   let pushkinConfig;
   try {
     pushkinConfig = loadPushkinConfig();
@@ -255,9 +245,9 @@ const createECSTask = async (
   const rabbitUser = projName.replace(/[^A-Za-z0-9]/g, "");
   const rabbitAddress = `amqp://${rabbitUser}:${rabbitPW}@localhost:5672`;
 
-  let docker_compose;
+  let dockerCompose;
   try {
-    docker_compose = jsYaml.load(
+    dockerCompose = jsYaml.load(
       readFile(path.join(process.cwd(), "pushkin/docker-compose.dev.yml"), "utf8"),
     );
   } catch (error) {
@@ -265,13 +255,19 @@ const createECSTask = async (
     throw error;
   }
 
-  const workerList = Object.keys(docker_compose.services).filter(
-    (s) => docker_compose.services[s].labels?.isPushkinWorker,
+  const workerList = Object.keys(dockerCompose.services).filter(
+    (s) => dockerCompose.services[s].labels?.isPushkinWorker,
   );
 
   console.log(`ECS task creation waiting on DBs`);
   await completedDBs;
   const dbInfoByTask = await getDBInfo();
+
+  console.log(`Verifying ECS cluster exists: "${ECSName}"`);
+  const { clusters } = await new AWSClientFactory(AWS_REGION, useIAM)
+    .createClient(ECSClient)
+    .send(new DescribeClustersCommand({ clusters: [ECSName] }));
+  if (!clusters?.[0]) throw new Error(`Cluster ${ECSName} not found`);
 
   const context = { ECSName, useIAM, executionRoleArn, subnets, ecsSecurityGroupID };
 
@@ -280,12 +276,10 @@ const createECSTask = async (
     buildRabbitTask(projName, rabbitUser, rabbitPW, rabbitCookie),
     context,
   );
-  const composedAPI = deployService(
-    "api",
-    buildAPITask(projName, DHID, rabbitAddress),
-    context,
-    { port: 80, targetGroupARN: targGroupARN },
-  );
+  const composedAPI = deployService("api", buildAPITask(projName, DHID, rabbitAddress), context, {
+    port: 80,
+    targetGroupARN: targGroupARN,
+  });
   const composedWorkers = workerList.map((worker) =>
     deployService(
       worker,

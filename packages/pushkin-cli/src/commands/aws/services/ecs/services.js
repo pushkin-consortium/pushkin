@@ -1,6 +1,6 @@
 /**
  * ECS Service CRUD Operations
- * Handles creating, updating, and deleting ECS services for Pushkin deployments
+ * Handles creating, updating, and deleting ECS services
  * @module ecs/services
  */
 
@@ -96,7 +96,6 @@ const createECSService = async (
     },
   };
 
-  // Add load balancer configuration if provided
   if (targetGroupArn && containerName && containerPort) {
     serviceParams.loadBalancers = [
       {
@@ -141,10 +140,10 @@ const createECSService = async (
         ),
       );
       console.log(`Debug info written to: ${debugPath}`);
-    } catch (error) {
-      console.error(`Failed to write debug info to file: ${error}`);
-      throw error;
+    } catch (writeError) {
+      console.error(`Failed to write debug info to file: ${writeError}`);
     }
+    throw error;
   }
 };
 
@@ -179,7 +178,12 @@ const deleteAllServices = async (clusterName, useIAM) => {
   }
 
   // Poll until all services are fully removed
+  const deadline = Date.now() + 5 * 60 * 1000; // 5 minute timeout
   while (true) {
+    if (Date.now() > deadline) {
+      throw new Error(`Timed out waiting for services in cluster ${clusterName} to be deleted`);
+    }
+
     let remaining;
     try {
       const response = await ecsClient.send(new ListServicesCommand({ cluster: clusterName }));
