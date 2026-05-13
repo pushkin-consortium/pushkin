@@ -1,27 +1,17 @@
 /**
- * AWS ECS Service Management
- * Orchestrates ECS cluster, task, and service creation and deletion .
- * Abstracts the setup and management of ECS resources including clusters, task definitions,
- * services, load balancers, and security groups.
- * @module ecs
+ * Compute Setup Phase
+ * Handles ECS cluster, task definitions, and load balancer configuration
+ * @module aws/phases/compute
  */
 
 import { EC2Client, DescribeSubnetsCommand, DescribeVpcsCommand } from "@aws-sdk/client-ec2";
-import {
-  ElasticLoadBalancingV2Client,
-  CreateLoadBalancerCommand,
-  CreateTargetGroupCommand,
-  CreateListenerCommand,
-} from "@aws-sdk/client-elastic-load-balancing-v2";
-import { AWSClientFactory } from "../../utils/aws-client-factory.js";
-import { updateAwsResourcesField } from "../../utils/aws-resources.js";
-import { loadAwsConfig } from "../../utils/aws-config.js";
-import { AWS_REGION } from "../../constants.js";
-import { ensureBalancerSecurityGroup, ensureECSSecurityGroup } from "../security.js";
-import { createECSTask } from "./tasks.js";
-import { createCluster } from "./clusters.js";
-
-export { deleteCluster } from "./clusters.js";
+import { AWSClientFactory } from "../utils/aws-client-factory.js";
+import { loadAwsConfig } from "../utils/aws-config.js";
+import { AWS_REGION } from "../constants.js";
+import { ensureBalancerSecurityGroup, ensureECSSecurityGroup } from "../services/security.js";
+import { createLoadBalancer } from "../services/elb.js";
+import { createCluster } from "../services/ecs/clusters.js";
+import { createECSTask } from "../services/ecs/tasks.js";
 
 /**
  * Asynchronously retrieves available subnets in the AWS zone and maps them by availability zone.
@@ -69,7 +59,7 @@ async function getDefaultVPC(useIAM) {
 }
 
 /**
- * Orchestrates setting up ECS cluster and related resources:
+ * Set up ECS compute resources:
  * - Security groups: one for the load balancer, one for ECS tasks
  * - Network setup (VPC, subnets): defines the network environment for the load balancer and Fargate tasks
  * - ECS cluster: resources that will run the Fargate tasks for the API, RabbitMQ, and experiment workers
@@ -77,19 +67,19 @@ async function getDefaultVPC(useIAM) {
  * - Target groups: defines the list of IPs the load balancer forwards to (the Fargate tasks)
  * - HTTP/HTTPS listeners: tells the load balancer to forward incoming traffic on ports 80 and 443 to the target group
  * - ECS task definitions and services: defines how to run the API, RabbitMQ, and experiment workers on Fargate
- * @param {string} projName - The name of the project
+ * @param {string} projName - The project name
  * @param {string} useIAM - The IAM role to use
  * @param {string} DHID - The Docker Hub ID
  * @param {Promise} completedDBs - A promise that resolves when the databases are set up
- * @param {string} myCertificate - The certificate for the project
- * @returns {Promise<Array<string>>} An array containing the load balancer endpoint and hosted zone ID
+ * @param {string} myCertificate - The ACM certificate ARN
+ * @returns {Promise<{balancerEndpoint: string, balancerZone: string}>}
  */
-const setupECS = async (projName, useIAM, DHID, completedDBs, myCertificate) => {
+export async function setupCompute(projName, useIAM, DHID, completedDBs, myCertificate) {
   console.log(`Starting ECS setup`);
 
   const PROJECT_TAG_KEY = loadAwsConfig().tagging.projectTagKey;
 
-  // Network lookups (VPC, subnets) + security groups 
+  // Network lookups (VPC, subnets) + security groups
   const subnetLookup = getSubnets(useIAM);
   const vpcLookup = getDefaultVPC(useIAM);
   const BalancerSecurityGroupID = await ensureBalancerSecurityGroup(useIAM, projName);
@@ -113,96 +103,18 @@ const setupECS = async (projName, useIAM, DHID, completedDBs, myCertificate) => 
   const myVPC = await vpcLookup;
   await createCluster(ECSName, projName, useIAM, PROJECT_TAG_KEY);
 
-  // Create load balancer
-  console.log(`Creating application load balancer`);
+  // Create load balancer, target group, and HTTP/HTTPS listeners
   const loadBalancerName = ECSName.concat("Balancer");
-
-  try {
-    updateAwsResourcesField("loadBalancerName", loadBalancerName);
-  } catch (error) {
-    console.error(`Unable to update awsResources.js: ${error}`);
-  }
-
-  const elbv2Client = new AWSClientFactory(AWS_REGION, useIAM).createClient(
-    ElasticLoadBalancingV2Client,
+  const { balancerEndpoint, balancerZone, targGroupARN } = await createLoadBalancer(
+    useIAM,
+    loadBalancerName,
+    subnets,
+    BalancerSecurityGroupID,
+    myVPC,
+    myCertificate,
+    projName,
+    PROJECT_TAG_KEY,
   );
-
-  const loadBalancerPromise = elbv2Client.send(
-    new CreateLoadBalancerCommand({
-      Name: loadBalancerName,
-      Type: "application",
-      Scheme: "internet-facing",
-      Subnets: subnets,
-      SecurityGroups: [BalancerSecurityGroupID],
-      Tags: [{ Key: PROJECT_TAG_KEY, Value: projName }],
-    }),
-  );
-
-  // Create target groups
-  let targGroupARN;
-  try {
-    const targetGroupResponse = await elbv2Client.send(
-      new CreateTargetGroupCommand({
-        Name: loadBalancerName.concat("Targets").slice(0, 32),
-        Protocol: "HTTP",
-        Port: 80,
-        VpcId: myVPC,
-        TargetType: "ip", // Required for Fargate with awsvpc network mode
-      }),
-    );
-    targGroupARN = targetGroupResponse.TargetGroups[0].TargetGroupArn;
-  } catch (error) {
-    console.error(`Unable to create target group: ${error}`);
-    throw error;
-  }
-
-  try {
-    updateAwsResourcesField("targGroupARN", targGroupARN);
-  } catch (error) {
-    console.error(`Unable to update awsResources.js: ${error}`);
-  }
-
-  let lb;
-  try {
-    lb = await loadBalancerPromise;
-  } catch (error) {
-    console.error(`Unable to create application load balancer: ${error}`);
-    throw error;
-  }
-  const balancerARN = lb.LoadBalancers[0].LoadBalancerArn;
-  const balancerEndpoint = lb.LoadBalancers[0].DNSName;
-  const balancerZone = lb.LoadBalancers[0].CanonicalHostedZoneId;
-
-  // Set up HTTP/HTTPS listeners
-  try {
-    await elbv2Client.send(
-      new CreateListenerCommand({
-        LoadBalancerArn: balancerARN,
-        Protocol: "HTTP",
-        Port: 80,
-        DefaultActions: [{ Type: "forward", TargetGroupArn: targGroupARN }],
-      }),
-    );
-  } catch (error) {
-    console.error(`Unable to create HTTP listener: ${error}`);
-    throw error;
-  }
-
-  try {
-    await elbv2Client.send(
-      new CreateListenerCommand({
-        LoadBalancerArn: balancerARN,
-        Protocol: "HTTPS",
-        Port: 443,
-        Certificates: [{ CertificateArn: myCertificate }],
-        DefaultActions: [{ Type: "forward", TargetGroupArn: targGroupARN }],
-      }),
-    );
-    console.log(`Added HTTPS to load balancer`);
-  } catch (error) {
-    console.error(`Unable to add HTTPS to load balancer: ${error}`);
-    throw error;
-  }
 
   // Create ECS tasks (RabbitMQ, API, experiment workers)
   console.log("Creating ECS tasks");
@@ -218,7 +130,5 @@ const setupECS = async (projName, useIAM, DHID, completedDBs, myCertificate) => 
   );
   console.log(`Created ECS task definitions`);
 
-  return [balancerEndpoint, balancerZone];
-};
-
-export { setupECS };
+  return { balancerEndpoint, balancerZone };
+}
