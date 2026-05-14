@@ -1,10 +1,9 @@
 /**
  * AWS Monitoring Service Management
- * Handles CloudWatch log groups and SSL certificate selection
+ * Handles CloudWatch log groups and SSL certificate listing
  * @module monitoring
  */
 
-import inquirer from "inquirer";
 import {
   CloudWatchLogsClient,
   CreateLogGroupCommand,
@@ -50,40 +49,25 @@ const createLogGroup = async (useIAM, projName) => {
 };
 
 /**
- * Prompt the user to choose an SSL certificate for the load balancer.
- * @param useIAM
+ * List SSL certificates available in ACM, returned as a display-label → ARN map.
+ * WHY: Separates AWS data fetching from interactive prompting; the caller
+ * (user-input.js) owns the inquirer prompt.
+ * @param {string} useIAM - The IAM role to use
+ * @returns {Promise<Record<string, string>>} Map of display label to certificate ARN
  */
-const chooseCertificate = async (useIAM) => {
-  console.log("Setting up SSL for load-balancer");
-
+const listCertificates = async (useIAM) => {
   const acm = new AWSClientFactory(AWS_REGION, useIAM).createClient(ACMClient);
-
-  let certificates;
   try {
     const response = await acm.send(new ListCertificatesCommand({}));
-    certificates = response.CertificateSummaryList.reduce((acc, c) => {
+    return response.CertificateSummaryList.reduce((acc, c) => {
       acc[`${c.DomainName} (Status: ${c.Status}) - ${c.CertificateArn.slice(-8)}`] =
         c.CertificateArn;
       return acc;
     }, {});
-    console.log(`Found ${Object.keys(certificates).length} certificates`);
   } catch (error) {
     console.error(`Unable to get list of SSL certificates: ${error}`);
     throw error;
   }
-
-  const answers = await inquirer.prompt([
-    {
-      type: "list",
-      name: "certificate",
-      choices: Object.keys(certificates),
-      default: 0,
-      message:
-        "Which SSL certificate would you like to use for your site? (Note: Only ISSUED certificates work for ALB)",
-    },
-  ]);
-
-  return certificates[answers.certificate];
 };
-// Export all functions
-export { createLogGroup, chooseCertificate };
+
+export { createLogGroup, listCertificates };
