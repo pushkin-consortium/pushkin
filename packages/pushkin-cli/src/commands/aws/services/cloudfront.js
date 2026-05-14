@@ -1,6 +1,6 @@
 /**
  * AWS CloudFront Service Management
- * Handles CloudFront distribution and Origin Access Control operations for Pushkin deployments
+ * Handles CloudFront distribution and Origin Access Control operations
  * CloudFront is what serves the Pushkin frontend to users
  * @module cloudfront
  */
@@ -19,6 +19,7 @@ import {
   GetDistributionConfigCommand,
   ListTagsForResourceCommand,
 } from "@aws-sdk/client-cloudfront";
+import { createWaiter, WaiterState } from "@smithy/util-waiter";
 import { AWSClientFactory } from "../utils/aws-client-factory.js";
 import { loadAwsConfig } from "../utils/aws-config.js";
 import { readAwsResources, updateAwsResourcesField } from "../utils/aws-resources.js";
@@ -244,31 +245,6 @@ const getDistributionsToDelete = async (useIAM, projName, killTag) => {
 };
 
 /**
- * Checks if a CloudFront distribution is disabled and ready for deletion.
- * WHY: CloudFront requires a two-step deletion process: first disable the distribution,
- * then delete it after disabling completes. This checks both conditions (Enabled=false
- * and Status!="InProgress") to ensure the distribution is in a safe state for deletion.
- */
-const isDistributionReadyForDeletion = async (distId, useIAM) => {
-  try {
-    const cloudFrontClient = createCloudFrontClient(useIAM);
-    const response = await cloudFrontClient.send(new GetDistributionCommand({ Id: distId }));
-
-    return (
-      response.Distribution.DistributionConfig.Enabled === false &&
-      response.Distribution.Status !== "InProgress"
-    );
-  } catch (error) {
-    // NoSuchDistribution means it's already deleted (ready for deletion)
-    if (error.name === "NoSuchDistribution") {
-      return true;
-    }
-    console.error(`Unable to check cloudfront distribution status:`, error);
-    throw error;
-  }
-};
-
-/**
  * Delete the CloudFront distribution(s) associated with this project (or all distributions if killTag is false).
  * WHY: Orchestrates the complete CloudFront deletion workflow which must follow AWS's
  * required sequence: get config → disable → wait for disable to propagate → get fresh
@@ -335,69 +311,69 @@ const deleteCloudFront = async (useIAM, projName, killTag, verbose = false) => {
       }
 
       // Wait for distribution to be disabled, then delete it
-      return new Promise((resolve) => {
-        const waitAndDelete = async () => {
-          const ready = await isDistributionReadyForDeletion(distId, useIAM);
-
-          if (ready) {
-            if (verbose) {
-              console.log(`Cloudfront distribution ${distId} is disabled. Deleting.`);
-            }
-
-            // Get fresh ETag (it changes after disabling)
-            try {
-              const cloudFrontClient = createCloudFrontClient(useIAM);
-              const configResponse = await cloudFrontClient.send(
-                new GetDistributionConfigCommand({ Id: distId }),
-              );
-
-              ETag = configResponse.ETag;
-
-              // Delete the distribution
-              await cloudFrontClient.send(
-                new DeleteDistributionCommand({ Id: distId, IfMatch: ETag }),
-              );
-
-              // Update awsResources.js
-              updateAwsResourcesField("cloudFrontId", null); // TODO: maybe don't hardcode
-              resolve(true);
-            } catch (error) {
-              console.error(`Error during CloudFront deletion:`, error);
-
-              // Check if distribution is still in progress
-              try {
-                const cloudFrontClient = createCloudFrontClient(useIAM);
-                const distResponse = await cloudFrontClient.send(
-                  new GetDistributionCommand({ Id: distId }),
-                );
-
-                if (distResponse.Distribution.Status !== "InProgress") {
-                  console.error(`Unable to delete cloudfront distribution.`);
-                  resolve(false);
-                } else {
-                  // Still in progress, continue waiting
-                  resolve(true);
-                }
-              } catch {
-                console.error(`Suddenly can't find cloudfront distribution ${distId}. Skipping...`);
-                resolve(true);
-              }
-            }
-          } else {
-            const config = loadAwsConfig();
-            const waitInterval = config.timeouts.cloudfront.checkInterval * 1000;
+      if (verbose) {
+        console.log(`Waiting for cloudfront distribution ${distId} to be disabled...`);
+      }
+      const cloudfrontTimeouts = loadAwsConfig().timeouts.cloudfront;
+      await createWaiter(
+        {
+          client: createCloudFrontClient(useIAM),
+          maxWaitTime: cloudfrontTimeouts.maxWaitTime,
+          minDelay: cloudfrontTimeouts.checkInterval,
+          maxDelay: cloudfrontTimeouts.checkInterval,
+        },
+        { Id: distId },
+        async (client, input) => {
+          try {
+            const response = await client.send(new GetDistributionCommand(input));
+            const ready =
+              response.Distribution.DistributionConfig.Enabled === false &&
+              response.Distribution.Status !== "InProgress";
+            if (ready) return { state: WaiterState.SUCCESS };
             if (verbose) {
               console.log(`Waiting for cloudfront distribution ${distId} to be disabled...`);
             }
-            setTimeout(waitAndDelete, waitInterval);
+            return { state: WaiterState.RETRY };
+          } catch (error) {
+            if (error.name === "NoSuchDistribution") return { state: WaiterState.SUCCESS };
+            throw error;
           }
-        };
+        },
+      );
 
-        if (verbose) {
-          console.log(`Waiting for cloudfront distribution ${distId} to be disabled...`);
+      if (verbose) {
+        console.log(`Cloudfront distribution ${distId} is disabled. Deleting.`);
+      }
+
+      // Get fresh ETag (it changes after disabling) and delete
+      try {
+        const cloudFrontClient = createCloudFrontClient(useIAM);
+        const configResponse = await cloudFrontClient.send(
+          new GetDistributionConfigCommand({ Id: distId }),
+        );
+        ETag = configResponse.ETag;
+        await cloudFrontClient.send(new DeleteDistributionCommand({ Id: distId, IfMatch: ETag }));
+        updateAwsResourcesField("cloudFrontId", null); // TODO: maybe don't hardcode
+      } catch (error) {
+        console.error(`Error during CloudFront deletion:`, error);
+
+        // Check if distribution is still in progress
+        try {
+          const cloudFrontClient = createCloudFrontClient(useIAM);
+          const distResponse = await cloudFrontClient.send(
+            new GetDistributionCommand({ Id: distId }),
+          );
+          if (distResponse.Distribution.Status !== "InProgress") {
+            console.error(`Unable to delete cloudfront distribution.`);
+            return false;
+          }
+          return true;
+        } catch {
+          console.error(`Suddenly can't find cloudfront distribution ${distId}. Skipping...`);
+          return true;
         }
-        waitAndDelete();
-      });
+      }
+      return true;
     }),
   );
 };
