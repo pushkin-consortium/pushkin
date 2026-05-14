@@ -49,7 +49,8 @@ import { cleanupResources } from "./phases/cleanup.js";
 
 // Re-export functions that are used by the main CLI
 import { verifyIAMCredentials } from "./services/security.js";
-export { verifyIAMCredentials };
+import { syncS3 } from "./services/s3.js";
+export { verifyIAMCredentials, syncS3 };
 
 /**
  * Main AWS deployment command
