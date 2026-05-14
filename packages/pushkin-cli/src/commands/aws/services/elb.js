@@ -21,6 +21,12 @@ import { updateAwsResourcesField } from "../utils/aws-resources.js";
 import { AWS_REGION } from "../constants.js";
 
 /**
+ * Creates an ELBv2 client using the same region and IAM profile.
+ */
+const createELBv2Client = (useIAM) =>
+  new AWSClientFactory(AWS_REGION, useIAM).createClient(ElasticLoadBalancingV2Client);
+
+/**
  * Create an application load balancer, target groups, and HTTP/HTTPS listeners.
  * WHY:
  * - Load balancer: to use AWS's managed certificate for HTTPS, which requires an internet-facing load balancer
@@ -48,9 +54,7 @@ const createLoadBalancer = async (
   projectTagKey,
 ) => {
   console.log(`Creating application load balancer`);
-  const elbv2Client = new AWSClientFactory(AWS_REGION, useIAM).createClient(
-    ElasticLoadBalancingV2Client,
-  );
+  const elbv2Client = createELBv2Client(useIAM);
 
   const loadBalancerPromise = elbv2Client.send(
     new CreateLoadBalancerCommand({
@@ -143,9 +147,7 @@ const createLoadBalancer = async (
  * @param {string} useIAM
  */
 const deleteAllListeners = async (loadBalancerArn, useIAM) => {
-  const elbv2Client = new AWSClientFactory(AWS_REGION, useIAM).createClient(
-    ElasticLoadBalancingV2Client,
-  );
+  const elbv2Client = createELBv2Client(useIAM);
 
   let listenerArns;
   try {
@@ -190,9 +192,7 @@ const deleteAllListeners = async (loadBalancerArn, useIAM) => {
  */
 const deleteLoadBalancer = async (useIAM, killTag) => {
   // TODO: killize
-  const elbv2Client = new AWSClientFactory(AWS_REGION, useIAM).createClient(
-    ElasticLoadBalancingV2Client,
-  );
+  const elbv2Client = createELBv2Client(useIAM);
 
   let loadBalancerArns;
   try {
@@ -230,9 +230,7 @@ const deleteTargetGroups = async (useIAM, deletedLoadBalancer) => {
   // TODO: killize
   await deletedLoadBalancer;
 
-  const elbv2Client = new AWSClientFactory(AWS_REGION, useIAM).createClient(
-    ElasticLoadBalancingV2Client,
-  );
+  const elbv2Client = createELBv2Client(useIAM);
 
   let targetGroupArns;
   try {
