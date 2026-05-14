@@ -1,10 +1,13 @@
-import {
-  Route53Client,
-  ListHostedZonesByNameCommand,
-  ChangeResourceRecordSetsCommand,
-} from "@aws-sdk/client-route-53";
+/**
+ * AWS Elastic Load Balancer Management
+ * @module elb
+ */
+
 import {
   ElasticLoadBalancingV2Client,
+  CreateLoadBalancerCommand,
+  CreateTargetGroupCommand,
+  CreateListenerCommand,
   DescribeLoadBalancersCommand,
   DescribeListenersCommand,
   DeleteListenerCommand,
@@ -12,324 +15,249 @@ import {
   DescribeTargetGroupsCommand,
   DeleteTargetGroupCommand,
 } from "@aws-sdk/client-elastic-load-balancing-v2";
+import { createWaiter, WaiterState } from "@smithy/util-waiter";
 import { AWSClientFactory } from "../utils/aws-client-factory.js";
+import { updateAwsResourcesField } from "../utils/aws-resources.js";
 import { AWS_REGION } from "../constants.js";
-import { changeSet } from "../awsConfigs.js";
 
 /**
- *
- * @param configuredECS
- * @param useIAM
- * @param projName
- * @param myDomain
- * @param deployedFrontEnd
+ * Create an application load balancer, target groups, and HTTP/HTTPS listeners.
+ * WHY:
+ * - Load balancer: to use AWS's managed certificate for HTTPS, which requires an internet-facing load balancer
+ * - Target groups: to forward traffic from the load balancer to the ECS service, and required for Fargate with awsvpc network mode
+ * - HTTP listener: to redirect HTTP to HTTPS
+ * - HTTPS listener: to serve traffic securely and use ACM certificate
+ * @param {string} useIAM - IAM profile to use
+ * @param {string} loadBalancerName - Name for the load balancer (and derived target group name)
+ * @param {Array<string>} subnets - Subnet IDs to place the load balancer in
+ * @param {string} securityGroupId - Security group ID for the load balancer
+ * @param {string} vpcId - VPC ID for the target group
+ * @param {string} certificateArn - ACM certificate ARN for the HTTPS listener
+ * @param {string} projName - Project name (for tagging)
+ * @param {string} projectTagKey - Tag key for identifying Pushkin resources
+ * @returns {Promise<{balancerEndpoint: string, balancerZone: string, targGroupARN: string}>}
  */
-const forwardAPIWrapper = async (configuredECS, useIAM, projName, myDomain, deployedFrontEnd) => {
-  /**
-   *
-   * @param myDomain
-   * @param useIAM
-   * @param balancerEndpoint
-   * @param balancerZone
-   * @param projName
-   */
-  const forwardAPI = async (myDomain, useIAM, balancerEndpoint, balancerZone, projName) => {
-    // This whole function can be skipped if not using custom domain
-    // The API endpoint will have to be set manually
-    if (myDomain != "default") {
-      console.log(`Retrieving hostedzone ID for ${myDomain}`);
-      let zoneID;
-      let zoneDomain = myDomain;
-      let foundZone = false;
+const createLoadBalancer = async (
+  useIAM,
+  loadBalancerName,
+  subnets,
+  securityGroupId,
+  vpcId,
+  certificateArn,
+  projName,
+  projectTagKey,
+) => {
+  console.log(`Creating application load balancer`);
+  const elbv2Client = new AWSClientFactory(AWS_REGION, useIAM).createClient(
+    ElasticLoadBalancingV2Client,
+  );
 
-      // Try to find hosted zone, falling back to parent domains if needed
-      while (!foundZone && zoneDomain.split(".").length >= 2) {
-        try {
-          const profileName = useIAM;
-          const factory = new AWSClientFactory(AWS_REGION, profileName);
-          const route53Client = factory.createClient(Route53Client);
-          const data = await route53Client.send(
-            new ListHostedZonesByNameCommand({ DNSName: zoneDomain }),
-          );
-
-          // Find exact match or best match
-          const matchingZone = data.HostedZones.find((zone) => {
-            const zoneName = zone.Name.endsWith(".") ? zone.Name.slice(0, -1) : zone.Name;
-            return zoneName === zoneDomain || myDomain.endsWith(zoneName);
-          });
-
-          if (matchingZone) {
-            zoneID = matchingZone.Id.split("/hostedzone/")[1];
-            console.log(`Found hosted zone for ${zoneDomain}: ${zoneID}`);
-            foundZone = true;
-          } else if (zoneDomain.split(".").length > 2) {
-            // Try parent domain (e.g., gww.cherriechang.com -> cherriechang.com)
-            const parts = zoneDomain.split(".");
-            parts.shift();
-            zoneDomain = parts.join(".");
-            console.log(`No exact match, trying parent domain: ${zoneDomain}`);
-          } else {
-            console.error(`No hostedzone found for ${myDomain} or its parent domains`);
-            throw new Error(`No hostedzone found for ${myDomain}`);
-          }
-        } catch (e) {
-          if (e.message.includes("No hostedzone found")) {
-            throw e;
-          }
-          console.error(`Unable to retrieve hostedzone for ${zoneDomain}`);
-          throw e;
-        }
-      }
-
-      if (!foundZone) {
-        console.error(`No hostedzone found for ${myDomain}`);
-        throw new Error(`No hostedzone found for ${myDomain}`);
-      }
-
-      // The following will update the resource records, creating them if they don't already exist
-
-      console.log(`Updating record set for ${myDomain} in order to forward API`);
-      let recordSet = {
-        Comment: "",
-        Changes: [],
-      };
-      recordSet.Changes[0] = JSON.parse(JSON.stringify(changeSet));
-
-      recordSet.Changes[0].ResourceRecordSet.Name = "api.".concat(myDomain);
-      recordSet.Changes[0].ResourceRecordSet.AliasTarget.DNSName = balancerEndpoint;
-      recordSet.Changes[0].ResourceRecordSet.Type = "A";
-      recordSet.Changes[0].ResourceRecordSet.AliasTarget.HostedZoneId = balancerZone;
-      recordSet.Changes[0].ResourceRecordSet.SetIdentifier = projName;
-      try {
-        const profileName = useIAM;
-        const factory = new AWSClientFactory(AWS_REGION, profileName);
-        const route53Client = factory.createClient(Route53Client);
-        await route53Client.send(
-          new ChangeResourceRecordSetsCommand({
-            HostedZoneId: zoneID,
-            ChangeBatch: recordSet,
-          }),
-        );
-        console.log(`Updated record set for ${myDomain}.`);
-      } catch (e) {
-        console.error(`Unable to create resource record set for ${myDomain}`);
-        throw e;
-      }
-    }
-
-    return true;
-  };
-
-  let balancerEndpoint;
-  let balancerZone;
-  [balancerEndpoint, balancerZone] = await configuredECS;
-  await deployedFrontEnd; //We create a record set for the API during front-end setup, don't want to delete it now!
-  let apiForwarded;
-  try {
-    apiForwarded = forwardAPI(myDomain, useIAM, balancerEndpoint, balancerZone, projName);
-  } catch (e) {
-    console.error(`Unable to set up forwarding for API`);
-    throw e;
-  }
-
-  return apiForwarded;
-};
-
-/**
- *
- * @param useIAM
- * @param killTag
- */
-const deleteLoadBalancer = async (useIAM, killTag) => {
-  //FUBAR Need to killize this
-  let temp;
-  try {
-    const profileName = useIAM;
-    const factory = new AWSClientFactory(AWS_REGION, profileName);
-    const elbv2Client = factory.createClient(ElasticLoadBalancingV2Client);
-    const describeLoadBalancersResponse = await elbv2Client.send(
-      new DescribeLoadBalancersCommand({}),
-    );
-    temp = {
-      stdout: JSON.stringify({ LoadBalancers: describeLoadBalancersResponse.LoadBalancers }),
-    };
-  } catch (e) {
-    console.warn(
-      "\x1b[31m%s\x1b[0m",
-      `Unable to find any load balancers. May have already been deleted. Skipping.`,
-    );
-    return;
-  }
-  let balancersToDelete = [];
-  JSON.parse(temp.stdout).LoadBalancers.forEach((l) => {
-    balancersToDelete.push(l.LoadBalancerArn);
-  });
-  return Promise.all(
-    balancersToDelete.map(async (b) => {
-      console.log(`Deleting load balancer ${b}`);
-      /**
-       *
-       * @param loadBalancerName
-       * @param useIAM
-       */
-      async function deleteAllListeners(loadBalancerName, useIAM) {
-        let listenersToDelete = [];
-        let deletedListeners = [];
-        let temp;
-
-        try {
-          const profileName = useIAM;
-          const factory = new AWSClientFactory(AWS_REGION, profileName);
-          const elbv2Client = factory.createClient(ElasticLoadBalancingV2Client);
-          const describeListenersResponse = await elbv2Client.send(
-            new DescribeListenersCommand({ LoadBalancerArn: loadBalancerName }),
-          );
-          temp = { stdout: JSON.stringify({ Listeners: describeListenersResponse.Listeners }) };
-        } catch (e) {
-          console.error(`Unable to list listeners for load balancer ${loadBalancerName}.`);
-          throw e;
-        }
-
-        listenersToDelete = JSON.parse(temp.stdout).Listeners.map((l) => l.ListenerArn);
-
-        if (listenersToDelete.length > 0) {
-          const profileName = useIAM;
-          const factory = new AWSClientFactory(AWS_REGION, profileName);
-          const elbv2Client = factory.createClient(ElasticLoadBalancingV2Client);
-          deletedListeners = Promise.all(
-            listenersToDelete.map(async (l) => {
-              console.log(`deleting listener: ` + l);
-              return await elbv2Client.send(new DeleteListenerCommand({ ListenerArn: l }));
-            }),
-          );
-        }
-
-        if (deletedListeners.length > 0) {
-          await deletedListeners;
-        }
-
-        const factory = new AWSClientFactory(AWS_REGION, useIAM);
-        const elbv2Client = factory.createClient(ElasticLoadBalancingV2Client);
-
-        // Wait for listeners to be deleted
-        const waitForListenersDeletion = async (
-          loadBalancerArn,
-          elbv2Client,
-          timeoutMs = 300000,
-        ) => {
-          const checkDeletion = async () => {
-            while (true) {
-              const response = await elbv2Client.send(
-                new DescribeListenersCommand({ LoadBalancerArn: loadBalancerArn }),
-              );
-
-              if (response.Listeners.length === 0) {
-                console.log("All listeners have been deleted.");
-                return true;
-              }
-
-              console.log(`Waiting for ${response.Listeners.length} listeners to be deleted...`);
-              await new Promise((resolve) => setTimeout(resolve, 5000));
-            }
-          };
-
-          const timeout = new Promise((_, reject) =>
-            setTimeout(
-              () =>
-                reject(
-                  new Error(
-                    `Timeout waiting for listeners to be deleted after ${timeoutMs / 1000}s`,
-                  ),
-                ),
-              timeoutMs,
-            ),
-          );
-
-          return Promise.race([checkDeletion(), timeout]);
-        };
-
-        await waitForListenersDeletion(loadBalancerName, elbv2Client);
-
-        return true;
-      }
-
-      await deleteAllListeners(b, useIAM);
-
-      let deletedLoadBalancer;
-      try {
-        const profileName = useIAM;
-        const factory = new AWSClientFactory(AWS_REGION, profileName);
-        const elbv2Client = factory.createClient(ElasticLoadBalancingV2Client);
-        deletedLoadBalancer = await elbv2Client.send(
-          new DeleteLoadBalancerCommand({ LoadBalancerArn: b }),
-        );
-      } catch (e) {
-        console.error(`Unable to delete load balancer ${b}`);
-        console.error(e);
-      }
+  const loadBalancerPromise = elbv2Client.send(
+    new CreateLoadBalancerCommand({
+      Name: loadBalancerName,
+      Type: "application",
+      Scheme: "internet-facing",
+      Subnets: subnets,
+      SecurityGroups: [securityGroupId],
+      Tags: [{ Key: projectTagKey, Value: projName }],
     }),
   );
 
-  return true;
+  let targetGroupARN;
+  try {
+    const targetGroupResponse = await elbv2Client.send(
+      new CreateTargetGroupCommand({
+        Name: loadBalancerName.concat("Targets").slice(0, 32),
+        Protocol: "HTTP",
+        Port: 80,
+        VpcId: vpcId,
+        TargetType: "ip", // Required for Fargate with awsvpc network mode
+      }),
+    );
+    targetGroupARN = targetGroupResponse.TargetGroups[0].TargetGroupArn;
+  } catch (error) {
+    console.error(`Unable to create target group: ${error}`);
+    throw error;
+  }
+
+  try {
+    updateAwsResourcesField("targetGroupARN", targetGroupARN);
+  } catch (error) {
+    console.error(`Unable to update awsResources.js: ${error}`);
+  }
+
+  let loadBalancer;
+  try {
+    loadBalancer = await loadBalancerPromise;
+  } catch (error) {
+    console.error(`Unable to create application load balancer: ${error}`);
+    throw error;
+  }
+  const balancerARN = loadBalancer.LoadBalancers[0].LoadBalancerArn;
+  const balancerEndpoint = loadBalancer.LoadBalancers[0].DNSName;
+  const balancerZone = loadBalancer.LoadBalancers[0].CanonicalHostedZoneId;
+
+  try {
+    updateAwsResourcesField("loadBalancerName", loadBalancerName);
+  } catch (error) {
+    console.error(`Unable to update awsResources.js: ${error}`);
+  }
+
+  try {
+    await elbv2Client.send(
+      new CreateListenerCommand({
+        LoadBalancerArn: balancerARN,
+        Protocol: "HTTP",
+        Port: 80,
+        DefaultActions: [{ Type: "forward", TargetGroupArn: targetGroupARN }],
+      }),
+    );
+  } catch (error) {
+    console.error(`Unable to create HTTP listener: ${error}`);
+    throw error;
+  }
+
+  try {
+    await elbv2Client.send(
+      new CreateListenerCommand({
+        LoadBalancerArn: balancerARN,
+        Protocol: "HTTPS",
+        Port: 443,
+        Certificates: [{ CertificateArn: certificateArn }],
+        DefaultActions: [{ Type: "forward", TargetGroupArn: targetGroupARN }],
+      }),
+    );
+    console.log(`Added HTTPS to load balancer`);
+  } catch (error) {
+    console.error(`Unable to add HTTPS to load balancer: ${error}`);
+    throw error;
+  }
+
+  return { balancerEndpoint, balancerZone, targetGroupARN: targetGroupARN };
 };
 
 /**
- *
- * @param useIAM
- * @param deletedLoadBalancer
+ * Delete all listeners on a load balancer, then poll until they are fully removed.
+ * WHY: Listeners must be deleted before the load balancer can be deleted.
+ * @param {string} loadBalancerArn
+ * @param {string} useIAM
  */
-const deleteTargetGroup = async (useIAM, deletedLoadBalancer) => {
-  //TODO: Need to killize this
-  await deletedLoadBalancer;
-  let getTargetGroups;
+const deleteAllListeners = async (loadBalancerArn, useIAM) => {
+  const elbv2Client = new AWSClientFactory(AWS_REGION, useIAM).createClient(
+    ElasticLoadBalancingV2Client,
+  );
+
+  let listenerArns;
   try {
-    const profileName = useIAM;
-    const factory = new AWSClientFactory(AWS_REGION, profileName);
-    const elbv2Client = factory.createClient(ElasticLoadBalancingV2Client);
-    const describeTargetGroupsResponse = await elbv2Client.send(
-      new DescribeTargetGroupsCommand({}),
+    const response = await elbv2Client.send(
+      new DescribeListenersCommand({ LoadBalancerArn: loadBalancerArn }),
     );
-    getTargetGroups = {
-      stdout: JSON.stringify({ TargetGroups: describeTargetGroupsResponse.TargetGroups }),
-    };
-  } catch (e) {
-    console.error(`Unable to list target groups`);
-    throw e;
+    listenerArns = response.Listeners.map((l) => l.ListenerArn);
+  } catch (error) {
+    console.error(`Unable to list listeners for load balancer ${loadBalancerArn}: ${error}`);
+    throw error;
   }
-  let targetGroups = JSON.parse(getTargetGroups.stdout).TargetGroups.map((tg) => {
-    return tg.TargetGroupArn;
-  });
-  if (targetGroups.length > 0) {
-    return Promise.all(
-      targetGroups.map(async (tg) => {
-        try {
-          const profileName = useIAM;
-          const factory = new AWSClientFactory(AWS_REGION, profileName);
-          const elbv2Client = factory.createClient(ElasticLoadBalancingV2Client);
-          await elbv2Client.send(new DescribeTargetGroupsCommand({ TargetGroupArns: [tg] }));
-        } catch (e) {
-          console.warn(
-            "\x1b[31m%s\x1b[0m",
-            `Unable to find target group ${tg}. May have already been deleted. Skipping.`,
-          );
-          return true;
-        }
-        try {
-          const profileName = useIAM;
-          const factory = new AWSClientFactory(AWS_REGION, profileName);
-          const elbv2Client = factory.createClient(ElasticLoadBalancingV2Client);
-          await elbv2Client.send(new DeleteTargetGroupCommand({ TargetGroupArn: tg }));
-        } catch (e) {
-          console.error(`Unable to delete associated target group`);
-          console.error(e);
-        }
+
+  if (listenerArns.length > 0) {
+    await Promise.all(
+      listenerArns.map((arn) => {
+        console.log(`Deleting listener: ${arn}`);
+        return elbv2Client.send(new DeleteListenerCommand({ ListenerArn: arn }));
       }),
     );
-  } else {
-    console.log(`No target group. Skipping.`);
-    return true;
   }
+
+  await createWaiter(
+    { client: elbv2Client, maxWaitTime: 300, minDelay: 5, maxDelay: 5 },
+    { LoadBalancerArn: loadBalancerArn },
+    async (client, input) => {
+      const { Listeners } = await client.send(new DescribeListenersCommand(input));
+      if (Listeners.length === 0) {
+        console.log("All listeners deleted.");
+        return { state: WaiterState.SUCCESS };
+      }
+      console.log(`Waiting for ${Listeners.length} listeners to be deleted...`);
+      return { state: WaiterState.RETRY };
+    },
+  );
 };
 
-// Export all functions
-export { forwardAPIWrapper, deleteLoadBalancer, deleteTargetGroup };
+/**
+ * Delete load balancer and all of its listeners.
+ * WHY: Load balancer must be deleted before target groups can be deleted, and listeners must be deleted before load balancer can be deleted.
+ * @param {string} useIAM
+ * @param killTag
+ */
+const deleteLoadBalancer = async (useIAM, killTag) => {
+  // TODO: killize
+  const elbv2Client = new AWSClientFactory(AWS_REGION, useIAM).createClient(
+    ElasticLoadBalancingV2Client,
+  );
+
+  let loadBalancerArns;
+  try {
+    const response = await elbv2Client.send(new DescribeLoadBalancersCommand({}));
+    loadBalancerArns = response.LoadBalancers.map((loadBalancer) => loadBalancer.LoadBalancerArn);
+  } catch (error) {
+    if (error.name === "LoadBalancerNotFound") {
+      console.warn(`No load balancers found. May have already been deleted. Skipping.`);
+      return;
+    }
+    console.error(`Unable to list load balancers: ${error}`);
+    throw error;
+  }
+
+  await Promise.all(
+    loadBalancerArns.map(async (arn) => {
+      console.log(`Deleting load balancer ${arn}`);
+      await deleteAllListeners(arn, useIAM);
+      try {
+        await elbv2Client.send(new DeleteLoadBalancerCommand({ LoadBalancerArn: arn }));
+      } catch (error) {
+        console.error(`Unable to delete load balancer ${arn}: ${error}`);
+        throw error;
+      }
+    }),
+  );
+};
+
+/**
+ * Delete all target groups after the load balancer has been deleted.
+ * @param {string} useIAM
+ * @param {Promise} deletedLoadBalancer
+ */
+const deleteTargetGroups = async (useIAM, deletedLoadBalancer) => {
+  // TODO: killize
+  await deletedLoadBalancer;
+
+  const elbv2Client = new AWSClientFactory(AWS_REGION, useIAM).createClient(
+    ElasticLoadBalancingV2Client,
+  );
+
+  let targetGroupArns;
+  try {
+    const response = await elbv2Client.send(new DescribeTargetGroupsCommand({}));
+    targetGroupArns = response.TargetGroups.map((tg) => tg.TargetGroupArn);
+  } catch (error) {
+    console.error(`Unable to list target groups: ${error}`);
+    throw error;
+  }
+
+  if (targetGroupArns.length === 0) {
+    console.log(`No target groups. Skipping.`);
+    return;
+  }
+
+  await Promise.all(
+    targetGroupArns.map(async (arn) => {
+      try {
+        await elbv2Client.send(new DeleteTargetGroupCommand({ TargetGroupArn: arn }));
+      } catch (error) {
+        console.error(`Unable to delete target group ${arn}: ${error}`);
+        throw error;
+      }
+    }),
+  );
+};
+
+export { createLoadBalancer, deleteLoadBalancer, deleteTargetGroups };
