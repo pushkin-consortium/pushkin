@@ -10,21 +10,24 @@ import jsYaml from "js-yaml";
 import { fileExists, readFile, writeFile } from "./file.js";
 
 /**
- * Gets the path to pushkin.yaml in the current project (assume at root level)
+ * Gets the path to pushkin.yaml in the current project, walks up directory tree if not found in current dir
  * @returns {string} Absolute path to pushkin.yaml
  */
 function getPushkinConfigPath() {
-  return path.join(process.cwd(), "pushkin.yaml");
-}
+  // TODO: better checking to make sure this is indeed a pushkin project would be good
+  let currentDir = process.cwd();
+  const rootDir = path.parse(currentDir).root;
 
-/**
- * Checks if pushkin.yaml exists in the current project
- * @returns {boolean} True if file exists
- */
-function pushkinConfigExists() {
-  return fileExists(getPushkinConfigPath());
-}
+  while (true) {
+    const configPath = path.join(currentDir, "pushkin.yaml");
+    if (fileExists(configPath)) return configPath;
 
+    if (currentDir === rootDir) break;
+    currentDir = path.dirname(currentDir);
+  }
+
+  throw new Error("No pushkin project found here or in any parent directories");
+}
 /**
  * Loads and parses pushkin.yaml
  * @returns {object} Parsed configuration object
@@ -39,6 +42,7 @@ function loadPushkinConfig() {
     if (error.code === "ENOENT") {
       throw new Error(`pushkin.yaml not found at ${getPushkinConfigPath()}`);
     }
+    // TODO: add Pushkin YAML validation
     if (error.name === "YAMLException") {
       throw new Error(`Invalid YAML in pushkin.yaml: ${error.message}`);
     }
@@ -61,4 +65,4 @@ function savePushkinConfig(config) {
 }
 
 // Export functions
-export { getPushkinConfigPath, pushkinConfigExists, loadPushkinConfig, savePushkinConfig };
+export { getPushkinConfigPath, loadPushkinConfig, savePushkinConfig };

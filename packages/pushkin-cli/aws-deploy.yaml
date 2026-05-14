@@ -1,0 +1,172 @@
+# Pushkin AWS Deployment Configuration Example
+# Copy this file to aws-deploy.yaml and customize for your deployment
+# All settings shown below are optional - Pushkin will use sensible defaults if not specified
+
+# ============================================================================
+# BASIC SETTINGS
+# ============================================================================
+
+# AWS Region for deployment
+# Valid options: us-east-1, us-east-2, us-west-1, us-west-2, eu-west-1,
+#                eu-west-2, eu-central-1, ap-southeast-1, ap-southeast-2, ap-northeast-1
+# Default: us-east-1
+region: us-east-1
+
+# ============================================================================
+# TIMEOUT SETTINGS
+# Configure how long various AWS operations should wait before timing out
+# ============================================================================
+
+timeouts:
+  # CloudFront deployment and deletion timeouts
+  cloudfront:
+    maxWaitTime: 1800      # Maximum time to wait for CloudFront operations (seconds)
+    maxChecks: 40          # Maximum number of status checks
+    checkInterval: 30      # Time between status checks (seconds)
+
+    # Origin Access Control (OAC) deletion retries
+    oacDeletion:
+      maxRetries: 10       # How many times to retry OAC deletion
+      retryInterval: 10    # Wait time between retries (seconds)
+
+  # RDS database timeouts
+  rds:
+    maxWaitTime: 1200      # Maximum wait time for DB operations (seconds, 20 min)
+    maxRetries: 3          # Number of retry attempts
+    retryInterval: 30      # Wait time between retries (seconds)
+
+  # Default timeouts for other operations
+  default:
+    maxRetries: 5          # Default number of retries
+    backoffMultiplier: 2   # Exponential backoff multiplier
+    baseDelay: 1000        # Base delay for retries (milliseconds)
+
+# ============================================================================
+# AUTOSCALING SETTINGS
+# Configure how your application scales based on traffic
+# ============================================================================
+
+autoscaling:
+  minSize: 2               # Minimum number of ECS tasks
+  maxSize: 10              # Maximum number of ECS tasks
+  desiredCapacity: 2       # Initial number of tasks to launch
+
+  # CloudWatch alarms for autoscaling triggers
+  alarms:
+    cpu:
+      threshold: 75                # CPU percentage to trigger scaling
+      evaluationPeriods: 2         # How many periods to check before scaling
+
+    memory:
+      threshold: 75                # Memory percentage to trigger scaling
+      evaluationPeriods: 2
+
+    rds:
+      writeLatency: 100            # RDS write latency (ms) to trigger scaling
+      evaluationPeriods: 2
+
+# ============================================================================
+# ECS TASK RESOURCE ALLOCATION
+# Configure CPU and memory for each service
+# Values in MB for memory, CPU units for cpu (1024 = 1 vCPU)
+# ============================================================================
+
+ecs:
+  api:
+    memory: 512                    # Hard limit (MB)
+    memoryReservation: 256         # Soft limit (MB) - must be less than memory
+    cpu: 256                       # CPU units (256 = 0.25 vCPU)
+
+  worker:
+    memory: 512
+    memoryReservation: 256
+    cpu: 256
+
+  rabbitmq:
+    memory: 512
+    memoryReservation: 256
+    cpu: 256
+
+# ============================================================================
+# DATABASE CONFIGURATION
+# RDS instance settings for PostgreSQL
+# ============================================================================
+
+database:
+  instanceClass: db.t3.micro       # RDS instance type
+  allocatedStorage: 20             # Initial storage (GB)
+  maxAllocatedStorage: 100         # Maximum autoscaling storage (GB)
+  backupRetentionPeriod: 7         # Days to retain automated backups
+  preferredBackupWindow: "03:00-04:00"           # UTC time window
+  preferredMaintenanceWindow: "mon:04:00-mon:05:00"  # UTC time window
+
+# ============================================================================
+# CLOUDFRONT CDN CONFIGURATION
+# Settings for content delivery and caching
+# ============================================================================
+
+cloudfront:
+  # Price class determines which edge locations are used
+  # PriceClass_100: North America & Europe only (cheapest)
+  # PriceClass_200: All except South America & Australia
+  # PriceClass_All: All edge locations (most expensive)
+  priceClass: PriceClass_100
+
+  # Cache TTL settings (seconds)
+  minTTL: 0                        # Minimum time to cache
+  defaultTTL: 86400                # Default cache time (24 hours)
+  maxTTL: 31536000                 # Maximum cache time (1 year)
+
+# ============================================================================
+# SECURITY SETTINGS
+# Configure security features for your deployment
+# ============================================================================
+
+security:
+  enableWAF: true                  # Enable AWS WAF web application firewall
+  adminIPWhitelist: []             # List of IPs allowed admin access (empty = all)
+    # Example:
+    # - 203.0.113.0/24
+    # - 198.51.100.1
+
+# ============================================================================
+# MONITORING & LOGGING
+# Configure CloudWatch logs and metrics
+# ============================================================================
+
+monitoring:
+  logRetentionDays: 7              # How long to keep CloudWatch logs
+  detailedMetrics: false           # Enable detailed CloudWatch metrics (costs more)
+  alarmEmail: null                 # Email for CloudWatch alarms (null = none)
+    # Example: admin@example.com
+
+# ============================================================================
+# COST OPTIMIZATION
+# Features to reduce AWS costs
+# ============================================================================
+
+costs:
+  useSpotInstances: false          # Use spot instances (cheaper but can be terminated)
+  s3Lifecycle: true                # Enable S3 lifecycle policies to delete old data
+  autoDeleteLogs: true             # Automatically delete old CloudWatch logs
+
+# ============================================================================
+# ADVANCED SETTINGS
+# These settings are for advanced users only
+# ============================================================================
+
+advanced:
+  ecsExec: false                   # Enable ECS Exec for SSH-like access to containers
+  xrayTracing: false               # Enable AWS X-Ray distributed tracing
+  ecsKeyPairName: my-pushkin-key-pair # Name of the EC2 key pair for SSH access to ECS instances
+
+  vpc:
+    useDefault: true               # Use default VPC (false = create custom VPC)
+
+# ============================================================================
+# RESOURCE TAGGING
+# Tags applied to all AWS resources for organization and billing
+# ============================================================================
+
+tagging:
+  projectTagKey: PUSHKIN           # Tag key used to identify Pushkin resources

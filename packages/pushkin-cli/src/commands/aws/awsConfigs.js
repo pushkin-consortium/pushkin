@@ -370,7 +370,7 @@ export const dbConfig = {
   AllocatedStorage: 20,
   DBInstanceClass: "db.t3.micro",
   Engine: "postgres",
-  EngineVersion: "15",
+  EngineVersion: "17",
   MasterUsername: "postgres",
   VpcSecurityGroupIds: ["FUBAR"], // → 3 security groups: Balancer group, ECS group and RDS group
   MasterUserPassword: "FUBAR",

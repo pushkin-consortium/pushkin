@@ -11,6 +11,7 @@ import {
   CreateInvalidationCommand,
   CreateDistributionWithTagsCommand,
 } from "@aws-sdk/client-cloudfront";
+import { getOAC, getACL, syncS3, waitForCloudFrontDeployment } from "./cloudfront.js";
 import { AWSClientFactory } from "../utils/aws-client-factory.js";
 import { updateAwsResourcesField } from "../utils/aws-resources.js";
 import { AWS_REGION } from "../constants.js";
@@ -138,7 +139,7 @@ const deployFrontEnd = async (
 
   if (!distributionExists) {
     console.log(`No existing cloudFront distribution for ${s3BucketName}. Creating distribution.`);
-    let myCloudFront = JSON.parse(JSON.stringify(cloudFront));
+    const myCloudFront = structuredClone(cloudFront);
     myCloudFront.DistributionConfig.Origins.Items[0].OriginAccessControlId = await OAC; //we'll need this before continuing.
     myCloudFront.DistributionConfig.WebACLId = await ACLarn; //we'll need this before continuing.
     myCloudFront.DistributionConfig.CallerReference = s3BucketName;

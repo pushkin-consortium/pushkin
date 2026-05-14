@@ -1,32 +1,24 @@
 /**
- * A complete Infrastructure-as-Code solution for deploying a containerized web application to AWS with all production concerns handled!
- * The code follows an async orchestration pattern where:
-  - Multiple AWS resources are created in parallel when possible
-  - Dependencies are managed through await and Promise.all()
-  - Each major component (DB, ECS, Frontend) can be set up independently
-  - Extensive error handling and rollback capabilities
-
-  Notable Features:
-  - Idempotent operations - Can be run multiple times safely
-  - Resource tagging - All resources tagged for easy cleanup
-  - Security-first - Proper VPC, security groups, SSL certificates
-  - Production-ready - Auto-scaling, monitoring, CDN, database backups
+ * AWS Command Orchestration
+ * Coordinates AWS deployment phases for Pushkin projects
+ *
+ * Architecture:
+ * - Delegates to phase modules for testability and maintainability
+ * - Each phase handles a specific deployment concern
+ * - Phases are orchestrated in dependency order
+ * - Supports both new deployments and updates
+ * @module aws
  */
 
 import { v4 as uuid } from "uuid";
-import fs from "graceful-fs";
-import path from "path";
 import {
   alarmRAMHigh,
   alarmCPUHigh,
   alarmRDSWriteLatencyHigh,
   scalingPolicyTargets,
 } from "./awsConfigs.js";
-import { runMigrations, getMigrations } from "../setupdb/index.js";
 import { updatePushkinJs } from "../prep/index.js";
-import inquirer from "inquirer";
 import { S3Client, ListBucketsCommand } from "@aws-sdk/client-s3";
-import { Route53DomainsClient, ListDomainsCommand } from "@aws-sdk/client-route-53-domains";
 import {
   RDSClient,
   DescribeDBInstancesCommand,
@@ -42,252 +34,84 @@ import { EC2Client, DescribeSecurityGroupsCommand } from "@aws-sdk/client-ec2";
 import { CloudFormationClient, DescribeStacksCommand } from "@aws-sdk/client-cloudformation";
 import { AWSClientFactory } from "./utils/aws-client-factory.js";
 import { readAwsResources, writeAwsResources } from "./utils/aws-resources.js";
-import { loadPushkinConfig, savePushkinConfig } from "./utils/config.js";
+import { loadPushkinConfig, savePushkinConfig } from "../../utils/pushkin-config.js";
 import { AWS_REGION, exec } from "./constants.js";
+import { getProjectStatus } from "./services/status.js";
 
-// Import from service modules
-import { initDB, recordDBs, getDBsToDelete, deleteDBs } from "./services/rds.js";
-import { setupECS, deleteStack, deleteCluster } from "./services/ecs.js";
-import { deployFrontEnd, deleteCloudFront, deleteOACs } from "./services/cloudfront.js";
-import { buildFrontEnd, deleteBucket } from "./services/s3.js";
-import { deleteResourceRecords } from "./services/route53.js";
-import { forwardAPIWrapper, deleteLoadBalancer, deleteTargetGroup } from "./services/elb.js";
-import { ensureDatabaseSecurityGroup, deleteSecurityGroups } from "./services/security.js";
-import { createLogGroup, chooseCertificate } from "./services/monitoring.js";
-import { publishToDocker, rebuildWorker } from "./services/docker.js";
+// Import phase modules
+import { initializeDeployment, updateDeploymentConfig } from "./phases/setup.js";
+import { gatherUserInput } from "./phases/user-input.js";
+import { provisionInfrastructure } from "./phases/infrastructure.js";
+import { setupCompute } from "./phases/compute.js";
+import { setupDatabases } from "./phases/database-setup.js";
+import { deployApplication } from "./phases/deployment.js";
+import { cleanupResources } from "./phases/cleanup.js";
 
-/**
- * Handle database migrations
- * @param {Promise<object>} completedDBs - A promise that resolves to the completed databases
- * @returns {Promise<Map>} - A promise that resolves to a map of databases to their migration status
- */
-const migrationsWrapper = async (completedDBs) => {
-  console.log(`Handling main table migrations`);
-  let dbsToExps, ranMigrations;
-  let info = await completedDBs;
-  dbsToExps = await getMigrations(
-    path.join(process.cwd(), info.usersDir || "users"),
-    path.join(process.cwd(), info.experimentsDir),
-    true,
-  );
-  ranMigrations = runMigrations(dbsToExps, info.productionDBs);
-  return ranMigrations;
-};
+// Re-export functions that are used by the main CLI
+import { verifyIAMCredentials } from "./services/security.js";
+export { verifyIAMCredentials };
 
 /**
- * Handle transaction table setup
- * @param {Promise<object>} completedDBs - A promise that resolves to the completed databases
- * @returns {Promise} - A promise that resolves when the transaction table is set up
- */
-const setupTransactionsWrapper = async (completedDBs) => {
-  let info = await completedDBs;
-  let transMigrations = new Map();
-  transMigrations.set("Transaction", [
-    { migrations: path.join(process.cwd(), "coreMigrations"), seeds: "" },
-  ]);
-  let setupTransactionsTable;
-  setupTransactionsTable = runMigrations(transMigrations, info.productionDBs);
-  return setupTransactionsTable;
-};
-
-/**
- * Main orchestrator that initializes AWS deployment:
- * 1. Gets SSL certificates and domain choices from user
- * 2. Coordinates all the deployment steps
- * 3. Runs database migrations
- * 4. Sets up monitoring and scaling
+ * Main AWS deployment command
+ * Orchestrates the complete deployment process through discrete phases
  * @param {string} projName - The project name
- * @param {string} s3BucketName - The AWS resource name
- * @param {string} useIAM - The IAM profile name
+ * @param {string} s3BucketName - The S3 bucket name (AWS resource name)
+ * @param {string|object} useIAM - The IAM profile name or object with iam property
  * @param {string} DHID - The DockerHub ID
- * @returns {Promise<void>} - A promise that resolves when initialization is complete
+ * @returns {Promise<void>}
  */
 export async function awsInit(projName, s3BucketName, useIAM, DHID) {
-  // Normalize useIAM to always be a string
-  const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+  // Phase 1: Setup - Load config, verify credentials
+  const { profileName, config } = await initializeDeployment(useIAM);
 
-  let pushkinConfig;
-  try {
-    pushkinConfig = await loadPushkinConfig();
-  } catch (error) {
-    console.error(`Failed to load pushkin.yaml:`, error);
-    throw error;
-  }
+  // Phase 2: User Input - Get domain and certificate choices
+  const { domain, certificate } = await gatherUserInput(profileName);
 
-  let myCertificate;
-  try {
-    myCertificate = await chooseCertificate(profileName); //Waiting because otherwise input query gets buried
-  } catch (e) {
-    console.error(`Unable to choose certificate.`);
-    throw e;
-  }
-
-  console.log(`Looks good!`);
-  // process.exit();
-
-  /**
-   * Choose a domain for the site
-   * @param {string} profileName - The IAM profile name
-   * @returns {Promise<string>} - A promise that resolves to the chosen domain
-   */
-  const chooseDomain = async (profileName) => {
-    console.log("Choosing domain name for site");
-    let temp;
-    try {
-      const factory = new AWSClientFactory(AWS_REGION, profileName);
-      const route53DomainsClient = factory.createClient(Route53DomainsClient);
-      const listDomainsResponse = await route53DomainsClient.send(new ListDomainsCommand({}));
-      temp = { stdout: JSON.stringify({ Domains: listDomainsResponse.Domains }) };
-    } catch (e) {
-      console.error(`Unable to get list of SSL certificates`);
-    }
-    let domains = ["default"];
-    JSON.parse(temp.stdout).Domains.forEach((c) => {
-      domains.push(c.DomainName);
-    });
-    domains.push("Enter a custom domain/subdomain");
-
-    return new Promise((resolve) => {
-      console.log(`Choosing...`);
-      inquirer
-        .prompt([
-          {
-            type: "list",
-            name: "domain",
-            choices: domains,
-            default: 0,
-            message: "Which domain would you like to use for your site?",
-          },
-        ])
-        .then(async (answers) => {
-          if (answers.domain === "Enter a custom domain/subdomain") {
-            const customDomain = await inquirer.prompt([
-              {
-                type: "input",
-                name: "customDomain",
-                message: "Enter your custom domain or subdomain (e.g., subdomain.example.com):",
-                validate: (input) => {
-                  if (!input || input.trim().length === 0) {
-                    return "Domain cannot be empty";
-                  }
-                  return true;
-                },
-              },
-            ]);
-            resolve(customDomain.customDomain);
-          } else {
-            resolve(answers.domain);
-          }
-        });
-    });
-  };
-  let myDomain;
-  myDomain = await chooseDomain(profileName); //Waiting because otherwise input query gets buried
-
-  pushkinConfig.info.rootDomain = myDomain;
-  pushkinConfig.info.projName = projName;
-  pushkinConfig.info.s3BucketName = s3BucketName;
-  await savePushkinConfig(pushkinConfig);
-  console.log(`Successfully updated pushkin.yaml with custom domain.`);
+  // Update config with deployment info
+  await updateDeploymentConfig(config, projName, s3BucketName, domain);
   updatePushkinJs();
 
-  //Databases take BY FAR the longest, so start them right after certificate (certificate comes first or things get confused)
-  let securityGroupID = await ensureDatabaseSecurityGroup(profileName, projName);
-
-  console.log(`Creating Main database promise...`);
-  const initializedMainDB = initDB("Main", securityGroupID, projName, profileName);
-  console.log(`Main database initialization started`);
-
-  console.log(`Creating Transaction database promise...`);
-  const initializedTransactionDB = initDB("Transaction", securityGroupID, projName, profileName);
-  console.log(`Transaction database initialization started`);
-
-  let completedDBs;
-  try {
-    console.log("Starting database recording process...");
-    console.log("Awaiting database initialization completion...");
-    completedDBs = await recordDBs(Promise.all([initializedMainDB, initializedTransactionDB]));
-    console.log("Database recording completed successfully");
-  } catch (e) {
-    console.error("Failed to record databases:", e);
-    throw e;
-  }
-
-  const expDirs = fs.readdirSync(path.join(process.cwd(), pushkinConfig.experimentsDir));
-  let rebuiltWorkers;
-  try {
-    rebuiltWorkers = Promise.all(expDirs.map(rebuildWorker));
-  } catch (err) {
-    console.error(err);
-    throw err;
-  }
-
-  createLogGroup(profileName, projName);
-
-  //pushing stuff to DockerHub
-  let publishedToDocker = publishToDocker(DHID, rebuiltWorkers);
-
-  //build front-end
-  const builtFrontEnd = buildFrontEnd(projName);
-
-  const deployedFrontEnd = deployFrontEnd(
-    projName,
-    s3BucketName,
+  // Phase 3: Infrastructure - Create databases, S3, security groups
+  const { completedDBs, builtFrontEnd } = await provisionInfrastructure(
+    config,
     profileName,
-    myDomain,
-    myCertificate,
-    builtFrontEnd,
+    projName,
   );
 
-  publishedToDocker = await publishedToDocker; //need this to configure ECS
-  const configuredECS = setupECS(
-    projName,
-    s3BucketName,
-    profileName,
+  // Phase 4: Compute - Set up ECS cluster, tasks, load balancer
+  const configuredECS = setupCompute(projName, profileName, DHID, completedDBs, certificate);
+
+  // Phase 5: Database Setup - Run migrations and transaction setup
+  const dbSetup = setupDatabases(Promise.resolve(completedDBs));
+
+  // Phase 6: Deployment - Publish Docker images, deploy frontend, configure API forwarding
+  const { deployedFrontEnd, apiForwarded, cloudDomain } = await deployApplication({
+    config,
     DHID,
-    Promise.resolve(completedDBs),
-    myCertificate,
-  );
-
-  const setupTransactionsTable = setupTransactionsWrapper(Promise.resolve(completedDBs));
-
-  const ranMigrations = migrationsWrapper(Promise.resolve(completedDBs));
-
-  const apiForwarded = forwardAPIWrapper(
-    configuredECS,
-    profileName,
     projName,
-    myDomain,
-    deployedFrontEnd,
-  );
+    s3BucketName,
+    profileName,
+    domain,
+    certificate,
+    builtFrontEnd,
+    configuredECS,
+  });
 
-  // This needs to come last, right before 'return'
-  if (myDomain == "default") {
-    let configuredECSoutput = await configuredECS;
-    let cloudDomain = await deployedFrontEnd; //has actually already resolved, but not sure I can use it directly
-    console.log(`Access your website at ${cloudDomain}`);
-    console.log(
-      `Be sure to update pushkin/front-end/src/config.js so that the api URL is ${configuredECSoutput[0]}.`,
-    );
-    pushkinConfig.info.rootDomain = cloudDomain;
+  // Update config with final domain info for default deployments
+  if (domain === "default" && cloudDomain) {
+    config.info.rootDomain = cloudDomain;
   }
 
-  pushkinConfig = completedDBs;
-
+  // Wait for all final operations to complete
   console.log("DEBUG: Waiting for final operations to complete...");
 
-  // Add individual promise logging to identify hanging operations
   console.log("DEBUG: Waiting for deployedFrontEnd...");
   await deployedFrontEnd;
   console.log("DEBUG: deployedFrontEnd resolved");
 
-  console.log("DEBUG: Waiting for setupTransactionsTable...");
-  await setupTransactionsTable;
-  console.log("DEBUG: setupTransactionsTable resolved");
-
-  console.log("DEBUG: Waiting for ranMigrations...");
-  await ranMigrations;
-  console.log("DEBUG: ranMigrations resolved");
+  console.log("DEBUG: Waiting for dbSetup...");
+  await dbSetup;
+  console.log("DEBUG: dbSetup resolved");
 
   console.log("DEBUG: Waiting for apiForwarded...");
   await apiForwarded;
@@ -295,15 +119,16 @@ export async function awsInit(projName, s3BucketName, useIAM, DHID) {
 
   console.log("DEBUG: All final operations completed");
 
-  await savePushkinConfig(pushkinConfig);
+  // Save final config with database info
+  await savePushkinConfig(completedDBs);
 
-  return;
+  console.log("✅ AWS deployment complete!");
 }
 
 /**
  * Name the project and create AWS resources file
  * @param {string} projName - The project name
- * @returns {Promise<string>} - A promise that resolves to the AWS name
+ * @returns {Promise<string>} - The S3 bucket name
  */
 export async function nameProject(projName) {
   console.log(`Recording project name`);
@@ -366,7 +191,7 @@ export async function nameProject(projName) {
 /**
  * Add IAM profile to AWS resources
  * @param {string} iam - The IAM profile name
- * @returns {Promise<void>} - A promise that resolves when complete
+ * @returns {Promise<void>}
  */
 export async function addIAM(iam) {
   let awsResources;
@@ -390,101 +215,17 @@ export async function addIAM(iam) {
   return;
 }
 
-// TODO: Change to be less aggressive
 /**
- * Delete all AWS resources
- * @param {string} useIAM - The IAM profile name
+ * Delete all AWS resources (armageddon command)
+ * @param {string|object} useIAM - The IAM profile name or object with iam property
  * @param {string} killType - The type of kill operation ('kill' or 'armageddon')
- * @returns {Promise<void>} - A promise that resolves when deletion is complete
+ * @returns {Promise<void>}
  */
 export const awsArmageddon = async (useIAM, killType) => {
   // Normalize useIAM to always be a string
   const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
 
-  let awsResources;
-  try {
-    awsResources = readAwsResources();
-  } catch (e) {
-    console.error(`Unable to load awsResources.js`);
-  }
-  let projName;
-  if (awsResources) {
-    projName = awsResources.name; //can use this to identify resources needing deletion
-  } else {
-    if (killType == "kill") {
-      console.warn(
-        "\x1b[31m%s\x1b[0m",
-        `Unable to find awsResources.js. You won't be able to run kill.\n Either delete AWS deploy manually or run aws armageddon to delete everything including things not related to your project..`,
-      );
-    }
-  }
-  const killTag = killType == "kill" ? projName : false;
-
-  const deletedStack = deleteStack(profileName, killTag);
-
-  const deletedCluster = deleteCluster(deletedStack, profileName, killTag, projName, awsResources);
-
-  const dbsToDelete = getDBsToDelete(profileName, killTag, awsResources);
-  const deletedDBs = deleteDBs(dbsToDelete, profileName, killTag);
-
-  const deletedLoadBalancer = deleteLoadBalancer(profileName, killTag);
-
-  // Delete CloudFront first, then OACs (CloudFront must be deleted before OACs can be deleted)
-  const deletedCloudFront = deleteCloudFront(profileName, projName, killTag);
-
-  let deletedOACs;
-  try {
-    deletedOACs = deleteOACs(profileName, deletedCloudFront, killTag);
-  } catch (e) {
-    console.warn("\x1b[31m%s\x1b[0m", `Unable to delete origin access controls`);
-    console.warn("\x1b[31m%s\x1b[0m", e); // Don't fail the whole process for this
-  }
-
-  const deletedResourceRecords = deleteResourceRecords(profileName, killTag, projName);
-
-  const deletedTargetGroup = deleteTargetGroup(profileName, deletedLoadBalancer);
-
-  const deletedBucket = deleteBucket(profileName, killTag, awsResources, deletedCloudFront);
-
-  const deletedGroups = deleteSecurityGroups(profileName, killTag, deletedDBs);
-
-  //FUBAR Should we delete ACL as well?
-
-  console.log(`Updating awsResources.js`);
-  let awsResourcesNull = {
-    name: projName,
-    s3BucketName: null,
-    iam: profileName,
-    dbs: [],
-    cloudFrontId: null,
-    ECSName: null,
-    OAC: null,
-  };
-  // Remove undefined properties
-  Object.keys(awsResourcesNull).forEach((key) => {
-    if (awsResourcesNull[key] === undefined) {
-      delete awsResourcesNull[key];
-    }
-  });
-  try {
-    writeAwsResources(awsResourcesNull);
-  } catch (e) {
-    console.error(`Unable to update awsResources.js`);
-    console.error(e);
-  }
-
-  // Wait for everything to be deleted
-  await Promise.all([
-    deletedGroups,
-    deletedResourceRecords,
-    deletedBucket,
-    deletedCloudFront,
-    deletedDBs,
-    deletedLoadBalancer,
-    deletedOACs,
-    deletedCluster,
-    deletedTargetGroup,
-  ]);
+  await cleanupResources(profileName, killType);
 
   console.log(
     `The following resources were either not deleted or are still in the process of being deleted:`,
@@ -494,14 +235,12 @@ export const awsArmageddon = async (useIAM, killType) => {
     If this list is non-empty but you expect it to be empty, wait 10 minutes and run 'pushkin aws list'.
     If the list is still non-empty, try re-running 'pushkin aws armageddon'.
     If 10 minutes after that, 'pushkin aws list' still returns a non-empty list and you don't know why, contact AWS support to ensure that you are not being charged for services you aren't using.`);
-
-  return;
 };
 
 /**
- * List all AWS resources
- * @param {string} useIAM - The IAM profile name
- * @returns {Promise<void>} - A promise that resolves when listing is complete
+ * List all AWS resources in the account
+ * @param {string|object} useIAM - The IAM profile name or object with iam property
+ * @returns {Promise<void>}
  */
 export async function awsList(useIAM) {
   const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
@@ -559,12 +298,26 @@ export async function awsList(useIAM) {
 }
 
 /**
- * Create auto-scaling configuration and CloudWatch alarms:
- * - Monitors CPU, RAM, database performance
- * - Configures SNS notifications
- * @param {string} useIAM - The IAM profile name
+ * Get detailed status of AWS resources for the current project
+ * Unlike awsList which shows ALL resources in the account,
+ * this shows only resources belonging to the current Pushkin project
+ *
+ * @param {string|object} useIAM - The IAM profile name or object with iam property
+ * @param {boolean} verbose - Whether to show verbose output
+ * @returns {Promise<void>}
+ */
+export async function awsStatus(useIAM, verbose = false) {
+  const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+  return getProjectStatus(profileName, verbose);
+}
+
+/**
+ * Create auto-scaling configuration and CloudWatch alarms
+ * Monitors CPU, RAM, and database performance with SNS notifications
+ *
+ * @param {string|object} useIAM - The IAM profile name or object with iam property
  * @param {string} projName - The project name
- * @returns {Promise<Array>} - A promise that resolves to an array of alarm creation results
+ * @returns {Promise<Array>} Array of alarm creation results
  */
 export const createAutoScale = async (useIAM, projName) => {
   // Normalize useIAM to always be a string
@@ -585,8 +338,8 @@ export const createAutoScale = async (useIAM, projName) => {
     throw e;
   }
 
-  let alarmMainHigh = JSON.parse(JSON.stringify(alarmRDSWriteLatencyHigh));
-  let alarmTransactionHigh = JSON.parse(JSON.stringify(alarmRDSWriteLatencyHigh));
+  const alarmMainHigh = structuredClone(alarmRDSWriteLatencyHigh);
+  const alarmTransactionHigh = structuredClone(alarmRDSWriteLatencyHigh);
   try {
     const config = await loadPushkinConfig();
     alarmMainHigh.Dimensions[0].Value = config.productionDBs.Main.name;
@@ -717,15 +470,6 @@ export const createAutoScale = async (useIAM, projName) => {
     console.error(`Unable to update awsResources.js`);
     throw e;
   }
-
-  // try {
-  //   let temp1 = exec(`aws cloudwatch put-metric-alarm --alarm-name ${alarm1.AlarmName} --alarm-actions ${TopicArn} --evaluation-periods 3 --comparison-operator LessThanThreshold --profile ${useIAM}`)
-  //   let temp2 = exec(`aws cloudwatch put-metric-alarm --alarm-name ${alarm1.AlarmName} --alarm-actions ${TopicArn} --comparison-operator GreaterThanThreshold --profile ${useIAM}`)
-  //   await Promise.all([ temp1, temp2 ])
-  // } catch (e) {
-  //   console.log(`unable to subscribe to alarms`)
-  //   throw e
-  // }
 
   return Promise.all([dbAlarmTransaction, dbAlarmMain, setAlarmRAMHigh, setAlarmCPUHigh]);
 };

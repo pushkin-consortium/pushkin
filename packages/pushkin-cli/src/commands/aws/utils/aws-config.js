@@ -19,7 +19,7 @@ const DEFAULT_AWS_CONFIG = {
 
   timeouts: {
     cloudfront: {
-      maxChecks: 40,
+      maxWaitTime: 1800, // seconds (30 minutes)
       checkInterval: 30, // seconds
       oacDeletion: {
         maxRetries: 10,
@@ -112,11 +112,11 @@ const DEFAULT_AWS_CONFIG = {
   advanced: {
     ecsExec: false,
     xrayTracing: false,
+    ecsKeyPairName: "my-pushkin-key-pair",
     vpc: {
       useDefault: true,
     },
   },
-
   tagging: {
     projectTagKey: "PUSHKIN",
   },
@@ -176,9 +176,7 @@ export function loadAwsConfig(configPath = null) {
 
     // Validate that userConfig is an object
     if (typeof userConfig !== "object" || userConfig === null) {
-      console.warn(
-        `Warning: aws-deploy.yaml is not a valid YAML object. Using defaults.`
-      );
+      console.warn(`Warning: aws-deploy.yaml is not a valid YAML object. Using defaults.`);
       return DEFAULT_AWS_CONFIG;
     }
 
@@ -187,16 +185,13 @@ export function loadAwsConfig(configPath = null) {
 
     return mergedConfig;
   } catch (error) {
-    console.warn(
-      `Warning: Error loading aws-deploy.yaml: ${error.message}. Using defaults.`
-    );
+    console.warn(`Warning: Error loading aws-deploy.yaml: ${error.message}. Using defaults.`);
     return DEFAULT_AWS_CONFIG;
   }
 }
 
 /**
  * Get default configuration (useful for testing or documentation)
- *
  * @returns {object} - Default configuration object
  */
 export function getDefaultConfig() {
@@ -215,9 +210,16 @@ export function validateConfig(config) {
 
   // Validate region
   const validRegions = [
-    "us-east-1", "us-east-2", "us-west-1", "us-west-2",
-    "eu-west-1", "eu-west-2", "eu-central-1",
-    "ap-southeast-1", "ap-southeast-2", "ap-northeast-1",
+    "us-east-1",
+    "us-east-2",
+    "us-west-1",
+    "us-west-2",
+    "eu-west-1",
+    "eu-west-2",
+    "eu-central-1",
+    "ap-southeast-1",
+    "ap-southeast-2",
+    "ap-northeast-1",
   ];
   if (!validRegions.includes(config.region)) {
     errors.push(`Invalid region: ${config.region}. Must be one of: ${validRegions.join(", ")}`);
@@ -226,14 +228,16 @@ export function validateConfig(config) {
   // Validate autoscaling
   if (config.autoscaling.minSize > config.autoscaling.maxSize) {
     errors.push(
-      `autoscaling.minSize (${config.autoscaling.minSize}) cannot be greater than maxSize (${config.autoscaling.maxSize})`
+      `autoscaling.minSize (${config.autoscaling.minSize}) cannot be greater than maxSize (${config.autoscaling.maxSize})`,
     );
   }
 
-  if (config.autoscaling.desiredCapacity < config.autoscaling.minSize ||
-      config.autoscaling.desiredCapacity > config.autoscaling.maxSize) {
+  if (
+    config.autoscaling.desiredCapacity < config.autoscaling.minSize ||
+    config.autoscaling.desiredCapacity > config.autoscaling.maxSize
+  ) {
     errors.push(
-      `autoscaling.desiredCapacity (${config.autoscaling.desiredCapacity}) must be between minSize and maxSize`
+      `autoscaling.desiredCapacity (${config.autoscaling.desiredCapacity}) must be between minSize and maxSize`,
     );
   }
 
@@ -247,9 +251,7 @@ export function validateConfig(config) {
       errors.push(`ecs.${service}.cpu must be positive`);
     }
     if (config.ecs[service].memoryReservation > config.ecs[service].memory) {
-      errors.push(
-        `ecs.${service}.memoryReservation cannot exceed memory hard limit`
-      );
+      errors.push(`ecs.${service}.memoryReservation cannot exceed memory hard limit`);
     }
   }
 
@@ -257,8 +259,45 @@ export function validateConfig(config) {
   const validPriceClasses = ["PriceClass_100", "PriceClass_200", "PriceClass_All"];
   if (!validPriceClasses.includes(config.cloudfront.priceClass)) {
     errors.push(
-      `Invalid cloudfront.priceClass: ${config.cloudfront.priceClass}. Must be one of: ${validPriceClasses.join(", ")}`
+      `Invalid cloudfront.priceClass: ${config.cloudfront.priceClass}. Must be one of: ${validPriceClasses.join(", ")}`,
     );
+  }
+
+  // Validate timeout values (must be positive numbers)
+  if (config.timeouts.cloudfront.maxWaitTime <= 0) {
+    errors.push("timeouts.cloudfront.maxWaitTime must be positive");
+  }
+  if (config.timeouts.cloudfront.maxChecks <= 0) {
+    errors.push("timeouts.cloudfront.maxChecks must be positive");
+  }
+  if (config.timeouts.cloudfront.checkInterval <= 0) {
+    errors.push("timeouts.cloudfront.checkInterval must be positive");
+  }
+  if (config.timeouts.cloudfront.oacDeletion.maxRetries <= 0) {
+    errors.push("timeouts.cloudfront.oacDeletion.maxRetries must be positive");
+  }
+  if (config.timeouts.cloudfront.oacDeletion.retryInterval <= 0) {
+    errors.push("timeouts.cloudfront.oacDeletion.retryInterval must be positive");
+  }
+
+  if (config.timeouts.rds.maxWaitTime <= 0) {
+    errors.push("timeouts.rds.maxWaitTime must be positive");
+  }
+  if (config.timeouts.rds.maxRetries <= 0) {
+    errors.push("timeouts.rds.maxRetries must be positive");
+  }
+  if (config.timeouts.rds.retryInterval <= 0) {
+    errors.push("timeouts.rds.retryInterval must be positive");
+  }
+
+  if (config.timeouts.default.maxRetries <= 0) {
+    errors.push("timeouts.default.maxRetries must be positive");
+  }
+  if (config.timeouts.default.backoffMultiplier <= 0) {
+    errors.push("timeouts.default.backoffMultiplier must be positive");
+  }
+  if (config.timeouts.default.baseDelay <= 0) {
+    errors.push("timeouts.default.baseDelay must be positive");
   }
 
   return errors;
