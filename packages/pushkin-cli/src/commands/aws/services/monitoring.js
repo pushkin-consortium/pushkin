@@ -1,3 +1,9 @@
+/**
+ * AWS Monitoring Service Management
+ * Handles CloudWatch log groups and SSL certificate selection 
+ * @module monitoring
+ */
+
 import {
   CloudWatchLogsClient,
   CreateLogGroupCommand,
@@ -9,14 +15,13 @@ import { AWS_REGION } from "../constants.js";
 import inquirer from "inquirer";
 
 /**
- * Create CloudWatch log group for ECS
+ * Create CloudWatch log group for ECS.
  * @param {*} useIAM - The IAM role to use
  * @param {string} projName - The project name
  * @returns {Promise<void>} - A promise that resolves when the log group is created
  */
 const createLogGroup = async (useIAM, projName) => {
   //Log group for ECS
-  let stdOut;
   try {
     const profileName = useIAM;
     const factory = new AWSClientFactory(AWS_REGION, profileName);
@@ -26,7 +31,6 @@ const createLogGroup = async (useIAM, projName) => {
         logGroupName: `ecs/${projName}`,
       }),
     );
-    stdOut = { stdout: "" };
   } catch (e) {
     if (e.message.includes("already exists")) {
       console.warn(
@@ -49,7 +53,6 @@ const createLogGroup = async (useIAM, projName) => {
         retentionInDays: 7,
       }),
     );
-    stdOut = { stdout: "" };
   } catch (e) {
     console.error(`Unable to set retention policy for ECS log group`);
     throw e;
@@ -57,7 +60,7 @@ const createLogGroup = async (useIAM, projName) => {
 };
 
 /**
- *
+ * Prompt the user to choose an SSL certificate for the load balancer.
  * @param useIAM
  */
 const chooseCertificate = async (useIAM) => {
