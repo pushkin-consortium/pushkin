@@ -17,7 +17,7 @@ import { rabbitTask, apiTask, workerTask } from "../../awsConfigs.js";
  * @returns {object} Configured Docker Compose service definition
  */
 const buildRabbitTask = (projName, rabbitUser, rabbitPW, rabbitCookie) => {
-  const task = JSON.parse(JSON.stringify(rabbitTask));
+  const task = structuredClone(rabbitTask);
   task.services["message-queue"].environment.RABBITMQ_DEFAULT_USER = rabbitUser;
   task.services["message-queue"].environment.RABBITMQ_DEFAULT_PASS = rabbitPW;
   task.services["message-queue"].environment.RABBITMQ_ERLANG_COOKIE = rabbitCookie;
@@ -35,7 +35,7 @@ const buildRabbitTask = (projName, rabbitUser, rabbitPW, rabbitCookie) => {
  * @returns {object} Configured Docker Compose service definition
  */
 const buildAPITask = (projName, DHID, rabbitAddress) => {
-  const task = JSON.parse(JSON.stringify(apiTask));
+  const task = structuredClone(apiTask);
   task.services["api"].environment.AMQP_ADDRESS = rabbitAddress;
   task.services["api"].image = `${DHID}/api:latest`;
   task.services["api"].logging.options["awslogs-group"] = `ecs/${projName}`;
@@ -57,7 +57,7 @@ const buildWorkerTask = (workerName, projName, DHID, rabbitAddress, dbInfoByTask
     version: workerTask.version,
     services: {},
   };
-  task.services[workerName] = JSON.parse(JSON.stringify(workerTask.services["EXPERIMENT_NAME"]));
+  task.services[workerName] = structuredClone(workerTask.services["EXPERIMENT_NAME"]);
   task.services[workerName].image = `${DHID}/${workerName}:latest`;
   task.services[workerName].logging.options["awslogs-group"] = `ecs/${projName}`;
   task.services[workerName].logging.options["awslogs-stream-prefix"] =
