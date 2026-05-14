@@ -58,6 +58,14 @@ const monorepoConfig = {
     "jsdoc/require-returns": "off",
     "jsdoc/require-returns-description": "off",
     "jsdoc/require-returns-type": "off",
+    "max-len": [
+      "error",
+      {
+        code: 100, // Limit for code lines
+        comments: 80, // Specific limit for comment lines
+        ignoreUrls: true, // Prevents errors from long links in comments
+      },
+    ],
   },
 };
 
