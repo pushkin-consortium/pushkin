@@ -57,264 +57,135 @@ const verifyIAMCredentials = async (useIAM) => {
 };
 
 /**
- * Ensure project-specific database security group exists (creates if missing).
- * WHY: Each project needs its own database security group for network isolation between projects.
+ * Ensure a named security group exists, creating it with the given ingress rules if not.
+ * WHY: All three Pushkin security groups (database, balancer, ECS) share the same
+ * create-if-missing pattern and differ only in name, description, and port rules.
  * @param {string} useIAM - The IAM role to use
  * @param {string} projName - The project name
- * @returns {Promise<string>} - The security group ID for the database group
+ * @param {string} groupSuffix - Appended to projName to form the group name
+ * @param {string} description - Security group description
+ * @param {Array} ipPermissions - Ingress rules passed to AuthorizeSecurityGroupIngress
+ * @returns {Promise<string>} - The security group ID
  */
-const ensureDatabaseSecurityGroup = async (useIAM, projName) => {
+const ensureSecurityGroup = async (useIAM, projName, groupSuffix, description, ipPermissions) => {
   const ec2Client = createEC2Client(useIAM);
-  const groupName = `${projName}-DatabaseGroup`;
+  const groupName = `${projName}-${groupSuffix}`;
 
-  // Check if security group already exists
   let securityGroups;
   try {
-    const describeSecurityGroupsResponse = await ec2Client.send(
-      new DescribeSecurityGroupsCommand({}),
-    );
-    securityGroups = describeSecurityGroupsResponse.SecurityGroups || [];
+    const response = await ec2Client.send(new DescribeSecurityGroupsCommand({}));
+    securityGroups = response.SecurityGroups || [];
   } catch (error) {
     console.error(`Failed to retrieve list of security groups from AWS:`, error);
     throw error;
   }
 
   const foundGroup = securityGroups.find((g) => g.GroupName === groupName);
-
   if (foundGroup) {
-    console.log(`Database security group ${groupName} already exists. Skipping creation.`);
+    console.log(`Security group ${groupName} already exists. Skipping creation.`);
     return foundGroup.GroupId;
   }
 
-  // Create new security group
-  console.log(`Creating security group ${groupName} for databases...`);
+  console.log(`Creating security group ${groupName}...`);
   try {
     const createSGResponse = await ec2Client.send(
       new CreateSecurityGroupCommand({
         GroupName: groupName,
-        Description: `Database security group for ${projName}`,
+        Description: description,
         TagSpecifications: [
-          {
-            ResourceType: "security-group",
-            Tags: [{ Key: PROJECT_TAG_KEY, Value: projName }],
-          },
+          { ResourceType: "security-group", Tags: [{ Key: PROJECT_TAG_KEY, Value: projName }] },
         ],
       }),
     );
-
     const groupId = createSGResponse.GroupId;
-
-    // Configure inbound rules to allow PostgreSQL connections from anywhere
     await ec2Client.send(
-      new AuthorizeSecurityGroupIngressCommand({
-        GroupId: groupId,
-        IpPermissions: [
-          {
-            IpProtocol: "tcp",
-            FromPort: 5432,
-            ToPort: 5432,
-            Ipv6Ranges: [{ CidrIpv6: "::/0" }],
-            IpRanges: [{ CidrIp: "0.0.0.0/0" }],
-            // TODO: This means anywhere on the internet, quite permissive; more restrictive rules include VPC-only
-          },
-        ],
-      }),
+      new AuthorizeSecurityGroupIngressCommand({ GroupId: groupId, IpPermissions: ipPermissions }),
     );
-
     return groupId;
   } catch (error) {
-    console.error(`Failed to create security group for databases:`, error);
+    console.error(`Failed to create security group ${groupName}:`, error);
     throw error;
   }
 };
+
+const OPEN_IPV4 = { CidrIp: "0.0.0.0/0" };
+const OPEN_IPV6 = { CidrIpv6: "::/0" };
+
+/**
+ * Ensure project-specific database security group exists (creates if missing).
+ * WHY: Each project needs its own database security group for network isolation between projects.
+ * NOTE: Allows PostgreSQL (5432) from anywhere — quite permissive; VPC-only would be more restrictive.
+ * @param {string} useIAM - The IAM role to use
+ * @param {string} projName - The project name
+ * @returns {Promise<string>} - The security group ID
+ */
+const ensureDatabaseSecurityGroup = (useIAM, projName) =>
+  ensureSecurityGroup(
+    useIAM,
+    projName,
+    "DatabaseGroup",
+    `Database security group for ${projName}`,
+    [
+      {
+        IpProtocol: "tcp",
+        FromPort: 5432,
+        ToPort: 5432,
+        IpRanges: [OPEN_IPV4],
+        Ipv6Ranges: [OPEN_IPV6],
+      },
+    ],
+  );
 
 /**
  * Ensure project-specific load balancer security group exists (creates if missing).
  * WHY: Each project needs its own load balancer security group for network isolation.
  * @param {string} useIAM - The IAM role to use
  * @param {string} projName - The project name
- * @returns {Promise<string>} - The security group ID for the load balancer
+ * @returns {Promise<string>} - The security group ID
  */
-const ensureBalancerSecurityGroup = async (useIAM, projName) => {
-  const ec2Client = createEC2Client(useIAM);
-  const groupName = `${projName}-BalancerGroup`;
-
-  // Check if security group already exists
-  let securityGroups;
-  try {
-    const describeSecurityGroupsResponse = await ec2Client.send(
-      new DescribeSecurityGroupsCommand({}),
-    );
-    securityGroups = describeSecurityGroupsResponse.SecurityGroups || [];
-  } catch (error) {
-    console.error(`Failed to retrieve list of security groups from AWS:`, error);
-    throw error;
-  }
-
-  const foundGroup = securityGroups.find((g) => g.GroupName === groupName);
-
-  if (foundGroup) {
-    console.log(`Load balancer security group ${groupName} already exists. Skipping creation.`);
-    return foundGroup.GroupId;
-  }
-
-  // Create new security group
-  console.log(`Creating security group ${groupName} for load balancer...`);
-  try {
-    const createSGResponse = await ec2Client.send(
-      new CreateSecurityGroupCommand({
-        GroupName: groupName,
-        Description: `Load balancer security group for ${projName}`,
-        TagSpecifications: [
-          {
-            ResourceType: "security-group",
-            Tags: [{ Key: PROJECT_TAG_KEY, Value: projName }],
-          },
-        ],
-      }),
-    );
-
-    const groupId = createSGResponse.GroupId;
-
-    // Add rules for HTTP (80) and HTTPS (443)
-    await Promise.all([
-      ec2Client.send(
-        new AuthorizeSecurityGroupIngressCommand({
-          GroupId: groupId,
-          IpPermissions: [
-            {
-              IpProtocol: "tcp",
-              FromPort: 80,
-              ToPort: 80,
-              IpRanges: [{ CidrIp: "0.0.0.0/0" }],
-              Ipv6Ranges: [{ CidrIpv6: "::/0" }],
-            },
-          ],
-        }),
-      ),
-      ec2Client.send(
-        new AuthorizeSecurityGroupIngressCommand({
-          GroupId: groupId,
-          IpPermissions: [
-            {
-              IpProtocol: "tcp",
-              FromPort: 443,
-              ToPort: 443,
-              IpRanges: [{ CidrIp: "0.0.0.0/0" }],
-              Ipv6Ranges: [{ CidrIpv6: "::/0" }],
-            },
-          ],
-        }),
-      ),
-    ]);
-
-    return groupId;
-  } catch (error) {
-    console.error(`Failed to create security group for load balancer:`, error);
-    throw error;
-  }
-};
+const ensureBalancerSecurityGroup = (useIAM, projName) =>
+  ensureSecurityGroup(
+    useIAM,
+    projName,
+    "BalancerGroup",
+    `Load balancer security group for ${projName}`,
+    [
+      {
+        IpProtocol: "tcp",
+        FromPort: 80,
+        ToPort: 80,
+        IpRanges: [OPEN_IPV4],
+        Ipv6Ranges: [OPEN_IPV6],
+      },
+      {
+        IpProtocol: "tcp",
+        FromPort: 443,
+        ToPort: 443,
+        IpRanges: [OPEN_IPV4],
+        Ipv6Ranges: [OPEN_IPV6],
+      },
+    ],
+  );
 
 /**
  * Ensure project-specific ECS security group exists (creates if missing).
  * WHY: Each project needs its own ECS security group for network isolation.
  * @param {string} useIAM - The IAM role to use
  * @param {string} projName - The project name
- * @returns {Promise<string>} - The security group ID for the ECS cluster
+ * @returns {Promise<string>} - The security group ID
  */
-const ensureECSSecurityGroup = async (useIAM, projName) => {
-  const ec2Client = createEC2Client(useIAM);
-  const groupName = `${projName}-ECSGroup`;
-
-  // Check if security group already exists
-  let securityGroups;
-  try {
-    const describeSecurityGroupsResponse = await ec2Client.send(
-      new DescribeSecurityGroupsCommand({}),
-    );
-    securityGroups = describeSecurityGroupsResponse.SecurityGroups || [];
-  } catch (error) {
-    console.error(`Failed to retrieve list of security groups from AWS:`, error);
-    throw error;
-  }
-
-  const foundGroup = securityGroups.find((g) => g.GroupName === groupName);
-
-  if (foundGroup) {
-    console.log(`ECS security group ${groupName} already exists. Skipping creation.`);
-    return foundGroup.GroupId;
-  }
-
-  // Create new security group
-  console.log(`Creating security group ${groupName} for ECS cluster...`);
-  try {
-    const createSGResponse = await ec2Client.send(
-      new CreateSecurityGroupCommand({
-        GroupName: groupName,
-        Description: `ECS cluster security group for ${projName}`,
-        TagSpecifications: [
-          {
-            ResourceType: "security-group",
-            Tags: [{ Key: PROJECT_TAG_KEY, Value: projName }],
-          },
-        ],
-      }),
-    );
-
-    const groupId = createSGResponse.GroupId;
-
-    // Add ingress rules for HTTP (80), SSH (22), and ephemeral ports (1024-65535)
-    await Promise.all([
-      ec2Client.send(
-        new AuthorizeSecurityGroupIngressCommand({
-          GroupId: groupId,
-          IpPermissions: [
-            {
-              IpProtocol: "tcp",
-              FromPort: 80,
-              ToPort: 80,
-              IpRanges: [{ CidrIp: "0.0.0.0/0" }],
-              Ipv6Ranges: [{ CidrIpv6: "::/0" }],
-            },
-          ],
-        }),
-      ),
-      ec2Client.send(
-        new AuthorizeSecurityGroupIngressCommand({
-          GroupId: groupId,
-          IpPermissions: [
-            {
-              IpProtocol: "tcp",
-              FromPort: 22,
-              ToPort: 22,
-              IpRanges: [{ CidrIp: "0.0.0.0/0" }],
-              Ipv6Ranges: [{ CidrIpv6: "::/0" }],
-            },
-          ],
-        }),
-      ),
-      ec2Client.send(
-        new AuthorizeSecurityGroupIngressCommand({
-          GroupId: groupId,
-          IpPermissions: [
-            {
-              IpProtocol: "tcp",
-              FromPort: 1024,
-              ToPort: 65535,
-              IpRanges: [{ CidrIp: "0.0.0.0/0" }],
-              Ipv6Ranges: [{ CidrIpv6: "::/0" }],
-            },
-          ],
-        }),
-      ),
-    ]);
-
-    return groupId;
-  } catch (error) {
-    console.error(`Failed to create security group for ECS cluster:`, error);
-    throw error;
-  }
-};
+const ensureECSSecurityGroup = (useIAM, projName) =>
+  ensureSecurityGroup(useIAM, projName, "ECSGroup", `ECS cluster security group for ${projName}`, [
+    { IpProtocol: "tcp", FromPort: 80, ToPort: 80, IpRanges: [OPEN_IPV4], Ipv6Ranges: [OPEN_IPV6] },
+    { IpProtocol: "tcp", FromPort: 22, ToPort: 22, IpRanges: [OPEN_IPV4], Ipv6Ranges: [OPEN_IPV6] },
+    {
+      IpProtocol: "tcp",
+      FromPort: 1024,
+      ToPort: 65535,
+      IpRanges: [OPEN_IPV4],
+      Ipv6Ranges: [OPEN_IPV6],
+    },
+  ]);
 
 /**
  * Retrieve WAF Web ACL for CloudFront protection or create if it doesn't exist.
