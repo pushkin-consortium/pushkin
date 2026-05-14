@@ -206,7 +206,7 @@ const shouldCreateNewDB = async (dbName, dbType, useIAM) => {
       `Database conflict: ${dbName} exists in RDS but not in pushkin.yaml. ` +
         `You need to either delete the database from RDS or add its credentials to pushkin.yaml.`,
     );
-    console.error("\x1b[31m%s\x1b[0m", error);
+    console.error(error);
     throw error;
   } else {
     // Case 4: Not in YAML, not in RDS - create new
@@ -226,7 +226,7 @@ const createRDSDatabase = async (
   verbose = false,
 ) => {
   const dbPassword = generateSecurePassword();
-  let myDBConfig = JSON.parse(JSON.stringify(dbConfig));
+  const myDBConfig = structuredClone(dbConfig);
   myDBConfig.DBName = dbName;
   myDBConfig.DBInstanceIdentifier = dbName.toLowerCase();
   myDBConfig.VpcSecurityGroupIds = [securityGroupID];
@@ -278,41 +278,23 @@ const createRDSDatabase = async (
     }
   }
 
-  // Try to connect to RDS database endpoint
   let dbEndpoint;
-  let retryCount = 0;
-  const maxRetries = 3;
-
-  console.log(`${dbName}: Attempting to get database endpoint from RDS...`);
   const dbInstanceIdentifier = dbName.toLowerCase();
-  const rdsClient = createRDSClient(useIAM);
-  while (retryCount < maxRetries) {
-    try {
-      console.log(`(attempt ${retryCount + 1}/${maxRetries})...`);
-      dbEndpoint = await rdsClient.send(
-        new DescribeDBInstancesCommand({ DBInstanceIdentifier: dbInstanceIdentifier }),
-      );
-      if (dbEndpoint?.DBInstances?.[0]?.Endpoint?.Address) {
-        console.log(
-          `${dbName}: Successfully retrieved database endpoint: ${dbEndpoint.DBInstances[0].Endpoint.Address}`,
-        );
-        break;
-      } else {
-        throw new Error("Database endpoint not yet available.");
+  console.log(`${dbName}: Retrieving database endpoint...`);
+  await createWaiter(
+    { client: createRDSClient(useIAM), maxWaitTime: 120, minDelay: 10, maxDelay: 30 },
+    { DBInstanceIdentifier: dbInstanceIdentifier },
+    async (client, input) => {
+      const response = await client.send(new DescribeDBInstancesCommand(input));
+      if (response?.DBInstances?.[0]?.Endpoint?.Address) {
+        dbEndpoint = response;
+        return { state: WaiterState.SUCCESS };
       }
-    } catch (error) {
-      retryCount++;
-      console.warn(`${dbName}: Attempt ${retryCount} failed to get endpoint:`, error);
-
-      if (retryCount >= maxRetries) {
-        console.error(`${dbName}: Failed to get database endpoint after ${maxRetries} attempts`);
-        throw error;
-      }
-
-      console.log(`${dbName}: Waiting 30 seconds before retry...`);
-      await new Promise((resolve) => setTimeout(resolve, 30000));
-    }
-  }
+      console.log(`${dbName}: Endpoint not yet available, retrying...`);
+      return { state: WaiterState.RETRY };
+    },
+  );
+  console.log(`${dbName}: Retrieved endpoint: ${dbEndpoint.DBInstances[0].Endpoint.Address}`);
 
   // Update list of AWS resources
   try {
@@ -485,7 +467,7 @@ const recordDBs = async (dbDone) => {
       throw new Error(`Expected array of databases, got: ${typeof databases}`);
     }
 
-    if (databases.length ===0) {
+    if (databases.length === 0) {
       throw new Error(`No new databases were created, received empty array.`);
     }
 
