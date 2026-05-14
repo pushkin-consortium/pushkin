@@ -13,6 +13,7 @@ import {
   ListServicesCommand,
   DeleteServiceCommand,
 } from "@aws-sdk/client-ecs";
+import { createWaiter, WaiterState } from "@smithy/util-waiter";
 import { AWSClientFactory } from "../../utils/aws-client-factory.js";
 import { writeFile } from "../../../../utils/file.js";
 import { AWS_REGION } from "../../constants.js";
@@ -71,7 +72,7 @@ const createECSService = async (
     }
   } catch (error) {
     if (error.name !== "ServiceNotFoundException") {
-      console.warn(`Note: Could not check for existing service: ${error.message}`);
+      console.warn(`Note: Could not check for existing service: ${error}`);
     }
   }
 
@@ -177,29 +178,19 @@ const deleteAllServices = async (clusterName, useIAM) => {
     );
   }
 
-  // Poll until all services are fully removed
-  const deadline = Date.now() + 5 * 60 * 1000; // 5 minute timeout
-  while (true) {
-    if (Date.now() > deadline) {
-      throw new Error(`Timed out waiting for services in cluster ${clusterName} to be deleted`);
-    }
-
-    let remaining;
-    try {
-      const response = await ecsClient.send(new ListServicesCommand({ cluster: clusterName }));
-      remaining = response.serviceArns;
-    } catch (error) {
-      console.error(`Unable to list services for cluster ${clusterName}: ${error}`);
-      throw error;
-    }
-
-    if (remaining.length === 0) break;
-
-    console.log(`Waiting for ${remaining.length} services to be deleted...`);
-    await new Promise((resolve) => setTimeout(resolve, 5000));
-  }
-
-  console.log("All services have been deleted.");
+  await createWaiter(
+    { client: ecsClient, maxWaitTime: 300, minDelay: 5, maxDelay: 5 },
+    { cluster: clusterName },
+    async (client, input) => {
+      const response = await client.send(new ListServicesCommand(input));
+      if (response.serviceArns.length === 0) {
+        console.log("All services have been deleted.");
+        return { state: WaiterState.SUCCESS };
+      }
+      console.log(`Waiting for ${response.serviceArns.length} services to be deleted...`);
+      return { state: WaiterState.RETRY };
+    },
+  );
   return true;
 };
 
