@@ -7,7 +7,7 @@
 import fs from "graceful-fs";
 import path from "path";
 import { publishToDocker, rebuildWorker } from "../../../utils/docker.js";
-import { deployFrontEnd } from "../operations/init.js";
+import { deployFrontEnd } from "./init.js";
 import { forwardAPI } from "../services/route53.js";
 
 /**
@@ -19,15 +19,7 @@ import { forwardAPI } from "../services/route53.js";
 async function buildAndPublishWorkers(config, DHID) {
   const expDirs = fs.readdirSync(path.join(process.cwd(), config.experimentsDir));
 
-  let rebuiltWorkers;
-  try {
-    rebuiltWorkers = Promise.all(expDirs.map(rebuildWorker));
-  } catch (err) {
-    console.error("Failed to rebuild workers:", err);
-    throw err;
-  }
-
-  // Publish to DockerHub
+  const rebuiltWorkers = Promise.all(expDirs.map(rebuildWorker));
   return publishToDocker(DHID, rebuiltWorkers);
 }
 
@@ -72,13 +64,7 @@ export async function deployApplication({
   );
 
   // Set up API forwarding via Route53
-  const apiForwarded = forwardAPI(
-    configuredECS,
-    profileName,
-    projName,
-    domain,
-    deployedFrontEnd,
-  );
+  const apiForwarded = forwardAPI(configuredECS, profileName, projName, domain, deployedFrontEnd);
 
   // Get CloudFront domain for default domain setup
   let cloudDomain;

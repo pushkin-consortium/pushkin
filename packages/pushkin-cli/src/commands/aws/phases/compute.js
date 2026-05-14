@@ -89,15 +89,7 @@ export async function setupCompute(projName, useIAM, DHID, completedDBs, myCerti
 
   const zones = await subnetLookup;
   console.log(`Subnets identified`);
-  let subnets;
-  try {
-    subnets = Object.keys(zones).map((z) => zones[z]);
-  } catch (error) {
-    console.error(
-      `Problem extracting list of subnets in your zone from 'zones': ${zones}\n${error}`,
-    );
-    throw error;
-  }
+  const subnets = Object.values(zones);
 
   // Create ECS cluster
   const myVPC = await vpcLookup;
