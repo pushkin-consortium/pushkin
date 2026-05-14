@@ -4,9 +4,8 @@
  * @module aws/phases/setup
  */
 
-import { verifyIAMCredentials } from '../services/security.js';
-import { loadPushkinConfig, savePushkinConfig } from '../../../utils/pushkin-config.js';
-import { readAwsResources } from '../utils/aws-resources.js';
+import { verifyIAMCredentials } from "../services/security.js";
+import { loadPushkinConfig, savePushkinConfig } from "../../../utils/pushkin-config.js";
 
 /**
  * Initialize deployment - verify credentials and load configurations
@@ -15,7 +14,7 @@ import { readAwsResources } from '../utils/aws-resources.js';
  */
 export async function initializeDeployment(useIAM) {
   // Normalize useIAM to always be a string
-  const profileName = typeof useIAM === 'string' ? useIAM : useIAM.iam;
+  const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
 
   // Verify AWS credentials
   await verifyIAMCredentials(profileName);
@@ -23,24 +22,13 @@ export async function initializeDeployment(useIAM) {
   // Load Pushkin config
   let config;
   try {
-    config = await loadPushkinConfig();
+    config = loadPushkinConfig();
   } catch (error) {
     console.error(`Failed to load pushkin.yaml:`, error);
     throw error;
   }
 
-  // Check if this is update or new deployment
-  let resources;
-  try {
-    resources = readAwsResources();
-  } catch (e) {
-    // If no resources file exists, this is a new deployment
-    resources = {};
-  }
-
-  const isUpdate = resources.cloudfront?.distributionId ? true : false;
-
-  return { profileName, config, resources, isUpdate };
+  return { profileName, config };
 }
 
 /**
