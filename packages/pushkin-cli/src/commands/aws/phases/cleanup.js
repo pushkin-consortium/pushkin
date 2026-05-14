@@ -4,14 +4,14 @@
  * @module aws/phases/cleanup
  */
 
-import { deleteCluster } from '../services/ecs/clusters.js';
-import { getDBsToDelete, deleteDBs } from '../services/rds.js';
-import { deleteLoadBalancer, deleteTargetGroups } from '../services/elb.js';
-import { deleteCloudFront, deleteOACs } from '../services/cloudfront.js';
-import { deleteResourceRecords } from '../services/route53.js';
-import { deleteS3Buckets } from '../services/s3.js';
-import { deleteSecurityGroups } from '../services/security.js';
-import { readAwsResources, writeAwsResources } from '../utils/aws-resources.js';
+import { deleteCluster } from "../services/ecs/clusters.js";
+import { getDBsToDelete, deleteDBs } from "../services/rds.js";
+import { deleteLoadBalancer, deleteTargetGroups } from "../services/elb.js";
+import { deleteCloudFront, deleteOACs } from "../services/cloudfront.js";
+import { deleteResourceRecords } from "../services/route53.js";
+import { deleteS3Buckets } from "../services/s3.js";
+import { deleteSecurityGroups } from "../services/security.js";
+import { readAwsResources, writeAwsResources } from "../utils/aws-resources.js";
 
 /**
  * Delete all AWS resources in proper dependency order
@@ -20,7 +20,7 @@ import { readAwsResources, writeAwsResources } from '../utils/aws-resources.js';
  * @returns {Promise<void>}
  */
 export async function cleanupResources(profileName, killType) {
-  console.log('Starting AWS resource cleanup...');
+  console.log("Starting AWS resource cleanup...");
 
   // Load project information
   let awsResources;
@@ -34,15 +34,14 @@ export async function cleanupResources(profileName, killType) {
   if (awsResources) {
     projName = awsResources.name; // can use this to identify resources needing deletion
   } else {
-    if (killType === 'kill') {
+    if (killType === "kill") {
       console.warn(
-        '\x1b[31m%s\x1b[0m',
-        `Unable to find awsResources.js. You won't be able to run kill.\n Either delete AWS deploy manually or run aws armageddon to delete everything including things not related to your project.`
+        `Unable to find awsResources.js. You won't be able to run kill.\n Either delete AWS deploy manually or run aws armageddon to delete everything including things not related to your project.`,
       );
     }
   }
 
-  const killTag = killType === 'kill' ? projName : false;
+  const killTag = killType === "kill" ? projName : false;
 
   // Start deletions in dependency order
   const deletedCluster = deleteCluster(profileName, killTag, projName, awsResources);
@@ -58,9 +57,8 @@ export async function cleanupResources(profileName, killType) {
   let deletedOACs;
   try {
     deletedOACs = deleteOACs(profileName, deletedCloudFront, killTag);
-  } catch (e) {
-    console.warn('\x1b[31m%s\x1b[0m', `Unable to delete origin access controls`);
-    console.warn('\x1b[31m%s\x1b[0m', e); // Don't fail the whole process for this
+  } catch (error) {
+    console.warn(`Unable to delete origin access controls: ${error}`); // Don't fail the whole process for this
   }
 
   const deletedResourceRecords = deleteResourceRecords(profileName, killTag, projName);
@@ -83,13 +81,6 @@ export async function cleanupResources(profileName, killType) {
     OAC: null,
   };
 
-  // Remove undefined properties
-  Object.keys(awsResourcesNull).forEach((key) => {
-    if (awsResourcesNull[key] === undefined) {
-      delete awsResourcesNull[key];
-    }
-  });
-
   try {
     writeAwsResources(awsResourcesNull);
   } catch (e) {
@@ -110,5 +101,5 @@ export async function cleanupResources(profileName, killType) {
     deletedTargetGroup,
   ]);
 
-  console.log('✅ Cleanup complete!');
+  console.log("✅ Cleanup complete!");
 }
