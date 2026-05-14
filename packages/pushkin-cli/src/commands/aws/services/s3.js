@@ -1,3 +1,6 @@
+import path from "path";
+import mime from "mime-types";
+import { quote } from "shell-quote";
 import {
   S3Client,
   ListBucketsCommand,
@@ -6,13 +9,10 @@ import {
   DeleteObjectsCommand,
   PutObjectCommand,
 } from "@aws-sdk/client-s3";
-import path from "path";
-import mime from "mime-types";
+import { readJSON, fileExists, walkDirectory, readFile } from "../../../utils/file.js";
+import pacMan from "../../../utils/package-manager.js";
 import { AWSClientFactory } from "../utils/aws-client-factory.js";
 import { AWS_REGION as myRegion, exec } from "../constants.js";
-import pacMan from "../../../utils/package-manager.js";
-import { quote } from "shell-quote";
-import { readJSON, fileExists, walkDirectory, readFile } from "../../../utils/file.js";
 
 /**
  * Creates an S3 client with consistent configuration.
@@ -257,14 +257,12 @@ const deleteS3Buckets = async (
     return;
   }
 
-  // Filter buckets based on killTag
+  // TODO: killize
   let bucketsToDelete;
   if (!killTag) {
-    // Armageddon mode: delete all buckets
     bucketsToDelete = buckets;
     console.log(`Deleting all ${buckets.length} S3 buckets (armageddon mode) in AWS account.`);
   } else {
-    // Kill mode: delete only the project bucket (match by name)
     const projectBucketName = awsResources?.s3BucketName;
     if (!projectBucketName) {
       if (verbose) {
@@ -289,5 +287,4 @@ const deleteS3Buckets = async (
   console.log(`Finished deleting ${bucketsToDelete.length} S3 buckets.`);
 };
 
-// Export functions
 export { buildFrontEnd, syncS3, deleteS3Buckets };

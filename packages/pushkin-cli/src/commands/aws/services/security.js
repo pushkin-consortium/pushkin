@@ -1,6 +1,6 @@
 /**
  * AWS Security Service Management
- * Handles security groups, IAM verification, and WAF Web ACLs for Pushkin deployments
+ * Handles security groups, IAM verification, and WAF Web ACLs
  * @module security
  */
 

@@ -19,7 +19,6 @@
  */
 
 /**
- * (Helper)
  * Function that checks error against list of default retryable AWS errors
  * WHY: 
  */

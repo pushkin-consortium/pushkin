@@ -1,6 +1,6 @@
 /**
  * AWS IAM Service Management
- * Handles IAM role creation and management for Pushkin deployments
+ * Handles IAM role creation and management
  * @module iam
  */
 
