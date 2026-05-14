@@ -1,6 +1,5 @@
 /**
  * ECS Cluster Management
- * Handles ECS cluster lifecycle and CloudFormation stack cleanup
  * @module ecs/clusters
  */
 
@@ -93,11 +92,8 @@ const deleteStack = async (useIAM, killTag) => {
       try {
         await cfClient.send(new DeleteStackCommand({ StackName: stackId }));
       } catch (error) {
-        if (error.name === "ValidationError" && error.message.includes("does not exist")) {
-          console.warn(`Stack ${stackId} already deleted, skipping.`);
-        } else {
-          throw error;
-        }
+        console.error(`Unable to delete stack ${stackId}: ${error}`);
+        throw error;
       }
     }),
   );
