@@ -1,6 +1,6 @@
 /**
  * AWS RDS Service Management Module
- * Handles creation, configuration, and deletion of RDS database instances for Pushkin deployments
+ * Handles creation, configuration, and deletion of RDS database instances 
  * @module rds
  */
 
@@ -14,6 +14,7 @@ import {
   waitUntilDBInstanceAvailable,
   waitUntilDBInstanceDeleted,
 } from "@aws-sdk/client-rds";
+import { createWaiter, WaiterState } from "@smithy/util-waiter";
 import { AWSClientFactory } from "../utils/aws-client-factory.js";
 import { loadAwsConfig } from "../utils/aws-config.js";
 import { readAwsResources, writeAwsResources } from "../utils/aws-resources.js";
@@ -600,38 +601,26 @@ const disableDeletionProtection = async (dbName, rdsClient) => {
  * Wait until deletion protection is disabled for a database.
  */
 const waitForDeletionProtectionDisabled = async (dbName, rdsClient, timeoutMs = 300000) => {
-  const checkProtection = async () => {
-    while (true) {
+  await createWaiter(
+    { client: rdsClient, maxWaitTime: Math.floor(timeoutMs / 1000), minDelay: 10, maxDelay: 10 },
+    { DBInstanceIdentifier: dbName.toLowerCase() },
+    async (client, input) => {
       try {
-        const response = await rdsClient.send(
-          new DescribeDBInstancesCommand({ DBInstanceIdentifier: dbName.toLowerCase() }),
-        );
-
+        const response = await client.send(new DescribeDBInstancesCommand(input));
         if (response.DBInstances?.[0]?.DeletionProtection === false) {
-          return true;
+          return { state: WaiterState.SUCCESS };
         }
-
         console.log(`Waiting for deletion protection to be disabled for ${dbName}...`);
-        await new Promise((resolve) => setTimeout(resolve, 10000)); // 10s intervals
+        return { state: WaiterState.RETRY };
       } catch (error) {
         console.warn(
           `Database ${dbName} no longer exists (may have been deleted externally):`,
           error,
         );
-        return false;
+        return { state: WaiterState.SUCCESS };
       }
-    }
-  };
-
-  const timeout = new Promise((_, reject) =>
-    setTimeout(
-      () =>
-        reject(new Error(`Timeout waiting for deletion protection to be disabled for ${dbName}`)),
-      timeoutMs,
-    ),
+    },
   );
-
-  return Promise.race([checkProtection(), timeout]);
 };
 
 /**
