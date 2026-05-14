@@ -19,9 +19,7 @@ import { AWS_REGION as myRegion, exec } from "../constants.js";
  * WHY: Ensure all S3 operations use the same region and IAM profile.
  */
 const createS3Client = (useIAM) => {
-  const profileName = useIAM;
-  const factory = new AWSClientFactory(myRegion, profileName);
-  return factory.createClient(S3Client);
+  return new AWSClientFactory(myRegion, useIAM).createClient(S3Client);
 };
 
 /**
@@ -46,7 +44,7 @@ const buildFrontEnd = async (projName, verbose = false) => {
 
   // Determine build command based on build-if-changed availability
   let buildCommand;
-  if (packageJson.dependencies["build-if-changed"] == null) {
+  if (packageJson.dependencies["build-if-changed"] === undefined) {
     if (verbose) {
       console.log(
         `Project ${projName} does not have build-if-changed installed. Recommend installation for faster prep.`,
@@ -57,7 +55,7 @@ const buildFrontEnd = async (projName, verbose = false) => {
     if (verbose) {
       console.log(`Using build-if-changed for project ${projName} for faster builds.`);
     }
-    const pacRunner = pacMan == "yarn" ? "yarn" : "npx";
+    const pacRunner = pacMan === "yarn" ? "yarn" : "npx";
     buildCommand = [pacRunner, "build-if-changed", "--mutex", "network"];
   }
 
@@ -103,7 +101,7 @@ const uploadFileToS3 = async (s3Client, bucketName, filePath, s3Key, verbose = f
   try {
     await s3Client.send(new PutObjectCommand(params));
   } catch (error) {
-    console.log(`Error uploading ${s3Key} to S3 bucket ${bucketName}:`, error);
+    console.error(`Error uploading ${s3Key} to S3 bucket ${bucketName}:`, error);
     throw error;
   }
 };

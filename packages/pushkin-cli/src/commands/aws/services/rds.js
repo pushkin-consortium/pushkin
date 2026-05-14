@@ -1,6 +1,6 @@
 /**
  * AWS RDS Service Management Module
- * Handles creation, configuration, and deletion of RDS database instances 
+ * Handles creation, configuration, and deletion of RDS database instances
  * @module rds
  */
 
