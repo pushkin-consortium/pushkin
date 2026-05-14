@@ -47,7 +47,7 @@ const createCluster = async (ECSName, projName, useIAM, projectTagKey) => {
     if (error.name === "ClusterAlreadyExistsException") {
       console.log(`ECS cluster ${ECSName} already exists, continuing...`);
     } else {
-      console.error(`Unable to launch cluster ${ECSName}: ${error}`);
+      console.error(`Unable to launch cluster ${ECSName}:`, error);
       throw error;
     }
   }
@@ -92,7 +92,7 @@ const deleteStack = async (useIAM, killTag) => {
       try {
         await cfClient.send(new DeleteStackCommand({ StackName: stackId }));
       } catch (error) {
-        console.error(`Unable to delete stack ${stackId}: ${error}`);
+        console.error(`Unable to delete stack ${stackId}:`, error);
         throw error;
       }
     }),
@@ -128,7 +128,7 @@ const deleteCluster = async (useIAM, killTag, projName, awsResources) => {
 
   // Get all running clusters
   const { clusterArns } = await ecsClient.send(new ListClustersCommand({})).catch((error) => {
-    console.error(`Unable to list ECS clusters: ${error}`);
+    console.error(`Unable to list ECS clusters:`, error);
     throw error;
   });
 
@@ -164,7 +164,7 @@ const deleteCluster = async (useIAM, killTag, projName, awsResources) => {
       const { taskArns } = await ecsClient
         .send(new ListTasksCommand({ cluster: clusterArn }))
         .catch((error) => {
-          console.error(`Unable to list tasks for cluster ${clusterArn}: ${error}`);
+          console.error(`Unable to list tasks for cluster ${clusterArn}:`, error);
           throw error;
         });
 
@@ -202,7 +202,7 @@ const deleteCluster = async (useIAM, killTag, projName, awsResources) => {
         if (error.name === "ClusterNotFoundException") {
           console.warn(`Cluster ${clusterArn} already deleted, skipping.`);
         } else {
-          console.error(`Unable to delete cluster ${clusterArn}: ${error}`);
+          console.error(`Unable to delete cluster ${clusterArn}:`, error);
           throw error;
         }
       }

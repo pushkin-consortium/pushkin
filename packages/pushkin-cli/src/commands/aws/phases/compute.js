@@ -31,7 +31,7 @@ async function getSubnets(useIAM) {
     });
     return subnets;
   } catch (error) {
-    console.error(`Failed to retrieve available subnets: ${error}`);
+    console.error(`Failed to retrieve available subnets:`, error);
     throw error;
   }
 }
@@ -53,7 +53,7 @@ async function getDefaultVPC(useIAM) {
     console.log("Default VPC:", defaultVPC.VpcId);
     return defaultVPC.VpcId;
   } catch (error) {
-    console.error(`Unable to find VPC: ${error}`);
+    console.error(`Unable to find VPC:`, error);
     throw error;
   }
 }

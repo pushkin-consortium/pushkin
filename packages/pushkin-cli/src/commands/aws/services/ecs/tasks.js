@@ -125,7 +125,7 @@ const registerECSTaskDefinition = async (taskDefParams, useIAM) => {
     );
     return response.taskDefinition.taskDefinitionArn;
   } catch (error) {
-    console.error(`Failed to register task definition ${taskDefParams.family}:`, error);
+    console.error(`Failed to register task definition ${taskDefParams.family}::`, error);
     throw error;
   }
 };
@@ -215,7 +215,7 @@ const createECSTask = async (
   try {
     pushkinConfig = loadPushkinConfig();
   } catch (error) {
-    console.error(`Failed to load pushkin.yaml: ${error}`);
+    console.error(`Failed to load pushkin.yaml:`, error);
     throw error;
   }
 
@@ -237,7 +237,7 @@ const createECSTask = async (
       savePushkinConfig(pushkinConfig);
       console.log("Saved RabbitMQ credentials to pushkin.yaml");
     } catch (error) {
-      console.error(`Failed to save RabbitMQ credentials to pushkin.yaml: ${error}`);
+      console.error(`Failed to save RabbitMQ credentials to pushkin.yaml:`, error);
       throw error;
     }
   }
@@ -251,7 +251,7 @@ const createECSTask = async (
       readFile(path.join(process.cwd(), "pushkin/docker-compose.dev.yml"), "utf8"),
     );
   } catch (error) {
-    console.error(`Failed to load the docker-compose: ${error}`);
+    console.error(`Failed to load the docker-compose:`, error);
     throw error;
   }
 

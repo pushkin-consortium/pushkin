@@ -72,7 +72,7 @@ const createECSService = async (
     }
   } catch (error) {
     if (error.name !== "ServiceNotFoundException") {
-      console.warn(`Note: Could not check for existing service: ${error}`);
+      console.warn(`Note: Could not check for existing service:`, error);
     }
   }
 
@@ -114,7 +114,7 @@ const createECSService = async (
     return response.service;
   } catch (error) {
     console.error(`Service: ${serviceName}`);
-    console.error(`Error:`, error);
+    console.error(`Error::`, error);
     if (error.$metadata) {
       console.error(`HTTP Status: ${error.$metadata.httpStatusCode}`);
     }
@@ -163,7 +163,7 @@ const deleteAllServices = async (clusterName, useIAM) => {
     const response = await ecsClient.send(new ListServicesCommand({ cluster: clusterName }));
     serviceArns = response.serviceArns;
   } catch (error) {
-    console.error(`Unable to list services for cluster ${clusterName}: ${error}`);
+    console.error(`Unable to list services for cluster ${clusterName}:`, error);
     throw error;
   }
 

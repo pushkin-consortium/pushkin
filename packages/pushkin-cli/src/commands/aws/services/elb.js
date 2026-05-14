@@ -80,21 +80,21 @@ const createLoadBalancer = async (
     );
     targetGroupARN = targetGroupResponse.TargetGroups[0].TargetGroupArn;
   } catch (error) {
-    console.error(`Unable to create target group: ${error}`);
+    console.error(`Unable to create target group:`, error);
     throw error;
   }
 
   try {
     updateAwsResourcesField("targetGroupARN", targetGroupARN);
   } catch (error) {
-    console.error(`Unable to update awsResources.js: ${error}`);
+    console.error(`Unable to update awsResources.js:`, error);
   }
 
   let loadBalancer;
   try {
     loadBalancer = await loadBalancerPromise;
   } catch (error) {
-    console.error(`Unable to create application load balancer: ${error}`);
+    console.error(`Unable to create application load balancer:`, error);
     throw error;
   }
   const balancerARN = loadBalancer.LoadBalancers[0].LoadBalancerArn;
@@ -104,7 +104,7 @@ const createLoadBalancer = async (
   try {
     updateAwsResourcesField("loadBalancerName", loadBalancerName);
   } catch (error) {
-    console.error(`Unable to update awsResources.js: ${error}`);
+    console.error(`Unable to update awsResources.js:`, error);
   }
 
   try {
@@ -117,7 +117,7 @@ const createLoadBalancer = async (
       }),
     );
   } catch (error) {
-    console.error(`Unable to create HTTP listener: ${error}`);
+    console.error(`Unable to create HTTP listener:`, error);
     throw error;
   }
 
@@ -133,7 +133,7 @@ const createLoadBalancer = async (
     );
     console.log(`Added HTTPS to load balancer`);
   } catch (error) {
-    console.error(`Unable to add HTTPS to load balancer: ${error}`);
+    console.error(`Unable to add HTTPS to load balancer:`, error);
     throw error;
   }
 
@@ -156,7 +156,7 @@ const deleteAllListeners = async (loadBalancerArn, useIAM) => {
     );
     listenerArns = response.Listeners.map((l) => l.ListenerArn);
   } catch (error) {
-    console.error(`Unable to list listeners for load balancer ${loadBalancerArn}: ${error}`);
+    console.error(`Unable to list listeners for load balancer ${loadBalancerArn}:`, error);
     throw error;
   }
 
@@ -203,7 +203,7 @@ const deleteLoadBalancer = async (useIAM, killTag) => {
       console.warn(`No load balancers found. May have already been deleted. Skipping.`);
       return;
     }
-    console.error(`Unable to list load balancers: ${error}`);
+    console.error(`Unable to list load balancers:`, error);
     throw error;
   }
 
@@ -214,7 +214,7 @@ const deleteLoadBalancer = async (useIAM, killTag) => {
       try {
         await elbv2Client.send(new DeleteLoadBalancerCommand({ LoadBalancerArn: arn }));
       } catch (error) {
-        console.error(`Unable to delete load balancer ${arn}: ${error}`);
+        console.error(`Unable to delete load balancer ${arn}:`, error);
         throw error;
       }
     }),
@@ -237,7 +237,7 @@ const deleteTargetGroups = async (useIAM, deletedLoadBalancer) => {
     const response = await elbv2Client.send(new DescribeTargetGroupsCommand({}));
     targetGroupArns = response.TargetGroups.map((tg) => tg.TargetGroupArn);
   } catch (error) {
-    console.error(`Unable to list target groups: ${error}`);
+    console.error(`Unable to list target groups:`, error);
     throw error;
   }
 
@@ -251,7 +251,7 @@ const deleteTargetGroups = async (useIAM, deletedLoadBalancer) => {
       try {
         await elbv2Client.send(new DeleteTargetGroupCommand({ TargetGroupArn: arn }));
       } catch (error) {
-        console.error(`Unable to delete target group ${arn}: ${error}`);
+        console.error(`Unable to delete target group ${arn}:`, error);
         throw error;
       }
     }),

@@ -48,7 +48,7 @@ const findHostedZone = async (domain, useIAM) => {
         if (matchingZone) break;
       }
     } catch (error) {
-      console.error(`Unable to retrieve hosted zone for ${zoneDomain}:`, error);
+      console.error(`Unable to retrieve hosted zone for ${zoneDomain}::`, error);
       throw error;
     }
 
@@ -90,7 +90,7 @@ const makeRecordSet = async (domainName, projName, useIAM, theCloud) => {
     const data = await route53.send(new ListResourceRecordSetsCommand({ HostedZoneId: zoneID }));
     existingRecords = data.ResourceRecordSets;
   } catch (error) {
-    console.error(`Unable to list resource record sets for ${domainName}: ${error}`);
+    console.error(`Unable to list resource record sets for ${domainName}:`, error);
     throw error;
   }
 
@@ -117,7 +117,7 @@ const makeRecordSet = async (domainName, projName, useIAM, theCloud) => {
           }),
         );
       } catch (error) {
-        console.error(`Unable to delete resource record sets for ${domainName}: ${error}`);
+        console.error(`Unable to delete resource record sets for ${domainName}:`, error);
       }
     } else {
       console.log(
@@ -195,7 +195,7 @@ const makeRecordSet = async (domainName, projName, useIAM, theCloud) => {
     );
     console.log(`Updated record set for ${domainName}.`);
   } catch (error) {
-    console.error(`Unable to create resource record set for ${domainName}: ${error}`);
+    console.error(`Unable to create resource record set for ${domainName}:`, error);
     throw error;
   }
 
@@ -215,7 +215,7 @@ async function deleteResourceRecords(useIAM, killTag, projName) {
   try {
     pushkinConfig = await loadPushkinConfig();
   } catch (error) {
-    console.error(`Failed to load pushkin.yaml:`, error);
+    console.error(`Failed to load pushkin.yaml::`, error);
     throw error;
   }
   const myDomain = pushkinConfig.info.rootDomain;
@@ -248,7 +248,7 @@ async function deleteResourceRecords(useIAM, killTag, projName) {
       }
     }
   } catch (error) {
-    console.error(`Unable to retrieve resource records for ${myDomain}:`, error);
+    console.error(`Unable to retrieve resource records for ${myDomain}::`, error);
     throw error;
   }
 
@@ -311,7 +311,7 @@ const forwardAPI = async (configuredECS, useIAM, projName, myDomain, deployedFro
     );
     console.log(`Updated record set for ${myDomain}.`);
   } catch (error) {
-    console.error(`Unable to create resource record set for ${myDomain}: ${error}`);
+    console.error(`Unable to create resource record set for ${myDomain}:`, error);
     throw error;
   }
 

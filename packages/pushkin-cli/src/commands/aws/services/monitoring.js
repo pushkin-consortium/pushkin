@@ -43,7 +43,7 @@ const createLogGroup = async (useIAM, projName) => {
       }),
     );
   } catch (error) {
-    console.error(`Unable to set retention policy for ECS log group: ${error}`);
+    console.error(`Unable to set retention policy for ECS log group:`, error);
     throw error;
   }
 };
@@ -65,7 +65,7 @@ const listCertificates = async (useIAM) => {
       return acc;
     }, {});
   } catch (error) {
-    console.error(`Unable to get list of SSL certificates: ${error}`);
+    console.error(`Unable to get list of SSL certificates:`, error);
     throw error;
   }
 };

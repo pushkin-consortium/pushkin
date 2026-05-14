@@ -58,7 +58,7 @@ export async function cleanupResources(profileName, killType) {
   try {
     deletedOACs = deleteOACs(profileName, deletedCloudFront, killTag);
   } catch (error) {
-    console.warn(`Unable to delete origin access controls: ${error}`); // Don't fail the whole process for this
+    console.warn(`Unable to delete origin access controls:`, error); // Don't fail the whole process for this
   }
 
   const deletedResourceRecords = deleteResourceRecords(profileName, killTag, projName);
