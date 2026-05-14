@@ -7,10 +7,9 @@
 
 import {
   Route53Client,
+  ListHostedZonesByNameCommand,
   ListResourceRecordSetsCommand,
   ChangeResourceRecordSetsCommand,
-  paginateListHostedZonesByName,
-  paginateListResourceRecordSets,
 } from "@aws-sdk/client-route-53";
 import { createWaiter, WaiterState } from "@smithy/util-waiter";
 import { AWSClientFactory } from "../utils/aws-client-factory.js";
@@ -37,18 +36,18 @@ const findHostedZone = async (domain, useIAM) => {
   while (zoneDomain.split(".").length >= 2) {
     let matchingZone;
     try {
-      for await (const page of paginateListHostedZonesByName(
-        { client: route53Client },
-        { DNSName: zoneDomain },
-      )) {
-        matchingZone = page.HostedZones.find((zone) => {
+      let params = { DNSName: zoneDomain };
+      let response;
+      do {
+        response = await route53Client.send(new ListHostedZonesByNameCommand(params));
+        matchingZone = response.HostedZones.find((zone) => {
           const zoneName = zone.Name.endsWith(".") ? zone.Name.slice(0, -1) : zone.Name;
           return zoneName === zoneDomain || domain.endsWith("." + zoneName);
         });
-        if (matchingZone) break;
-      }
+        params = { DNSName: response.NextDNSName, HostedZoneId: response.NextHostedZoneId };
+      } while (!matchingZone && response.IsTruncated);
     } catch (error) {
-      console.error(`Unable to retrieve hosted zone for ${zoneDomain}::`, error);
+      console.error(`Unable to retrieve hosted zone for ${zoneDomain}:`, error);
       throw error;
     }
 
