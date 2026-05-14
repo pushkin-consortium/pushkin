@@ -29,21 +29,12 @@ export async function provisionInfrastructure(config, profileName, projName) {
   createLogGroup(profileName, projName);
 
   // Initialize databases (takes longest, so start early)
-  console.log(`Creating Main database promise...`);
   const initializedMainDB = initDB('Main', securityGroupID, projName, profileName);
-  console.log(`Main database initialization started`);
-
-  console.log(`Creating Transaction database promise...`);
   const initializedTransactionDB = initDB('Transaction', securityGroupID, projName, profileName);
-  console.log(`Transaction database initialization started`);
 
-  // Wait for both databases and record them
   let completedDBs;
   try {
-    console.log('Starting database recording process...');
-    console.log('Awaiting database initialization completion...');
     completedDBs = await recordDBs(Promise.all([initializedMainDB, initializedTransactionDB]));
-    console.log('Database recording completed successfully');
   } catch (e) {
     console.error('Failed to record databases:', e);
     throw e;
