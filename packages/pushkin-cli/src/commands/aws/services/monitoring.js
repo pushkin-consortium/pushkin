@@ -1,9 +1,10 @@
 /**
  * AWS Monitoring Service Management
- * Handles CloudWatch log groups and SSL certificate selection 
+ * Handles CloudWatch log groups and SSL certificate selection
  * @module monitoring
  */
 
+import inquirer from "inquirer";
 import {
   CloudWatchLogsClient,
   CreateLogGroupCommand,
@@ -12,7 +13,6 @@ import {
 import { ACMClient, ListCertificatesCommand } from "@aws-sdk/client-acm";
 import { AWSClientFactory } from "../utils/aws-client-factory.js";
 import { AWS_REGION } from "../constants.js";
-import inquirer from "inquirer";
 
 /**
  * Create CloudWatch log group for ECS.
@@ -21,22 +21,15 @@ import inquirer from "inquirer";
  * @returns {Promise<void>} - A promise that resolves when the log group is created
  */
 const createLogGroup = async (useIAM, projName) => {
-  //Log group for ECS
+  const cloudWatchLogsClient = new AWSClientFactory(AWS_REGION, useIAM).createClient(
+    CloudWatchLogsClient,
+  );
   try {
-    const profileName = useIAM;
-    const factory = new AWSClientFactory(AWS_REGION, profileName);
-    const cloudWatchLogsClient = factory.createClient(CloudWatchLogsClient);
-    await cloudWatchLogsClient.send(
-      new CreateLogGroupCommand({
-        logGroupName: `ecs/${projName}`,
-      }),
-    );
+    await cloudWatchLogsClient.send(new CreateLogGroupCommand({ logGroupName: `ecs/${projName}` }));
   } catch (e) {
     if (e.message.includes("already exists")) {
       console.warn(
-        "\x1b[31m%s\x1b[0m",
-        `Log group ecs/${projName} for ECS already exists. Skipping creation.\n
-      If this is a surprise, you should look into it.`,
+        `Log group ecs/${projName} already exists. Skipping creation. If this is a surprise, you should look into it.`,
       );
     } else {
       console.error(`Unable to create log group for ECS`);
@@ -44,18 +37,15 @@ const createLogGroup = async (useIAM, projName) => {
     }
   }
   try {
-    const profileName = useIAM;
-    const factory = new AWSClientFactory(AWS_REGION, profileName);
-    const cloudWatchLogsClient = factory.createClient(CloudWatchLogsClient);
     await cloudWatchLogsClient.send(
       new PutRetentionPolicyCommand({
         logGroupName: `ecs/${projName}`,
         retentionInDays: 7,
       }),
     );
-  } catch (e) {
-    console.error(`Unable to set retention policy for ECS log group`);
-    throw e;
+  } catch (error) {
+    console.error(`Unable to set retention policy for ECS log group: ${error}`);
+    throw error;
   }
 };
 
@@ -66,35 +56,22 @@ const createLogGroup = async (useIAM, projName) => {
 const chooseCertificate = async (useIAM) => {
   console.log("Setting up SSL for load-balancer");
 
-  const profileName = useIAM;
-  const factory = new AWSClientFactory(AWS_REGION, profileName);
-  const acm = factory.createClient(ACMClient);
+  const acm = new AWSClientFactory(AWS_REGION, useIAM).createClient(ACMClient);
 
   let certificates;
   try {
     const response = await acm.send(new ListCertificatesCommand({}));
-    console.log(`Found ${response.CertificateSummaryList.length} total certificates`);
-
-    // Show all certificates for debugging
-    response.CertificateSummaryList.forEach((cert) => {
-      console.log(
-        `Certificate: ${cert.DomainName}, Status: ${cert.Status}, ARN: ${cert.CertificateArn}`,
-      );
-    });
-
     certificates = response.CertificateSummaryList.reduce((acc, c) => {
       acc[`${c.DomainName} (Status: ${c.Status}) - ${c.CertificateArn.slice(-8)}`] =
         c.CertificateArn;
       return acc;
     }, {});
-
-    console.log(`Found ${Object.keys(certificates).length} total certificates`);
-  } catch (e) {
-    console.error(`Unable to get list of SSL certificates`);
-    throw e;
+    console.log(`Found ${Object.keys(certificates).length} certificates`);
+  } catch (error) {
+    console.error(`Unable to get list of SSL certificates: ${error}`);
+    throw error;
   }
 
-  console.log(`Choosing...`);
   const answers = await inquirer.prompt([
     {
       type: "list",
