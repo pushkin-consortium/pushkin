@@ -102,22 +102,7 @@ export async function awsInit(projName, s3BucketName, useIAM, DHID) {
     config.info.rootDomain = cloudDomain;
   }
 
-  // Wait for all final operations to complete
-  console.log("DEBUG: Waiting for final operations to complete...");
-
-  console.log("DEBUG: Waiting for deployedFrontEnd...");
-  await deployedFrontEnd;
-  console.log("DEBUG: deployedFrontEnd resolved");
-
-  console.log("DEBUG: Waiting for dbSetup...");
-  await dbSetup;
-  console.log("DEBUG: dbSetup resolved");
-
-  console.log("DEBUG: Waiting for apiForwarded...");
-  await apiForwarded;
-  console.log("DEBUG: apiForwarded resolved");
-
-  console.log("DEBUG: All final operations completed");
+  await Promise.all([deployedFrontEnd, dbSetup, apiForwarded]);
 
   // Save final config with database info
   await savePushkinConfig(completedDBs);
