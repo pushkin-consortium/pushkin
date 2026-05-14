@@ -12,7 +12,7 @@ import {
   DescribeSecurityGroupsCommand,
   DeleteSecurityGroupCommand,
 } from "@aws-sdk/client-ec2";
-import { WAFv2Client, ListWebACLsCommand, CreateWebACLCommand } from "@aws-sdk/client-wafv2";
+import { WAFV2Client, ListWebACLsCommand, CreateWebACLCommand } from "@aws-sdk/client-wafv2";
 import { AWSClientFactory } from "../utils/aws-client-factory.js";
 import { loadAwsConfig } from "../utils/aws-config.js";
 import { AWS_REGION } from "../constants.js";
@@ -33,7 +33,7 @@ const createEC2Client = (useIAM) => {
  */
 const createWAFv2Client = (useIAM) => {
   const factory = new AWSClientFactory(AWS_REGION, useIAM);
-  return factory.createClient(WAFv2Client);
+  return factory.createClient(WAFV2Client);
 };
 
 /**
