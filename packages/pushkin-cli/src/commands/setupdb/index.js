@@ -232,14 +232,11 @@ function buildKnexConfig(dbInfo) {
       port: dbInfo.port,
       password: dbInfo.pass,
       database: dbInfo.name,
-      // Enable SSL for AWS RDS or non-localhost connections
+      // Enable SSL only for RDS endpoints; localhost and any local Docker service names should not trigger SSL
       ssl:
-        (
-          (parsedHost && parsedHost.endsWith(".rds.amazonaws.com")) ||
-          (parsedHost !== "localhost" && !parsedHost.includes("localhost"))
-        ) ?
+        parsedHost && parsedHost.endsWith(".rds.amazonaws.com") ?
           { rejectUnauthorized: false }
-          : false,
+        : false,
     },
     // Connection pool settings optimized for migration stability
     pool: {
@@ -483,15 +480,78 @@ async function migrateExperimentsDB(dbMigrationsMap, coreDBs, verbose) {
 }
 
 /**
+ * Ensures a clean state by detecting and removing existing database containers
+ * This prevents issues with stale containers that may have different credentials
+ * @param {boolean} verbose Output extra debugging info
+ * @returns {Promise<void>}
+ */
+async function ensureCleanState(verbose) {
+  if (verbose) console.log("--verbose flag set inside ensureCleanState()");
+
+  // Check for existing containers (stopped or running)
+  let containersExist = false;
+  try {
+    const { stdout } = await exec(
+      `docker ps -a --format "{{.Names}}" | grep -E "pushkin[-_](test_db|test_transaction_db)[-_]"`,
+    );
+    containersExist = stdout.trim().length > 0;
+  } catch (e) {
+    // If grep finds nothing, it returns exit code 1, which throws an error
+    // This is expected when no containers exist, so we can safely ignore it
+    if (!(e.code === 1 && e.stderr === "")) {
+      console.warn("Warning: Could not check for existing containers:", e.message);
+    }
+  }
+
+  // Check for orphaned volumes (containers removed without removing their volumes)
+  let volumesExist = false;
+  try {
+    // The Docker Compose project name is always "pushkin" because every compose.* call uses
+    // cwd: path.join(..., "pushkin").
+    // Compose v2 stamps volumes with a com.docker.compose.project label we can query.
+    const { stdout } = await exec(
+      `docker volume ls --filter "label=com.docker.compose.project=pushkin" -q`,
+    );
+    volumesExist = stdout.trim().length > 0;
+  } catch (e) {
+    console.warn("Warning: Could not check for existing volumes:", e.message);
+  }
+
+  if (containersExist || volumesExist) {
+    if (verbose) {
+      console.log(
+        `⚠️  Found existing state (containers: ${containersExist}, orphaned volumes: ${volumesExist && !containersExist}). Cleaning up...`,
+      );
+    }
+    const dockerPath = path.join(process.cwd(), "pushkin");
+    const dockerConfig = "docker-compose.dev.yml";
+    try {
+      await compose.down({
+        cwd: dockerPath,
+        config: dockerConfig,
+        commandOptions: ["--volumes"],
+      });
+      if (verbose) console.log("✓ Cleanup complete.");
+    } catch (err) {
+      console.warn("Warning during cleanup:", err.message || JSON.stringify(err));
+    }
+  } else {
+    if (verbose)
+      console.log("✓ No existing containers or volumes found. Proceeding with fresh setup.");
+  }
+}
+
+/**
  * Set up all databases by running migrations and seeds.
  * This is the main orchestration function that:
- * 1. Starts Docker containers for test databases:
+ * 1. Ensures clean state (removes stale containers/volumes)
+ * 2. Starts Docker containers for test databases:
  *    - test_db: Main database for experiments and user accounts
  *    - test_transaction_db: Audit log database for query tracking/debugging
- * 2. Collects all migrations from experiments and users
- * 3. Waits for database containers to be healthy
- * 4. Runs migrations and seeds in parallel
- * 5. Stops all database containers when done
+ * 3. Collects all migrations from experiments and users
+ * 4. Waits for database containers to be healthy
+ * 5. Runs migrations and seeds in parallel
+ * 6. Stops all database containers when done
  * @param {object} coreDBs - Database configurations object from pushkin.yaml
  * @param {string} usersDir - Path to users directory
  * @param {string} mainExpDir - Path to main experiments directory
@@ -499,7 +559,10 @@ async function migrateExperimentsDB(dbMigrationsMap, coreDBs, verbose) {
  * @returns {Promise} Promise that resolves when setup is complete
  */
 export async function setupdb(coreDBs, usersDir, mainExpDir, verbose) {
-  // === 1. Start Docker containers for test databases ===
+  // === 1. Ensure clean state (remove stale containers/volumes) ===
+  await ensureCleanState(verbose);
+
+  // === 2. Start Docker containers for test databases ===
   // test_db: Main database for experiments/users
   // test_transaction_db: Audit log (records all queries for debugging)
   // Note: Knex requires all migrations for the same DB to be run together
@@ -509,20 +572,20 @@ export async function setupdb(coreDBs, usersDir, mainExpDir, verbose) {
     config: "docker-compose.dev.yml",
   });
 
-  // === 2. Collect all migrations from experiments and users ===
+  // === 3. Collect all migrations from experiments and users ===
   const dbMigrationsMap = await getMigrations(usersDir, mainExpDir, false, verbose);
 
-  // === 3. Wait for database containers to start before proceeding ===
+  // === 4. Wait for database containers to start before proceeding ===
   await dbPromise;
 
-  // === 4. Run migrations and seeds in parallel ===
+  // === 5. Run migrations and seeds in parallel ===
   const setupTransactionsTable = migrateTransactionsDB(coreDBs, verbose);
   const experimentMigrationsPromise = migrateExperimentsDB(dbMigrationsMap, coreDBs, verbose);
   await Promise.all([experimentMigrationsPromise, setupTransactionsTable]);
 
   if (verbose) console.log("Finished running all migrations. Shutting down database containers.");
 
-  // === 5. Stop all database containers ===
+  // === 6. Stop all database containers ===
   return await compose.stop({
     cwd: path.join(process.cwd(), "pushkin"),
     config: "docker-compose.dev.yml",

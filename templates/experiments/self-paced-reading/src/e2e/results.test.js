@@ -15,10 +15,15 @@ test.describe("Results page in simulation mode", () => {
   );
 
   test.beforeEach(async ({ page }) => {
+    // Register listener before goto to avoid missing the response
+    const tabulateResponsePromise = page.waitForResponse(
+      `/api/${expInfo.shortName}/tabulateAndPostResults`,
+    );
     // Go to the experiment in simulation mode
     await page.goto(`/quizzes/${expInfo.shortName}?simulate=true`);
-
-    // Wait for the experiment to finish
+    // Wait for tabulateAndPostResults to complete so data is committed to DB
+    await tabulateResponsePromise;
+    // Wait for the experiment finish screen
     await page.waitForSelector("text=Click to see your results!");
   });
 

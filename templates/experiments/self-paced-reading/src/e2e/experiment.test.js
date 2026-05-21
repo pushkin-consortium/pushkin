@@ -233,29 +233,24 @@ test.describe("Completing the experiment in simulation mode", () => {
     // User ID in the userResults table should match tabulateAndPostResults request
     expect(dbUserResults.user_id).toBe(userResults.user_id);
   });
-  test.skip("should produce the expected results page", async ({ page }) => {
-    // Click the link to see results
-    await page.click("text=Click to see your results!");
-
-    // Check that the results page displays the loading message initially
-    const loadingMessage = await page.locator("h1");
-    await expect(loadingMessage).toHaveText("Loading...");
-
+  test("should produce the expected results page", async ({ page }) => {
     // Mock the API response to simulate data being available
-    await page.route("**/api/results", (route) =>
+    await page.route(`**/api/${expInfo.shortName}/getPercentileRank`, (route) =>
       route.fulfill({
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
-          percentileRank: 75,
-          totalRows: 100,
-          summary_stat: 5000,
+          resData: {
+            percentileRank: 75,
+            totalRows: 100,
+            summary_stat: 5000,
+          },
         }),
       }),
     );
 
-    // Reload the page to trigger the API call
-    await page.reload();
+    // Click the link to see results
+    await page.click("text=Click to see your results!");
 
     // Check that the correct results header is displayed
     const resultsHeader = await page.locator("h1");

@@ -1,10 +1,12 @@
 import path from "path";
+import os from "os";
 //import { promises as fs } from 'fs';
 import fs from "graceful-fs";
 import jsYaml from "js-yaml";
 import util from "util";
 import { execSync } from "child_process"; // eslint-disable-line
 const exec = util.promisify(require("child_process").exec);
+const execFile = util.promisify(require("child_process").execFile);
 import pacMan from "../../utils/package-manager.js"; //which package manager is available?
 import { env } from "process";
 
@@ -530,7 +532,7 @@ export const prep = async (experimentsDir, coreDir, verbose) => {
     }
     const workerConfig = expConfig.worker;
     const workerName = `${exp}_worker`.toLowerCase(); //Docker names must all be lower case
-    const workerLoc = path.join(expDir, workerConfig.location).replace(/ /g, "\\ "); //handle spaces in path
+    const workerLoc = path.join(expDir, workerConfig.location);
 
     let AMQP_ADDRESS;
     // Recall, compFile is docker-compose.dev.yml, and is defined outside this function.
@@ -549,31 +551,28 @@ export const prep = async (experimentsDir, coreDir, verbose) => {
       AMQP_ADDRESS || "amqp://message-queue:5672";
     compFile.services[workerName].environment.DB_USER = pushkinYAML.databases.localtestdb.user;
     compFile.services[workerName].environment.DB_PASS = pushkinYAML.databases.localtestdb.pass;
-    // Use Docker service name for inter-container communication, not localhost
-    compFile.services[workerName].environment.DB_HOST = 'test_db';
+    compFile.services[workerName].environment.DB_HOST = pushkinYAML.databases.localtestdb.host;
     compFile.services[workerName].environment.DB_DB = pushkinYAML.databases.localtestdb.name;
     compFile.services[workerName].environment.TRANS_USER =
       pushkinYAML.databases.localtransactiondb.user;
     compFile.services[workerName].environment.TRANS_PASS =
       pushkinYAML.databases.localtransactiondb.pass;
-    // Use Docker service name for inter-container communication, not localhost
-    compFile.services[workerName].environment.TRANS_HOST = 'test_transaction_db';
+    compFile.services[workerName].environment.TRANS_HOST =
+      pushkinYAML.databases.localtransactiondb.host;
     compFile.services[workerName].environment.TRANS_DB =
       pushkinYAML.databases.localtransactiondb.name;
     // Use internal container port (5432), not host-mapped port
-    compFile.services[workerName].environment.TRANS_PORT = '5432';
+    compFile.services[workerName].environment.TRANS_PORT = "5432";
 
-    let workerBuild;
     try {
       if (verbose) console.log(`Building docker image for ${workerName}`);
-      let dockerCommand = `docker build ${workerLoc} -t ${workerName} --load`;
-      if (verbose) console.log(dockerCommand);
-      workerBuild = exec(dockerCommand);
+      const dockerArgs = ["build", workerLoc, "-t", workerName, "--load"];
+      if (verbose) console.log("docker", dockerArgs.join(" "));
+      await execFile("docker", dockerArgs);
     } catch (e) {
       console.error(`Problem building worker for ${exp}`);
       throw e;
     }
-    return workerBuild;
   };
 
   const composeFileLoc = path.join(path.join(process.cwd(), "pushkin"), "docker-compose.dev.yml");
@@ -694,6 +693,17 @@ export const prep = async (experimentsDir, coreDir, verbose) => {
     process.exit();
   }
 
+  // The API Dockerfile always copies .yalc/ and yalc.lock (added by `yalc add` when
+  // experiments are installed). On a fresh site with no experiments, these don't exist
+  // yet and Docker COPY fails. Create empty placeholders if needed.
+  const apiDir = path.join(coreDir, "api");
+  if (!fs.existsSync(path.join(apiDir, ".yalc"))) {
+    fs.mkdirSync(path.join(apiDir, ".yalc"));
+  }
+  if (!fs.existsSync(path.join(apiDir, "yalc.lock"))) {
+    fs.writeFileSync(path.join(apiDir, "yalc.lock"), '{"version":"v1","packages":{}}');
+  }
+
   if (verbose) console.log("Building API");
   let builtAPI;
   try {
@@ -702,6 +712,15 @@ export const prep = async (experimentsDir, coreDir, verbose) => {
     console.error(`Problem building API`);
     throw e;
   }
+  // Same as above — front-end Dockerfile also copies .yalc/ and yalc.lock.
+  const feDir = path.join(coreDir, "front-end");
+  if (!fs.existsSync(path.join(feDir, ".yalc"))) {
+    fs.mkdirSync(path.join(feDir, ".yalc"));
+  }
+  if (!fs.existsSync(path.join(feDir, "yalc.lock"))) {
+    fs.writeFileSync(path.join(feDir, "yalc.lock"), '{"version":"v1","packages":{}}');
+  }
+
   if (verbose) console.log("Building server");
   let builtServer;
   try {

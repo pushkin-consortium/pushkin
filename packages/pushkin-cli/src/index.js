@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 import { execSync, exec, execFile } from "child_process";
+/* eslint-disable-next-line no-unused-vars */
+import commandLineArgs from "command-line-args"; // commandLineArgs is necessary for the CLI to run
 import * as commander from "commander";
 import "core-js/stable";
 import * as compose from "docker-compose";
@@ -434,18 +436,19 @@ const handleUpdateDB = async (verbose) => {
     console.error("❌ Database setup failed");
 
     // Provide actionable error messages based on error type
-    if (err.message.includes("docker")) {
+    const msg = err?.message;
+    if (msg?.includes("docker")) {
       console.error("  → Make sure Docker is running");
-    } else if (err.message.includes("config.yaml")) {
+    } else if (msg?.includes("config.yaml")) {
       console.error("  → Check your experiment config files");
-    } else if (err.message.includes("Database") && err.message.includes("not configured")) {
+    } else if (msg?.includes("Database") && msg?.includes("not configured")) {
       console.error("  → Check database configuration in pushkin.yaml");
     }
 
     if (verbose) {
-      console.error("\nFull error:", err.stack);
+      console.error("\nFull error:", err.stack || err);
     } else {
-      console.error(`\nError: ${err.message}`);
+      console.error(`\nError: ${msg ?? JSON.stringify(err)}`);
       console.error("Run with --verbose flag for more details");
     }
     process.exit(1);
@@ -1159,8 +1162,7 @@ const handleAWSInit = async (force) => {
   try {
     await verifyIAMCredentials(useIAM.iam);
   } catch (error) {
-    console.log(error);
-    // process.exit();
+    process.exit();
   }
   let addedIAM;
   try {

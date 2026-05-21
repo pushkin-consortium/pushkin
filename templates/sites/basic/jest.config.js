@@ -20,6 +20,7 @@ if (fs.existsSync("pushkin.yaml")) {
     "\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$":
       "<rootDir>/src/__mocks__/fileMock.js",
     "^axios$": "<rootDir>/src/__mocks__/axios.js",
+    "^@auth0/auth0-react$": "<rootDir>/src/__mocks__/auth0-react.js",
     "../../config(\\.js)?$": "<rootDir>/src/__mocks__/config.js",
     "experiments(\\.js)?$": "<rootDir>/src/__mocks__/experiments.js",
   });
