@@ -489,5 +489,4 @@ const deleteOACs = async (useIAM, deletedCloudFront, verbose = false) => {
   return true;
 };
 
-// Export functions
 export { getOAC, waitForCloudFrontDeployment, deleteCloudFront, deleteOACs };
