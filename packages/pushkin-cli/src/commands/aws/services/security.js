@@ -1,6 +1,5 @@
 /**
- * AWS Security Service Management
- * Handles security groups, IAM verification, and WAF Web ACLs
+ * Handles security groups, IAM role creation, verification and management, and WAF Web ACLs
  * @module security
  */
 
@@ -13,28 +12,129 @@ import {
   DeleteSecurityGroupCommand,
 } from "@aws-sdk/client-ec2";
 import { WAFV2Client, ListWebACLsCommand, CreateWebACLCommand } from "@aws-sdk/client-wafv2";
+import { ACMClient, ListCertificatesCommand } from "@aws-sdk/client-acm";
+import {
+  IAMClient,
+  GetRoleCommand,
+  CreateRoleCommand,
+  AttachRolePolicyCommand,
+} from "@aws-sdk/client-iam";
 import { AWSClientFactory } from "../utils/aws-client-factory.js";
 import { loadAwsConfig } from "../utils/aws-config.js";
 import { AWS_REGION } from "../constants.js";
 import { pushkinACL } from "../awsConfigs.js";
 
 const PROJECT_TAG_KEY = loadAwsConfig().tagging.projectTagKey;
+const OPEN_IPV4 = { CidrIp: "0.0.0.0/0" };
+const OPEN_IPV6 = { CidrIpv6: "::/0" };
+
+const createEC2Client = (useIAM) =>
+  new AWSClientFactory(AWS_REGION, useIAM).createClient(EC2Client);
+
+// WAFv2 CloudFront-scoped resources must always be managed in us-east-1, regardless of deployment region.
+const createWAFv2Client = (useIAM) =>
+  new AWSClientFactory("us-east-1", useIAM).createClient(WAFV2Client);
+
+const createACMClient = (useIAM) =>
+  new AWSClientFactory(AWS_REGION, useIAM).createClient(ACMClient);
+
+const createIAMClient = (useIAM) =>
+  new AWSClientFactory(AWS_REGION, useIAM).createClient(IAMClient);
+
+const createSTSClient = (useIAM) =>
+  new AWSClientFactory(AWS_REGION, useIAM).createClient(STSClient);
 
 /**
- * Creates an EC2 client using the same region and IAM profile.
+ * List SSL certificates available in ACM, returned as a display-label → ARN map.
+ * WHY: This is useful for selecting a certificate when configuring services that require SSL/TLS,
+ * such as load balancers or API gateways.
+ * @param {string} useIAM - The IAM role to use
+ * @returns {Promise<Record<string, string>>} Map of display label to certificate ARN
  */
-const createEC2Client = (useIAM) => {
-  const factory = new AWSClientFactory(AWS_REGION, useIAM);
-  return factory.createClient(EC2Client);
-};
+async function listCertificates(useIAM) {
+  const acm = createACMClient(useIAM);
+  try {
+    const response = await acm.send(new ListCertificatesCommand({}));
+    return (response.CertificateSummaryList ?? []).reduce((acc, c) => {
+      acc[`${c.DomainName} (Status: ${c.Status}) - ${c.CertificateArn.slice(-8)}`] =
+        c.CertificateArn;
+      return acc;
+    }, {});
+  } catch (error) {
+    console.error(`Unable to get list of SSL certificates:`, error);
+    throw error;
+  }
+}
 
 /**
- * Creates a WAFv2 client using the same region and IAM profile.
+ * Ensure the ECS task execution IAM role exists, creating it if necessary.
+ * WHY: Fargate tasks need this role to pull container images from ECR and write logs to
+ * CloudWatch. Without it, task registration succeeds but tasks fail to start.
+ * @param {string} useIAM - IAM profile name
+ * @param {boolean} verbose - Whether to log details
+ * @returns {Promise<string>} ARN of the execution role
  */
-const createWAFv2Client = (useIAM) => {
-  const factory = new AWSClientFactory(AWS_REGION, useIAM);
-  return factory.createClient(WAFV2Client);
-};
+async function ensureECSTaskExecutionRole(useIAM, verbose = false) {
+  const iamClient = createIAMClient(useIAM);
+  const roleName = "ecsTaskExecutionRole";
+
+  try {
+    const roleResponse = await iamClient.send(new GetRoleCommand({ RoleName: roleName }));
+    if (verbose) console.log(`ECS Task Execution Role already exists: ${roleResponse.Role.Arn}`);
+    return roleResponse.Role.Arn;
+  } catch (error) {
+    if (error.name === "NoSuchEntityException") {
+      if (verbose) console.log(`Creating ECS Task Execution Role: ${roleName}`);
+
+      const assumeRolePolicyDocument = {
+        Version: "2012-10-17",
+        Statement: [
+          {
+            Effect: "Allow",
+            Principal: { Service: "ecs-tasks.amazonaws.com" },
+            Action: "sts:AssumeRole",
+          },
+        ],
+      };
+
+      let roleArn;
+      try {
+        const createRoleResponse = await iamClient.send(
+          new CreateRoleCommand({
+            RoleName: roleName,
+            AssumeRolePolicyDocument: JSON.stringify(assumeRolePolicyDocument),
+            Description: "Allows ECS tasks to call AWS services on user's behalf",
+          }),
+        );
+        roleArn = createRoleResponse.Role.Arn;
+      } catch (createError) {
+        console.error(`Unable to create ECS Task Execution Role:`, createError);
+        throw createError;
+      }
+
+      try {
+        await iamClient.send(
+          new AttachRolePolicyCommand({
+            RoleName: roleName,
+            PolicyArn: "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
+          }),
+        );
+      } catch (attachError) {
+        console.error(
+          `Created role ${roleName} but failed to attach execution policy. The role exists but tasks may not start.`,
+          attachError,
+        );
+        throw attachError;
+      }
+
+      console.log(`Created and configured ECS Task Execution Role: ${roleArn}`);
+      return roleArn;
+    } else {
+      console.error(`Error checking for ECS Task Execution Role:`, error);
+      throw error;
+    }
+  }
+}
 
 /**
  * Check if the IAM user is configured on the AWS SDK.
@@ -42,9 +142,8 @@ const createWAFv2Client = (useIAM) => {
  * @param {string} useIAM - The IAM user to check
  * @returns {Promise<void>} - Resolves if the IAM user is configured, rejects with error if not
  */
-const verifyIAMCredentials = async (useIAM) => {
-  const factory = new AWSClientFactory(AWS_REGION, useIAM);
-  const sts = factory.createClient(STSClient);
+async function verifyIAMCredentials(useIAM) {
+  const sts = createSTSClient(useIAM);
 
   try {
     await sts.send(new GetCallerIdentityCommand({}));
@@ -54,7 +153,7 @@ const verifyIAMCredentials = async (useIAM) => {
     );
     throw error;
   }
-};
+}
 
 /**
  * Ensure a named security group exists, creating it with the given ingress rules if not.
@@ -67,20 +166,24 @@ const verifyIAMCredentials = async (useIAM) => {
  * @param {Array} ipPermissions - Ingress rules passed to AuthorizeSecurityGroupIngress
  * @returns {Promise<string>} - The security group ID
  */
-const ensureSecurityGroup = async (useIAM, projName, groupSuffix, description, ipPermissions) => {
+async function ensureSecurityGroup(useIAM, projName, groupSuffix, description, ipPermissions) {
   const ec2Client = createEC2Client(useIAM);
   const groupName = `${projName}-${groupSuffix}`;
 
   let securityGroups;
   try {
-    const response = await ec2Client.send(new DescribeSecurityGroupsCommand({}));
-    securityGroups = response.SecurityGroups || [];
+    const response = await ec2Client.send(
+      new DescribeSecurityGroupsCommand({
+        Filters: [{ Name: "group-name", Values: [groupName] }],
+      }),
+    );
+    securityGroups = response.SecurityGroups ?? [];
   } catch (error) {
-    console.error(`Failed to retrieve list of security groups from AWS:`, error);
+    console.error(`Failed to retrieve security group ${groupName} from AWS:`, error);
     throw error;
   }
 
-  const foundGroup = securityGroups.find((g) => g.GroupName === groupName);
+  const foundGroup = securityGroups[0];
   if (foundGroup) {
     console.log(`Security group ${groupName} already exists. Skipping creation.`);
     return foundGroup.GroupId;
@@ -106,10 +209,7 @@ const ensureSecurityGroup = async (useIAM, projName, groupSuffix, description, i
     console.error(`Failed to create security group ${groupName}:`, error);
     throw error;
   }
-};
-
-const OPEN_IPV4 = { CidrIp: "0.0.0.0/0" };
-const OPEN_IPV6 = { CidrIpv6: "::/0" };
+}
 
 /**
  * Ensure project-specific database security group exists (creates if missing).
@@ -119,8 +219,8 @@ const OPEN_IPV6 = { CidrIpv6: "::/0" };
  * @param {string} projName - The project name
  * @returns {Promise<string>} - The security group ID
  */
-const ensureDatabaseSecurityGroup = (useIAM, projName) =>
-  ensureSecurityGroup(
+async function ensureDatabaseSecurityGroup(useIAM, projName) {
+  return ensureSecurityGroup(
     useIAM,
     projName,
     "DatabaseGroup",
@@ -135,6 +235,7 @@ const ensureDatabaseSecurityGroup = (useIAM, projName) =>
       },
     ],
   );
+}
 
 /**
  * Ensure project-specific load balancer security group exists (creates if missing).
@@ -143,8 +244,8 @@ const ensureDatabaseSecurityGroup = (useIAM, projName) =>
  * @param {string} projName - The project name
  * @returns {Promise<string>} - The security group ID
  */
-const ensureBalancerSecurityGroup = (useIAM, projName) =>
-  ensureSecurityGroup(
+async function ensureBalancerSecurityGroup(useIAM, projName) {
+  return ensureSecurityGroup(
     useIAM,
     projName,
     "BalancerGroup",
@@ -166,7 +267,7 @@ const ensureBalancerSecurityGroup = (useIAM, projName) =>
       },
     ],
   );
-
+}
 /**
  * Ensure project-specific ECS security group exists (creates if missing).
  * WHY: Each project needs its own ECS security group for network isolation.
@@ -174,18 +275,38 @@ const ensureBalancerSecurityGroup = (useIAM, projName) =>
  * @param {string} projName - The project name
  * @returns {Promise<string>} - The security group ID
  */
-const ensureECSSecurityGroup = (useIAM, projName) =>
-  ensureSecurityGroup(useIAM, projName, "ECSGroup", `ECS cluster security group for ${projName}`, [
-    { IpProtocol: "tcp", FromPort: 80, ToPort: 80, IpRanges: [OPEN_IPV4], Ipv6Ranges: [OPEN_IPV6] },
-    { IpProtocol: "tcp", FromPort: 22, ToPort: 22, IpRanges: [OPEN_IPV4], Ipv6Ranges: [OPEN_IPV6] },
-    {
-      IpProtocol: "tcp",
-      FromPort: 1024,
-      ToPort: 65535,
-      IpRanges: [OPEN_IPV4],
-      Ipv6Ranges: [OPEN_IPV6],
-    },
-  ]);
+async function ensureECSSecurityGroup(useIAM, projName) {
+  return ensureSecurityGroup(
+    useIAM,
+    projName,
+    "ECSGroup",
+    `ECS cluster security group for ${projName}`,
+    [
+      {
+        IpProtocol: "tcp",
+        FromPort: 80,
+        ToPort: 80,
+        IpRanges: [OPEN_IPV4],
+        Ipv6Ranges: [OPEN_IPV6],
+      },
+      // NOTE: SSH (22) is open to the world — permissive, but useful for ECS Exec debugging. Consider restricting to a known IP range.
+      {
+        IpProtocol: "tcp",
+        FromPort: 22,
+        ToPort: 22,
+        IpRanges: [OPEN_IPV4],
+        Ipv6Ranges: [OPEN_IPV6],
+      },
+      {
+        IpProtocol: "tcp",
+        FromPort: 1024,
+        ToPort: 65535,
+        IpRanges: [OPEN_IPV4],
+        Ipv6Ranges: [OPEN_IPV6],
+      },
+    ],
+  );
+}
 
 /**
  * Retrieve WAF Web ACL for CloudFront protection or create if it doesn't exist.
@@ -194,24 +315,24 @@ const ensureECSSecurityGroup = (useIAM, projName) =>
  * @param {boolean} verbose – Whether to log details about getting WAF Web ACL
  * @returns {Promise<string>} - The ACL ARN
  */
-const getACL = async (useIAM, verbose = false) => {
+async function getACL(useIAM, verbose = false) {
   const wafv2Client = createWAFv2Client(useIAM);
-  let ACLarn;
+  let aclArn;
   // Check if ACL already exists
   try {
     const listWebACLsResponse = await wafv2Client.send(
       new ListWebACLsCommand({ Scope: "CLOUDFRONT" }),
     );
-    const webACLs = listWebACLsResponse.WebACLs || [];
+    const webACLs = listWebACLsResponse.WebACLs ?? [];
 
     const foundACL = webACLs.find((acl) => acl.Name === pushkinACL.Name);
-    ACLarn = foundACL?.ARN;
+    aclArn = foundACL?.ARN;
   } catch (error) {
     console.error(`Unable to get list of ACLs:`, error);
     throw error;
   }
 
-  if (!ACLarn) {
+  if (!aclArn) {
     // Create new ACL
     try {
       const createWebACLResponse = await wafv2Client.send(
@@ -223,7 +344,7 @@ const getACL = async (useIAM, verbose = false) => {
           VisibilityConfig: pushkinACL.VisibilityConfig,
         }),
       );
-      ACLarn = createWebACLResponse.Summary.ARN;
+      aclArn = createWebACLResponse.Summary.ARN;
       if (verbose) {
         console.log(`Created new ${pushkinACL.Name} Web ACL`);
       }
@@ -237,17 +358,18 @@ const getACL = async (useIAM, verbose = false) => {
     }
   }
 
-  return ACLarn;
-};
+  return aclArn;
+}
 
 /**
  * Delete a single security group.
  * WHY: Security groups must be deleted individually, with proper error handling for dependencies.
  * @param {string} groupName - The security group name to delete
  * @param {string} useIAM - The IAM profile to use
+ * @param {boolean} verbose - Whether to log details
  * @returns {Promise<boolean>} - Returns true when complete (even if deletion failed)
  */
-const deleteSingleSecurityGroup = async (groupName, useIAM, verbose = false) => {
+async function deleteSingleSecurityGroup(groupName, useIAM, verbose = false) {
   if (verbose) {
     console.log(`Deleting security group ${groupName}`);
   }
@@ -276,17 +398,18 @@ const deleteSingleSecurityGroup = async (groupName, useIAM, verbose = false) => 
   }
 
   return true;
-};
+}
 
 /**
  * Delete security groups.
  * WHY: Security groups must be deleted as part of teardown, but only after dependent resources (like RDS) are deleted.
  * @param {string} useIAM - The IAM profile to use
- * @param {string|boolean} killTag - If string (project name), only delete project groups; if false, delete all (except default)
+ * @param {string|null} killTag - If string (project name), only delete project groups; if null/falsy, delete all (except default)
  * @param {Promise} deletedDBs - Promise that resolves when databases are deleted
+ * @param {boolean} verbose - Whether to log details
  * @returns {Promise<boolean[]>} - Array of deletion results
  */
-const deleteSecurityGroups = async (useIAM, killTag, deletedDBs) => {
+async function deleteSecurityGroups(useIAM, killTag, deletedDBs, verbose = false) {
   console.log(`Waiting for databases to be deleted before removing security groups...`);
   await deletedDBs;
   console.log(`Databases deleted. Starting security group deletion.`);
@@ -298,7 +421,7 @@ const deleteSecurityGroups = async (useIAM, killTag, deletedDBs) => {
     const describeSecurityGroupsResponse = await ec2Client.send(
       new DescribeSecurityGroupsCommand({}),
     );
-    securityGroups = describeSecurityGroupsResponse.SecurityGroups || [];
+    securityGroups = describeSecurityGroupsResponse.SecurityGroups ?? [];
   } catch (error) {
     console.error(`Unable to list security groups:`, error);
     throw error;
@@ -333,12 +456,13 @@ const deleteSecurityGroups = async (useIAM, killTag, deletedDBs) => {
   }
 
   console.log(`Deleting ${groupsToDelete.length} security group(s)...`);
-  return Promise.all(groupsToDelete.map((g) => deleteSingleSecurityGroup(g, useIAM)));
-};
+  return Promise.all(groupsToDelete.map((g) => deleteSingleSecurityGroup(g, useIAM, verbose)));
+}
 
-// Export functions
 export {
+  ensureECSTaskExecutionRole,
   verifyIAMCredentials,
+  listCertificates,
   ensureDatabaseSecurityGroup,
   ensureBalancerSecurityGroup,
   ensureECSSecurityGroup,

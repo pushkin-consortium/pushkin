@@ -1,6 +1,6 @@
 /**
- * AWS RDS Service Management Module
- * Handles creation, configuration, and deletion of RDS database instances
+ * Handles creation, configuration, and deletion of RDS database instances.
+ * RDS: A managed AWS service for setting up, operating, and scaling a cloud relational database.
  * @module rds
  */
 
@@ -15,85 +15,49 @@ import {
   waitUntilDBInstanceDeleted,
 } from "@aws-sdk/client-rds";
 import { createWaiter, WaiterState } from "@smithy/util-waiter";
+import { loadPushkinConfig, savePushkinConfig } from "../../../utils/pushkin-config.js";
 import { AWSClientFactory } from "../utils/aws-client-factory.js";
 import { loadAwsConfig } from "../utils/aws-config.js";
 import { readAwsResources, writeAwsResources } from "../utils/aws-resources.js";
-import { loadPushkinConfig, savePushkinConfig } from "../../../utils/pushkin-config.js";
-import { AWS_REGION } from "../constants.js";
 import { dbConfig } from "../awsConfigs.js";
+import { AWS_REGION } from "../constants.js";
 
 const PROJECT_TAG_KEY = loadAwsConfig().tagging.projectTagKey;
 
-/**
- * Creates an RDS client with consistent configuration.
- */
-const createRDSClient = (useIAM) => {
-  const factory = new AWSClientFactory(AWS_REGION, useIAM);
-  return factory.createClient(RDSClient);
-};
+const createRDSClient = (useIAM) =>
+  new AWSClientFactory(AWS_REGION, useIAM).createClient(RDSClient);
 
-/**
- * Generate database name from project name and database type.
- */
-const generateDBName = (projName, dbType) => {
-  return projName
-    .concat(dbType)
-    .replace(/[^A-Za-z0-9]/g, "")
-    .toLowerCase(); // lowercase + alphanumeric to match RDS DB names
-};
-
-/**
- * Generate a secure random password for databases.
- */
-const generateSecurePassword = () => {
-  return crypto.randomBytes(16).toString("base64url").slice(0, 16);
-};
-
-/**
- * Check if database exists in RDS.
- */
-const findDBInRDS = async (dbName, useIAM) => {
+const findDBInRDS = async (dbName, useIAM, rdsClient = null) => {
   try {
-    const rdsClient = createRDSClient(useIAM);
-    const response = await rdsClient.send(new DescribeDBInstancesCommand({}));
-    return response.DBInstances.find((db) => db.DBInstanceIdentifier === dbName.toLowerCase());
+    if (!rdsClient) {
+      rdsClient = createRDSClient(useIAM);
+    }
+    const response = await rdsClient.send(
+      new DescribeDBInstancesCommand({ DBInstanceIdentifier: dbName }),
+    );
+    return response.DBInstances?.[0] ?? null;
   } catch (error) {
-    console.error(`Unable to get list of RDS databases:`, error);
-    throw error;
+    if (error.name === "DBInstanceNotFound") {
+      return null; // Database does not exist
+    } else {
+      console.error(`Unable to find database ${dbName} in RDS:`, error);
+      throw error;
+    }
   }
 };
 
-/**
- * Get nested property from object using dot notation.
- * @param {object} obj - The object to traverse
- * @param {string} path - Dot-notation path (e.g., "Endpoint.Port")
- * @returns {*} The value at the specified path, or undefined if not found
- */
-const getNestedValue = (obj, path) => {
-  return path.split(".").reduce((curr, key) => curr?.[key], obj);
-};
-
-/**
- * Validate that RDS database matches pushkin.yaml configuration.
- * @param {string} dbType - The database type (e.g., "transaction", "messageQueue")
- * @param {object} pushkinConfig - The parsed pushkin.yaml configuration
- * @param {object} rdsDB - The RDS database instance description from AWS
- * @returns {Array<string>} List of mismatch descriptions (empty if all match)
- */
 const validateDBMatch = (dbType, pushkinConfig, rdsDB) => {
   const yamlDB = pushkinConfig.productionDBs[dbType];
   const mismatches = [];
-
-  /**
-   * Field mapping between pushkin.yaml and RDS API response
-   * Each entry defines how to compare a field between the two sources
-   */
-  const DB_FIELD_MAPPINGS = [
+  // Maps pushkin.yaml fields to their AWS RDS API equivalents for validation.
+  // yamlPath/rdsPath use dot-notation for nested traversal (e.g. "Endpoint.Port").
+  // required: false skips comparison when RDS returns null; true treats null as a mismatch.
+  const dbFieldMappings = [
     {
       name: "Database name",
       yamlPath: "name",
       rdsPath: "DBName",
-      required: false, // Some engines may have null DBName
+      required: false, // some engines return null DBName
       transform: (val) => val?.toLowerCase(),
     },
     {
@@ -107,7 +71,7 @@ const validateDBMatch = (dbType, pushkinConfig, rdsDB) => {
       yamlPath: "port",
       rdsPath: "Endpoint.Port",
       required: true,
-      transform: (val) => Number(val),
+      transform: Number, // YAML may serialize port as string; RDS returns integer
     },
     {
       name: "Host",
@@ -117,9 +81,9 @@ const validateDBMatch = (dbType, pushkinConfig, rdsDB) => {
     },
   ];
 
-  for (const mapping of DB_FIELD_MAPPINGS) {
-    const yamlValue = getNestedValue(yamlDB, mapping.yamlPath);
-    let rdsValue = getNestedValue(rdsDB, mapping.rdsPath);
+  for (const mapping of dbFieldMappings) {
+    const yamlValue = mapping.yamlPath.split(".").reduce((curr, key) => curr?.[key], yamlDB);
+    let rdsValue = mapping.rdsPath.split(".").reduce((curr, key) => curr?.[key], rdsDB);
 
     // Skip if field doesn't exist in RDS and isn't required
     if (rdsValue == null && !mapping.required) {
@@ -143,15 +107,7 @@ const validateDBMatch = (dbType, pushkinConfig, rdsDB) => {
   return mismatches;
 };
 
-/**
- * Determine if a new database of given name and type should be created.
- * Four cases:
- * 1. In both YAML and RDS – validate they match
- * 2. In YAML but not RDS – recreate in RDS
- * 3. In RDS but not in YAML – throw error
- * 4. Not in YAML or RDS – create new
- */
-const shouldCreateNewDB = async (dbName, dbType, useIAM) => {
+const checkIfDBShouldBeCreated = async (dbName, dbType, useIAM) => {
   let pushkinConfig;
   try {
     pushkinConfig = await loadPushkinConfig();
@@ -214,121 +170,7 @@ const shouldCreateNewDB = async (dbName, dbType, useIAM) => {
   }
 };
 
-/**
- * Create an RDS database instance with the specified configuration.
- */
-const createRDSDatabase = async (
-  dbName,
-  dbType,
-  securityGroupID,
-  projName,
-  useIAM,
-  verbose = false,
-) => {
-  const dbPassword = generateSecurePassword();
-  const myDBConfig = structuredClone(dbConfig);
-  myDBConfig.DBName = dbName;
-  myDBConfig.DBInstanceIdentifier = dbName.toLowerCase();
-  myDBConfig.VpcSecurityGroupIds = [securityGroupID];
-  myDBConfig.MasterUserPassword = dbPassword;
-  myDBConfig.Tags = [{ Key: PROJECT_TAG_KEY, Value: projName }];
-
-  // Create database
-  try {
-    const rdsClient = createRDSClient(useIAM);
-    await rdsClient.send(new CreateDBInstanceCommand(myDBConfig));
-  } catch (error) {
-    console.error(`Unable to create database ${dbName}:`, error);
-    throw error;
-  }
-
-  if (verbose) {
-    console.log(
-      `Database ${dbName} created with the following configuration:\n${JSON.stringify(myDBConfig, null, 2)}`,
-    );
-  } else {
-    console.log(`Database ${dbName} created.`);
-  }
-
-  // Wait for database to be available with timeout
-  try {
-    const rdsClient = createRDSClient(useIAM);
-    console.log(
-      `Waiting for ${dbName} to spool up. This may take a while, but will timeout if not completed within 20 minutes...`,
-    );
-    const waitStart = Date.now();
-    await waitUntilDBInstanceAvailable(
-      {
-        client: rdsClient,
-        maxWaitTime: 1200, // 20 minutes timeout
-        minDelay: 10, // Check every 10 seconds
-        maxDelay: 20, // Maximum 20 seconds between checks
-      },
-      { DBInstanceIdentifier: dbName.toLowerCase() },
-    );
-    const waitTime = Date.now() - waitStart;
-    console.log(
-      `${dbName} is spooled up after ${Math.floor(waitTime / 60000)} minutes ${Math.floor((waitTime % 60000) / 1000)} seconds!`,
-    );
-  } catch (error) {
-    if (error.name === "TimeoutError" || error.message.toLowerCase().includes("timeout")) {
-      console.warn(`Warning: spooling up ${dbName} timed out after 20 minutes.`);
-    } else {
-      console.warn(`Warning: spooling up ${dbName} failed with error:`, error);
-    }
-  }
-
-  let dbEndpoint;
-  const dbInstanceIdentifier = dbName.toLowerCase();
-  console.log(`${dbName}: Retrieving database endpoint...`);
-  await createWaiter(
-    { client: createRDSClient(useIAM), maxWaitTime: 120, minDelay: 10, maxDelay: 30 },
-    { DBInstanceIdentifier: dbInstanceIdentifier },
-    async (client, input) => {
-      const response = await client.send(new DescribeDBInstancesCommand(input));
-      if (response?.DBInstances?.[0]?.Endpoint?.Address) {
-        dbEndpoint = response;
-        return { state: WaiterState.SUCCESS };
-      }
-      console.log(`${dbName}: Endpoint not yet available, retrying...`);
-      return { state: WaiterState.RETRY };
-    },
-  );
-  console.log(`${dbName}: Retrieved endpoint: ${dbEndpoint.DBInstances[0].Endpoint.Address}`);
-
-  // Update list of AWS resources
-  try {
-    const awsResources = readAwsResources();
-    if (awsResources && awsResources.dbs) {
-      awsResources.dbs.push(dbName);
-    } else {
-      awsResources.dbs = [dbName];
-    }
-    writeAwsResources(awsResources);
-    console.log("Updated awsResources with DB information");
-  } catch (error) {
-    console.error(`Unable to update awsResources.js:`, error);
-  }
-
-  const newDB = {
-    type: dbType,
-    name: dbName,
-    host: dbEndpoint.DBInstances[0].Endpoint.Address,
-    url: dbEndpoint.DBInstances[0].Endpoint.Address, // This is same as 'host' for AWS, but different for local deploy in Docker
-    user: myDBConfig.MasterUsername,
-    pass: myDBConfig.MasterUserPassword,
-    port: myDBConfig.Port,
-  };
-
-  console.log(`${dbName}: Returning created database object:`, newDB);
-  return newDB;
-};
-
-/**
- * Get existing database configuration from pushkin.yaml
- */
-const getExistingDBConfig = async (dbName, dbType, verbose = false) => {
-  console.log(`${dbName}: Database already exists, returning existing config`);
+const getDBConfig = async (dbName, dbType, verbose) => {
   let pushkinConfig;
   try {
     pushkinConfig = await loadPushkinConfig();
@@ -346,35 +188,141 @@ const getExistingDBConfig = async (dbName, dbType, verbose = false) => {
 };
 
 /**
- * Initialize a database (create new or return existing).
- * Orchestrates the entire database initialization process:
+ * Create a database (create new or return existing).
+ * Orchestrates the entire database creation process:
  * 1. Generate database name
  * 2. Check if database should be created (validates against RDS and pushkin.yaml)
  * 3. Either create new database or return existing configuration
- * @param {string} dbType - The type of database (e.g., 'postgres', 'mysql')
+ * @param {string} dbType - The type of database (e.g., "Main", "Transaction")
  * @param {string} securityGroupID - The security group ID for the database
  * @param {string} projName - The project name
  * @param {string} useIAM - The IAM profile to use
- * @returns {Promise<object>} - The database connection details
+ * @param {boolean} verbose - Whether to log detailed information
+ * @returns {Promise<object>} - The database configuration object
  */
-const initDB = async (dbType, securityGroupID, projName, useIAM) => {
-  console.log(`Initializing ${dbType} database.`);
+const createDB = async (dbType, securityGroupID, projName, useIAM, verbose = false) => {
+  console.log(`Creating ${dbType} database.`);
+  const dbName = projName
+    .concat(dbType)
+    .replace(/[^A-Za-z0-9]/g, "")
+    .toLowerCase(); // lowercase + alphanumeric to match RDS DB names
 
-  const dbName = generateDBName(projName, dbType);
-  const shouldCreate = await shouldCreateNewDB(dbName, dbType, useIAM);
-
-  if (shouldCreate) {
-    return await createRDSDatabase(dbName, dbType, securityGroupID, projName, useIAM);
-  } else {
-    return await getExistingDBConfig(dbName, dbType);
+  const shouldCreate = await checkIfDBShouldBeCreated(dbName, dbType, useIAM);
+  if (!shouldCreate) {
+    // Get existing DB's configuration from pushkin.yaml
+    return await getDBConfig(dbName, dbType, verbose);
   }
+  // Create a new DB and return its configuration
+  const dbPassword = crypto.randomBytes(16).toString("base64url").slice(0, 16);
+  const myDBConfig = structuredClone(dbConfig);
+  myDBConfig.DBName = dbName;
+  myDBConfig.DBInstanceIdentifier = dbName;
+  myDBConfig.VpcSecurityGroupIds = [securityGroupID];
+  myDBConfig.MasterUserPassword = dbPassword;
+  myDBConfig.Tags = [{ Key: PROJECT_TAG_KEY, Value: projName }];
+
+  const rdsClient = createRDSClient(useIAM);
+
+  try {
+    await rdsClient.send(new CreateDBInstanceCommand(myDBConfig));
+  } catch (error) {
+    console.error(`Unable to create database ${dbName}:`, error);
+    throw error;
+  }
+
+  if (verbose) {
+    console.log(
+      `Database ${dbName} created with the following configuration:\n${JSON.stringify(myDBConfig, null, 2)}`,
+    );
+  } else {
+    console.log(`Database ${dbName} created.`);
+  }
+
+  // Wait for database to be available with timeout
+  try {
+    console.log(
+      `Waiting for ${dbName} to spool up. This may take a while, but will timeout if not completed within 20 minutes...`,
+    );
+    const waitStart = Date.now();
+    const { availability } = loadAwsConfig().timeouts.rds;
+    await waitUntilDBInstanceAvailable(
+      {
+        client: rdsClient,
+        maxWaitTime: availability.maxWaitTime,
+        minDelay: availability.minDelay,
+        maxDelay: availability.maxDelay,
+      },
+      { DBInstanceIdentifier: dbName },
+    );
+    const waitTime = Date.now() - waitStart;
+    console.log(
+      `${dbName} is spooled up after ${Math.floor(waitTime / 60000)} minutes ${Math.floor((waitTime % 60000) / 1000)} seconds!`,
+    );
+  } catch (error) {
+    if (error.name === "TimeoutError" || error.message.toLowerCase().includes("timeout")) {
+      console.warn(`Warning: spooling up ${dbName} timed out after 20 minutes.`);
+    } else {
+      console.warn(`Warning: spooling up ${dbName} failed with error:`, error);
+    }
+  }
+
+  let dbEndpoint;
+  console.log(`${dbName}: Retrieving database endpoint...`);
+  const { endpoint } = loadAwsConfig().timeouts.rds;
+  try {
+    await createWaiter(
+      {
+        client: createRDSClient(useIAM),
+        maxWaitTime: endpoint.maxWaitTime,
+        minDelay: endpoint.minDelay,
+        maxDelay: endpoint.maxDelay,
+      },
+      { DBInstanceIdentifier: dbName },
+      async (client, input) => {
+        const response = await client.send(new DescribeDBInstancesCommand(input));
+        if (response?.DBInstances?.[0]?.Endpoint?.Address) {
+          dbEndpoint = response;
+          return { state: WaiterState.SUCCESS };
+        }
+        console.log(`${dbName}: Endpoint not yet available, retrying...`);
+        return { state: WaiterState.RETRY };
+      },
+    );
+  } catch (error) {
+    console.error(`${dbName}: Failed to retrieve database endpoint:`, error);
+    throw error;
+  }
+  console.log(`${dbName}: Retrieved endpoint: ${dbEndpoint.DBInstances[0].Endpoint.Address}`);
+
+  // Update list of AWS resources
+  try {
+    const awsResources = readAwsResources() ?? {};
+    awsResources.dbs = [...(awsResources.dbs ?? []), dbName];
+    writeAwsResources(awsResources);
+    console.log("Updated awsResources with DB information");
+  } catch (error) {
+    console.warn("Failed to update awsResources with DB information:", error);
+  }
+
+  const newDB = {
+    type: dbType,
+    name: dbName,
+    host: dbEndpoint.DBInstances[0].Endpoint.Address,
+    url: dbEndpoint.DBInstances[0].Endpoint.Address, // This is same as 'host' for AWS, but different for local deploy in Docker
+    user: myDBConfig.MasterUsername,
+    pass: myDBConfig.MasterUserPassword,
+    port: myDBConfig.Port,
+  };
+
+  console.log(`${dbName}: Returning created database object:`, newDB);
+  return newDB;
 };
 
 /**
- * Retrieve connection information about all production databases from pushkin.yaml
+ * Retrieve connection information about all production databases from pushkin.yaml.
  * @returns {Promise<object>} - The database connection details keyed by database type
  */
-const getDBInfo = async () => {
+const getDBsInfo = async () => {
   let pushkinConfig;
   try {
     pushkinConfig = await loadPushkinConfig();
@@ -403,32 +351,32 @@ const getDBInfo = async () => {
 
   // Build database info object keyed by type
   const dbsByType = {};
-  dbKeys.forEach((key) => {
+  for (const key of dbKeys) {
     const db = pushkinConfig.productionDBs[key];
 
     // Validate that the database has required fields
     if (!db.type) {
       console.warn(`Warning: Database entry "${key}" missing type field, skipping...`);
-      return;
+      continue;
     }
 
     if (!db.name || !db.user || !db.pass || !db.port || !db.host) {
       console.warn(
         `Warning: Database "${key}" (type: ${db.type}) missing required fields, skipping...`,
       );
-      return;
+      continue;
     }
 
     dbsByType[db.type] = {
       name: db.name,
-      username: db.user,
-      password: db.pass,
+      user: db.user,
+      pass: db.pass,
       port: db.port,
-      endpoint: db.host,
+      host: db.host,
     };
 
     console.log(`Loaded ${db.type} database: ${db.name}`);
-  });
+  }
 
   // Final check - ensure we have at least one valid database after filtering
   if (Object.keys(dbsByType).length === 0) {
@@ -452,11 +400,14 @@ const getDBInfo = async () => {
 const recordDBs = async (dbDone) => {
   console.log("recordDBs: Waiting for database promises to resolve...");
 
-  // Add timeout to prevent indefinite hanging (30 minutes)
+  const { recording } = loadAwsConfig().timeouts.rds;
   const timeout = new Promise((_, reject) =>
     setTimeout(
-      () => reject(new Error("Database recording timeout after 30 minutes")),
-      30 * 60 * 1000,
+      () =>
+        reject(
+          new Error(`Database recording timeout after ${recording.timeoutMs / 60000} minutes`),
+        ),
+      recording.timeoutMs,
     ),
   );
 
@@ -521,7 +472,7 @@ const recordDBs = async (dbDone) => {
 /**
  * Get list of databases to delete.
  * @param {string} useIAM - The IAM profile to use
- * @param {string} killTag - Whether to delete only DBs tagged with project tag
+ * @param {string|null} killTag - Whether to delete only DBs tagged with project tag
  * @returns {Promise<Array<string>>} - List of database identifiers to delete
  */
 const getDBsToDelete = async (useIAM, killTag) => {
@@ -530,7 +481,7 @@ const getDBsToDelete = async (useIAM, killTag) => {
   try {
     const rdsClient = createRDSClient(useIAM);
     const response = await rdsClient.send(new DescribeDBInstancesCommand({}));
-    dbInstances = response.DBInstances || [];
+    dbInstances = response.DBInstances ?? [];
   } catch (error) {
     console.error(`Unable to list databases:`, error);
     throw error;
@@ -554,38 +505,26 @@ const getDBsToDelete = async (useIAM, killTag) => {
   return dbs;
 };
 
-/**
- * Check if database exists in RDS.
- */
-const checkDBExists = async (dbName, rdsClient) => {
-  try {
-    await rdsClient.send(new DescribeDBInstancesCommand({ DBInstanceIdentifier: dbName }));
-    return true;
-  } catch {
-    return false;
-  }
-};
-
-/**
- * Disable deletion protection for a single database.
- */
 const disableDeletionProtection = async (dbName, rdsClient) => {
   await rdsClient.send(
     new ModifyDBInstanceCommand({
-      DBInstanceIdentifier: dbName.toLowerCase(),
+      DBInstanceIdentifier: dbName,
       DeletionProtection: false,
       ApplyImmediately: true,
     }),
   );
 };
 
-/**
- * Wait until deletion protection is disabled for a database.
- */
-const waitForDeletionProtectionDisabled = async (dbName, rdsClient, timeoutMs = 300000) => {
+const waitForDeletionProtectionDisabled = async (dbName, rdsClient) => {
+  const { deletionProtection } = loadAwsConfig().timeouts.rds;
   await createWaiter(
-    { client: rdsClient, maxWaitTime: Math.floor(timeoutMs / 1000), minDelay: 10, maxDelay: 10 },
-    { DBInstanceIdentifier: dbName.toLowerCase() },
+    {
+      client: rdsClient,
+      maxWaitTime: Math.floor(deletionProtection.timeoutMs / 1000),
+      minDelay: deletionProtection.checkInterval,
+      maxDelay: deletionProtection.checkInterval,
+    },
+    { DBInstanceIdentifier: dbName },
     async (client, input) => {
       try {
         const response = await client.send(new DescribeDBInstancesCommand(input));
@@ -605,9 +544,6 @@ const waitForDeletionProtectionDisabled = async (dbName, rdsClient, timeoutMs = 
   );
 };
 
-/**
- * Delete a single database.
- */
 const deleteSingleDB = async (dbName, rdsClient) => {
   try {
     const response = await rdsClient.send(
@@ -637,11 +573,9 @@ const deleteSingleDB = async (dbName, rdsClient) => {
   }
 };
 
-/**
- * Wait until specific databases are fully deleted.
- */
-const waitForDBsDeletion = async (dbNames, rdsClient, timeoutMs = 1200000) => {
+const waitForDBsDeletion = async (dbNames, rdsClient) => {
   console.log(`Waiting for ${dbNames.length} database(s) to be deleted...`);
+  const { deletion } = loadAwsConfig().timeouts.rds;
 
   // Wait for each database to be deleted in parallel
   await Promise.all(
@@ -650,16 +584,18 @@ const waitForDBsDeletion = async (dbNames, rdsClient, timeoutMs = 1200000) => {
         await waitUntilDBInstanceDeleted(
           {
             client: rdsClient,
-            maxWaitTime: Math.floor(timeoutMs / 1000), // Convert ms to seconds
-            minDelay: 20, // Check every 20 seconds
-            maxDelay: 30, // Maximum 30 seconds between checks
+            maxWaitTime: Math.floor(deletion.timeoutMs / 1000),
+            minDelay: deletion.minDelay,
+            maxDelay: deletion.maxDelay,
           },
           { DBInstanceIdentifier: dbName },
         );
         console.log(`Database ${dbName} confirmed deleted`);
       } catch (error) {
         if (error.name === "TimeoutError" || error.message.toLowerCase().includes("timeout")) {
-          throw new Error(`Timeout waiting for ${dbName} to be deleted after ${timeoutMs / 1000}s`);
+          throw new Error(
+            `Timeout waiting for ${dbName} to be deleted after ${deletion.timeoutMs / 1000}s`,
+          );
         }
         throw error;
       }
@@ -677,25 +613,20 @@ const waitForDBsDeletion = async (dbNames, rdsClient, timeoutMs = 1200000) => {
  * @returns {Promise<boolean>} - Promise that resolves when databases are deleted
  */
 const deleteDBs = async (dbs, useIAM) => {
-  dbs = await dbs;
+  const resolvedDBs = await dbs;
 
-  if (dbs.length === 0) {
+  if (resolvedDBs.length === 0) {
     console.log(`No databases to delete.`);
     return true;
   }
 
   const rdsClient = createRDSClient(useIAM);
 
-  console.log(`Checking which databases exist: ${dbs.join(", ")}`);
-  const existingDBs = [];
-  for (const dbName of dbs) {
-    const exists = await checkDBExists(dbName, rdsClient);
-    if (exists) {
-      existingDBs.push(dbName);
-    } else {
-      console.log(`Database ${dbName} not found. Skipping.`);
-    }
-  }
+  console.log(`Checking which databases exist: ${resolvedDBs.join(", ")}`);
+  const existingDBsInRDS = await Promise.all(
+    resolvedDBs.map((dbName) => findDBInRDS(dbName, useIAM, rdsClient)),
+  );
+  const existingDBs = resolvedDBs.filter((_, i) => existingDBsInRDS[i]);
 
   if (existingDBs.length === 0) {
     console.log(`No databases to delete (all already deleted).`);
@@ -733,5 +664,4 @@ const deleteDBs = async (dbs, useIAM) => {
   return true;
 };
 
-// Export all functions
-export { initDB, getDBInfo, recordDBs, getDBsToDelete, deleteDBs };
+export { createDB, getDBsInfo, recordDBs, getDBsToDelete, deleteDBs };

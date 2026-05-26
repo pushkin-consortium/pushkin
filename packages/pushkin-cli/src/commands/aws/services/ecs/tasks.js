@@ -1,7 +1,7 @@
 /**
  * ECS Task Definition Operations
  * Handles task definition registration, environment configuration,
- * and service deployment 
+ * and service deployment
  * @module ecs/tasks
  */
 
@@ -19,10 +19,13 @@ import { AWS_REGION } from "../../constants.js";
 import { AWSClientFactory } from "../../utils/aws-client-factory.js";
 import { updateAwsResourcesField } from "../../utils/aws-resources.js";
 import { loadPushkinConfig, savePushkinConfig } from "../../../../utils/pushkin-config.js";
-import { ensureECSTaskExecutionRole } from "../iam.js";
-import { getDBInfo } from "../rds.js";
+import { ensureECSTaskExecutionRole } from "../security.js";
+import { getDBsInfo } from "../rds.js";
 import { buildRabbitTask, buildAPITask, buildWorkerTask } from "./environment.js";
 import { createECSService } from "./services.js";
+
+const createECSClient = (useIAM) =>
+  new AWSClientFactory(AWS_REGION, useIAM).createClient(ECSClient);
 
 /**
  * Build ECS task definition from a Docker Compose service definition.
@@ -35,12 +38,7 @@ import { createECSService } from "./services.js";
  * @param {string} executionRoleArn - ARN of the ECS task execution role
  * @returns {object} ECS Task Definition parameters
  */
-const dockerComposeToECSTaskDefinition = (
-  composeService,
-  family,
-  serviceName,
-  executionRoleArn,
-) => {
+function dockerComposeToECSTaskDefinition(composeService, family, serviceName, executionRoleArn) {
   const parseMemory = (mem) => {
     if (!mem) return 512;
     if (typeof mem === "number") return mem;
@@ -105,7 +103,7 @@ const dockerComposeToECSTaskDefinition = (
     memory: taskMemory.toString(),
     executionRoleArn,
   };
-};
+}
 
 /**
  * Register an ECS task definition with AWS.
@@ -114,9 +112,8 @@ const dockerComposeToECSTaskDefinition = (
  * @param {string} useIAM - IAM profile to use
  * @returns {Promise<string>} Task definition ARN
  */
-const registerECSTaskDefinition = async (taskDefParams, useIAM) => {
-  const factory = new AWSClientFactory(AWS_REGION, useIAM);
-  const ecsClient = factory.createClient(ECSClient);
+async function registerECSTaskDefinition(taskDefParams, useIAM) {
+  const ecsClient = createECSClient(useIAM);
 
   try {
     const response = await ecsClient.send(new RegisterTaskDefinitionCommand(taskDefParams));
@@ -128,7 +125,7 @@ const registerECSTaskDefinition = async (taskDefParams, useIAM) => {
     console.error(`Failed to register task definition ${taskDefParams.family}::`, error);
     throw error;
   }
-};
+}
 
 /**
  * Convert a Docker Compose task definition and deploy it as a Fargate service.
@@ -144,7 +141,7 @@ const registerECSTaskDefinition = async (taskDefParams, useIAM) => {
  * @param {number} loadBalancer.port - Container port to forward traffic to
  * @param {string} loadBalancer.targetGroupARN - Target group ARN to register the service with
  */
-const deployService = async (name, task, context, loadBalancer = null) => {
+async function deployService(name, task, context, loadBalancer = null) {
   const { ECSName, useIAM, executionRoleArn, subnets, ecsSecurityGroupID } = context;
 
   writeFile(path.join(process.cwd(), "ECStasks", `${name}.yml`), jsYaml.dump(task));
@@ -174,7 +171,7 @@ const deployService = async (name, task, context, loadBalancer = null) => {
   );
 
   console.log(`Successfully deployed ${name}`);
-};
+}
 
 /**
  * Deploy all ECS services (RabbitMQ, API, and experiment workers).
@@ -190,7 +187,7 @@ const deployService = async (name, task, context, loadBalancer = null) => {
  * @param {string} ecsSecurityGroupID - Security group ID for Fargate tasks
  * @returns {Promise} Resolves when all services are deployed
  */
-const createECSTask = async (
+async function createECSTask(
   projName,
   useIAM,
   DHID,
@@ -199,7 +196,7 @@ const createECSTask = async (
   targGroupARN,
   subnets,
   ecsSecurityGroupID,
-) => {
+) {
   createDirectory(path.join(process.cwd(), "ECStasks"));
 
   const executionRoleArn = await ensureECSTaskExecutionRole(useIAM);
@@ -213,7 +210,7 @@ const createECSTask = async (
 
   let pushkinConfig;
   try {
-    pushkinConfig = loadPushkinConfig();
+    pushkinConfig = await loadPushkinConfig();
   } catch (error) {
     console.error(`Failed to load pushkin.yaml:`, error);
     throw error;
@@ -234,7 +231,7 @@ const createECSTask = async (
     pushkinConfig.rabbitmq.erlangCookie = rabbitCookie;
 
     try {
-      savePushkinConfig(pushkinConfig);
+      await savePushkinConfig(pushkinConfig);
       console.log("Saved RabbitMQ credentials to pushkin.yaml");
     } catch (error) {
       console.error(`Failed to save RabbitMQ credentials to pushkin.yaml:`, error);
@@ -261,12 +258,12 @@ const createECSTask = async (
 
   console.log(`ECS task creation waiting on DBs`);
   await completedDBs;
-  const dbInfoByTask = await getDBInfo();
+  const dbInfoByTask = await getDBsInfo();
 
   console.log(`Verifying ECS cluster exists: "${ECSName}"`);
-  const { clusters } = await new AWSClientFactory(AWS_REGION, useIAM)
-    .createClient(ECSClient)
-    .send(new DescribeClustersCommand({ clusters: [ECSName] }));
+  const { clusters } = await createECSClient(useIAM).send(
+    new DescribeClustersCommand({ clusters: [ECSName] }),
+  );
   if (!clusters?.[0]) throw new Error(`Cluster ${ECSName} not found`);
 
   const context = { ECSName, useIAM, executionRoleArn, subnets, ecsSecurityGroupID };
@@ -289,6 +286,6 @@ const createECSTask = async (
   );
 
   return Promise.all([composedRabbit, composedAPI, ...composedWorkers]);
-};
+}
 
 export { createECSTask };

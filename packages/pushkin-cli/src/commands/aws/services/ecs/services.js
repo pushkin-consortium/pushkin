@@ -15,8 +15,12 @@ import {
 } from "@aws-sdk/client-ecs";
 import { createWaiter, WaiterState } from "@smithy/util-waiter";
 import { AWSClientFactory } from "../../utils/aws-client-factory.js";
+import { loadAwsConfig } from "../../utils/aws-config.js";
 import { writeFile } from "../../../../utils/file.js";
 import { AWS_REGION } from "../../constants.js";
+
+const createECSClient = (useIAM) =>
+  new AWSClientFactory(AWS_REGION, useIAM).createClient(ECSClient);
 
 /**
  * Create or update an ECS Fargate service.
@@ -31,7 +35,7 @@ import { AWS_REGION } from "../../constants.js";
  * @param {string} useIAM - IAM profile to use
  * @returns {Promise<object>} Service creation/update response
  */
-const createECSService = async (
+async function createECSService(
   serviceName,
   taskDefArn,
   clusterName,
@@ -41,9 +45,8 @@ const createECSService = async (
   subnets = [],
   securityGroup = null,
   useIAM,
-) => {
-  const factory = new AWSClientFactory(AWS_REGION, useIAM);
-  const ecsClient = factory.createClient(ECSClient);
+) {
+  const ecsClient = createECSClient(useIAM);
 
   // First check if service already exists
   try {
@@ -114,7 +117,7 @@ const createECSService = async (
     return response.service;
   } catch (error) {
     console.error(`Service: ${serviceName}`);
-    console.error(`Error::`, error);
+    console.error(`Error:`, error);
     if (error.$metadata) {
       console.error(`HTTP Status: ${error.$metadata.httpStatusCode}`);
     }
@@ -146,7 +149,7 @@ const createECSService = async (
     }
     throw error;
   }
-};
+}
 
 /**
  * Delete all services in an ECS cluster, waiting until they are fully removed.
@@ -154,14 +157,13 @@ const createECSService = async (
  * @param {string} useIAM - IAM profile to use
  * @returns {Promise<boolean>} True when all services are deleted
  */
-const deleteAllServices = async (clusterName, useIAM) => {
-  const factory = new AWSClientFactory(AWS_REGION, useIAM);
-  const ecsClient = factory.createClient(ECSClient);
+async function deleteAllServices(clusterName, useIAM) {
+  const ecsClient = createECSClient(useIAM);
 
   let serviceArns;
   try {
     const response = await ecsClient.send(new ListServicesCommand({ cluster: clusterName }));
-    serviceArns = response.serviceArns;
+    serviceArns = response.serviceArns ?? [];
   } catch (error) {
     console.error(`Unable to list services for cluster ${clusterName}:`, error);
     throw error;
@@ -178,20 +180,27 @@ const deleteAllServices = async (clusterName, useIAM) => {
     );
   }
 
+  const { servicesDeletion } = loadAwsConfig().timeouts.ecs;
   await createWaiter(
-    { client: ecsClient, maxWaitTime: 300, minDelay: 5, maxDelay: 5 },
+    {
+      client: ecsClient,
+      maxWaitTime: servicesDeletion.maxWaitTime,
+      minDelay: servicesDeletion.minDelay,
+      maxDelay: servicesDeletion.maxDelay,
+    },
     { cluster: clusterName },
     async (client, input) => {
       const response = await client.send(new ListServicesCommand(input));
-      if (response.serviceArns.length === 0) {
+      const arns = response.serviceArns ?? [];
+      if (arns.length === 0) {
         console.log("All services have been deleted.");
         return { state: WaiterState.SUCCESS };
       }
-      console.log(`Waiting for ${response.serviceArns.length} services to be deleted...`);
+      console.log(`Waiting for ${arns.length} services to be deleted...`);
       return { state: WaiterState.RETRY };
     },
   );
   return true;
-};
+}
 
 export { createECSService, deleteAllServices };

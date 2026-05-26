@@ -16,7 +16,7 @@ import { rabbitTask, apiTask, workerTask } from "../../awsConfigs.js";
  * @param {string} rabbitCookie - RabbitMQ Erlang cookie
  * @returns {object} Configured Docker Compose service definition
  */
-const buildRabbitTask = (projName, rabbitUser, rabbitPW, rabbitCookie) => {
+function buildRabbitTask(projName, rabbitUser, rabbitPW, rabbitCookie) {
   const task = structuredClone(rabbitTask);
   task.services["message-queue"].environment.RABBITMQ_DEFAULT_USER = rabbitUser;
   task.services["message-queue"].environment.RABBITMQ_DEFAULT_PASS = rabbitPW;
@@ -25,7 +25,7 @@ const buildRabbitTask = (projName, rabbitUser, rabbitPW, rabbitCookie) => {
   task.services["message-queue"].logging.options["awslogs-stream-prefix"] =
     `ecs/rabbit/${projName}`;
   return task;
-};
+}
 
 /**
  * Build a configured API task definition
@@ -34,14 +34,14 @@ const buildRabbitTask = (projName, rabbitUser, rabbitPW, rabbitCookie) => {
  * @param {string} rabbitAddress - Full AMQP connection string
  * @returns {object} Configured Docker Compose service definition
  */
-const buildAPITask = (projName, DHID, rabbitAddress) => {
+function buildAPITask(projName, DHID, rabbitAddress) {
   const task = structuredClone(apiTask);
   task.services["api"].environment.AMQP_ADDRESS = rabbitAddress;
   task.services["api"].image = `${DHID}/api:latest`;
   task.services["api"].logging.options["awslogs-group"] = `ecs/${projName}`;
   task.services["api"].logging.options["awslogs-stream-prefix"] = `ecs/api/${projName}`;
   return task;
-};
+}
 
 /**
  * Build a configured worker task definition for a single experiment worker
@@ -52,7 +52,7 @@ const buildAPITask = (projName, DHID, rabbitAddress) => {
  * @param {object} dbInfoByTask - Database connection info, keyed by DB type (Main, Transaction)
  * @returns {object} Configured Docker Compose service definition
  */
-const buildWorkerTask = (workerName, projName, DHID, rabbitAddress, dbInfoByTask) => {
+function buildWorkerTask(workerName, projName, DHID, rabbitAddress, dbInfoByTask) {
   const task = {
     version: workerTask.version,
     services: {},
@@ -76,6 +76,6 @@ const buildWorkerTask = (workerName, projName, DHID, rabbitAddress, dbInfoByTask
     TRANS_URL: dbInfoByTask["Transaction"].endpoint,
   };
   return task;
-};
+}
 
 export { buildRabbitTask, buildAPITask, buildWorkerTask };

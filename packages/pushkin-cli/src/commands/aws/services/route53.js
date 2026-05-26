@@ -1,7 +1,5 @@
 /**
- * AWS Route53 Service Management
- * Manages Route53 DNS records for the Pushkin project, including creating/updating record sets
- * for CloudFront distributions and deleting records during cleanup.
+ * Handles creating, updating and deleting Route53 DNS records for CloudFront distributions in Pushkin projects.
  * @module route53
  */
 
@@ -12,9 +10,13 @@ import {
   ChangeResourceRecordSetsCommand,
 } from "@aws-sdk/client-route-53";
 import { createWaiter, WaiterState } from "@smithy/util-waiter";
-import { AWSClientFactory } from "../utils/aws-client-factory.js";
 import { loadPushkinConfig } from "../../../utils/pushkin-config.js";
+import { AWSClientFactory } from "../utils/aws-client-factory.js";
+import { loadAwsConfig } from "../utils/aws-config.js";
 import { AWS_REGION } from "../constants.js";
+
+const createRoute53Client = (useIAM) =>
+  new AWSClientFactory(AWS_REGION, useIAM).createClient(Route53Client);
 
 /**
  * Find the Route53 hosted zone ID for a domain, falling back to parent domains if needed.
@@ -30,10 +32,10 @@ const findHostedZone = async (domain, useIAM) => {
   // order to keep the site's DNS records separate and avoid potential conflicts with other projects
   // using the same parent domain.
   console.log(`Retrieving hosted zone ID for ${domain}`);
-  const route53Client = new AWSClientFactory(AWS_REGION, useIAM).createClient(Route53Client);
+  const route53Client = createRoute53Client(useIAM);
   let zoneDomain = domain;
 
-  while (zoneDomain.split(".").length >= 2) {
+  while (true) {
     let matchingZone;
     try {
       let params = { DNSName: zoneDomain };
@@ -57,9 +59,8 @@ const findHostedZone = async (domain, useIAM) => {
       return zoneID;
     }
 
-    if (zoneDomain.split(".").length <= 2) break;
-
     const parts = zoneDomain.split(".");
+    if (parts.length <= 2) break; // Already at root domain; no point stripping the TLD
     parts.shift();
     zoneDomain = parts.join(".");
     console.log(`No exact match, trying parent domain: ${zoneDomain}`);
@@ -75,12 +76,12 @@ const findHostedZone = async (domain, useIAM) => {
  * @param {string} domainName - The domain name
  * @param {string} projName - The project name
  * @param {string} useIAM - The IAM profile to use
- * @param {object} theCloud - The CloudFront distribution object
- * @returns {Promise} - A promise that resolves when the record set is created or updated
+ * @param {{DomainName: string}} theCloud - The CloudFront distribution object
+ * @returns {Promise<object>} - A promise that resolves with the ChangeResourceRecordSets response
  */
 const makeRecordSet = async (domainName, projName, useIAM, theCloud) => {
   const zoneID = await findHostedZone(domainName, useIAM);
-  const route53 = new AWSClientFactory(AWS_REGION, useIAM).createClient(Route53Client);
+  const route53 = createRoute53Client(useIAM);
 
   // If there was a failed init, there may already be resource record sets
   // which will cause this to fail. So, we'll try to delete them first.
@@ -116,7 +117,9 @@ const makeRecordSet = async (domainName, projName, useIAM, theCloud) => {
           }),
         );
       } catch (error) {
-        console.error(`Unable to delete resource record sets for ${domainName}:`, error);
+        // Deletion failure is non-fatal: UPSERT below handles pre-existing records.
+        // If a real conflict persists, the UPSERT will surface it with a clearer error.
+        console.warn(`Unable to delete resource record sets for ${domainName}:`, error);
       }
     } else {
       console.log(
@@ -150,9 +153,17 @@ const makeRecordSet = async (domainName, projName, useIAM, theCloud) => {
     ],
   };
 
-  // Wait for any in-progress record set deletions before writing new ones
+  // Wait for any in-progress record set deletions before writing new ones.
+  // WHY: The waiter also retries deletion of records with SetIdentifiers on each poll cycle —
+  // this handles eventual consistency where Route53 may not immediately reflect the deletion.
+  const { route53: route53Timeouts } = loadAwsConfig().timeouts;
   await createWaiter(
-    { client: route53, maxWaitTime: 600, minDelay: 20, maxDelay: 20 },
+    {
+      client: route53,
+      maxWaitTime: route53Timeouts.recordSetDeletion.maxWaitTime,
+      minDelay: route53Timeouts.recordSetDeletion.checkInterval,
+      maxDelay: route53Timeouts.recordSetDeletion.checkInterval,
+    },
     { HostedZoneId: zoneID },
     async (client, input) => {
       const { ResourceRecordSets } = await client.send(new ListResourceRecordSetsCommand(input));
@@ -205,16 +216,16 @@ const makeRecordSet = async (domainName, projName, useIAM, theCloud) => {
  * Delete all Route53 resource records for the current project's domain.
  * WHY: We want to clean up DNS records when tearing down the project to avoid future projects
  * accidentally reusing them and to keep the hosted zone tidy.
- * @param useIAM – The IAM profile to use
- * @param killTag – Whether to delete records with a specific tag
- * @param projName – The project name
+ * @param {string} useIAM - The IAM profile to use
+ * @param {string|null} killTag - Project name to filter by; if null/falsy, deletes all records with a SetIdentifier
+ * @param {string} projName - The project name
  */
-async function deleteResourceRecords(useIAM, killTag, projName) {
+const deleteResourceRecords = async (useIAM, killTag, projName) => {
   let pushkinConfig;
   try {
     pushkinConfig = await loadPushkinConfig();
   } catch (error) {
-    console.error(`Failed to load pushkin.yaml::`, error);
+    console.error(`Failed to load pushkin.yaml:`, error);
     throw error;
   }
   const myDomain = pushkinConfig.info.rootDomain;
@@ -232,22 +243,32 @@ async function deleteResourceRecords(useIAM, killTag, projName) {
     throw error;
   }
 
-  const route53Client = new AWSClientFactory(AWS_REGION, useIAM).createClient(Route53Client);
+  const route53Client = createRoute53Client(useIAM);
   const changes = [];
 
   try {
-    for await (const page of paginateListResourceRecordSets(
-      { client: route53Client },
-      { HostedZoneId: zoneID },
-    )) {
-      for (const rr of page.ResourceRecordSets) {
+    let isTruncated = true;
+    let nextRecordName;
+    let nextRecordType;
+    while (isTruncated) {
+      const response = await route53Client.send(
+        new ListResourceRecordSetsCommand({
+          HostedZoneId: zoneID,
+          StartRecordName: nextRecordName,
+          StartRecordType: nextRecordType,
+        }),
+      );
+      for (const rr of response.ResourceRecordSets) {
         if (rr.SetIdentifier === projName || (!killTag && rr.SetIdentifier)) {
           changes.push({ Action: "DELETE", ResourceRecordSet: rr });
         }
       }
+      isTruncated = response.IsTruncated;
+      nextRecordName = response.NextRecordName;
+      nextRecordType = response.NextRecordType;
     }
   } catch (error) {
-    console.error(`Unable to retrieve resource records for ${myDomain}::`, error);
+    console.error(`Unable to retrieve resource records for ${myDomain}:`, error);
     throw error;
   }
 
@@ -259,7 +280,7 @@ async function deleteResourceRecords(useIAM, killTag, projName) {
       ChangeBatch: { Comment: "", Changes: changes },
     }),
   );
-}
+};
 
 /**
  * Create a Route53 A record pointing api.{domain} at the load balancer.
@@ -276,7 +297,7 @@ const forwardAPI = async (configuredECS, useIAM, projName, myDomain, deployedFro
   const { balancerEndpoint, balancerZone } = await configuredECS;
   await deployedFrontEnd;
 
-  if (myDomain === "default") return true;
+  if (myDomain === "default") return true; // "default" means no custom domain configured
 
   const zoneID = await findHostedZone(myDomain, useIAM);
 
@@ -301,7 +322,7 @@ const forwardAPI = async (configuredECS, useIAM, projName, myDomain, deployedFro
     ],
   };
   try {
-    const route53Client = new AWSClientFactory(AWS_REGION, useIAM).createClient(Route53Client);
+    const route53Client = createRoute53Client(useIAM);
     await route53Client.send(
       new ChangeResourceRecordSetsCommand({
         HostedZoneId: zoneID,
