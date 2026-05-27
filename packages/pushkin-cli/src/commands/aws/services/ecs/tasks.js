@@ -23,6 +23,7 @@ import { ensureECSTaskExecutionRole } from "../security.js";
 import { getDBsInfo } from "../rds.js";
 import { buildRabbitTask, buildAPITask, buildWorkerTask } from "./environment.js";
 import { createECSService } from "./services.js";
+import { ensureServiceDiscoveryNamespace, registerServiceWithDiscovery } from "./discovery.js";
 
 const createECSClient = (useIAM) =>
   new AWSClientFactory(AWS_REGION, useIAM).createClient(ECSClient);
@@ -140,8 +141,9 @@ async function registerECSTaskDefinition(taskDefParams, useIAM) {
  * @param {object|null} loadBalancer - Load balancer attachment (null = no LB attachment)
  * @param {number} loadBalancer.port - Container port to forward traffic to
  * @param {string} loadBalancer.targetGroupARN - Target group ARN to register the service with
+ * @param {string|null} serviceRegistryArn - Cloud Map service ARN for service discovery (null = no discovery)
  */
-async function deployService(name, task, context, loadBalancer = null) {
+async function deployService(name, task, context, loadBalancer = null, serviceRegistryArn = null) {
   const { ECSName, useIAM, executionRoleArn, subnets, ecsSecurityGroupID } = context;
 
   writeFile(path.join(process.cwd(), "ECStasks", `${name}.yml`), jsYaml.dump(task));
@@ -168,6 +170,7 @@ async function deployService(name, task, context, loadBalancer = null) {
     subnets,
     ecsSecurityGroupID,
     useIAM,
+    serviceRegistryArn,
   );
 
   console.log(`Successfully deployed ${name}`);
@@ -185,6 +188,7 @@ async function deployService(name, task, context, loadBalancer = null) {
  * @param {string} targGroupARN - The target group ARN
  * @param {Array<string>} subnets - Array of subnet IDs for Fargate tasks
  * @param {string} ecsSecurityGroupID - Security group ID for Fargate tasks
+ * @param {string} vpcId - VPC ID for Cloud Map Service Discovery namespace
  * @returns {Promise} Resolves when all services are deployed
  */
 async function createECSTask(
@@ -196,6 +200,7 @@ async function createECSTask(
   targGroupARN,
   subnets,
   ecsSecurityGroupID,
+  vpcId,
 ) {
   createDirectory(path.join(process.cwd(), "ECStasks"));
 
@@ -240,7 +245,10 @@ async function createECSTask(
   }
 
   const rabbitUser = projName.replace(/[^A-Za-z0-9]/g, "");
-  const rabbitAddress = `amqp://${rabbitUser}:${rabbitPW}@localhost:5672`;
+  // Cloud Map hostname: separate Fargate tasks each have their own network namespace (awsvpc mode),
+  // so localhost doesn't cross task boundaries. Service Discovery gives RabbitMQ a stable DNS name.
+  const rabbitHost = `message-queue.${projName}.local`;
+  const rabbitAddress = `amqp://${rabbitUser}:${rabbitPW}@${rabbitHost}:5672`;
 
   let dockerCompose;
   try {
@@ -268,10 +276,22 @@ async function createECSTask(
 
   const context = { ECSName, useIAM, executionRoleArn, subnets, ecsSecurityGroupID };
 
+  // Set up Cloud Map namespace and register message-queue so other tasks can reach it by DNS name.
+  // This must complete before deploying services that reference the registry ARN.
+  console.log(`Setting up Service Discovery namespace for ${projName}`);
+  const namespaceId = await ensureServiceDiscoveryNamespace(projName, vpcId, useIAM);
+  const messageQueueRegistryArn = await registerServiceWithDiscovery(
+    "message-queue",
+    namespaceId,
+    useIAM,
+  );
+
   const composedRabbit = deployService(
     "message-queue",
     buildRabbitTask(projName, rabbitUser, rabbitPW, rabbitCookie),
     context,
+    null,
+    messageQueueRegistryArn,
   );
   const composedAPI = deployService("api", buildAPITask(projName, DHID, rabbitAddress), context, {
     port: 80,
