@@ -33,6 +33,7 @@ const createECSClient = (useIAM) =>
  * @param {Array<string>} subnets - Subnet IDs for Fargate tasks
  * @param {string} securityGroup - Security group ID for Fargate tasks
  * @param {string} useIAM - IAM profile to use
+ * @param {string|null} serviceRegistryArn - Optional Cloud Map service ARN for service discovery
  * @returns {Promise<object>} Service creation/update response
  */
 async function createECSService(
@@ -45,6 +46,7 @@ async function createECSService(
   subnets = [],
   securityGroup = null,
   useIAM,
+  serviceRegistryArn = null,
 ) {
   const ecsClient = createECSClient(useIAM);
 
@@ -108,6 +110,10 @@ async function createECSService(
         containerPort,
       },
     ];
+  }
+
+  if (serviceRegistryArn) {
+    serviceParams.serviceRegistries = [{ registryArn: serviceRegistryArn }];
   }
 
   try {

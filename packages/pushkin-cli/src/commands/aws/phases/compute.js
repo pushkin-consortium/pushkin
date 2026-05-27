@@ -97,16 +97,15 @@ export async function setupCompute(projName, useIAM, DHID, completedDBs, myCerti
 
   // Create load balancer, target group, and HTTP/HTTPS listeners
   const loadBalancerName = ECSName.concat("Balancer");
-  const { balancerEndpoint, balancerZone, targGroupARN } = await createLoadBalancer(
-    useIAM,
-    loadBalancerName,
+  const { balancerEndpoint, balancerZone, targetGroupARN } = await createLoadBalancer(useIAM, {
+    name: loadBalancerName,
+    vpcId: myVPC,
     subnets,
-    BalancerSecurityGroupID,
-    myVPC,
-    myCertificate,
+    securityGroupId: BalancerSecurityGroupID,
+    certificateArn: myCertificate,
     projName,
-    PROJECT_TAG_KEY,
-  );
+    projectTagKey: PROJECT_TAG_KEY,
+  });
 
   // Create ECS tasks (RabbitMQ, API, experiment workers)
   console.log("Creating ECS tasks");
@@ -116,9 +115,10 @@ export async function setupCompute(projName, useIAM, DHID, completedDBs, myCerti
     DHID,
     completedDBs,
     ECSName,
-    targGroupARN,
+    targetGroupARN,
     subnets,
     ecsSecurityGroupID,
+    myVPC,
   );
   console.log(`Created ECS task definitions`);
 

@@ -4,23 +4,22 @@
  * @module aws/phases/infrastructure
  */
 
-import path from 'path';
-import { initDB, recordDBs } from '../services/rds.js';
-import { buildFrontEnd } from '../services/s3.js';
-import { ensureDatabaseSecurityGroup } from '../services/security.js';
-import { createLogGroup } from '../services/monitoring.js';
+import path from "path";
+import { createDB, recordDBs } from "../services/rds.js";
+import { buildFrontEnd } from "../services/s3.js";
+import { ensureDatabaseSecurityGroup } from "../services/security.js";
+import { createLogGroup } from "../services/monitoring.js";
 
 /**
  * Provision core AWS infrastructure resources
  * Creates databases, security groups, S3 bucket, and builds front-end
- *
  * @param {object} config - Pushkin configuration
  * @param {string} profileName - AWS profile name
  * @param {string} projName - Project name
  * @returns {Promise<{completedDBs: object, builtFrontEnd: Promise, securityGroupID: string}>}
  */
 export async function provisionInfrastructure(config, profileName, projName) {
-  console.log('Provisioning AWS infrastructure...');
+  console.log("Provisioning AWS infrastructure...");
 
   // Create security group for databases
   const securityGroupID = await ensureDatabaseSecurityGroup(profileName, projName);
@@ -29,14 +28,14 @@ export async function provisionInfrastructure(config, profileName, projName) {
   createLogGroup(profileName, projName);
 
   // Initialize databases (takes longest, so start early)
-  const initializedMainDB = initDB('Main', securityGroupID, projName, profileName);
-  const initializedTransactionDB = initDB('Transaction', securityGroupID, projName, profileName);
+  const initializedMainDB = createDB("Main", securityGroupID, projName, profileName);
+  const initializedTransactionDB = createDB("Transaction", securityGroupID, projName, profileName);
 
   let completedDBs;
   try {
     completedDBs = await recordDBs(Promise.all([initializedMainDB, initializedTransactionDB]));
   } catch (e) {
-    console.error('Failed to record databases:', e);
+    console.error("Failed to record databases:", e);
     throw e;
   }
 
@@ -46,6 +45,6 @@ export async function provisionInfrastructure(config, profileName, projName) {
   return {
     completedDBs,
     builtFrontEnd,
-    securityGroupID
+    securityGroupID,
   };
 }

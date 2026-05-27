@@ -4,11 +4,11 @@
  * @module aws/phases/user-input
  */
 
-import inquirer from 'inquirer';
-import { Route53DomainsClient, ListDomainsCommand } from '@aws-sdk/client-route-53-domains';
-import { AWSClientFactory } from '../utils/aws-client-factory.js';
-import { AWS_REGION } from '../constants.js';
-import { listCertificates } from '../services/monitoring.js';
+import inquirer from "inquirer";
+import { Route53DomainsClient, ListDomainsCommand } from "@aws-sdk/client-route-53-domains";
+import { AWSClientFactory } from "../utils/aws-client-factory.js";
+import { AWS_REGION } from "../constants.js";
+import { listCertificates } from "../services/security.js";
 
 /**
  * Choose a domain for the site from Route53 registered domains
@@ -16,9 +16,9 @@ import { listCertificates } from '../services/monitoring.js';
  * @returns {Promise<string>} - A promise that resolves to the chosen domain
  */
 async function chooseDomain(profileName) {
-  console.log('Choosing domain name for site');
+  console.log("Choosing domain name for site");
 
-  let domains = ['default'];
+  let domains = ["default"];
 
   try {
     const factory = new AWSClientFactory(AWS_REGION, profileName);
@@ -33,28 +33,28 @@ async function chooseDomain(profileName) {
     // Continue with just 'default' option
   }
 
-  domains.push('Enter a custom domain/subdomain');
+  domains.push("Enter a custom domain/subdomain");
 
   console.log(`Choosing...`);
   const answers = await inquirer.prompt([
     {
-      type: 'list',
-      name: 'domain',
+      type: "list",
+      name: "domain",
       choices: domains,
       default: 0,
-      message: 'Which domain would you like to use for your site?',
+      message: "Which domain would you like to use for your site?",
     },
   ]);
 
-  if (answers.domain === 'Enter a custom domain/subdomain') {
+  if (answers.domain === "Enter a custom domain/subdomain") {
     const customDomain = await inquirer.prompt([
       {
-        type: 'input',
-        name: 'customDomain',
-        message: 'Enter your custom domain or subdomain (e.g., subdomain.example.com):',
+        type: "input",
+        name: "customDomain",
+        message: "Enter your custom domain or subdomain (e.g., subdomain.example.com):",
         validate: (input) => {
           if (!input || input.trim().length === 0) {
-            return 'Domain cannot be empty';
+            return "Domain cannot be empty";
           }
           return true;
         },
@@ -73,7 +73,7 @@ async function chooseDomain(profileName) {
  */
 export async function gatherUserInput(profileName) {
   // Get SSL certificate (must come first or input gets buried)
-  console.log('Setting up SSL for load-balancer');
+  console.log("Setting up SSL for load-balancer");
   let certificates;
   try {
     certificates = await listCertificates(profileName);
@@ -83,13 +83,13 @@ export async function gatherUserInput(profileName) {
   }
   const { certificateChoice } = await inquirer.prompt([
     {
-      type: 'list',
-      name: 'certificateChoice',
+      type: "list",
+      name: "certificateChoice",
       choices: Object.keys(certificates),
       default: 0,
       message:
-        'Which SSL certificate would you like to use for your site?' +
-        ' (Note: Only ISSUED certificates work for ALB)',
+        "Which SSL certificate would you like to use for your site?" +
+        " (Note: Only ISSUED certificates work for ALB)",
     },
   ]);
   const certificate = certificates[certificateChoice];

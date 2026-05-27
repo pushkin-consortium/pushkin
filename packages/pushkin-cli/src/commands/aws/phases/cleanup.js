@@ -5,9 +5,10 @@
  */
 
 import { deleteCluster } from "../services/ecs/clusters.js";
+import { deleteServiceDiscovery } from "../services/ecs/discovery.js";
 import { getDBsToDelete, deleteDBs } from "../services/rds.js";
 import { deleteLoadBalancer, deleteTargetGroups } from "../services/elb.js";
-import { deleteCloudFront, deleteOACs } from "../services/cloudfront.js";
+import { deleteCloudFrontDistribution, deleteOACs } from "../services/cloudfront.js";
 import { deleteResourceRecords } from "../services/route53.js";
 import { deleteS3Buckets } from "../services/s3.js";
 import { deleteSecurityGroups } from "../services/security.js";
@@ -45,6 +46,7 @@ export async function cleanupResources(profileName, killType) {
 
   // Start deletions in dependency order
   const deletedCluster = deleteCluster(profileName, killTag, projName, awsResources);
+  const deletedServiceDiscovery = deleteServiceDiscovery(profileName, projName, killTag);
 
   const dbsToDelete = getDBsToDelete(profileName, killTag, awsResources);
   const deletedDBs = deleteDBs(dbsToDelete, profileName, killTag);
@@ -52,7 +54,7 @@ export async function cleanupResources(profileName, killType) {
   const deletedLoadBalancer = deleteLoadBalancer(profileName, killTag);
 
   // Delete CloudFront first, then OACs (CloudFront must be deleted before OACs can be deleted)
-  const deletedCloudFront = deleteCloudFront(profileName, projName, killTag);
+  const deletedCloudFront = deleteCloudFrontDistribution(profileName, projName, killTag);
 
   let deletedOACs;
   try {
@@ -99,6 +101,7 @@ export async function cleanupResources(profileName, killType) {
     deletedOACs,
     deletedCluster,
     deletedTargetGroup,
+    deletedServiceDiscovery,
   ]);
 
   console.log("✅ Cleanup complete!");

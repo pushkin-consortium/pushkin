@@ -161,7 +161,7 @@ export const getProjectStatus = async (useIAM, verbose = false) => {
   let resources, config;
   try {
     resources = readAwsResources();
-    config = await loadPushkinConfig();
+    config = loadPushkinConfig();
   } catch (error) {
     console.error("❌ Error reading project configuration:");
     console.error(
