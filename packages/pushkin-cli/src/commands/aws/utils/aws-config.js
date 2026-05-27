@@ -26,10 +26,60 @@ const DEFAULT_AWS_CONFIG = {
         retryInterval: 10, // seconds
       },
     },
+    elb: {
+      listenerDeletion: {
+        maxWaitTime: 300, // seconds
+        checkInterval: 5, // seconds
+      },
+    },
+    route53: {
+      recordSetDeletion: {
+        maxWaitTime: 600, // seconds (10 minutes)
+        checkInterval: 20, // seconds
+      },
+    },
     rds: {
-      maxWaitTime: 1200,
-      maxRetries: 3,
-      retryInterval: 30,
+      availability: {
+        maxWaitTime: 1200, // seconds (20 min) — waitUntilDBInstanceAvailable
+        minDelay: 10,
+        maxDelay: 20,
+      },
+      endpoint: {
+        maxWaitTime: 120, // seconds — endpoint address waiter
+        minDelay: 10,
+        maxDelay: 30,
+      },
+      recording: {
+        timeoutMs: 1800000, // ms (30 min) — recordDBs race timeout
+      },
+      deletionProtection: {
+        timeoutMs: 300000, // ms (5 min) — waitForDeletionProtectionDisabled
+        checkInterval: 10, // seconds
+      },
+      deletion: {
+        timeoutMs: 1200000, // ms (20 min) — waitForDBsDeletion
+        minDelay: 20,
+        maxDelay: 30,
+      },
+    },
+    cloudformation: {
+      stackDeletion: {
+        maxWaitTime: 600, // seconds (10 minutes)
+        minDelay: 5,
+        maxDelay: 30,
+      },
+    },
+    ecs: {
+      tasksStopped: {
+        maxWaitTime: 600, // seconds (10 minutes)
+        minDelay: 5,
+        maxDelay: 10,
+      },
+      servicesDeletion: {
+        maxWaitTime: 300, // seconds (5 minutes)
+        minDelay: 5,
+        maxDelay: 5,
+      },
     },
     default: {
       maxRetries: 5,
@@ -56,6 +106,10 @@ const DEFAULT_AWS_CONFIG = {
         evaluationPeriods: 2,
       },
     },
+  },
+
+  cloudwatch: {
+    logRetentionDays: 7,
   },
 
   ecs: {
@@ -103,6 +157,10 @@ const DEFAULT_AWS_CONFIG = {
     alarmEmail: null,
   },
 
+  s3: {
+    uploadBatchSize: 10, // Number of files to upload concurrently to avoid overwhelming the connection
+  },
+
   costs: {
     useSpotInstances: false,
     s3Lifecycle: true,
@@ -125,7 +183,6 @@ const DEFAULT_AWS_CONFIG = {
 /**
  * Deep merge two objects, with source overriding target
  * Arrays are replaced, not merged
- *
  * @param {object} target - The target object (defaults)
  * @param {object} source - The source object (user config)
  * @returns {object} - Merged object
@@ -158,7 +215,6 @@ function deepMerge(target, source) {
 /**
  * Load AWS deployment configuration from aws-deploy.yaml
  * Merges user config with defaults
- *
  * @param {string} [configPath] - Optional path to config file (defaults to cwd/aws-deploy.yaml)
  * @returns {object} - Configuration object with all settings
  */
@@ -201,7 +257,6 @@ export function getDefaultConfig() {
 /**
  * Validate configuration values
  * Returns array of validation errors, empty if valid
- *
  * @param {object} config - Configuration object to validate
  * @returns {Array<string>} - Array of error messages
  */
@@ -267,9 +322,6 @@ export function validateConfig(config) {
   if (config.timeouts.cloudfront.maxWaitTime <= 0) {
     errors.push("timeouts.cloudfront.maxWaitTime must be positive");
   }
-  if (config.timeouts.cloudfront.maxChecks <= 0) {
-    errors.push("timeouts.cloudfront.maxChecks must be positive");
-  }
   if (config.timeouts.cloudfront.checkInterval <= 0) {
     errors.push("timeouts.cloudfront.checkInterval must be positive");
   }
@@ -280,14 +332,14 @@ export function validateConfig(config) {
     errors.push("timeouts.cloudfront.oacDeletion.retryInterval must be positive");
   }
 
-  if (config.timeouts.rds.maxWaitTime <= 0) {
-    errors.push("timeouts.rds.maxWaitTime must be positive");
+  if (config.timeouts.rds.availability.maxWaitTime <= 0) {
+    errors.push("timeouts.rds.availability.maxWaitTime must be positive");
   }
-  if (config.timeouts.rds.maxRetries <= 0) {
-    errors.push("timeouts.rds.maxRetries must be positive");
+  if (config.timeouts.rds.availability.minDelay <= 0) {
+    errors.push("timeouts.rds.availability.minDelay must be positive");
   }
-  if (config.timeouts.rds.retryInterval <= 0) {
-    errors.push("timeouts.rds.retryInterval must be positive");
+  if (config.timeouts.rds.deletion.timeoutMs <= 0) {
+    errors.push("timeouts.rds.deletion.timeoutMs must be positive");
   }
 
   if (config.timeouts.default.maxRetries <= 0) {
