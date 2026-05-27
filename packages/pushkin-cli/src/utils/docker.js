@@ -24,7 +24,7 @@ import { readFile, isDirectory } from "./file.js";
 const rebuildWorker = async function (experiment, verbose = false) {
   let pushkinConfig;
   try {
-    pushkinConfig = await loadPushkinConfig();
+    pushkinConfig = loadPushkinConfig();
   } catch (error) {
     console.error(`Failed to load pushkin.yaml:`, error);
     throw error;

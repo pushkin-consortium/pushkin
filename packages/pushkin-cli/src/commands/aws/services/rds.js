@@ -110,7 +110,7 @@ const validateDBMatch = (dbType, pushkinConfig, rdsDB) => {
 const checkIfDBShouldBeCreated = async (dbName, dbType, useIAM) => {
   let pushkinConfig;
   try {
-    pushkinConfig = await loadPushkinConfig();
+    pushkinConfig = loadPushkinConfig();
   } catch (error) {
     console.error(`Failed to load pushkin.yaml:`, error);
     throw error;
@@ -173,7 +173,7 @@ const checkIfDBShouldBeCreated = async (dbName, dbType, useIAM) => {
 const getDBConfig = async (dbName, dbType, verbose) => {
   let pushkinConfig;
   try {
-    pushkinConfig = await loadPushkinConfig();
+    pushkinConfig = loadPushkinConfig();
   } catch (error) {
     console.error(`Failed to load pushkin.yaml:`, error);
     throw error;
@@ -325,7 +325,7 @@ const createDB = async (dbType, securityGroupID, projName, useIAM, verbose = fal
 const getDBsInfo = async () => {
   let pushkinConfig;
   try {
-    pushkinConfig = await loadPushkinConfig();
+    pushkinConfig = loadPushkinConfig();
   } catch (error) {
     console.error(`Failed to load pushkin.yaml:`, error);
     throw error;
@@ -433,7 +433,7 @@ const recordDBs = async (dbDone) => {
     );
     let pushkinConfig;
     try {
-      pushkinConfig = await loadPushkinConfig();
+      pushkinConfig = loadPushkinConfig();
     } catch (error) {
       console.error(`Failed to load pushkin.yaml:`, error);
       throw error;

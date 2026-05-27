@@ -210,7 +210,7 @@ async function createECSTask(
 
   let pushkinConfig;
   try {
-    pushkinConfig = await loadPushkinConfig();
+    pushkinConfig = loadPushkinConfig();
   } catch (error) {
     console.error(`Failed to load pushkin.yaml:`, error);
     throw error;
