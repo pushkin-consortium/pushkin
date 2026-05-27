@@ -1,56 +1,126 @@
 /**
  * AWS Deployment Setup Phase
- * Handles configuration loading, IAM verification, and initial setup for AWS deployment
+ * Handles gathering user input for domain and SSL certificate, and updates the pushkin.yaml configuration file accordingly.
  * @module aws/phases/setup
  */
-
-import { verifyIAMCredentials } from "../services/security.js";
+import inquirer from "inquirer";
 import { loadPushkinConfig, savePushkinConfig } from "../../../utils/pushkin-config.js";
+import { listDomains } from "../services/route53.js";
+import { verifyAwsProfile, listCertificates } from "../services/security.js";
 
-/**
- * Initialize deployment - verify credentials and load configurations
- * @param {string|object} useIAM - AWS profile name or object with iam property
- * @returns {Promise<{profileName: string, config: object, resources: object, isUpdate: boolean}>}
- */
-export async function initializeDeployment(useIAM) {
-  // Normalize useIAM to always be a string
-  const profileName = typeof useIAM === "string" ? useIAM : useIAM.iam;
+async function chooseSiteDomain(profileName) {
+  const NO_CUSTOM_DOMAIN = "No custom domain (use auto-generated URL)";
+  const ENTER_CUSTOM_DOMAIN = "Enter a custom domain/subdomain";
+  let domains = [NO_CUSTOM_DOMAIN];
 
-  // Verify AWS credentials
-  await verifyIAMCredentials(profileName);
-
-  // Load Pushkin config
-  let config;
+  console.log("Choosing domain name for site:");
   try {
-    config = loadPushkinConfig();
+    const listDomainsResponse = await listDomains(profileName);
+    listDomainsResponse.Domains.forEach((domain) => {
+      domains.push(domain.DomainName);
+    });
   } catch (error) {
-    console.error(`Failed to load pushkin.yaml:`, error);
-    throw error;
+    console.warn(`Unable to get list of registered domains from AWS:`, error);
   }
 
-  return { profileName, config };
+  domains.push(ENTER_CUSTOM_DOMAIN);
+
+  const domainUserInput = await inquirer.prompt([
+    {
+      type: "list",
+      name: "domain",
+      choices: domains,
+      default: 0,
+      message: "Which domain would you like to use for your site?",
+    },
+  ]);
+
+  if (domainUserInput.domain === ENTER_CUSTOM_DOMAIN) {
+    const customDomainInput = await inquirer.prompt([
+      {
+        type: "input",
+        name: "customDomain",
+        message: "Enter your custom domain or subdomain (e.g., subdomain.example.com):",
+        validate: (input) => {
+          if (!input || input.trim().length === 0) {
+            return "Domain cannot be empty";
+          }
+          return true;
+        },
+      },
+    ]);
+    return customDomainInput.customDomain;
+  }
+
+  if (domainUserInput.domain === NO_CUSTOM_DOMAIN) return null;
+  return domainUserInput.domain;
+}
+
+async function chooseSSLCertificate(profileName) {
+  console.log("Choosing SSL certificate for secure HTTPS connections:");
+  let certificates;
+  try {
+    certificates = await listCertificates(profileName);
+  } catch (error) {
+    console.error(`Unable to list certificates from AWS:`, error);
+    throw error;
+  }
+  const certificateUserInput = await inquirer.prompt([
+    {
+      type: "list",
+      name: "certificate",
+      choices: Object.keys(certificates),
+      default: 0,
+      message:
+        "Which SSL certificate would you like to use for your site?" +
+        " (Note: Only ISSUED certificates work for ALB)",
+    },
+  ]);
+  return certificates[certificateUserInput.certificate];
 }
 
 /**
- * Update pushkin.yaml with deployment information
- * @param {object} config - Pushkin configuration object
- * @param {string} projName - Project name
+ * Gather all user input needed for deployment (domain and SSL certificate).
+ * @param {string} profileName - AWS profile name
+ * @returns {Promise<{siteDomain: string, sslCertificate: string}>}
+ */
+async function gatherUserInput(profileName) {
+  const domain = await chooseSiteDomain(profileName);
+  // Default Cloudfront certificate will be used if no custom domain is chosen
+  const certificate = domain ? await chooseSSLCertificate(profileName) : null;
+  return { siteDomain: domain, sslCertificate: certificate };
+}
+
+/**
+ * Update pushkin.yaml with user input of site domain and SSL certificate.
+ * @param {object} pushkinConfig - Pushkin configuration object
+ * @param {string} projectName - Project name
  * @param {string} s3BucketName - S3 bucket name
- * @param {string} domain - Domain name for the site
+ * @param {string} siteDomain - Domain name for the site
+ * @param {string} sslCertificate - SSL certificate for the site
  * @returns {Promise<object>} Updated configuration
  */
-export async function updateDeploymentConfig(config, projName, s3BucketName, domain) {
-  config.info.rootDomain = domain;
-  config.info.projName = projName;
-  config.info.s3BucketName = s3BucketName;
+async function updateDeploymentConfig(
+  pushkinConfig,
+  projectName,
+  s3BucketName,
+  siteDomain,
+  sslCertificate,
+) {
+  pushkinConfig.info.projectName = projectName;
+  pushkinConfig.info.s3BucketName = s3BucketName;
+  pushkinConfig.info.rootDomain = siteDomain;
+  pushkinConfig.info.sslCertificate = sslCertificate;
 
-  try {
-    await savePushkinConfig(config);
-    console.log(`Successfully updated pushkin.yaml with deployment information.`);
-  } catch (error) {
-    console.error(`Failed to save pushkin.yaml:`, error);
-    throw error;
-  }
+  await savePushkinConfig(pushkinConfig);
 
-  return config;
+  console.log(`Successfully updated pushkin.yaml with deployment information.`);
+  return pushkinConfig;
 }
+
+export {
+  verifyAwsProfile,
+  loadPushkinConfig as loadDeploymentConfig,
+  gatherUserInput,
+  updateDeploymentConfig,
+};

@@ -9,12 +9,12 @@ Centralized factory for creating AWS SDK v3 clients.
 ### Usage
 
 ```javascript
-import { AWSClientFactory } from './utils/aws-client-factory.js';
+import { AWSClientFactory } from "./utils/aws-client-factory.js";
 
 // Create factory (handles both string and { iam: string } formats)
-const factory = new AWSClientFactory('us-east-1', 'my-profile');
+const factory = new AWSClientFactory("us-east-1", "my-profile");
 // or
-const factory = new AWSClientFactory('us-east-1', { iam: 'my-profile' });
+const factory = new AWSClientFactory("us-east-1", { iam: "my-profile" });
 
 // Create clients
 const rds = factory.createRDS();
@@ -35,14 +35,16 @@ const buckets = await s3.send(new ListBucketsCommand({}));
 ### Migration from Old Code
 
 **Before:**
+
 ```javascript
 const rds = new RDSClient({
   region: myRegion,
-  credentials: fromIni({ profile: useIAM }),
+  credentials: fromIni({ profile: awsProfile }),
 });
 ```
 
 **After:**
+
 ```javascript
 const rds = clientFactory.createRDS();
 ```

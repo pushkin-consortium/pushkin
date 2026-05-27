@@ -2,55 +2,55 @@ import { v4 as uuid } from "uuid";
 import fs from "graceful-fs";
 import path from "path";
 import jsYaml from "js-yaml";
-import { initializeDeployment, updateDeploymentConfig } from "./phases/setup.js";
-import { gatherUserInput } from "./phases/user-input.js";
+import {
+  verifyAwsProfile,
+  loadDeploymentConfig,
+  gatherUserInput,
+  updateDeploymentConfig,
+} from "./phases/setup.js";
 import { provisionInfrastructure } from "./phases/infrastructure.js";
 import { setupCompute } from "./phases/compute.js";
 import { setupDatabases } from "./phases/database-setup.js";
 import { deployApplication } from "./phases/deployment.js";
 import { cleanupResources } from "./phases/cleanup.js";
 import { listAllResources, getProjectStatus } from "./phases/status.js";
-import { verifyIAMCredentials } from "./services/security.js";
 import { updatePushkinJs } from "../prep/index.js";
 
 export { createAutoScale } from "./subcommands/autoscale.js";
-export { verifyIAMCredentials };
 export { getProjectStatus as awsStatus };
 
 /**
  *
  */
-async function awsInit(projName, awsName, useIAM, DHID) {
-  // 1. Verify IAM credentials and load pushkin config
-  const { profileName, config } = await initializeDeployment(useIAM);
+async function awsInit(projectName, s3BucketName, awsProfile, DHID) {
+  await verifyAwsProfile(awsProfile);
+  const config = loadDeploymentConfig();
 
-  // 2. Prompt for SSL certificate and domain (cert first, or the prompt gets buried)
-  const { domain, certificate } = await gatherUserInput(profileName);
+  const { siteDomain: domain, sslCertificate: certificate } = await gatherUserInput(awsProfile);
 
-  // 3. Save deployment info to pushkin.yaml and regenerate pushkin.js
-  await updateDeploymentConfig(config, projName, awsName, domain);
+  await updateDeploymentConfig(config, projectName, s3BucketName, domain);
   updatePushkinJs();
 
   // 4. Core infrastructure: security groups, databases, CloudWatch log group, frontend build
   //    Databases take by far the longest — start them as early as possible
   const { completedDBs, builtFrontEnd } = await provisionInfrastructure(
     config,
-    profileName,
-    projName,
+    awsProfile,
+    projectName,
   );
 
   // 5. ECS setup, DB migrations, and application deployment all run in parallel.
   //    deployApplication publishes Docker workers internally and must finish before ECS
   //    tasks can successfully pull images; setupCompute creates the service definitions
   //    (ECS task startup has enough latency that images will be available in practice).
-  const computeResult = setupCompute(projName, profileName, DHID, completedDBs, certificate);
+  const computeResult = setupCompute(projectName, awsProfile, DHID, completedDBs, certificate);
   const dbSetup = setupDatabases(completedDBs);
   const deployed = deployApplication({
     config,
     DHID,
-    projName,
-    s3BucketName: awsName,
-    profileName,
+    projectName,
+    s3BucketName: s3BucketName,
+    awsProfile,
     domain,
     certificate,
     builtFrontEnd,
@@ -63,13 +63,13 @@ async function awsInit(projName, awsName, useIAM, DHID) {
 /**
  *
  */
-async function nameProject(projName) {
+async function nameProject(projectName) {
   console.log(`Recording project name`);
   let awsResources = {};
   let stdOut, temp, pushkinConfig;
-  awsResources.name = projName;
+  awsResources.name = projectName;
   // make a name for use as a bucket (AWS has rules)
-  temp = projName
+  temp = projectName
     .replace(/[^\w\s]/g, "")
     .replace(/ /g, "-")
     .replace(/_/g, "-")
@@ -155,16 +155,16 @@ async function addIAM(iam) {
 /**
  *
  */
-async function awsArmageddon(useIAM, killType) {
-  await cleanupResources(useIAM, killType);
-  await listAllResources(useIAM);
+async function awsArmageddon(awsProfile, killType) {
+  await cleanupResources(awsProfile, killType);
+  await listAllResources(awsProfile);
 }
 
 /**
  *
  */
-async function awsList(useIAM) {
-  return listAllResources(useIAM);
+async function awsList(awsProfile) {
+  return listAllResources(awsProfile);
 }
 
 export { awsInit, nameProject, addIAM, awsArmageddon, awsList };
