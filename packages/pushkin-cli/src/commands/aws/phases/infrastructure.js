@@ -15,21 +15,26 @@ import { createLogGroup } from "../services/monitoring.js";
  * Creates databases, security groups, S3 bucket, and builds front-end
  * @param {object} config - Pushkin configuration
  * @param {string} profileName - AWS profile name
- * @param {string} projName - Project name
+ * @param {string} projectName - Project name
  * @returns {Promise<{completedDBs: object, builtFrontEnd: Promise, securityGroupID: string}>}
  */
-export async function provisionInfrastructure(config, profileName, projName) {
+export async function provisionInfrastructure(config, profileName, projectName) {
   console.log("Provisioning AWS infrastructure...");
 
   // Create security group for databases
-  const securityGroupID = await ensureDatabaseSecurityGroup(profileName, projName);
+  const securityGroupID = await ensureDatabaseSecurityGroup(profileName, projectName);
 
   // Create CloudWatch log group for ECS
-  createLogGroup(profileName, projName);
+  createLogGroup(profileName, projectName);
 
   // Initialize databases (takes longest, so start early)
-  const initializedMainDB = createDB("Main", securityGroupID, projName, profileName);
-  const initializedTransactionDB = createDB("Transaction", securityGroupID, projName, profileName);
+  const initializedMainDB = createDB("Main", securityGroupID, projectName, profileName);
+  const initializedTransactionDB = createDB(
+    "Transaction",
+    securityGroupID,
+    projectName,
+    profileName,
+  );
 
   let completedDBs;
   try {
@@ -40,7 +45,7 @@ export async function provisionInfrastructure(config, profileName, projName) {
   }
 
   // Build front-end (can run in parallel with other operations)
-  const builtFrontEnd = buildFrontEnd(projName);
+  const builtFrontEnd = buildFrontEnd(projectName);
 
   return {
     completedDBs,

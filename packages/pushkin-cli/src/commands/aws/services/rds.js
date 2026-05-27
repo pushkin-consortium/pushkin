@@ -24,13 +24,14 @@ import { AWS_REGION } from "../constants.js";
 
 const PROJECT_TAG_KEY = loadAwsConfig().tagging.projectTagKey;
 
-const createRDSClient = (useIAM) =>
-  new AWSClientFactory(AWS_REGION, useIAM).createClient(RDSClient);
+function createRDSClient(awsProfile) {
+  return new AWSClientFactory(AWS_REGION, awsProfile).createClient(RDSClient);
+}
 
-const findDBInRDS = async (dbName, useIAM, rdsClient = null) => {
+async function findDBInRDS(dbName, awsProfile, rdsClient = null) {
   try {
     if (!rdsClient) {
-      rdsClient = createRDSClient(useIAM);
+      rdsClient = createRDSClient(awsProfile);
     }
     const response = await rdsClient.send(
       new DescribeDBInstancesCommand({ DBInstanceIdentifier: dbName }),
@@ -44,9 +45,9 @@ const findDBInRDS = async (dbName, useIAM, rdsClient = null) => {
       throw error;
     }
   }
-};
+}
 
-const validateDBMatch = (dbType, pushkinConfig, rdsDB) => {
+function validateDBMatch(dbType, pushkinConfig, rdsDB) {
   const yamlDB = pushkinConfig.productionDBs[dbType];
   const mismatches = [];
   // Maps pushkin.yaml fields to their AWS RDS API equivalents for validation.
@@ -105,9 +106,9 @@ const validateDBMatch = (dbType, pushkinConfig, rdsDB) => {
   }
 
   return mismatches;
-};
+}
 
-const checkIfDBShouldBeCreated = async (dbName, dbType, useIAM) => {
+async function checkIfDBShouldBeCreated(dbName, dbType, awsProfile) {
   let pushkinConfig;
   try {
     pushkinConfig = loadPushkinConfig();
@@ -121,7 +122,7 @@ const checkIfDBShouldBeCreated = async (dbName, dbType, useIAM) => {
     Object.keys(pushkinConfig.productionDBs).includes(dbType) &&
     pushkinConfig.productionDBs[dbType].name === dbName;
 
-  const rdsDB = await findDBInRDS(dbName, useIAM);
+  const rdsDB = await findDBInRDS(dbName, awsProfile);
 
   if (inYAML && rdsDB) {
     // Case 1: In both YAML and RDS - validate they match
@@ -168,9 +169,9 @@ const checkIfDBShouldBeCreated = async (dbName, dbType, useIAM) => {
     // Case 4: Not in YAML, not in RDS - create new
     return true;
   }
-};
+}
 
-const getDBConfig = async (dbName, dbType, verbose) => {
+async function getDBConfig(dbName, dbType, verbose) {
   let pushkinConfig;
   try {
     pushkinConfig = loadPushkinConfig();
@@ -185,7 +186,7 @@ const getDBConfig = async (dbName, dbType, verbose) => {
     );
   }
   return pushkinConfig.productionDBs[dbType];
-};
+}
 
 /**
  * Create a database (create new or return existing).
@@ -195,19 +196,19 @@ const getDBConfig = async (dbName, dbType, verbose) => {
  * 3. Either create new database or return existing configuration
  * @param {string} dbType - The type of database (e.g., "Main", "Transaction")
  * @param {string} securityGroupID - The security group ID for the database
- * @param {string} projName - The project name
- * @param {string} useIAM - The IAM profile to use
+ * @param {string} projectName - The project name
+ * @param {string} awsProfile - The IAM profile to use
  * @param {boolean} verbose - Whether to log detailed information
  * @returns {Promise<object>} - The database configuration object
  */
-const createDB = async (dbType, securityGroupID, projName, useIAM, verbose = false) => {
+async function createDB(dbType, securityGroupID, projectName, awsProfile, verbose = false) {
   console.log(`Creating ${dbType} database.`);
-  const dbName = projName
+  const dbName = projectName
     .concat(dbType)
     .replace(/[^A-Za-z0-9]/g, "")
     .toLowerCase(); // lowercase + alphanumeric to match RDS DB names
 
-  const shouldCreate = await checkIfDBShouldBeCreated(dbName, dbType, useIAM);
+  const shouldCreate = await checkIfDBShouldBeCreated(dbName, dbType, awsProfile);
   if (!shouldCreate) {
     // Get existing DB's configuration from pushkin.yaml
     return await getDBConfig(dbName, dbType, verbose);
@@ -219,9 +220,9 @@ const createDB = async (dbType, securityGroupID, projName, useIAM, verbose = fal
   myDBConfig.DBInstanceIdentifier = dbName;
   myDBConfig.VpcSecurityGroupIds = [securityGroupID];
   myDBConfig.MasterUserPassword = dbPassword;
-  myDBConfig.Tags = [{ Key: PROJECT_TAG_KEY, Value: projName }];
+  myDBConfig.Tags = [{ Key: PROJECT_TAG_KEY, Value: projectName }];
 
-  const rdsClient = createRDSClient(useIAM);
+  const rdsClient = createRDSClient(awsProfile);
 
   try {
     await rdsClient.send(new CreateDBInstanceCommand(myDBConfig));
@@ -272,7 +273,7 @@ const createDB = async (dbType, securityGroupID, projName, useIAM, verbose = fal
   try {
     await createWaiter(
       {
-        client: createRDSClient(useIAM),
+        client: createRDSClient(awsProfile),
         maxWaitTime: endpoint.maxWaitTime,
         minDelay: endpoint.minDelay,
         maxDelay: endpoint.maxDelay,
@@ -316,13 +317,13 @@ const createDB = async (dbType, securityGroupID, projName, useIAM, verbose = fal
 
   console.log(`${dbName}: Returning created database object:`, newDB);
   return newDB;
-};
+}
 
 /**
  * Retrieve connection information about all production databases from pushkin.yaml.
  * @returns {Promise<object>} - The database connection details keyed by database type
  */
-const getDBsInfo = async () => {
+async function getDBsInfo() {
   let pushkinConfig;
   try {
     pushkinConfig = loadPushkinConfig();
@@ -386,7 +387,7 @@ const getDBsInfo = async () => {
   }
 
   return dbsByType;
-};
+}
 
 /**
  * Record databases in pushkin.yaml.
@@ -397,7 +398,7 @@ const getDBsInfo = async () => {
  * @param {Promise<Array>} dbDone - A promise that resolves to an array of database objects
  * @returns {Promise<object>} - The updated pushkin configuration
  */
-const recordDBs = async (dbDone) => {
+async function recordDBs(dbDone) {
   console.log("recordDBs: Waiting for database promises to resolve...");
 
   const { recording } = loadAwsConfig().timeouts.rds;
@@ -467,19 +468,19 @@ const recordDBs = async (dbDone) => {
     console.error("recordDBs: Error or timeout occurred:", error);
     throw error;
   }
-};
+}
 
 /**
  * Get list of databases to delete.
- * @param {string} useIAM - The IAM profile to use
+ * @param {string} awsProfile - The IAM profile to use
  * @param {string|null} killTag - Whether to delete only DBs tagged with project tag
  * @returns {Promise<Array<string>>} - List of database identifiers to delete
  */
-const getDBsToDelete = async (useIAM, killTag) => {
+async function getDBsToDelete(awsProfile, killTag) {
   const dbs = [];
   let dbInstances;
   try {
-    const rdsClient = createRDSClient(useIAM);
+    const rdsClient = createRDSClient(awsProfile);
     const response = await rdsClient.send(new DescribeDBInstancesCommand({}));
     dbInstances = response.DBInstances ?? [];
   } catch (error) {
@@ -503,9 +504,9 @@ const getDBsToDelete = async (useIAM, killTag) => {
     }
   });
   return dbs;
-};
+}
 
-const disableDeletionProtection = async (dbName, rdsClient) => {
+async function disableDeletionProtection(dbName, rdsClient) {
   await rdsClient.send(
     new ModifyDBInstanceCommand({
       DBInstanceIdentifier: dbName,
@@ -513,9 +514,9 @@ const disableDeletionProtection = async (dbName, rdsClient) => {
       ApplyImmediately: true,
     }),
   );
-};
+}
 
-const waitForDeletionProtectionDisabled = async (dbName, rdsClient) => {
+async function waitForDeletionProtectionDisabled(dbName, rdsClient) {
   const { deletionProtection } = loadAwsConfig().timeouts.rds;
   await createWaiter(
     {
@@ -542,9 +543,9 @@ const waitForDeletionProtectionDisabled = async (dbName, rdsClient) => {
       }
     },
   );
-};
+}
 
-const deleteSingleDB = async (dbName, rdsClient) => {
+async function deleteSingleDB(dbName, rdsClient) {
   try {
     const response = await rdsClient.send(
       new DescribeDBInstancesCommand({ DBInstanceIdentifier: dbName }),
@@ -571,9 +572,9 @@ const deleteSingleDB = async (dbName, rdsClient) => {
       throw error;
     }
   }
-};
+}
 
-const waitForDBsDeletion = async (dbNames, rdsClient) => {
+async function waitForDBsDeletion(dbNames, rdsClient) {
   console.log(`Waiting for ${dbNames.length} database(s) to be deleted...`);
   const { deletion } = loadAwsConfig().timeouts.rds;
 
@@ -604,15 +605,15 @@ const waitForDBsDeletion = async (dbNames, rdsClient) => {
 
   console.log(`All target databases confirmed deleted`);
   return true;
-};
+}
 
 /**
  * Delete specified list of databases.
  * @param {Promise<Array<string>>} dbs - Promise that resolves to list of database identifiers
- * @param {string} useIAM - The IAM profile to use
+ * @param {string} awsProfile - The IAM profile to use
  * @returns {Promise<boolean>} - Promise that resolves when databases are deleted
  */
-const deleteDBs = async (dbs, useIAM) => {
+async function deleteDBs(dbs, awsProfile) {
   const resolvedDBs = await dbs;
 
   if (resolvedDBs.length === 0) {
@@ -620,11 +621,11 @@ const deleteDBs = async (dbs, useIAM) => {
     return true;
   }
 
-  const rdsClient = createRDSClient(useIAM);
+  const rdsClient = createRDSClient(awsProfile);
 
   console.log(`Checking which databases exist: ${resolvedDBs.join(", ")}`);
   const existingDBsInRDS = await Promise.all(
-    resolvedDBs.map((dbName) => findDBInRDS(dbName, useIAM, rdsClient)),
+    resolvedDBs.map((dbName) => findDBInRDS(dbName, awsProfile, rdsClient)),
   );
   const existingDBs = resolvedDBs.filter((_, i) => existingDBsInRDS[i]);
 
@@ -662,6 +663,6 @@ const deleteDBs = async (dbs, useIAM) => {
   await waitForDBsDeletion(existingDBs, rdsClient);
 
   return true;
-};
+}
 
 export { createDB, getDBsInfo, recordDBs, getDBsToDelete, deleteDBs };

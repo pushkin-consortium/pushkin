@@ -19,8 +19,9 @@ import { loadAwsConfig } from "../../utils/aws-config.js";
 import { writeFile } from "../../../../utils/file.js";
 import { AWS_REGION } from "../../constants.js";
 
-const createECSClient = (useIAM) =>
-  new AWSClientFactory(AWS_REGION, useIAM).createClient(ECSClient);
+function createECSClient(awsProfile) {
+  return new AWSClientFactory(AWS_REGION, awsProfile).createClient(ECSClient);
+}
 
 /**
  * Create or update an ECS Fargate service.
@@ -32,7 +33,7 @@ const createECSClient = (useIAM) =>
  * @param {number} containerPort - Container port for load balancer
  * @param {Array<string>} subnets - Subnet IDs for Fargate tasks
  * @param {string} securityGroup - Security group ID for Fargate tasks
- * @param {string} useIAM - IAM profile to use
+ * @param {string} awsProfile - IAM profile to use
  * @param {string|null} serviceRegistryArn - Optional Cloud Map service ARN for service discovery
  * @returns {Promise<object>} Service creation/update response
  */
@@ -45,10 +46,10 @@ async function createECSService(
   containerPort = null,
   subnets = [],
   securityGroup = null,
-  useIAM,
+  awsProfile,
   serviceRegistryArn = null,
 ) {
-  const ecsClient = createECSClient(useIAM);
+  const ecsClient = createECSClient(awsProfile);
 
   // First check if service already exists
   try {
@@ -160,11 +161,11 @@ async function createECSService(
 /**
  * Delete all services in an ECS cluster, waiting until they are fully removed.
  * @param {string} clusterName - ECS cluster name or ARN
- * @param {string} useIAM - IAM profile to use
+ * @param {string} awsProfile - IAM profile to use
  * @returns {Promise<boolean>} True when all services are deleted
  */
-async function deleteAllServices(clusterName, useIAM) {
-  const ecsClient = createECSClient(useIAM);
+async function deleteAllServices(clusterName, awsProfile) {
+  const ecsClient = createECSClient(awsProfile);
 
   let serviceArns;
   try {

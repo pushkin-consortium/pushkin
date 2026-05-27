@@ -13,18 +13,19 @@ import { AWSClientFactory } from "../utils/aws-client-factory.js";
 import { loadAwsConfig } from "../utils/aws-config.js";
 import { AWS_REGION } from "../constants.js";
 
-const createCloudWatchClient = (useIAM) =>
-  new AWSClientFactory(AWS_REGION, useIAM).createClient(CloudWatchLogsClient);
+function createCloudWatchClient(awsProfile) {
+  return new AWSClientFactory(AWS_REGION, awsProfile).createClient(CloudWatchLogsClient);
+}
 
 /**
  * Create CloudWatch log group for ECS.
- * @param {string} useIAM - The IAM role to use
- * @param {string} projName - The project name
+ * @param {string} awsProfile - The IAM role to use
+ * @param {string} projectName - The project name
  * @returns {Promise<void>} - A promise that resolves when the log group is created
  */
-async function createLogGroup(useIAM, projName) {
-  const cloudWatchLogsClient = createCloudWatchClient(useIAM);
-  const logGroupName = `ecs/${projName}`;
+async function createLogGroup(awsProfile, projectName) {
+  const cloudWatchLogsClient = createCloudWatchClient(awsProfile);
+  const logGroupName = `ecs/${projectName}`;
   try {
     await cloudWatchLogsClient.send(new CreateLogGroupCommand({ logGroupName }));
   } catch (error) {

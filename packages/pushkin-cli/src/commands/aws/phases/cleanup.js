@@ -31,9 +31,9 @@ export async function cleanupResources(profileName, killType) {
     console.error(`Unable to load awsResources.js`);
   }
 
-  let projName;
+  let projectName;
   if (awsResources) {
-    projName = awsResources.name; // can use this to identify resources needing deletion
+    projectName = awsResources.name; // can use this to identify resources needing deletion
   } else {
     if (killType === "kill") {
       console.warn(
@@ -42,11 +42,11 @@ export async function cleanupResources(profileName, killType) {
     }
   }
 
-  const killTag = killType === "kill" ? projName : false;
+  const killTag = killType === "kill" ? projectName : false;
 
   // Start deletions in dependency order
-  const deletedCluster = deleteCluster(profileName, killTag, projName, awsResources);
-  const deletedServiceDiscovery = deleteServiceDiscovery(profileName, projName, killTag);
+  const deletedCluster = deleteCluster(profileName, killTag, projectName, awsResources);
+  const deletedServiceDiscovery = deleteServiceDiscovery(profileName, projectName, killTag);
 
   const dbsToDelete = getDBsToDelete(profileName, killTag, awsResources);
   const deletedDBs = deleteDBs(dbsToDelete, profileName, killTag);
@@ -54,7 +54,7 @@ export async function cleanupResources(profileName, killType) {
   const deletedLoadBalancer = deleteLoadBalancer(profileName, killTag);
 
   // Delete CloudFront first, then OACs (CloudFront must be deleted before OACs can be deleted)
-  const deletedCloudFront = deleteCloudFrontDistribution(profileName, projName, killTag);
+  const deletedCloudFront = deleteCloudFrontDistribution(profileName, projectName, killTag);
 
   let deletedOACs;
   try {
@@ -63,7 +63,7 @@ export async function cleanupResources(profileName, killType) {
     console.warn(`Unable to delete origin access controls:`, error); // Don't fail the whole process for this
   }
 
-  const deletedResourceRecords = deleteResourceRecords(profileName, killTag, projName);
+  const deletedResourceRecords = deleteResourceRecords(profileName, killTag, projectName);
 
   const deletedTargetGroup = deleteTargetGroups(profileName, deletedLoadBalancer);
 
@@ -74,7 +74,7 @@ export async function cleanupResources(profileName, killType) {
   // Update awsResources.js to reflect deletions
   console.log(`Updating awsResources.js`);
   let awsResourcesNull = {
-    name: projName,
+    name: projectName,
     s3BucketName: null,
     iam: profileName,
     dbs: [],

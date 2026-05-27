@@ -3,7 +3,7 @@
  * Handles Cloud Map namespace and service registration for internal service communication.
  * WHY: Fargate tasks running in awsvpc network mode each have their own network namespace —
  * there is no shared localhost. Cloud Map creates a private DNS namespace so separate tasks
- * can address each other by name (e.g., message-queue.{projName}.local:5672).
+ * can address each other by name (e.g., message-queue.{projectName}.local:5672).
  * @module ecs/discovery
  */
 
@@ -20,8 +20,9 @@ import {
 import { AWSClientFactory } from "../../utils/aws-client-factory.js";
 import { AWS_REGION } from "../../constants.js";
 
-const createServiceDiscoveryClient = (useIAM) =>
-  new AWSClientFactory(AWS_REGION, useIAM).createClient(ServiceDiscoveryClient);
+function createServiceDiscoveryClient(awsProfile) {
+  return new AWSClientFactory(AWS_REGION, awsProfile).createClient(ServiceDiscoveryClient);
+}
 
 // Polling interval and timeout for Cloud Map operations (no built-in SDK waiters exist)
 const POLL_INTERVAL_MS = 5000;
@@ -55,14 +56,14 @@ async function waitForOperation(client, operationId, description) {
 
 /**
  * Create or get the existing Cloud Map private DNS namespace for a project.
- * @param {string} projName - The project name
+ * @param {string} projectName - The project name
  * @param {string} vpcId - VPC ID to associate the namespace with
- * @param {string} useIAM - IAM profile to use
+ * @param {string} awsProfile - IAM profile to use
  * @returns {Promise<string>} The namespace ID
  */
-async function ensureServiceDiscoveryNamespace(projName, vpcId, useIAM) {
-  const client = createServiceDiscoveryClient(useIAM);
-  const namespaceName = `${projName}.local`;
+async function ensureServiceDiscoveryNamespace(projectName, vpcId, awsProfile) {
+  const client = createServiceDiscoveryClient(awsProfile);
+  const namespaceName = `${projectName}.local`;
 
   let listResponse;
   try {
@@ -87,7 +88,7 @@ async function ensureServiceDiscoveryNamespace(projName, vpcId, useIAM) {
       new CreatePrivateDnsNamespaceCommand({
         Name: namespaceName,
         Vpc: vpcId,
-        Description: `Service discovery namespace for ${projName}`,
+        Description: `Service discovery namespace for ${projectName}`,
       }),
     );
   } catch (error) {
@@ -109,11 +110,11 @@ async function ensureServiceDiscoveryNamespace(projName, vpcId, useIAM) {
  * Register an ECS service with Cloud Map so ECS keeps DNS records up to date.
  * @param {string} serviceName - The service name (e.g., 'message-queue')
  * @param {string} namespaceId - The Cloud Map namespace ID
- * @param {string} useIAM - IAM profile to use
+ * @param {string} awsProfile - IAM profile to use
  * @returns {Promise<string>} The service registry ARN for use in ECS service configuration
  */
-async function registerServiceWithDiscovery(serviceName, namespaceId, useIAM) {
-  const client = createServiceDiscoveryClient(useIAM);
+async function registerServiceWithDiscovery(serviceName, namespaceId, awsProfile) {
+  const client = createServiceDiscoveryClient(awsProfile);
 
   let listResponse;
   try {
@@ -160,14 +161,14 @@ async function registerServiceWithDiscovery(serviceName, namespaceId, useIAM) {
 /**
  * Delete Cloud Map Service Discovery resources for a project (or all namespaces in armageddon mode).
  * Services must be deleted before their namespace can be removed.
- * @param {string} useIAM - IAM profile to use
- * @param {string} projName - The project name (used to identify the namespace)
+ * @param {string} awsProfile - IAM profile to use
+ * @param {string} projectName - The project name (used to identify the namespace)
  * @param {string|null} killTag - Project name to scope deletion; null = delete everything
  * @returns {Promise<void>}
  */
-async function deleteServiceDiscovery(useIAM, projName, killTag) {
-  const client = createServiceDiscoveryClient(useIAM);
-  const namespaceName = `${projName}.local`;
+async function deleteServiceDiscovery(awsProfile, projectName, killTag) {
+  const client = createServiceDiscoveryClient(awsProfile);
+  const namespaceName = `${projectName}.local`;
 
   console.log("Checking for Service Discovery resources to delete...");
 
@@ -185,8 +186,9 @@ async function deleteServiceDiscovery(useIAM, projName, killTag) {
     return;
   }
 
-  const namespacesToDelete = killTag
-    ? allNamespaces.filter((ns) => ns.Name === namespaceName && ns.Type === "DNS_PRIVATE")
+  const namespacesToDelete =
+    killTag ?
+      allNamespaces.filter((ns) => ns.Name === namespaceName && ns.Type === "DNS_PRIVATE")
     : allNamespaces;
 
   if (namespacesToDelete.length === 0) {

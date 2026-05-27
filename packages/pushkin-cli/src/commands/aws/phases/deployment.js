@@ -28,7 +28,7 @@ async function buildAndPublishWorkers(config, DHID) {
  * @param {object} params - Deployment parameters
  * @param {object} params.config - Pushkin configuration
  * @param {string} params.DHID - DockerHub ID
- * @param {string} params.projName - Project name
+ * @param {string} params.projectName - Project name
  * @param {string} params.s3BucketName - S3 bucket name
  * @param {string} params.profileName - AWS profile name
  * @param {string} params.domain - Domain name
@@ -40,7 +40,7 @@ async function buildAndPublishWorkers(config, DHID) {
 export async function deployApplication({
   config,
   DHID,
-  projName,
+  projectName,
   s3BucketName,
   profileName,
   domain,
@@ -55,7 +55,7 @@ export async function deployApplication({
 
   // Deploy frontend to S3/CloudFront
   const deployedFrontEnd = deployFrontEnd(
-    projName,
+    projectName,
     s3BucketName,
     profileName,
     domain,
@@ -64,11 +64,17 @@ export async function deployApplication({
   );
 
   // Set up API forwarding via Route53
-  const apiForwarded = forwardAPI(configuredECS, profileName, projName, domain, deployedFrontEnd);
+  const apiForwarded = forwardAPI(
+    configuredECS,
+    profileName,
+    projectName,
+    domain,
+    deployedFrontEnd,
+  );
 
   // Get CloudFront domain for default domain setup
   let cloudDomain;
-  if (domain === "default") {
+  if (!domain) {
     const { balancerEndpoint } = await configuredECS;
     cloudDomain = await deployedFrontEnd;
     console.log(`Access your website at ${cloudDomain}`);

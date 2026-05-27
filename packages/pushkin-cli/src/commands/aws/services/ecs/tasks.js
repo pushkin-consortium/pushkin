@@ -25,8 +25,9 @@ import { buildRabbitTask, buildAPITask, buildWorkerTask } from "./environment.js
 import { createECSService } from "./services.js";
 import { ensureServiceDiscoveryNamespace, registerServiceWithDiscovery } from "./discovery.js";
 
-const createECSClient = (useIAM) =>
-  new AWSClientFactory(AWS_REGION, useIAM).createClient(ECSClient);
+function createECSClient(awsProfile) {
+  return new AWSClientFactory(AWS_REGION, awsProfile).createClient(ECSClient);
+}
 
 /**
  * Build ECS task definition from a Docker Compose service definition.
@@ -110,11 +111,11 @@ function dockerComposeToECSTaskDefinition(composeService, family, serviceName, e
  * Register an ECS task definition with AWS.
  * WHY: Before we can run tasks on ECS, we need to register the task definition with AWS.
  * @param {object} taskDefParams - Task definition parameters
- * @param {string} useIAM - IAM profile to use
+ * @param {string} awsProfile - IAM profile to use
  * @returns {Promise<string>} Task definition ARN
  */
-async function registerECSTaskDefinition(taskDefParams, useIAM) {
-  const ecsClient = createECSClient(useIAM);
+async function registerECSTaskDefinition(taskDefParams, awsProfile) {
+  const ecsClient = createECSClient(awsProfile);
 
   try {
     const response = await ecsClient.send(new RegisterTaskDefinitionCommand(taskDefParams));
@@ -134,7 +135,7 @@ async function registerECSTaskDefinition(taskDefParams, useIAM) {
  * @param {object} task - Docker Compose service definition
  * @param {object} context - Shared deployment context
  * @param {string} context.ECSName - ECS cluster name
- * @param {string} context.useIAM - IAM profile to use
+ * @param {string} context.awsProfile - IAM profile to use
  * @param {string} context.executionRoleArn - ARN of the ECS task execution role
  * @param {Array<string>} context.subnets - Subnet IDs for the Fargate task
  * @param {string} context.ecsSecurityGroupID - Security group ID for the Fargate task
@@ -144,7 +145,7 @@ async function registerECSTaskDefinition(taskDefParams, useIAM) {
  * @param {string|null} serviceRegistryArn - Cloud Map service ARN for service discovery (null = no discovery)
  */
 async function deployService(name, task, context, loadBalancer = null, serviceRegistryArn = null) {
-  const { ECSName, useIAM, executionRoleArn, subnets, ecsSecurityGroupID } = context;
+  const { ECSName, awsProfile, executionRoleArn, subnets, ecsSecurityGroupID } = context;
 
   writeFile(path.join(process.cwd(), "ECStasks", `${name}.yml`), jsYaml.dump(task));
 
@@ -157,7 +158,7 @@ async function deployService(name, task, context, loadBalancer = null, serviceRe
   );
 
   console.log(`Registering task definition for ${name}`);
-  const taskDefArn = await registerECSTaskDefinition(taskDefParams, useIAM);
+  const taskDefArn = await registerECSTaskDefinition(taskDefParams, awsProfile);
 
   console.log(`Creating ECS service for ${name}`);
   await createECSService(
@@ -169,7 +170,7 @@ async function deployService(name, task, context, loadBalancer = null, serviceRe
     loadBalancer?.port ?? null,
     subnets,
     ecsSecurityGroupID,
-    useIAM,
+    awsProfile,
     serviceRegistryArn,
   );
 
@@ -180,8 +181,8 @@ async function deployService(name, task, context, loadBalancer = null, serviceRe
  * Deploy all ECS services (RabbitMQ, API, and experiment workers).
  * WHY: This is the final step in the deployment process — takes all the infrastructure set up
  * earlier and actually deploys the application containers to run in the ECS cluster.
- * @param {string} projName - The name of the project
- * @param {string} useIAM - IAM role to use
+ * @param {string} projectName - The name of the project
+ * @param {string} awsProfile - IAM role to use
  * @param {string} DHID - The DockerHub ID
  * @param {Promise} completedDBs - Resolves when the databases are ready
  * @param {string} ECSName - The name of the ECS cluster
@@ -192,8 +193,8 @@ async function deployService(name, task, context, loadBalancer = null, serviceRe
  * @returns {Promise} Resolves when all services are deployed
  */
 async function createECSTask(
-  projName,
-  useIAM,
+  projectName,
+  awsProfile,
   DHID,
   completedDBs,
   ECSName,
@@ -204,7 +205,7 @@ async function createECSTask(
 ) {
   createDirectory(path.join(process.cwd(), "ECStasks"));
 
-  const executionRoleArn = await ensureECSTaskExecutionRole(useIAM);
+  const executionRoleArn = await ensureECSTaskExecutionRole(awsProfile);
 
   try {
     updateAwsResourcesField("ECSName", ECSName);
@@ -244,10 +245,10 @@ async function createECSTask(
     }
   }
 
-  const rabbitUser = projName.replace(/[^A-Za-z0-9]/g, "");
+  const rabbitUser = projectName.replace(/[^A-Za-z0-9]/g, "");
   // Cloud Map hostname: separate Fargate tasks each have their own network namespace (awsvpc mode),
   // so localhost doesn't cross task boundaries. Service Discovery gives RabbitMQ a stable DNS name.
-  const rabbitHost = `message-queue.${projName}.local`;
+  const rabbitHost = `message-queue.${projectName}.local`;
   const rabbitAddress = `amqp://${rabbitUser}:${rabbitPW}@${rabbitHost}:5672`;
 
   let dockerCompose;
@@ -269,38 +270,43 @@ async function createECSTask(
   const dbInfoByTask = await getDBsInfo();
 
   console.log(`Verifying ECS cluster exists: "${ECSName}"`);
-  const { clusters } = await createECSClient(useIAM).send(
+  const { clusters } = await createECSClient(awsProfile).send(
     new DescribeClustersCommand({ clusters: [ECSName] }),
   );
   if (!clusters?.[0]) throw new Error(`Cluster ${ECSName} not found`);
 
-  const context = { ECSName, useIAM, executionRoleArn, subnets, ecsSecurityGroupID };
+  const context = { ECSName, awsProfile, executionRoleArn, subnets, ecsSecurityGroupID };
 
   // Set up Cloud Map namespace and register message-queue so other tasks can reach it by DNS name.
   // This must complete before deploying services that reference the registry ARN.
-  console.log(`Setting up Service Discovery namespace for ${projName}`);
-  const namespaceId = await ensureServiceDiscoveryNamespace(projName, vpcId, useIAM);
+  console.log(`Setting up Service Discovery namespace for ${projectName}`);
+  const namespaceId = await ensureServiceDiscoveryNamespace(projectName, vpcId, awsProfile);
   const messageQueueRegistryArn = await registerServiceWithDiscovery(
     "message-queue",
     namespaceId,
-    useIAM,
+    awsProfile,
   );
 
   const composedRabbit = deployService(
     "message-queue",
-    buildRabbitTask(projName, rabbitUser, rabbitPW, rabbitCookie),
+    buildRabbitTask(projectName, rabbitUser, rabbitPW, rabbitCookie),
     context,
     null,
     messageQueueRegistryArn,
   );
-  const composedAPI = deployService("api", buildAPITask(projName, DHID, rabbitAddress), context, {
-    port: 80,
-    targetGroupARN: targGroupARN,
-  });
+  const composedAPI = deployService(
+    "api",
+    buildAPITask(projectName, DHID, rabbitAddress),
+    context,
+    {
+      port: 80,
+      targetGroupARN: targGroupARN,
+    },
+  );
   const composedWorkers = workerList.map((worker) =>
     deployService(
       worker,
-      buildWorkerTask(worker, projName, DHID, rabbitAddress, dbInfoByTask),
+      buildWorkerTask(worker, projectName, DHID, rabbitAddress, dbInfoByTask),
       context,
     ),
   );

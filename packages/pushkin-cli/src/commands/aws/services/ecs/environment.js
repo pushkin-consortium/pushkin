@@ -10,58 +10,58 @@ import { rabbitTask, apiTask, workerTask } from "../../awsConfigs.js";
 
 /**
  * Build a configured RabbitMQ task definition
- * @param {string} projName - Project name
+ * @param {string} projectName - Project name
  * @param {string} rabbitUser - RabbitMQ username
  * @param {string} rabbitPW - RabbitMQ password
  * @param {string} rabbitCookie - RabbitMQ Erlang cookie
  * @returns {object} Configured Docker Compose service definition
  */
-function buildRabbitTask(projName, rabbitUser, rabbitPW, rabbitCookie) {
+function buildRabbitTask(projectName, rabbitUser, rabbitPW, rabbitCookie) {
   const task = structuredClone(rabbitTask);
   task.services["message-queue"].environment.RABBITMQ_DEFAULT_USER = rabbitUser;
   task.services["message-queue"].environment.RABBITMQ_DEFAULT_PASS = rabbitPW;
   task.services["message-queue"].environment.RABBITMQ_ERLANG_COOKIE = rabbitCookie;
-  task.services["message-queue"].logging.options["awslogs-group"] = `ecs/${projName}`;
+  task.services["message-queue"].logging.options["awslogs-group"] = `ecs/${projectName}`;
   task.services["message-queue"].logging.options["awslogs-stream-prefix"] =
-    `ecs/rabbit/${projName}`;
+    `ecs/rabbit/${projectName}`;
   return task;
 }
 
 /**
  * Build a configured API task definition
- * @param {string} projName - Project name
+ * @param {string} projectName - Project name
  * @param {string} DHID - Docker Hub ID
  * @param {string} rabbitAddress - Full AMQP connection string
  * @returns {object} Configured Docker Compose service definition
  */
-function buildAPITask(projName, DHID, rabbitAddress) {
+function buildAPITask(projectName, DHID, rabbitAddress) {
   const task = structuredClone(apiTask);
   task.services["api"].environment.AMQP_ADDRESS = rabbitAddress;
   task.services["api"].image = `${DHID}/api:latest`;
-  task.services["api"].logging.options["awslogs-group"] = `ecs/${projName}`;
-  task.services["api"].logging.options["awslogs-stream-prefix"] = `ecs/api/${projName}`;
+  task.services["api"].logging.options["awslogs-group"] = `ecs/${projectName}`;
+  task.services["api"].logging.options["awslogs-stream-prefix"] = `ecs/api/${projectName}`;
   return task;
 }
 
 /**
  * Build a configured worker task definition for a single experiment worker
  * @param {string} workerName - Worker service name (experiment name)
- * @param {string} projName - Project name
+ * @param {string} projectName - Project name
  * @param {string} DHID - Docker Hub ID
  * @param {string} rabbitAddress - Full AMQP connection string
  * @param {object} dbInfoByTask - Database connection info, keyed by DB type (Main, Transaction)
  * @returns {object} Configured Docker Compose service definition
  */
-function buildWorkerTask(workerName, projName, DHID, rabbitAddress, dbInfoByTask) {
+function buildWorkerTask(workerName, projectName, DHID, rabbitAddress, dbInfoByTask) {
   const task = {
     version: workerTask.version,
     services: {},
   };
   task.services[workerName] = structuredClone(workerTask.services["EXPERIMENT_NAME"]);
   task.services[workerName].image = `${DHID}/${workerName}:latest`;
-  task.services[workerName].logging.options["awslogs-group"] = `ecs/${projName}`;
+  task.services[workerName].logging.options["awslogs-group"] = `ecs/${projectName}`;
   task.services[workerName].logging.options["awslogs-stream-prefix"] =
-    `ecs/${workerName}/${projName}`;
+    `ecs/${workerName}/${projectName}`;
   task.services[workerName].environment = {
     AMQP_ADDRESS: rabbitAddress,
     DB_HOST: dbInfoByTask["Main"].endpoint,

@@ -30,23 +30,23 @@ import { AWS_REGION } from "../constants.js";
  * Creates an S3 bucket (private), a CloudFront distribution backed by that bucket
  * via an OAC, sets the bucket policy, and creates Route53 DNS records if a custom
  * domain is configured.
- * @param {string} projName - The Pushkin project name
+ * @param {string} projectName - The Pushkin project name
  * @param {string} s3BucketName - The S3 bucket name (sanitized, globally unique, AWS-compliant)
- * @param {string} useIAM - The IAM profile to use
- * @param {string} domainName - The domain name ("default" to skip custom domain setup)
+ * @param {string} awsProfile - The IAM profile to use
+ * @param {string|null} domainName - The domain name, or null to skip custom domain setup
  * @param {string} myCertificate - The ACM certificate ARN
  * @param {Promise} builtFrontEnd - Promise that resolves when the front-end build is complete
  * @returns {Promise<string>} The CloudFront domain name for the deployed front-end
  */
 const deployFrontEnd = async (
-  projName,
+  projectName,
   s3BucketName,
-  useIAM,
+  awsProfile,
   domainName,
   myCertificate,
   builtFrontEnd,
 ) => {
-  const factory = new AWSClientFactory(AWS_REGION, useIAM);
+  const factory = new AWSClientFactory(AWS_REGION, awsProfile);
   const s3 = factory.createClient(S3Client);
   const cloudFrontClient = factory.createClient(CloudFrontClient);
 
@@ -63,8 +63,8 @@ const deployFrontEnd = async (
   }
 
   // Start OAC and ACL creation in parallel (both may take time)
-  const OAC = getOAC(useIAM);
-  const ACLarn = getACL(useIAM);
+  const OAC = getOAC(awsProfile);
+  const ACLarn = getACL(awsProfile);
 
   if (!bucketExists) {
     console.log("Bucket does not yet exist. Creating s3 bucket");
@@ -78,7 +78,7 @@ const deployFrontEnd = async (
 
   // Kick off S3 sync in parallel (waits on builtFrontEnd internally)
   await builtFrontEnd;
-  const syncMe = syncS3(s3BucketName, useIAM);
+  const syncMe = syncS3(s3BucketName, awsProfile);
 
   // Check for existing CloudFront distribution
   console.log(`Checking for CloudFront distribution`);
@@ -130,11 +130,10 @@ const deployFrontEnd = async (
     myCloudFront.DistributionConfig.CallerReference = s3BucketName;
     myCloudFront.DistributionConfig.DefaultCacheBehavior.TargetOriginId = s3BucketName;
     myCloudFront.DistributionConfig.Origins.Items[0].Id = s3BucketName;
-    myCloudFront.DistributionConfig.Origins.Items[0].DomainName =
-      `${s3BucketName}.s3.amazonaws.com`;
-    myCloudFront.Tags.Items[0].Value = projName;
+    myCloudFront.DistributionConfig.Origins.Items[0].DomainName = `${s3BucketName}.s3.amazonaws.com`;
+    myCloudFront.Tags.Items[0].Value = projectName;
 
-    if (domainName !== "default") {
+    if (domainName) {
       const domainParts = domainName.split(".");
       const isSubdomain = domainParts.length > 2;
 
@@ -192,9 +191,9 @@ const deployFrontEnd = async (
     throw e;
   }
 
-  if (domainName !== "default") {
+  if (domainName) {
     try {
-      await makeRecordSet(domainName, projName, useIAM, theCloud);
+      await makeRecordSet(domainName, projectName, awsProfile, theCloud);
     } catch (e) {
       console.error(`Unable to create or update record set for ${domainName}`);
       throw e;
@@ -204,7 +203,7 @@ const deployFrontEnd = async (
   await syncMe;
   console.log(`Finished syncing files`);
 
-  await waitForCloudFrontDeployment(theCloud.Id, useIAM);
+  await waitForCloudFrontDeployment(theCloud.Id, awsProfile);
 
   return theCloud.DomainName;
 };

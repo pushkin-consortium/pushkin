@@ -24,28 +24,30 @@ import { loadAwsConfig } from "../../utils/aws-config.js";
 import { AWS_REGION } from "../../constants.js";
 import { deleteAllServices } from "./services.js";
 
-const createECSClient = (useIAM) =>
-  new AWSClientFactory(AWS_REGION, useIAM).createClient(ECSClient);
+function createECSClient(awsProfile) {
+  return new AWSClientFactory(AWS_REGION, awsProfile).createClient(ECSClient);
+}
 
-const createCFClient = (useIAM) =>
-  new AWSClientFactory(AWS_REGION, useIAM).createClient(CloudFormationClient);
+function createCFClient(awsProfile) {
+  return new AWSClientFactory(AWS_REGION, awsProfile).createClient(CloudFormationClient);
+}
 
 /**
  * Create an ECS cluster for the project, or skip if it already exists.
  * WHY: ECS clusters are the logical grouping of resources for running containers.
  * @param {string} ECSName - Cluster name (alphanumeric project name)
- * @param {string} projName - Project name (for tagging)
- * @param {string} useIAM - IAM profile to use
+ * @param {string} projectName - Project name (for tagging)
+ * @param {string} awsProfile - IAM profile to use
  * @param {string} projectTagKey - Tag key for identifying Pushkin resources
  */
-async function createCluster(ECSName, projName, useIAM, projectTagKey) {
+async function createCluster(ECSName, projectName, awsProfile, projectTagKey) {
   console.log("Launching ECS cluster");
-  const ecsClient = createECSClient(useIAM);
+  const ecsClient = createECSClient(awsProfile);
   try {
     await ecsClient.send(
       new CreateClusterCommand({
         clusterName: ECSName,
-        tags: [{ key: projectTagKey, value: projName }],
+        tags: [{ key: projectTagKey, value: projectName }],
       }),
     );
     console.log(`Created ECS cluster: ${ECSName}`);
@@ -62,14 +64,14 @@ async function createCluster(ECSName, projName, useIAM, projectTagKey) {
 /**
  * Delete all CloudFormation stacks, optionally filtered by tag.
  * CloudFormation is the AWS service used to manage CRUD operations of AWS resources as a stack.
- * @param {string} useIAM - IAM profile to use
+ * @param {string} awsProfile - IAM profile to use
  * @param {string|null} killTag - If set, only delete stacks tagged with this project name
  * @returns {Promise<boolean>} Resolves when all stacks are deleted
  */
-async function deleteStack(useIAM, killTag) {
+async function deleteStack(awsProfile, killTag) {
   console.log(`Deleting CloudFormation stacks`);
 
-  const cfClient = createCFClient(useIAM);
+  const cfClient = createCFClient(awsProfile);
 
   let stacks;
   try {
@@ -127,16 +129,16 @@ async function deleteStack(useIAM, killTag) {
 /**
  * Delete ECS cluster(s) and all running tasks and services within them.
  * Deletes CloudFormation stacks first, then stops tasks and services before removing clusters.
- * @param {string} useIAM - IAM profile to use
+ * @param {string} awsProfile - IAM profile to use
  * @param {string|null} killTag - If set, only delete the cluster for this project
- * @param {string} projName - Project name
+ * @param {string} projectName - Project name
  * @param {object} awsResources - Tracked AWS resource IDs
  * @returns {Promise} Resolves when clusters are deleted
  */
-async function deleteCluster(useIAM, killTag, projName, awsResources) {
-  await deleteStack(useIAM, killTag);
+async function deleteCluster(awsProfile, killTag, projectName, awsResources) {
+  await deleteStack(awsProfile, killTag);
 
-  const ecsClient = createECSClient(useIAM);
+  const ecsClient = createECSClient(awsProfile);
 
   let clusterArns;
   try {
@@ -153,9 +155,9 @@ async function deleteCluster(useIAM, killTag, projName, awsResources) {
   if (!killTag) {
     clustersToKill = clusterArns;
   } else {
-    const ECSName = awsResources?.ECSName ?? projName.replace(/[^A-Za-z0-9]/g, "");
+    const ECSName = awsResources?.ECSName ?? projectName.replace(/[^A-Za-z0-9]/g, "");
     console.warn(
-      `Only deleting cluster for project "${projName}". All clusters: ${clusterArns.join(", ")}`,
+      `Only deleting cluster for project "${projectName}". All clusters: ${clusterArns.join(", ")}`,
     );
 
     let describeResponse;
@@ -218,7 +220,7 @@ async function deleteCluster(useIAM, killTag, projName, awsResources) {
         console.log("All tasks have stopped.");
       }
 
-      await deleteAllServices(clusterArn, useIAM);
+      await deleteAllServices(clusterArn, awsProfile);
     }),
   );
 

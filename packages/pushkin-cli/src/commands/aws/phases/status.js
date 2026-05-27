@@ -3,14 +3,25 @@
  * Provides detailed status information for the current Pushkin project's AWS resources
  */
 
-import { CloudFrontClient, GetDistributionCommand } from "@aws-sdk/client-cloudfront";
-import { RDSClient, DescribeDBInstancesCommand } from "@aws-sdk/client-rds";
-import { ECSClient, DescribeServicesCommand } from "@aws-sdk/client-ecs";
+import {
+  CloudFrontClient,
+  GetDistributionCommand,
+  ListDistributionsCommand,
+} from "@aws-sdk/client-cloudfront";
+import {
+  RDSClient,
+  DescribeDBInstancesCommand,
+  DescribeDBSnapshotsCommand,
+} from "@aws-sdk/client-rds";
+import { ECSClient, DescribeServicesCommand, DescribeClustersCommand } from "@aws-sdk/client-ecs";
 import {
   ElasticLoadBalancingV2Client,
   DescribeLoadBalancersCommand,
 } from "@aws-sdk/client-elastic-load-balancing-v2";
-import { S3Client, HeadBucketCommand } from "@aws-sdk/client-s3";
+import { S3Client, HeadBucketCommand, ListBucketsCommand } from "@aws-sdk/client-s3";
+import { EC2Client, DescribeSecurityGroupsCommand } from "@aws-sdk/client-ec2";
+import { CloudFormationClient, DescribeStacksCommand } from "@aws-sdk/client-cloudformation";
+import { SecretsManagerClient, ListSecretsCommand } from "@aws-sdk/client-secrets-manager";
 import { AWSClientFactory } from "../utils/aws-client-factory.js";
 import { readAwsResources } from "../utils/aws-resources.js";
 import { loadPushkinConfig } from "../../../utils/pushkin-config.js";
@@ -19,9 +30,9 @@ import { AWS_REGION } from "../constants.js";
 /**
  * Get status of CloudFront distribution
  */
-const getCloudFrontStatus = async (distributionId, useIAM, verbose = false) => {
+const getCloudFrontStatus = async (distributionId, awsProfile, verbose = false) => {
   try {
-    const clientFactory = new AWSClientFactory(AWS_REGION, useIAM);
+    const clientFactory = new AWSClientFactory(AWS_REGION, awsProfile);
     const client = clientFactory.createClient(CloudFrontClient);
     const response = await client.send(new GetDistributionCommand({ Id: distributionId }));
     const dist = response.Distribution;
@@ -41,9 +52,9 @@ const getCloudFrontStatus = async (distributionId, useIAM, verbose = false) => {
 /**
  * Get status of RDS database instances
  */
-const getRDSStatus = async (dbNames, useIAM, verbose = false) => {
+const getRDSStatus = async (dbNames, awsProfile, verbose = false) => {
   try {
-    const clientFactory = new AWSClientFactory(AWS_REGION, useIAM);
+    const clientFactory = new AWSClientFactory(AWS_REGION, awsProfile);
     const client = clientFactory.createClient(RDSClient);
     const response = await client.send(new DescribeDBInstancesCommand({}));
 
@@ -73,9 +84,9 @@ const getRDSStatus = async (dbNames, useIAM, verbose = false) => {
 /**
  * Get status of ECS cluster and services
  */
-const getECSStatus = async (clusterName, serviceNames, useIAM, verbose = false) => {
+const getECSStatus = async (clusterName, serviceNames, awsProfile, verbose = false) => {
   try {
-    const clientFactory = new AWSClientFactory(AWS_REGION, useIAM);
+    const clientFactory = new AWSClientFactory(AWS_REGION, awsProfile);
     const client = clientFactory.createClient(ECSClient);
 
     // Get service statuses
@@ -110,9 +121,9 @@ const getECSStatus = async (clusterName, serviceNames, useIAM, verbose = false) 
 /**
  * Get status of load balancer
  */
-const getLoadBalancerStatus = async (loadBalancerName, useIAM, verbose = false) => {
+const getLoadBalancerStatus = async (loadBalancerName, awsProfile, verbose = false) => {
   try {
-    const clientFactory = new AWSClientFactory(AWS_REGION, useIAM);
+    const clientFactory = new AWSClientFactory(AWS_REGION, awsProfile);
     const client = clientFactory.createClient(ElasticLoadBalancingV2Client);
     const response = await client.send(
       new DescribeLoadBalancersCommand({ Names: [loadBalancerName] }),
@@ -135,9 +146,9 @@ const getLoadBalancerStatus = async (loadBalancerName, useIAM, verbose = false) 
 /**
  * Get status of S3 bucket
  */
-const getS3Status = async (bucketName, useIAM, verbose = false) => {
+const getS3Status = async (bucketName, awsProfile, verbose = false) => {
   try {
-    const clientFactory = new AWSClientFactory(AWS_REGION, useIAM);
+    const clientFactory = new AWSClientFactory(AWS_REGION, awsProfile);
     const client = clientFactory.createClient(S3Client);
     await client.send(new HeadBucketCommand({ Bucket: bucketName }));
     return { status: "EXISTS" };
@@ -152,10 +163,13 @@ const getS3Status = async (bucketName, useIAM, verbose = false) => {
 
 /**
  * Main function to get comprehensive status of all AWS resources for the current project
- * @param {string} useIAM - AWS profile name
+ * @param {string} awsProfile - AWS profile name
  * @param {boolean} verbose - Whether to show verbose output
  */
-export const getProjectStatus = async (useIAM, verbose = false) => {
+export const getProjectStatus = async (awsProfile, verbose = false) => {
+  // TODO: getProjectStatus in packages/pushkin-cli/src/commands/aws/phases/status.js uses hardcoded
+  // service names like ${projectName}-api-service but the actual ECS services are named "api",
+  // "message-queue", and per-worker names.
   console.log("\n📊 Checking AWS resource status for current project...\n");
 
   let resources, config;
@@ -179,7 +193,7 @@ export const getProjectStatus = async (useIAM, verbose = false) => {
     console.log("☁️  CloudFront Distribution");
     const cfStatus = await getCloudFrontStatus(
       resources.cloudfront.distributionId,
-      useIAM,
+      awsProfile,
       verbose,
     );
     if (cfStatus.status === "ERROR") {
@@ -195,7 +209,7 @@ export const getProjectStatus = async (useIAM, verbose = false) => {
   // S3 Bucket
   if (resources.s3BucketName) {
     console.log("\n🪣  S3 Bucket");
-    const s3Status = await getS3Status(resources.s3BucketName, useIAM, verbose);
+    const s3Status = await getS3Status(resources.s3BucketName, awsProfile, verbose);
     console.log(`   Name: ${resources.s3BucketName}`);
     console.log(`   Status: ${s3Status.status === "EXISTS" ? "✅" : "❌"} ${s3Status.status}`);
   }
@@ -206,7 +220,7 @@ export const getProjectStatus = async (useIAM, verbose = false) => {
     if (dbEntries.length > 0) {
       const dbNames = dbEntries.map(([, db]) => db.name);
       console.log("\n🗄️  RDS Databases");
-      const rdsStatuses = await getRDSStatus(dbNames, useIAM, verbose);
+      const rdsStatuses = await getRDSStatus(dbNames, awsProfile, verbose);
       if (rdsStatuses.error) {
         console.log(`   Status: ❌ ${rdsStatuses.error}`);
       } else {
@@ -235,7 +249,7 @@ export const getProjectStatus = async (useIAM, verbose = false) => {
       `${projectName}-worker-service`,
       `${projectName}-server-service`,
     ];
-    const ecsStatus = await getECSStatus(resources.ECSName, serviceNames, useIAM, verbose);
+    const ecsStatus = await getECSStatus(resources.ECSName, serviceNames, awsProfile, verbose);
 
     if (ecsStatus.error) {
       console.log(`   Status: ❌ ${ecsStatus.error}`);
@@ -256,7 +270,7 @@ export const getProjectStatus = async (useIAM, verbose = false) => {
   // Load Balancer
   if (resources.loadBalancerName) {
     console.log("\n⚖️  Load Balancer");
-    const lbStatus = await getLoadBalancerStatus(resources.loadBalancerName, useIAM, verbose);
+    const lbStatus = await getLoadBalancerStatus(resources.loadBalancerName, awsProfile, verbose);
     if (lbStatus.state === "ERROR") {
       console.log(`   Status: ❌ ${lbStatus.error}`);
     } else {
@@ -270,3 +284,50 @@ export const getProjectStatus = async (useIAM, verbose = false) => {
 
   console.log("\n✅ Status check complete!\n");
 };
+
+/**
+ * List all AWS resources across the account (diagnostic tool, no project filtering).
+ * Used after armageddon to confirm nothing billable was left running.
+ * @param {string} awsProfile - AWS profile name
+ */
+export async function listAllResources(awsProfile) {
+  const factory = new AWSClientFactory(AWS_REGION, awsProfile);
+  const rds = factory.createClient(RDSClient);
+  const ecs = factory.createClient(ECSClient);
+  const ec2 = factory.createClient(EC2Client);
+  const elb = factory.createClient(ElasticLoadBalancingV2Client);
+  const s3 = factory.createClient(S3Client);
+  const cf = factory.createClient(CloudFrontClient);
+  const cfn = factory.createClient(CloudFormationClient);
+  const sm = factory.createClient(SecretsManagerClient);
+
+  const { DBInstances } = await rds.send(new DescribeDBInstancesCommand({}));
+  if (DBInstances?.length > 0) console.log("DB Instances:\n", DBInstances);
+
+  const { clusters } = await ecs.send(new DescribeClustersCommand({}));
+  if (clusters?.length > 0) console.log("ECS Clusters:\n", clusters);
+
+  const { SecurityGroups } = await ec2.send(new DescribeSecurityGroupsCommand({}));
+  SecurityGroups?.filter((g) => g.GroupName !== "default").forEach((g) =>
+    console.log("Security Group:\n", g),
+  );
+
+  const { LoadBalancers } = await elb.send(new DescribeLoadBalancersCommand({}));
+  if (LoadBalancers?.length > 0) console.log("Load Balancers:\n", LoadBalancers);
+
+  const { Buckets } = await s3.send(new ListBucketsCommand({}));
+  if (Buckets?.length > 0) console.log("S3 Buckets:\n", Buckets);
+
+  const { DistributionList } = await cf.send(new ListDistributionsCommand({}));
+  if (DistributionList?.Items?.length > 0)
+    console.log("CloudFront Distributions:\n", DistributionList);
+
+  const { Stacks } = await cfn.send(new DescribeStacksCommand({}));
+  if (Stacks?.length > 0) console.log("CloudFormation Stacks:\n", Stacks);
+
+  const { DBSnapshots } = await rds.send(new DescribeDBSnapshotsCommand({}));
+  if (DBSnapshots?.length > 0) console.log("DB Snapshots:\n", DBSnapshots);
+
+  const { SecretList } = await sm.send(new ListSecretsCommand({}));
+  if (SecretList?.length > 0) console.log("Secrets:\n", SecretList);
+}

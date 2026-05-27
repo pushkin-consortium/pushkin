@@ -21,17 +21,18 @@ import { AWSClientFactory } from "../utils/aws-client-factory.js";
 import { loadAwsConfig } from "../utils/aws-config.js";
 import { AWS_REGION, exec } from "../constants.js";
 
-const createS3Client = (useIAM) => new AWSClientFactory(AWS_REGION, useIAM).createClient(S3Client);
+const createS3Client = (awsProfile) =>
+  new AWSClientFactory(AWS_REGION, awsProfile).createClient(S3Client);
 
 /**
  * Build the project's React front-end.
  * WHY: We need to build the front-end before deploying to S3 because we need the built static files
  * to sync with the S3 bucket.
- * @param {string} projName - The project name
+ * @param {string} projectName - The project name
  * @param {boolean} verbose - Whether to log detailed steps in building the front-end
  * @returns {Promise<void>} - A promise that resolves when the front-end is built
  */
-async function buildFrontEnd(projName, verbose = false) {
+async function buildFrontEnd(projectName, verbose = false) {
   console.log("Building front-end...");
   const packageJsonPath = path.join(process.cwd(), "pushkin/front-end/package.json");
 
@@ -48,7 +49,7 @@ async function buildFrontEnd(projName, verbose = false) {
   if (packageJson.dependencies?.["build-if-changed"] === undefined) {
     if (verbose) {
       console.log(
-        `Project ${projName} does not have build-if-changed installed. Recommend installation for faster prep.`,
+        `Project ${projectName} does not have build-if-changed installed. Recommend installation for faster prep.`,
       );
     }
     // --mutex network is yarn-specific; npm has no equivalent flag
@@ -56,7 +57,7 @@ async function buildFrontEnd(projName, verbose = false) {
       pacMan === "yarn" ? ["yarn", "--mutex", "network", "run", "build"] : [pacMan, "run", "build"];
   } else {
     if (verbose) {
-      console.log(`Using build-if-changed for project ${projName} for faster builds.`);
+      console.log(`Using build-if-changed for project ${projectName} for faster builds.`);
     }
     // --mutex network is yarn-specific; omit it when using npx
     buildCommand =
@@ -118,11 +119,11 @@ async function uploadFileToS3(s3Client, bucketName, filePath, s3Key, verbose = f
  * This implementation uses the AWS SDK instead of the AWS CLI for better error handling
  * and to avoid external CLI dependencies.
  * @param {string} s3BucketName - The S3 bucket name (sanitized, globally unique, AWS-compliant)
- * @param {string} useIAM - The IAM profile to use
+ * @param {string} awsProfile - The IAM profile to use
  * @param {boolean} verbose - Whether to log detailed steps in syncing local front-end build with S3 bucket
  * @returns {Promise<void>} - A promise that resolves when the sync is complete
  */
-async function syncS3(s3BucketName, useIAM, verbose = false) {
+async function syncS3(s3BucketName, awsProfile, verbose = false) {
   console.log(`Syncing static front-end files to S3 bucket ${s3BucketName}`);
   try {
     const buildDir = path.join(process.cwd(), "pushkin/front-end/build");
@@ -137,7 +138,7 @@ async function syncS3(s3BucketName, useIAM, verbose = false) {
       console.log(`Found ${files.length} files to upload`);
     }
 
-    const s3Client = createS3Client(useIAM);
+    const s3Client = createS3Client(awsProfile);
     const batchSize = loadAwsConfig().s3.uploadBatchSize;
 
     for (let i = 0; i < files.length; i += batchSize) {
@@ -229,18 +230,24 @@ async function deleteSingleBucket(s3Client, bucketName) {
 /**
  * Delete S3 buckets.
  * WHY: S3 bucket needs to be deleted during teardown to avoid orphaned resources and potential costs.
- * @param {string} useIAM - The IAM profile name
+ * @param {string} awsProfile - The IAM profile name
  * @param {string|null} killTag - If string (project name), only delete project bucket; if null/falsy, delete all buckets
  * @param {object} awsResources - The AWS resources object (contains s3BucketName)
  * @param {Promise} deletedCloudFront - Promise that resolves when CloudFront distribution is deleted
  * @param {boolean} verbose - Whether to log detailed steps in the deletion process
  * @returns {Promise<void>} - A promise that resolves when deletion is complete
  */
-async function deleteS3Buckets(useIAM, killTag, awsResources, deletedCloudFront, verbose = false) {
+async function deleteS3Buckets(
+  awsProfile,
+  killTag,
+  awsResources,
+  deletedCloudFront,
+  verbose = false,
+) {
   // Wait for CloudFront distribution to be deleted first (S3 buckets can't be deleted while CloudFront uses them)
   await deletedCloudFront;
 
-  const s3Client = createS3Client(useIAM);
+  const s3Client = createS3Client(awsProfile);
   console.log(`Retrieving list of S3 buckets to delete...`);
 
   let buckets;

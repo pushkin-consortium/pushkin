@@ -16,7 +16,7 @@ import shelljs from "shelljs";
 
 // Subcommands
 import {
-  verifyIAMCredentials,
+  verifyAwsProfile,
   awsInit,
   nameProject,
   addIAM,
@@ -41,6 +41,8 @@ import { readAwsResources } from "./commands/aws/utils/aws-resources.js";
 
 import pacMan from "./utils/package-manager.js";
 import { getPushkinConfigPath } from "./utils/pushkin-config.js";
+import { syncS3 } from "./commands/aws/services/s3.js";
+import { publishToDocker } from "./utils/docker.js";
 
 const setCwdToProjectRoot = () => {
   try {
@@ -69,11 +71,11 @@ const loadConfig = (configFile) => {
 };
 
 const updateS3 = async () => {
-  let s3BucketName, useIAM;
+  let s3BucketName, awsProfile;
   try {
     const awsResources = await readAwsResources();
     s3BucketName = awsResources.s3BucketName;
-    useIAM = awsResources.iam;
+    awsProfile = awsResources.iam;
   } catch (e) {
     console.error(`Unable to read deployment config`);
     throw e;
@@ -81,7 +83,7 @@ const updateS3 = async () => {
 
   let syncMe;
   try {
-    return syncS3(s3BucketName, useIAM);
+    return syncS3(s3BucketName, awsProfile);
   } catch (e) {
     console.error(`Unable to sync local build with s3 bucket`);
     throw e;
@@ -287,7 +289,7 @@ const updateMigrations = async () => {
 };
 
 const updateECS = async () => {
-  //FUBAR needs way of getting useIAM
+  //FUBAR needs way of getting awsProfile
   console.log(`Updating ECS services.`);
 
   let ECSName;
@@ -315,7 +317,7 @@ const updateECS = async () => {
               "service",
               "up",
               "--ecs-profile",
-              useIAM,
+              awsProfile,
               "--cluster-config",
               ECSName,
               "--force-deployment",
@@ -370,18 +372,18 @@ const handleAWSUpdate = async () => {
 };
 
 const handleCreateAutoScale = async () => {
-  let projName;
+  let projectName;
   try {
     let temp = loadConfig(path.join(process.cwd(), "pushkin.yaml"));
-    projName = temp.info.projName.replace(/[^A-Za-z0-9]/g, "");
+    projectName = temp.info.projectName.replace(/[^A-Za-z0-9]/g, "");
   } catch (e) {
     console.error(`Unable to find project name`);
     throw e;
   }
 
-  let useIAM;
+  let awsProfile;
   try {
-    useIAM = await inquirer.prompt([
+    awsProfile = await inquirer.prompt([
       {
         type: "input",
         name: "iam",
@@ -394,7 +396,7 @@ const handleCreateAutoScale = async () => {
     throw e;
   }
 
-  return createAutoScale(useIAM.iam, projName);
+  return createAutoScale(awsProfile.iam, projectName);
 };
 
 const handleViewConfig = async (what) => {
@@ -489,9 +491,9 @@ const handlePrep = async (verbose) => {
 };
 
 const handleAWSList = async () => {
-  let useIAM;
+  let awsProfile;
   try {
-    useIAM = await inquirer.prompt([
+    awsProfile = await inquirer.prompt([
       {
         type: "input",
         name: "iam",
@@ -503,13 +505,13 @@ const handleAWSList = async () => {
     console.error("Problem getting AWS IAM username.\n", e);
     process.exit();
   }
-  return awsList(useIAM.iam);
+  return awsList(awsProfile.iam);
 };
 
 const handleAWSStatus = async (verbose = false) => {
-  let useIAM;
+  let awsProfile;
   try {
-    useIAM = await inquirer.prompt([
+    awsProfile = await inquirer.prompt([
       {
         type: "input",
         name: "iam",
@@ -521,7 +523,7 @@ const handleAWSStatus = async (verbose = false) => {
     console.error("Problem getting AWS IAM username.\n", e);
     process.exit();
   }
-  return awsStatus(useIAM.iam, verbose);
+  return awsStatus(awsProfile.iam, verbose);
 };
 
 const handleAWSKill = async () => {
@@ -560,9 +562,9 @@ const handleAWSKill = async () => {
     return;
   }
   console.log(`I hope you know what you are doing. This makes me nervous every time...`);
-  let useIAM;
+  let awsProfile;
   try {
-    useIAM = await inquirer.prompt([
+    awsProfile = await inquirer.prompt([
       {
         type: "input",
         name: "iam",
@@ -574,7 +576,7 @@ const handleAWSKill = async () => {
     console.error("Problem getting AWS IAM username.\n", e);
     process.exit();
   }
-  return awsArmageddon(useIAM.iam, "kill");
+  return awsArmageddon(awsProfile.iam, "kill");
 };
 
 const handleAWSArmageddon = async () => {
@@ -613,9 +615,9 @@ const handleAWSArmageddon = async () => {
     return;
   }
   console.log(`I hope you know what you are doing. This makes me nervous every time...`);
-  let useIAM;
+  let awsProfile;
   try {
-    useIAM = await inquirer.prompt([
+    awsProfile = await inquirer.prompt([
       {
         type: "input",
         name: "iam",
@@ -627,7 +629,7 @@ const handleAWSArmageddon = async () => {
     console.error("Problem getting AWS IAM username.\n", e);
     process.exit();
   }
-  return awsArmageddon(useIAM.iam, "armageddon");
+  return awsArmageddon(awsProfile.iam, "armageddon");
 };
 
 /**
@@ -1091,7 +1093,7 @@ const handleAWSInit = async (force) => {
     throw e;
   }
 
-  let projName, useIAM, s3BucketName;
+  let projectName, awsProfile, s3BucketName;
 
   try {
     execSync("aws --version");
@@ -1101,10 +1103,10 @@ const handleAWSInit = async (force) => {
   }
 
   let newProj = true;
-  if (config.info.projName) {
-    let myChoices = config.info.projName ? [config.info.projName, "new"] : ["new"];
+  if (config.info.projectName) {
+    let myChoices = config.info.projectName ? [config.info.projectName, "new"] : ["new"];
     try {
-      projName = await inquirer.prompt([
+      projectName = await inquirer.prompt([
         {
           type: "list",
           name: "name",
@@ -1115,14 +1117,14 @@ const handleAWSInit = async (force) => {
     } catch (e) {
       throw e;
     }
-    if (projName.name != "new") {
+    if (projectName.name != "new") {
       newProj = false;
       s3BucketName = config.info.s3BucketName;
     }
     if (force) {
       try {
         //Run this anyway to reset awsResources.js and remove productionDBs from pushkin.yaml
-        s3BucketName = await nameProject(projName.name);
+        s3BucketName = await nameProject(projectName.name);
       } catch (e) {
         throw e;
       }
@@ -1131,7 +1133,7 @@ const handleAWSInit = async (force) => {
 
   if (newProj) {
     try {
-      projName = await inquirer.prompt([
+      projectName = await inquirer.prompt([
         { type: "input", name: "name", message: "Name your project" },
       ]);
     } catch (e) {
@@ -1139,14 +1141,14 @@ const handleAWSInit = async (force) => {
       process.exit();
     }
     try {
-      s3BucketName = await nameProject(projName.name);
+      s3BucketName = await nameProject(projectName.name);
     } catch (e) {
       throw e;
     }
   }
 
   try {
-    useIAM = await inquirer.prompt([
+    awsProfile = await inquirer.prompt([
       {
         type: "input",
         name: "iam",
@@ -1160,13 +1162,13 @@ const handleAWSInit = async (force) => {
   }
 
   try {
-    await verifyIAMCredentials(useIAM.iam);
+    await verifyAwsProfile(awsProfile.iam);
   } catch (error) {
     process.exit();
   }
   let addedIAM;
   try {
-    addedIAM = addIAM(useIAM.iam); //this records which IAM user we are using, doesn't need to be synchronous
+    addedIAM = addIAM(awsProfile.iam); //this records which IAM user we are using, doesn't need to be synchronous
   } catch (e) {
     console.error(e);
     process.exit();
@@ -1174,7 +1176,7 @@ const handleAWSInit = async (force) => {
 
   try {
     await Promise.all([
-      awsInit(projName.name, s3BucketName, useIAM.iam, config.DockerHubID),
+      awsInit(projectName.name, s3BucketName, awsProfile.iam, config.DockerHubID),
       addedIAM,
     ]);
   } catch (e) {
