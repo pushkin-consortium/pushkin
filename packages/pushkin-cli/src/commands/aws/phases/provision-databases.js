@@ -1,6 +1,6 @@
 /**
  * AWS Deployment Databases Provisioning Phase
- * Handles provisioning of RDS databases for AWS deployment.
+ * Handles provisioning of RDS databases on AWS for deployment.
  * @module aws/phases/provision-databases
  */
 
@@ -9,19 +9,17 @@ import { createDb, recordDbs } from "../services/rds.js";
 
 /**
  * Provisions databases for the AWS deployment.
- * @param {string} awsProfileName - The AWS IAM profile
  * @param {string} projectName - The name of the project.
  * @returns {Promise<object>} - A promise that resolves to the completed databases.
  */
-async function provisionDbs(awsProfileName, projectName) {
-  const securityGroupID = await ensureDatabaseSecurityGroup(awsProfileName, projectName);
+async function provisionDbs(projectName) {
+  const securityGroupID = await ensureDatabaseSecurityGroup(projectName);
 
-  const initializedMainDb = createDb("Main", securityGroupID, projectName, awsProfileName);
+  const initializedMainDb = createDb("experiment", securityGroupID, projectName);
   const initializedTransactionDb = createDb(
-    "Transaction",
+    "transaction",
     securityGroupID,
     projectName,
-    awsProfileName,
   );
 
   const dbSetup = await recordDbs(Promise.all([initializedMainDb, initializedTransactionDb]));
