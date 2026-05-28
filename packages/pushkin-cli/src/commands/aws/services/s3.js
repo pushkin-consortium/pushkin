@@ -4,25 +4,71 @@
  * @module aws/services/s3
  */
 
+import fs from "graceful-fs";
 import path from "path";
 import mime from "mime-types";
 import { quote } from "shell-quote";
 import {
   S3Client,
   ListBucketsCommand,
+  CreateBucketCommand,
+  PutBucketPolicyCommand,
   DeleteBucketCommand,
   ListObjectsV2Command,
   DeleteObjectsCommand,
   PutObjectCommand,
 } from "@aws-sdk/client-s3";
-import { readJSON, fileExists, walkDirectory, readFile } from "../../../utils/file.js";
+import { policy } from "../awsConfigs.js";
 import pacMan from "../../../utils/package-manager.js";
 import { AWSClientFactory } from "../utils/aws-client-factory.js";
+import { getAwsProfile } from "../utils/aws-profile.js";
 import { loadAwsConfig } from "../utils/aws-config.js";
 import { AWS_REGION, exec } from "../constants.js";
 
-const createS3Client = (awsProfileName) =>
-  new AWSClientFactory(AWS_REGION, awsProfileName).createClient(S3Client);
+/**
+ * Read and parse a JSON file
+ * @param {string} filePath - Absolute path to the JSON file
+ * @returns {object} - Parsed JSON object
+ * @throws {Error} - If file doesn't exist or JSON is invalid
+ */
+function readJSON(filePath) {
+  try {
+    const content = fs.readFileSync(filePath, "utf8");
+    return JSON.parse(content);
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      throw new Error(`File not found: ${filePath}`);
+    }
+    if (error instanceof SyntaxError) {
+      throw new Error(`Invalid JSON in ${filePath}: ${error.message}`);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Recursively walk a directory and return all file paths.
+ * @param {string} dir - Directory to walk
+ * @returns {Array<{absolutePath: string, relativePath: string}>} - Array of file path objects
+ * @throws {Error} - If directory doesn't exist or can't be read
+ */
+function walkDirectory(dir) {
+  if (!fs.existsSync(dir)) {
+    throw new Error(`Directory not found: ${dir}`);
+  }
+
+  if (!fs.statSync(dir).isDirectory()) {
+    throw new Error(`Not a directory: ${dir}`);
+  }
+
+  return fs
+    .readdirSync(dir, { recursive: true })
+    .filter((relativePath) => !fs.statSync(path.join(dir, relativePath)).isDirectory())
+    .map((relativePath) => ({ absolutePath: path.join(dir, relativePath), relativePath }));
+}
+
+const createS3Client = () =>
+  new AWSClientFactory(AWS_REGION, getAwsProfile()).createClient(S3Client);
 
 /**
  * Build the project's React front-end.
@@ -32,7 +78,7 @@ const createS3Client = (awsProfileName) =>
  * @param {boolean} verbose - Whether to log detailed steps in building the front-end
  * @returns {Promise<void>} - A promise that resolves when the front-end is built
  */
-async function buildFrontEnd(projectName, verbose = false) {
+async function buildFrontend(projectName, verbose = false) {
   console.log("Building front-end...");
   const packageJsonPath = path.join(process.cwd(), "pushkin/front-end/package.json");
 
@@ -91,7 +137,7 @@ async function buildFrontEnd(projectName, verbose = false) {
  * @returns {Promise<void>} - A promise that resolves when the upload is complete
  */
 async function uploadFileToS3(s3Client, bucketName, filePath, s3Key, verbose = false) {
-  const fileContent = readFile(filePath, null); // null encoding = read as Buffer
+  const fileContent = fs.readFileSync(filePath, null); // null encoding = read as Buffer
   const contentType = mime.lookup(filePath) || "application/octet-stream";
 
   if (verbose) {
@@ -114,21 +160,75 @@ async function uploadFileToS3(s3Client, bucketName, filePath, s3Key, verbose = f
 }
 
 /**
+ * Ensure an S3 bucket exists, creating it if it doesn't.
+ * @param {string} s3BucketName - The S3 bucket name
+ * @returns {Promise<void>}
+ */
+async function ensureBucket(s3BucketName) {
+  const s3 = createS3Client();
+  console.log(`Checking to see if bucket ${s3BucketName} already exists.`);
+  let bucketExists = false;
+  try {
+    const response = await s3.send(new ListBucketsCommand({}));
+    bucketExists = response.Buckets.some((bucket) => bucket.Name === s3BucketName);
+    if (bucketExists) console.log(`Bucket exists. Skipping create.`);
+  } catch (error) {
+    console.error(`Problem listing aws s3 buckets for your account:`, error);
+    throw error;
+  }
+
+  if (!bucketExists) {
+    console.log("Bucket does not yet exist. Creating s3 bucket");
+    try {
+      await s3.send(new CreateBucketCommand({ Bucket: s3BucketName }));
+    } catch (e) {
+      console.error("Problem creating bucket for front-end");
+      throw e;
+    }
+  }
+}
+
+/**
+ * Set the S3 bucket policy to allow access only from a specific CloudFront distribution.
+ * @param {string} s3BucketName - The S3 bucket name
+ * @param {string} distributionArn - The ARN of the CloudFront distribution
+ * @returns {Promise<void>}
+ */
+async function setBucketPolicy(s3BucketName, distributionArn) {
+  const s3 = createS3Client();
+  const bucketPolicy = structuredClone(policy);
+  bucketPolicy.Statement[0].Resource = `arn:aws:s3:::${s3BucketName}/*`;
+  bucketPolicy.Statement[0].Condition.StringEquals["AWS:SourceArn"] = distributionArn;
+  console.log("Setting bucket permissions");
+  try {
+    await s3.send(
+      new PutBucketPolicyCommand({
+        Bucket: s3BucketName,
+        Policy: JSON.stringify(bucketPolicy),
+      }),
+    );
+    console.log("Bucket permissions set successfully");
+  } catch (e) {
+    console.error("Problem setting bucket permissions for front-end");
+    throw e;
+  }
+}
+
+/**
  * Sync the local build with the S3 bucket.
  * WHY: We need to sync the local build with the S3 bucket to deploy the front-end to AWS.
  * This implementation uses the AWS SDK instead of the AWS CLI for better error handling
  * and to avoid external CLI dependencies.
  * @param {string} s3BucketName - The S3 bucket name (sanitized, globally unique, AWS-compliant)
- * @param {string} awsProfileName - The IAM profile to use
  * @param {boolean} verbose - Whether to log detailed steps in syncing local front-end build with S3 bucket
  * @returns {Promise<void>} - A promise that resolves when the sync is complete
  */
-async function syncS3(s3BucketName, awsProfileName, verbose = false) {
+async function syncS3(s3BucketName, verbose = false) {
   console.log(`Syncing static front-end files to S3 bucket ${s3BucketName}`);
   try {
     const buildDir = path.join(process.cwd(), "pushkin/front-end/build");
 
-    if (!fileExists(buildDir)) {
+    if (!fs.existsSync(buildDir)) {
       throw new Error(`Build directory not found: ${buildDir}`);
     }
 
@@ -138,7 +238,7 @@ async function syncS3(s3BucketName, awsProfileName, verbose = false) {
       console.log(`Found ${files.length} files to upload`);
     }
 
-    const s3Client = createS3Client(awsProfileName);
+    const s3Client = createS3Client();
     const batchSize = loadAwsConfig().s3.uploadBatchSize;
 
     for (let i = 0; i < files.length; i += batchSize) {
@@ -230,7 +330,6 @@ async function deleteSingleBucket(s3Client, bucketName) {
 /**
  * Delete S3 buckets.
  * WHY: S3 bucket needs to be deleted during teardown to avoid orphaned resources and potential costs.
- * @param {string} awsProfileName - The IAM profile name
  * @param {string|null} killTag - If string (project name), only delete project bucket; if null/falsy, delete all buckets
  * @param {object} awsResources - The AWS resources object (contains s3BucketName)
  * @param {Promise} deletedCloudFront - Promise that resolves when CloudFront distribution is deleted
@@ -238,7 +337,6 @@ async function deleteSingleBucket(s3Client, bucketName) {
  * @returns {Promise<void>} - A promise that resolves when deletion is complete
  */
 async function deleteS3Buckets(
-  awsProfileName,
   killTag,
   awsResources,
   deletedCloudFront,
@@ -247,7 +345,7 @@ async function deleteS3Buckets(
   // Wait for CloudFront distribution to be deleted first (S3 buckets can't be deleted while CloudFront uses them)
   await deletedCloudFront;
 
-  const s3Client = createS3Client(awsProfileName);
+  const s3Client = createS3Client();
   console.log(`Retrieving list of S3 buckets to delete...`);
 
   let buckets;
@@ -292,4 +390,4 @@ async function deleteS3Buckets(
   console.log(`Finished deleting ${bucketsToDelete.length} S3 buckets.`);
 }
 
-export { buildFrontEnd, syncS3, deleteS3Buckets };
+export { buildFrontend, ensureBucket, setBucketPolicy, syncS3, deleteS3Buckets };
