@@ -6,13 +6,14 @@ DockerHubID: ''
 
 # databases configs experiments can use
 databases:
-  localtestdb:
-    user: 'postgres'
-    pass: 'example'
-    url: 'localhost'
-    port: '5432'
-    name: 'test_db'
-    host: 'test_db'
+  local:
+    experiment:
+      user: 'postgres'
+      pass: 'example'
+      url: 'localhost'
+      port: '5432'
+      name: 'local-experiment-db'
+      host: 'local-experiment-db'
 
 # basic site configuration
 info:
