@@ -1,7 +1,7 @@
 /**
  * Handles CloudWatch log group creation for ECS services.
  * CloudWatch: Provides monitoring and observability of AWS resources and applications.
- * @module monitoring
+ * @module aws/services/monitoring
  */
 
 import {
@@ -13,18 +13,18 @@ import { AWSClientFactory } from "../utils/aws-client-factory.js";
 import { loadAwsConfig } from "../utils/aws-config.js";
 import { AWS_REGION } from "../constants.js";
 
-function createCloudWatchClient(awsProfile) {
-  return new AWSClientFactory(AWS_REGION, awsProfile).createClient(CloudWatchLogsClient);
+function createCloudWatchClient(awsProfileName) {
+  return new AWSClientFactory(AWS_REGION, awsProfileName).createClient(CloudWatchLogsClient);
 }
 
 /**
  * Create CloudWatch log group for ECS.
- * @param {string} awsProfile - The IAM role to use
+ * @param {string} awsProfileName - The IAM role to use
  * @param {string} projectName - The project name
  * @returns {Promise<void>} - A promise that resolves when the log group is created
  */
-async function createLogGroup(awsProfile, projectName) {
-  const cloudWatchLogsClient = createCloudWatchClient(awsProfile);
+async function createLogGroup(awsProfileName, projectName) {
+  const cloudWatchLogsClient = createCloudWatchClient(awsProfileName);
   const logGroupName = `ecs/${projectName}`;
   try {
     await cloudWatchLogsClient.send(new CreateLogGroupCommand({ logGroupName }));

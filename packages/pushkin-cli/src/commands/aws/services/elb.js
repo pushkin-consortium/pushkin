@@ -2,7 +2,7 @@
  * Handles creation and deletion of AWS Elastic Load Balancers (ELBv2) and associated resources.
  * ELB: AWS service that automatically distributes incoming application traffic across multiple
  * targets, such as Amazon EC2 instances, containers, and IP addresses.
- * @module elb
+ * @module aws/services/elb
  */
 
 import {
@@ -21,10 +21,12 @@ import { createWaiter, WaiterState } from "@smithy/util-waiter";
 import { AWSClientFactory } from "../utils/aws-client-factory.js";
 import { loadAwsConfig } from "../utils/aws-config.js";
 import { updateAwsResourcesField } from "../utils/aws-resources.js";
-import { AWS_REGION } from "../constants.js";
+import { AWS_REGION, PROJECT_TAG_KEY } from "../constants.js";
 
-function createLoadBalancerClient(awsProfile) {
-  return new AWSClientFactory(AWS_REGION, awsProfile).createClient(ElasticLoadBalancingV2Client);
+function createLoadBalancerClient(awsProfileName) {
+  return new AWSClientFactory(AWS_REGION, awsProfileName).createClient(
+    ElasticLoadBalancingV2Client,
+  );
 }
 
 /**
@@ -34,34 +36,25 @@ function createLoadBalancerClient(awsProfile) {
  * - Target groups: to forward traffic from load balancer to ECS services (required for Fargate with awsvpc network mode)
  * - HTTP listener: to redirect HTTP to HTTPS
  * - HTTPS listener: to serve traffic securely and use AWS Certificate Manager (ACM) certificate
- * @param {string} awsProfile - IAM profile to use
+ * @param {string} awsProfileName - IAM profile to use
  * @param {object} options
  * @param {string} options.name - Name for the load balancer (and derived target group name)
  * @param {string} options.vpcId - VPC ID for the target group
  * @param {Array<string>} options.subnets - Subnet IDs to place the load balancer in
  * @param {string} options.securityGroupId - Security group ID for the load balancer
- * @param {string} options.certificateArn - ACM certificate ARN for the HTTPS listener
+ * @param {string} options.sslCertificate - SSL certificate for terminating HTTPS traffic
  * @param {string} options.projectName - Project name (for tagging)
- * @param {string} options.projectTagKey - Tag key for identifying Pushkin resources
- * @returns {Promise<{balancerEndpoint: string, balancerZone: string, targetGroupARN: string}>}
+ * @returns {Promise<{loadBalancerEndpoint: string, loadBalancerZone: string, targetGroupArn: string}>}
  */
 async function createLoadBalancer(
-  awsProfile,
-  {
-    name: loadBalancerName,
-    vpcId,
-    subnets,
-    securityGroupId,
-    certificateArn,
-    projectName,
-    projectTagKey,
-  },
+  awsProfileName,
+  { name: loadBalancerName, vpcId, subnets, securityGroupId, sslCertificate, projectName },
 ) {
   console.log(`Creating application load balancer`);
-  const loadBalancerClient = createLoadBalancerClient(awsProfile);
+  const loadBalancerClient = createLoadBalancerClient(awsProfileName);
 
   // Create target group first so a failure here doesn't orphan a load balancer
-  let targetGroupARN;
+  let targetGroupArn;
   try {
     const targetGroupResponse = await loadBalancerClient.send(
       new CreateTargetGroupCommand({
@@ -72,14 +65,14 @@ async function createLoadBalancer(
         TargetType: "ip", // Required for Fargate with awsvpc network mode
       }),
     );
-    targetGroupARN = targetGroupResponse.TargetGroups[0].TargetGroupArn;
+    targetGroupArn = targetGroupResponse.TargetGroups[0].TargetGroupArn;
   } catch (error) {
     console.error(`Unable to create target group:`, error);
     throw error;
   }
 
   try {
-    updateAwsResourcesField("targetGroupARN", targetGroupARN);
+    updateAwsResourcesField("targetGroupArn", targetGroupArn);
   } catch (error) {
     console.error(`Unable to update awsResources.js:`, error);
   }
@@ -93,16 +86,16 @@ async function createLoadBalancer(
         Scheme: "internet-facing",
         Subnets: subnets,
         SecurityGroups: [securityGroupId],
-        Tags: [{ Key: projectTagKey, Value: projectName }],
+        Tags: [{ Key: PROJECT_TAG_KEY, Value: projectName }],
       }),
     );
   } catch (error) {
     console.error(`Unable to create application load balancer:`, error);
     throw error;
   }
-  const balancerARN = loadBalancer.LoadBalancers[0].LoadBalancerArn;
-  const balancerEndpoint = loadBalancer.LoadBalancers[0].DNSName;
-  const balancerZone = loadBalancer.LoadBalancers[0].CanonicalHostedZoneId;
+  const loadBalancerArn = loadBalancer.LoadBalancers[0].LoadBalancerArn;
+  const loadBalancerEndpoint = loadBalancer.LoadBalancers[0].DNSName;
+  const loadBalancerZone = loadBalancer.LoadBalancers[0].CanonicalHostedZoneId;
 
   try {
     updateAwsResourcesField("loadBalancerName", loadBalancerName);
@@ -113,7 +106,7 @@ async function createLoadBalancer(
   try {
     await loadBalancerClient.send(
       new CreateListenerCommand({
-        LoadBalancerArn: balancerARN,
+        LoadBalancerArn: loadBalancerArn,
         Protocol: "HTTP",
         Port: 80,
         DefaultActions: [
@@ -132,11 +125,11 @@ async function createLoadBalancer(
   try {
     await loadBalancerClient.send(
       new CreateListenerCommand({
-        LoadBalancerArn: balancerARN,
+        LoadBalancerArn: loadBalancerArn,
         Protocol: "HTTPS",
         Port: 443,
-        Certificates: [{ CertificateArn: certificateArn }],
-        DefaultActions: [{ Type: "forward", TargetGroupArn: targetGroupARN }],
+        Certificates: [{ CertificateArn: sslCertificate }],
+        DefaultActions: [{ Type: "forward", TargetGroupArn: targetGroupArn }],
       }),
     );
     console.log(`Added HTTPS to load balancer`);
@@ -145,18 +138,18 @@ async function createLoadBalancer(
     throw error;
   }
 
-  return { balancerEndpoint, balancerZone, targetGroupARN };
+  return { loadBalancerEndpoint, loadBalancerZone, targetGroupArn };
 }
 
 /**
  * Delete all listeners on a load balancer, then poll until they are fully removed.
  * WHY: Listeners must be deleted before the load balancer can be deleted.
  * @param {string} loadBalancerArn
- * @param {string} awsProfile
+ * @param {string} awsProfileName
  * @returns {Promise<void>}
  */
-async function deleteListeners(loadBalancerArn, awsProfile) {
-  const loadBalancerClient = createLoadBalancerClient(awsProfile);
+async function deleteListeners(loadBalancerArn, awsProfileName) {
+  const loadBalancerClient = createLoadBalancerClient(awsProfileName);
 
   let listenerArns;
   try {
@@ -208,11 +201,11 @@ async function deleteListeners(loadBalancerArn, awsProfile) {
 /**
  * Delete all load balancers in the account and their listeners.
  * WHY: Load balancer must be deleted before target groups can be deleted, and listeners must be deleted before load balancer can be deleted.
- * @param {string} awsProfile
+ * @param {string} awsProfileName
  */
-async function deleteLoadBalancer(awsProfile) {
+async function deleteLoadBalancer(awsProfileName) {
   // TODO: killize
-  const loadBalancerClient = createLoadBalancerClient(awsProfile);
+  const loadBalancerClient = createLoadBalancerClient(awsProfileName);
 
   let loadBalancerArns;
   try {
@@ -233,7 +226,7 @@ async function deleteLoadBalancer(awsProfile) {
   await Promise.all(
     loadBalancerArns.map(async (arn) => {
       console.log(`Deleting load balancer ${arn}`);
-      await deleteListeners(arn, awsProfile);
+      await deleteListeners(arn, awsProfileName);
       try {
         await loadBalancerClient.send(new DeleteLoadBalancerCommand({ LoadBalancerArn: arn }));
       } catch (error) {
@@ -246,14 +239,14 @@ async function deleteLoadBalancer(awsProfile) {
 
 /**
  * Delete all target groups after the load balancer has been deleted.
- * @param {string} awsProfile
+ * @param {string} awsProfileName
  * @param {Promise} deletedLoadBalancer
  */
-async function deleteTargetGroups(awsProfile, deletedLoadBalancer) {
+async function deleteTargetGroups(awsProfileName, deletedLoadBalancer) {
   // TODO: killize
   await deletedLoadBalancer;
 
-  const loadBalancerClient = createLoadBalancerClient(awsProfile);
+  const loadBalancerClient = createLoadBalancerClient(awsProfileName);
 
   let targetGroupArns;
   try {

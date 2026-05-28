@@ -21,10 +21,7 @@
  * @see index.js for deployment logic that uses these configs
  */
 
-import { loadAwsConfig } from "./utils/aws-config.js";
-
-const awsConfig = loadAwsConfig();
-const PROJECT_TAG_KEY = awsConfig.tagging.projectTagKey;
+import { PROJECT_TAG_KEY } from "./constants.js";
 
 // FRONT-END DELIVERY
 /**

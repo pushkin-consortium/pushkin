@@ -3,7 +3,7 @@
  * CloudFront: AWS service that serves the Pushkin frontend to users.
  * Origin Access Control (OAC): Allows CloudFront to securely access the S3 bucket where the
  * frontend is stored.
- * @module cloudfront
+ * @module aws/services/cloudfront
  */
 
 import {
@@ -25,21 +25,19 @@ import { AWSClientFactory } from "../utils/aws-client-factory.js";
 import { loadAwsConfig } from "../utils/aws-config.js";
 import { readAwsResources, updateAwsResourcesField } from "../utils/aws-resources.js";
 import { OriginAccessControl } from "../awsConfigs.js";
-import { AWS_REGION } from "../constants.js";
+import { AWS_REGION, PROJECT_TAG_KEY } from "../constants.js";
 
-const PROJECT_TAG_KEY = loadAwsConfig().tagging.projectTagKey;
-
-function createCloudFrontClient(awsProfile) {
-  return new AWSClientFactory(AWS_REGION, awsProfile).createClient(CloudFrontClient);
+function createCloudFrontClient(awsProfileName) {
+  return new AWSClientFactory(AWS_REGION, awsProfileName).createClient(CloudFrontClient);
 }
 
 /**
  * Checks if an OAC resource still exists in AWS by ID.
  * WHY: Check if the OAC locally cached in awsResources.js is still valid.
  */
-async function validateStoredOAC(oacId, awsProfile) {
+async function validateStoredOac(oacId, awsProfileName) {
   try {
-    const cloudFrontClient = createCloudFrontClient(awsProfile);
+    const cloudFrontClient = createCloudFrontClient(awsProfileName);
     await cloudFrontClient.send(new GetOriginAccessControlCommand({ Id: oacId }));
     return true;
   } catch (error) {
@@ -59,16 +57,16 @@ async function validateStoredOAC(oacId, awsProfile) {
  * Mostly acts as a fallback if validateStoredOAC returns false (i.e. local state lost) but the OAC
  * still exists in AWS.
  */
-async function findOACByName(oacName, awsProfile) {
+async function findOacByName(oacName, awsProfileName) {
   try {
-    const cloudFrontClient = createCloudFrontClient(awsProfile);
+    const cloudFrontClient = createCloudFrontClient(awsProfileName);
     const response = await cloudFrontClient.send(new ListOriginAccessControlsCommand({}));
 
-    const existingOAC = response.OriginAccessControlList?.Items?.find(
+    const existingOac = response.OriginAccessControlList?.Items?.find(
       (oac) => oac.Name === oacName,
     );
 
-    return existingOAC ? existingOAC.Id : null;
+    return existingOac ? existingOac.Id : null;
   } catch (error) {
     console.error(`Unable to list origin access controls:`, error);
     throw error;
@@ -79,9 +77,9 @@ async function findOACByName(oacName, awsProfile) {
  * Creates a new OAC (Origin Access Control) in AWS if no existing OAC.
  * WHY: OACs are required for secure CloudFront-S3 access.
  */
-async function createOAC(awsProfile) {
+async function createOac(awsProfileName) {
   try {
-    const cloudFrontClient = createCloudFrontClient(awsProfile);
+    const cloudFrontClient = createCloudFrontClient(awsProfileName);
     const response = await cloudFrontClient.send(
       new CreateOriginAccessControlCommand({
         OriginAccessControlConfig: OriginAccessControl,
@@ -100,12 +98,12 @@ async function createOAC(awsProfile) {
  * 1. Use saved OAC ID if it exists in AWS
  * 2. Find existing OAC by name (recovery path if local state is stale)
  * 3. Create new OAC (no OAC at all – e.g. first deployment)
- * @param {string} awsProfile - The IAM profile to use
+ * @param {string} awsProfileName - The IAM profile to use
  * @param {boolean} verbose – Whether to log detailed info about the OAC retrieval/creation process
  * @returns {Promise<string>} The OAC ID
  * @throws Will throw an error downstream if finding OAC by name or ID, or creating a new one, fails
  */
-async function getOAC(awsProfile, verbose = false) {
+async function getOac(awsProfileName, verbose = false) {
   const awsResources = readAwsResources();
   if (verbose) {
     console.log(`Retrieving Origin Access Control (OAC) for CloudFront...`);
@@ -116,7 +114,7 @@ async function getOAC(awsProfile, verbose = false) {
     console.log(`Checking to see if OAC already exists.`);
   }
   if (awsResources.OAC) {
-    const exists = await validateStoredOAC(awsResources.OAC, awsProfile);
+    const exists = await validateStoredOac(awsResources.OAC, awsProfileName);
     if (exists) {
       return awsResources.OAC;
     }
@@ -126,18 +124,18 @@ async function getOAC(awsProfile, verbose = false) {
   }
 
   // Try to find an existing OAC with our cached name
-  const existingOACId = await findOACByName(OriginAccessControl.Name, awsProfile);
+  const existingOacId = await findOacByName(OriginAccessControl.Name, awsProfileName);
   let oacId;
-  if (existingOACId) {
+  if (existingOacId) {
     if (verbose) {
       console.log(`Found existing OAC with name ${OriginAccessControl.Name}, reusing it.`);
     }
-    oacId = existingOACId;
+    oacId = existingOacId;
   } else {
     if (verbose) {
       console.log(`No OAC with name ${OriginAccessControl.Name}, creating new OAC.`);
     }
-    oacId = await createOAC(awsProfile);
+    oacId = await createOac(awsProfileName);
   }
 
   updateAwsResourcesField("OAC", oacId);
@@ -148,13 +146,13 @@ async function getOAC(awsProfile, verbose = false) {
  * Waits for CloudFront distribution to be fully deployed.
  * WHY: So we don't try to access site or make changes before it's ready, which will fail.
  * @param {string} distributionId - The CloudFront distribution ID
- * @param {string} awsProfile - The IAM profile to use
+ * @param {string} awsProfileName - The IAM profile to use
  * @param {boolean} verbose - Whether to log detailed info about the deployment status checks
  * @returns {Promise<void>} – Resolves when the distribution is deployed
  */
-async function waitForCloudFrontDeployment(distributionId, awsProfile, verbose = false) {
+async function waitForCloudFrontDeployment(distributionId, awsProfileName, verbose = false) {
   const config = loadAwsConfig();
-  const cloudFrontClient = createCloudFrontClient(awsProfile);
+  const cloudFrontClient = createCloudFrontClient(awsProfileName);
   const cloudfrontTimeouts = config.timeouts.cloudfront;
 
   console.log(`\nWaiting for CloudFront distribution to be fully deployed...`);
@@ -187,9 +185,9 @@ async function waitForCloudFrontDeployment(distributionId, awsProfile, verbose =
  * WHY: Used to check if a distribution is tagged for this project, which helps prevent
  * accidentally deleting distributions from other projects in shared AWS accounts.
  */
-async function getDistributionTags(arn, awsProfile) {
+async function getDistributionTags(arn, awsProfileName) {
   try {
-    const cloudFrontClient = createCloudFrontClient(awsProfile);
+    const cloudFrontClient = createCloudFrontClient(awsProfileName);
     const response = await cloudFrontClient.send(new ListTagsForResourceCommand({ Resource: arn }));
     return response.Tags?.Items ?? [];
   } catch (error) {
@@ -203,8 +201,8 @@ async function getDistributionTags(arn, awsProfile) {
  * WHY: This prevents accidentally deleting distributions from other projects or non-Pushkin
  * resources in shared AWS accounts.
  */
-async function isDistributionTaggedForProject(distribution, projectName, awsProfile) {
-  const tags = await getDistributionTags(distribution.ARN, awsProfile);
+async function isDistributionTaggedForProject(distribution, projectName, awsProfileName) {
+  const tags = await getDistributionTags(distribution.ARN, awsProfileName);
   return tags.some((tag) => tag.Key === PROJECT_TAG_KEY && tag.Value === projectName);
 }
 
@@ -214,8 +212,8 @@ async function isDistributionTaggedForProject(distribution, projectName, awsProf
  * The killTag parameter determines behavior - when true, only deletes distributions tagged
  * for this project (safe for shared accounts); when false, deletes all (for cleanup/testing).
  */
-async function getDistributionIdsToDelete(awsProfile, projectName, killTag) {
-  const cloudFrontClient = createCloudFrontClient(awsProfile);
+async function getDistributionIdsToDelete(awsProfileName, projectName, killTag) {
+  const cloudFrontClient = createCloudFrontClient(awsProfileName);
   const response = await cloudFrontClient.send(new ListDistributionsCommand({}));
 
   const items = response.DistributionList?.Items ?? [];
@@ -236,7 +234,7 @@ async function getDistributionIdsToDelete(awsProfile, projectName, killTag) {
     }
 
     for (const distribution of items) {
-      if (await isDistributionTaggedForProject(distribution, projectName, awsProfile)) {
+      if (await isDistributionTaggedForProject(distribution, projectName, awsProfileName)) {
         distributionIds.push(distribution.Id);
       }
     }
@@ -251,16 +249,16 @@ async function getDistributionIdsToDelete(awsProfile, projectName, killTag) {
  * required sequence: get config → disable → wait for disable to propagate → get fresh
  * ETag → delete. The ETag must be refreshed after disabling because AWS updates it when
  * the configuration changes. Handles multiple distributions in parallel for efficiency.
- * @param {string} awsProfile – The IAM profile to use
+ * @param {string} awsProfileName – The IAM profile to use
  * @param {string} projectName – The Pushkin project name
  * @param {string|null} killTag – Project name to filter by; if null/falsy, deletes all distributions
  * @param {boolean} verbose – Whether to log detailed info about the deletion process
  * @returns {Promise<boolean>} – Resolves true if deletion process initiated successfully, false if there was a problem
  */
-async function deleteCloudFrontDistribution(awsProfile, projectName, killTag, verbose = false) {
+async function deleteCloudFrontDistribution(awsProfileName, projectName, killTag, verbose = false) {
   let distributions;
   try {
-    distributions = await getDistributionIdsToDelete(awsProfile, projectName, killTag);
+    distributions = await getDistributionIdsToDelete(awsProfileName, projectName, killTag);
   } catch (error) {
     console.error(`Unable to get list of cloudfront distributions:`, error);
     throw error;
@@ -274,7 +272,7 @@ async function deleteCloudFrontDistribution(awsProfile, projectName, killTag, ve
   // Disable and delete each distribution
   const results = await Promise.all(
     distributions.map(async (distId) => {
-      const cloudFrontClient = createCloudFrontClient(awsProfile);
+      const cloudFrontClient = createCloudFrontClient(awsProfileName);
       let cloudConfig;
       let ETag;
       try {
@@ -382,11 +380,11 @@ async function deleteCloudFrontDistribution(awsProfile, projectName, killTag, ve
  * deleted, AWS may still report the OAC as "in use" for a short period. Retry attempts
  * and intervals are configurable in aws-deploy.yaml (defaults: 10 retries, 10s intervals).
  */
-async function deleteOAC(oacId, etag, awsProfile, verbose = false) {
+async function deleteOac(oacId, etag, awsProfileName, verbose = false) {
   const config = loadAwsConfig();
   const oacDeletionTimeouts = config.timeouts.cloudfront.oacDeletion;
   const waitTime = oacDeletionTimeouts.retryInterval * 1000; // Convert s to ms
-  const cloudFrontClient = createCloudFrontClient(awsProfile);
+  const cloudFrontClient = createCloudFrontClient(awsProfileName);
 
   for (let attempt = 0; attempt < oacDeletionTimeouts.maxRetries; attempt++) {
     try {
@@ -424,12 +422,12 @@ async function deleteOAC(oacId, etag, awsProfile, verbose = false) {
  * first, then wait additional time for AWS backend to fully release the references
  * (eventual consistency), then delete OACs with retry logic. Updates local state to
  * keep awsResources.js in sync.
- * @param {string} awsProfile - The IAM profile to use
+ * @param {string} awsProfileName - The IAM profile to use
  * @param {Promise} deletedCloudFront - Promise that resolves when CloudFront distributions are deleted
  * @param {boolean} verbose - Whether to log detailed info about the deletion process
  * @returns {Promise<boolean>} True if successful
  */
-async function deleteOACs(awsProfile, deletedCloudFront, verbose = false) {
+async function deleteOacs(awsProfileName, deletedCloudFront, verbose = false) {
   // TODO: killize
   // Wait for CloudFront distributions to be deleted
   await deletedCloudFront;
@@ -447,7 +445,7 @@ async function deleteOACs(awsProfile, deletedCloudFront, verbose = false) {
   // Get list of OACs
   let oacList;
   try {
-    const cloudFrontClient = createCloudFrontClient(awsProfile);
+    const cloudFrontClient = createCloudFrontClient(awsProfileName);
     const response = await cloudFrontClient.send(new ListOriginAccessControlsCommand({}));
     oacList = response.OriginAccessControlList?.Items ?? [];
   } catch (error) {
@@ -465,7 +463,7 @@ async function deleteOACs(awsProfile, deletedCloudFront, verbose = false) {
     // Get ETag
     let etag;
     try {
-      const cloudFrontClient = createCloudFrontClient(awsProfile);
+      const cloudFrontClient = createCloudFrontClient(awsProfileName);
       const response = await cloudFrontClient.send(
         new GetOriginAccessControlCommand({ Id: oac.Id }),
       );
@@ -476,7 +474,7 @@ async function deleteOACs(awsProfile, deletedCloudFront, verbose = false) {
     }
 
     // Delete with retry logic
-    await deleteOAC(oac.Id, etag, awsProfile, verbose);
+    await deleteOac(oac.Id, etag, awsProfileName, verbose);
 
     // Update awsResources.js
     if (verbose) {
@@ -488,4 +486,4 @@ async function deleteOACs(awsProfile, deletedCloudFront, verbose = false) {
   return true;
 }
 
-export { getOAC, waitForCloudFrontDeployment, deleteCloudFrontDistribution, deleteOACs };
+export { getOac, waitForCloudFrontDeployment, deleteCloudFrontDistribution, deleteOacs };

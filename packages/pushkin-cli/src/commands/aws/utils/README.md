@@ -39,7 +39,7 @@ const buckets = await s3.send(new ListBucketsCommand({}));
 ```javascript
 const rds = new RDSClient({
   region: myRegion,
-  credentials: fromIni({ profile: awsProfile }),
+  credentials: fromIni({ profile: awsProfileName }),
 });
 ```
 

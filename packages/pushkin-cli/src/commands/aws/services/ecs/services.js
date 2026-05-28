@@ -1,7 +1,7 @@
 /**
  * ECS Service CRUD Operations
  * Handles creating, updating, and deleting ECS services
- * @module ecs/services
+ * @module aws/services/ecs/services
  */
 
 import path from "path";
@@ -19,8 +19,8 @@ import { loadAwsConfig } from "../../utils/aws-config.js";
 import { writeFile } from "../../../../utils/file.js";
 import { AWS_REGION } from "../../constants.js";
 
-function createECSClient(awsProfile) {
-  return new AWSClientFactory(AWS_REGION, awsProfile).createClient(ECSClient);
+function createEcsClient(awsProfileName) {
+  return new AWSClientFactory(AWS_REGION, awsProfileName).createClient(ECSClient);
 }
 
 /**
@@ -33,11 +33,11 @@ function createECSClient(awsProfile) {
  * @param {number} containerPort - Container port for load balancer
  * @param {Array<string>} subnets - Subnet IDs for Fargate tasks
  * @param {string} securityGroup - Security group ID for Fargate tasks
- * @param {string} awsProfile - IAM profile to use
+ * @param {string} awsProfileName - IAM profile to use
  * @param {string|null} serviceRegistryArn - Optional Cloud Map service ARN for service discovery
  * @returns {Promise<object>} Service creation/update response
  */
-async function createECSService(
+async function createEcsService(
   serviceName,
   taskDefArn,
   clusterName,
@@ -46,10 +46,10 @@ async function createECSService(
   containerPort = null,
   subnets = [],
   securityGroup = null,
-  awsProfile,
+  awsProfileName,
   serviceRegistryArn = null,
 ) {
-  const ecsClient = createECSClient(awsProfile);
+  const ecsClient = createEcsClient(awsProfileName);
 
   // First check if service already exists
   try {
@@ -161,11 +161,11 @@ async function createECSService(
 /**
  * Delete all services in an ECS cluster, waiting until they are fully removed.
  * @param {string} clusterName - ECS cluster name or ARN
- * @param {string} awsProfile - IAM profile to use
+ * @param {string} awsProfileName - IAM profile to use
  * @returns {Promise<boolean>} True when all services are deleted
  */
-async function deleteAllServices(clusterName, awsProfile) {
-  const ecsClient = createECSClient(awsProfile);
+async function deleteAllServices(clusterName, awsProfileName) {
+  const ecsClient = createEcsClient(awsProfileName);
 
   let serviceArns;
   try {
@@ -210,4 +210,4 @@ async function deleteAllServices(clusterName, awsProfile) {
   return true;
 }
 
-export { createECSService, deleteAllServices };
+export { createEcsService, deleteAllServices };

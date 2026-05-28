@@ -33,13 +33,13 @@ import { AWS_REGION } from "../constants.js";
 
 /**
  * Set up CloudWatch alarms, SNS notifications, and an autoscaling policy for a deployed site.
- * @param {string} awsProfile - AWS profile name
+ * @param {string} awsProfileName - AWS profile name
  * @param {string} projectName - Project name
  */
-export async function createAutoScale(awsProfile, projectName) {
+export async function createAutoScale(awsProfileName, projectName) {
   const shortName = projectName.replace(/[^A-Za-z0-9]/g, "");
   const snsName = shortName.concat("Alarms");
-  const factory = new AWSClientFactory(AWS_REGION, awsProfile);
+  const factory = new AWSClientFactory(AWS_REGION, awsProfileName);
 
   // Load resource identifiers
   let awsResources;
@@ -49,7 +49,7 @@ export async function createAutoScale(awsProfile, projectName) {
     console.error("Unable to read ECSName from awsResources.js");
     throw e;
   }
-  const { ECSName, targGroupARN, loadBalancerName } = awsResources;
+  const { ECSName, targetGroupArn, loadBalancerName } = awsResources;
 
   // Load pushkin config for DB names and notification email
   let config;
@@ -75,12 +75,12 @@ export async function createAutoScale(awsProfile, projectName) {
 
   // Get load balancer ARN (needed for scaling policy resource label)
   const elb = factory.createClient(ElasticLoadBalancingV2Client);
-  let balancerARN;
+  let loadBalancerArn;
   try {
     const { LoadBalancers } = await elb.send(
       new DescribeLoadBalancersCommand({ Names: [loadBalancerName] }),
     );
-    balancerARN = LoadBalancers[0].LoadBalancerArn;
+    loadBalancerArn = LoadBalancers[0].LoadBalancerArn;
   } catch (e) {
     console.error("Unable to find load balancer ARN");
     throw e;
@@ -157,7 +157,7 @@ export async function createAutoScale(awsProfile, projectName) {
     await as.send(
       new AttachLoadBalancerTargetGroupsCommand({
         AutoScalingGroupName: asGroup,
-        TargetGroupARNs: [targGroupARN],
+        TargetGroupARNs: [targetGroupArn],
       }),
     );
   } catch (e) {
@@ -166,12 +166,12 @@ export async function createAutoScale(awsProfile, projectName) {
   }
 
   // Create target-tracking scaling policy
-  const label1 = balancerARN.split("loadbalancer/")[1];
-  const label2 = "/targetgroup".concat(targGroupARN.split("targetgroup")[1]);
+  const label1 = loadBalancerArn.split("loadbalancer/")[1];
+  const label2 = "/targetgroup".concat(targetGroupArn.split("targetgroup")[1]);
   const policyConfig = JSON.parse(JSON.stringify(scalingPolicyTargets));
   policyConfig.PredefinedMetricSpecification.ResourceLabel = label1.concat(label2);
 
-  let policyARN, alarmUp, alarmDown;
+  let policyArn, alarmUp, alarmDown;
   try {
     const policyResponse = await as.send(
       new PutScalingPolicyCommand({
@@ -183,7 +183,7 @@ export async function createAutoScale(awsProfile, projectName) {
     );
     alarmUp = policyResponse.Alarms?.[0];
     alarmDown = policyResponse.Alarms?.[1];
-    policyARN = policyResponse.PolicyARN;
+    policyArn = policyResponse.PolicyARN;
   } catch (e) {
     console.error("Unable to create autoscaling policy");
     throw e;
@@ -192,7 +192,7 @@ export async function createAutoScale(awsProfile, projectName) {
   // Save policy info back to awsResources
   console.log("Updating awsResources with autoscaling info");
   try {
-    writeAwsResources({ ...awsResources, alarmUp, alarmDown, policyARN });
+    writeAwsResources({ ...awsResources, alarmUp, alarmDown, policyArn });
   } catch (e) {
     console.error("Unable to update awsResources.js");
     throw e;

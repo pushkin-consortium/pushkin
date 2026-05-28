@@ -1,6 +1,6 @@
 /**
  * ECS Cluster Management
- * @module ecs/clusters
+ * @module aws/services/ecs/clusters
  */
 
 import {
@@ -21,41 +21,40 @@ import {
 } from "@aws-sdk/client-cloudformation";
 import { AWSClientFactory } from "../../utils/aws-client-factory.js";
 import { loadAwsConfig } from "../../utils/aws-config.js";
-import { AWS_REGION } from "../../constants.js";
+import { AWS_REGION, PROJECT_TAG_KEY } from "../../constants.js";
 import { deleteAllServices } from "./services.js";
 
-function createECSClient(awsProfile) {
-  return new AWSClientFactory(AWS_REGION, awsProfile).createClient(ECSClient);
+function createEcsClient(awsProfileName) {
+  return new AWSClientFactory(AWS_REGION, awsProfileName).createClient(ECSClient);
 }
 
-function createCFClient(awsProfile) {
-  return new AWSClientFactory(AWS_REGION, awsProfile).createClient(CloudFormationClient);
+function createCFClient(awsProfileName) {
+  return new AWSClientFactory(AWS_REGION, awsProfileName).createClient(CloudFormationClient);
 }
 
 /**
  * Create an ECS cluster for the project, or skip if it already exists.
  * WHY: ECS clusters are the logical grouping of resources for running containers.
- * @param {string} ECSName - Cluster name (alphanumeric project name)
+ * @param {string} awsProfileName - AWS IAM profile to use for authentication
+ * @param {string} ecsName - Cluster name (alphanumeric project name)
  * @param {string} projectName - Project name (for tagging)
- * @param {string} awsProfile - IAM profile to use
- * @param {string} projectTagKey - Tag key for identifying Pushkin resources
  */
-async function createCluster(ECSName, projectName, awsProfile, projectTagKey) {
+async function createCluster(awsProfileName, ecsName, projectName) {
   console.log("Launching ECS cluster");
-  const ecsClient = createECSClient(awsProfile);
+  const ecsClient = createEcsClient(awsProfileName);
   try {
     await ecsClient.send(
       new CreateClusterCommand({
-        clusterName: ECSName,
-        tags: [{ key: projectTagKey, value: projectName }],
+        clusterName: ecsName,
+        tags: [{ key: PROJECT_TAG_KEY, value: projectName }],
       }),
     );
-    console.log(`Created ECS cluster: ${ECSName}`);
+    console.log(`Created ECS cluster: ${ecsName}`);
   } catch (error) {
     if (error.name === "ClusterAlreadyExistsException") {
-      console.log(`ECS cluster ${ECSName} already exists, continuing...`);
+      console.log(`ECS cluster ${ecsName} already exists, continuing...`);
     } else {
-      console.error(`Unable to launch cluster ${ECSName}:`, error);
+      console.error(`Unable to launch cluster ${ecsName}:`, error);
       throw error;
     }
   }
@@ -64,14 +63,14 @@ async function createCluster(ECSName, projectName, awsProfile, projectTagKey) {
 /**
  * Delete all CloudFormation stacks, optionally filtered by tag.
  * CloudFormation is the AWS service used to manage CRUD operations of AWS resources as a stack.
- * @param {string} awsProfile - IAM profile to use
+ * @param {string} awsProfileName - IAM profile to use
  * @param {string|null} killTag - If set, only delete stacks tagged with this project name
  * @returns {Promise<boolean>} Resolves when all stacks are deleted
  */
-async function deleteStack(awsProfile, killTag) {
+async function deleteStack(awsProfileName, killTag) {
   console.log(`Deleting CloudFormation stacks`);
 
-  const cfClient = createCFClient(awsProfile);
+  const cfClient = createCFClient(awsProfileName);
 
   let stacks;
   try {
@@ -129,16 +128,16 @@ async function deleteStack(awsProfile, killTag) {
 /**
  * Delete ECS cluster(s) and all running tasks and services within them.
  * Deletes CloudFormation stacks first, then stops tasks and services before removing clusters.
- * @param {string} awsProfile - IAM profile to use
+ * @param {string} awsProfileName - IAM profile to use
  * @param {string|null} killTag - If set, only delete the cluster for this project
  * @param {string} projectName - Project name
  * @param {object} awsResources - Tracked AWS resource IDs
  * @returns {Promise} Resolves when clusters are deleted
  */
-async function deleteCluster(awsProfile, killTag, projectName, awsResources) {
-  await deleteStack(awsProfile, killTag);
+async function deleteCluster(awsProfileName, killTag, projectName, awsResources) {
+  await deleteStack(awsProfileName, killTag);
 
-  const ecsClient = createECSClient(awsProfile);
+  const ecsClient = createEcsClient(awsProfileName);
 
   let clusterArns;
   try {
@@ -155,24 +154,24 @@ async function deleteCluster(awsProfile, killTag, projectName, awsResources) {
   if (!killTag) {
     clustersToKill = clusterArns;
   } else {
-    const ECSName = awsResources?.ECSName ?? projectName.replace(/[^A-Za-z0-9]/g, "");
+    const ecsName = awsResources?.ECSName ?? projectName.replace(/[^A-Za-z0-9]/g, "");
     console.warn(
       `Only deleting cluster for project "${projectName}". All clusters: ${clusterArns.join(", ")}`,
     );
 
     let describeResponse;
     try {
-      describeResponse = await ecsClient.send(new DescribeClustersCommand({ clusters: [ECSName] }));
+      describeResponse = await ecsClient.send(new DescribeClustersCommand({ clusters: [ecsName] }));
     } catch (error) {
-      console.error(`Unable to describe ECS cluster ${ECSName}:`, error);
+      console.error(`Unable to describe ECS cluster ${ecsName}:`, error);
       throw error;
     }
     const activeCluster = describeResponse.clusters?.find(
-      (c) => c.clusterName === ECSName && c.status !== "INACTIVE",
+      (c) => c.clusterName === ecsName && c.status !== "INACTIVE",
     );
 
     if (!activeCluster) {
-      console.warn(`ECS cluster ${ECSName} not found or already deleted, skipping.`);
+      console.warn(`ECS cluster ${ecsName} not found or already deleted, skipping.`);
       return true;
     }
 
@@ -220,7 +219,7 @@ async function deleteCluster(awsProfile, killTag, projectName, awsResources) {
         console.log("All tasks have stopped.");
       }
 
-      await deleteAllServices(clusterArn, awsProfile);
+      await deleteAllServices(clusterArn, awsProfileName);
     }),
   );
 

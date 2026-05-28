@@ -2,7 +2,7 @@
  * ECS Task Definition Operations
  * Handles task definition registration, environment configuration,
  * and service deployment
- * @module ecs/tasks
+ * @module aws/services/ecs/tasks
  */
 
 import path from "path";
@@ -19,14 +19,14 @@ import { AWS_REGION } from "../../constants.js";
 import { AWSClientFactory } from "../../utils/aws-client-factory.js";
 import { updateAwsResourcesField } from "../../utils/aws-resources.js";
 import { loadPushkinConfig, savePushkinConfig } from "../../../../utils/pushkin-config.js";
-import { ensureECSTaskExecutionRole } from "../security.js";
-import { getDBsInfo } from "../rds.js";
+import { ensureEcsTaskExecutionRole } from "../security.js";
+import { getDbsInfo } from "../rds.js";
 import { buildRabbitTask, buildAPITask, buildWorkerTask } from "./environment.js";
-import { createECSService } from "./services.js";
+import { createEcsService } from "./services.js";
 import { ensureServiceDiscoveryNamespace, registerServiceWithDiscovery } from "./discovery.js";
 
-function createECSClient(awsProfile) {
-  return new AWSClientFactory(AWS_REGION, awsProfile).createClient(ECSClient);
+function createEcsClient(awsProfileName) {
+  return new AWSClientFactory(AWS_REGION, awsProfileName).createClient(ECSClient);
 }
 
 /**
@@ -111,11 +111,11 @@ function dockerComposeToECSTaskDefinition(composeService, family, serviceName, e
  * Register an ECS task definition with AWS.
  * WHY: Before we can run tasks on ECS, we need to register the task definition with AWS.
  * @param {object} taskDefParams - Task definition parameters
- * @param {string} awsProfile - IAM profile to use
+ * @param {string} awsProfileName - IAM profile to use
  * @returns {Promise<string>} Task definition ARN
  */
-async function registerECSTaskDefinition(taskDefParams, awsProfile) {
-  const ecsClient = createECSClient(awsProfile);
+async function registerECSTaskDefinition(taskDefParams, awsProfileName) {
+  const ecsClient = createEcsClient(awsProfileName);
 
   try {
     const response = await ecsClient.send(new RegisterTaskDefinitionCommand(taskDefParams));
@@ -134,18 +134,18 @@ async function registerECSTaskDefinition(taskDefParams, awsProfile) {
  * @param {string} name - ECS service/task-family name
  * @param {object} task - Docker Compose service definition
  * @param {object} context - Shared deployment context
- * @param {string} context.ECSName - ECS cluster name
- * @param {string} context.awsProfile - IAM profile to use
+ * @param {string} context.ecsName - ECS cluster name
+ * @param {string} context.awsProfileName - IAM profile to use
  * @param {string} context.executionRoleArn - ARN of the ECS task execution role
  * @param {Array<string>} context.subnets - Subnet IDs for the Fargate task
- * @param {string} context.ecsSecurityGroupID - Security group ID for the Fargate task
+ * @param {string} context.securityGroupId - Security group ID for the Fargate task
  * @param {object|null} loadBalancer - Load balancer attachment (null = no LB attachment)
  * @param {number} loadBalancer.port - Container port to forward traffic to
- * @param {string} loadBalancer.targetGroupARN - Target group ARN to register the service with
+ * @param {string} loadBalancer.targetGroupArn - Target group ARN to register the service with
  * @param {string|null} serviceRegistryArn - Cloud Map service ARN for service discovery (null = no discovery)
  */
 async function deployService(name, task, context, loadBalancer = null, serviceRegistryArn = null) {
-  const { ECSName, awsProfile, executionRoleArn, subnets, ecsSecurityGroupID } = context;
+  const { ecsName, awsProfileName, executionRoleArn, subnets, securityGroupId } = context;
 
   writeFile(path.join(process.cwd(), "ECStasks", `${name}.yml`), jsYaml.dump(task));
 
@@ -158,19 +158,19 @@ async function deployService(name, task, context, loadBalancer = null, serviceRe
   );
 
   console.log(`Registering task definition for ${name}`);
-  const taskDefArn = await registerECSTaskDefinition(taskDefParams, awsProfile);
+  const taskDefArn = await registerECSTaskDefinition(taskDefParams, awsProfileName);
 
   console.log(`Creating ECS service for ${name}`);
-  await createECSService(
+  await createEcsService(
     name,
     taskDefArn,
-    ECSName,
-    loadBalancer?.targetGroupARN ?? null,
+    ecsName,
+    loadBalancer?.targetGroupArn ?? null,
     serviceName,
     loadBalancer?.port ?? null,
     subnets,
-    ecsSecurityGroupID,
-    awsProfile,
+    securityGroupId,
+    awsProfileName,
     serviceRegistryArn,
   );
 
@@ -182,33 +182,28 @@ async function deployService(name, task, context, loadBalancer = null, serviceRe
  * WHY: This is the final step in the deployment process — takes all the infrastructure set up
  * earlier and actually deploys the application containers to run in the ECS cluster.
  * @param {string} projectName - The name of the project
- * @param {string} awsProfile - IAM role to use
- * @param {string} DHID - The DockerHub ID
- * @param {Promise} completedDBs - Resolves when the databases are ready
- * @param {string} ECSName - The name of the ECS cluster
- * @param {string} targGroupARN - The target group ARN
- * @param {Array<string>} subnets - Array of subnet IDs for Fargate tasks
- * @param {string} ecsSecurityGroupID - Security group ID for Fargate tasks
- * @param {string} vpcId - VPC ID for Cloud Map Service Discovery namespace
+ * @param {string} awsProfileName - IAM role to use
+ * @param {object} options
+ * @param {string} options.ecsName - The name of the ECS cluster
+ * @param {string} options.vpcId - VPC ID for Cloud Map Service Discovery namespace
+ * @param {Array<string>} options.subnets - Array of subnet IDs for Fargate tasks
+ * @param {string} options.securityGroupId - Security group ID for Fargate tasks
+ * @param {string} options.DHID - The DockerHub ID
+ * @param {string} options.targetGroupArn - The target group ARN
+ * @param {Promise} options.dbSetup - Resolves when the databases are ready
+ * @param {string} options.projectName - The name of the project (for tagging)
  * @returns {Promise} Resolves when all services are deployed
  */
-async function createECSTask(
-  projectName,
-  awsProfile,
-  DHID,
-  completedDBs,
-  ECSName,
-  targGroupARN,
-  subnets,
-  ecsSecurityGroupID,
-  vpcId,
+async function createEcsTask(
+  awsProfileName,
+  { ecsName, vpcId, subnets, securityGroupId, DHID, targetGroupArn, dbSetup, projectName },
 ) {
   createDirectory(path.join(process.cwd(), "ECStasks"));
 
-  const executionRoleArn = await ensureECSTaskExecutionRole(awsProfile);
+  const executionRoleArn = await ensureEcsTaskExecutionRole(awsProfileName);
 
   try {
-    updateAwsResourcesField("ECSName", ECSName);
+    updateAwsResourcesField("ECSName", ecsName);
     console.log("Updated awsResources with ECS information");
   } catch (error) {
     console.error("Unable to update awsResources.js:", error);
@@ -266,25 +261,25 @@ async function createECSTask(
   );
 
   console.log(`ECS task creation waiting on DBs`);
-  await completedDBs;
-  const dbInfoByTask = await getDBsInfo();
+  await dbSetup;
+  const dbInfoByTask = await getDbsInfo();
 
-  console.log(`Verifying ECS cluster exists: "${ECSName}"`);
-  const { clusters } = await createECSClient(awsProfile).send(
-    new DescribeClustersCommand({ clusters: [ECSName] }),
+  console.log(`Verifying ECS cluster exists: "${ecsName}"`);
+  const { clusters } = await createEcsClient(awsProfileName).send(
+    new DescribeClustersCommand({ clusters: [ecsName] }),
   );
-  if (!clusters?.[0]) throw new Error(`Cluster ${ECSName} not found`);
+  if (!clusters?.[0]) throw new Error(`Cluster ${ecsName} not found`);
 
-  const context = { ECSName, awsProfile, executionRoleArn, subnets, ecsSecurityGroupID };
+  const context = { ecsName, awsProfileName, executionRoleArn, subnets, securityGroupId };
 
   // Set up Cloud Map namespace and register message-queue so other tasks can reach it by DNS name.
   // This must complete before deploying services that reference the registry ARN.
   console.log(`Setting up Service Discovery namespace for ${projectName}`);
-  const namespaceId = await ensureServiceDiscoveryNamespace(projectName, vpcId, awsProfile);
+  const namespaceId = await ensureServiceDiscoveryNamespace(projectName, vpcId, awsProfileName);
   const messageQueueRegistryArn = await registerServiceWithDiscovery(
     "message-queue",
     namespaceId,
-    awsProfile,
+    awsProfileName,
   );
 
   const composedRabbit = deployService(
@@ -300,7 +295,7 @@ async function createECSTask(
     context,
     {
       port: 80,
-      targetGroupARN: targGroupARN,
+      targetGroupArn: targetGroupArn,
     },
   );
   const composedWorkers = workerList.map((worker) =>
@@ -314,4 +309,4 @@ async function createECSTask(
   return Promise.all([composedRabbit, composedAPI, ...composedWorkers]);
 }
 
-export { createECSTask };
+export { createEcsTask };

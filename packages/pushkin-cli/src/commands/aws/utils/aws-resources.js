@@ -4,7 +4,7 @@
  * Utility module for reading and writing the awsResources.js file.
  * This file tracks AWS resource IDs (CloudFront, RDS, ECS, etc.) for the current Pushkin project.
  *
- * @module aws-resources
+ * @module aws/utils/aws-resources
  */
 
 import fs from "graceful-fs";

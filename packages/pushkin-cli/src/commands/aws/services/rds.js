@@ -1,7 +1,7 @@
 /**
  * Handles creation, configuration, and deletion of RDS database instances.
  * RDS: A managed AWS service for setting up, operating, and scaling a cloud relational database.
- * @module rds
+ * @module aws/services/rds
  */
 
 import crypto from "crypto";
@@ -20,18 +20,16 @@ import { AWSClientFactory } from "../utils/aws-client-factory.js";
 import { loadAwsConfig } from "../utils/aws-config.js";
 import { readAwsResources, writeAwsResources } from "../utils/aws-resources.js";
 import { dbConfig } from "../awsConfigs.js";
-import { AWS_REGION } from "../constants.js";
+import { AWS_REGION, PROJECT_TAG_KEY } from "../constants.js";
 
-const PROJECT_TAG_KEY = loadAwsConfig().tagging.projectTagKey;
-
-function createRDSClient(awsProfile) {
-  return new AWSClientFactory(AWS_REGION, awsProfile).createClient(RDSClient);
+function createRDSClient(awsProfileName) {
+  return new AWSClientFactory(AWS_REGION, awsProfileName).createClient(RDSClient);
 }
 
-async function findDBInRDS(dbName, awsProfile, rdsClient = null) {
+async function findDbInRds(dbName, awsProfileName, rdsClient = null) {
   try {
     if (!rdsClient) {
-      rdsClient = createRDSClient(awsProfile);
+      rdsClient = createRDSClient(awsProfileName);
     }
     const response = await rdsClient.send(
       new DescribeDBInstancesCommand({ DBInstanceIdentifier: dbName }),
@@ -47,8 +45,8 @@ async function findDBInRDS(dbName, awsProfile, rdsClient = null) {
   }
 }
 
-function validateDBMatch(dbType, pushkinConfig, rdsDB) {
-  const yamlDB = pushkinConfig.productionDBs[dbType];
+function validateDbMatch(dbType, pushkinConfig, rdsDb) {
+  const yamlDb = pushkinConfig.productionDBs[dbType];
   const mismatches = [];
   // Maps pushkin.yaml fields to their AWS RDS API equivalents for validation.
   // yamlPath/rdsPath use dot-notation for nested traversal (e.g. "Endpoint.Port").
@@ -83,8 +81,8 @@ function validateDBMatch(dbType, pushkinConfig, rdsDB) {
   ];
 
   for (const mapping of dbFieldMappings) {
-    const yamlValue = mapping.yamlPath.split(".").reduce((curr, key) => curr?.[key], yamlDB);
-    let rdsValue = mapping.rdsPath.split(".").reduce((curr, key) => curr?.[key], rdsDB);
+    const yamlValue = mapping.yamlPath.split(".").reduce((curr, key) => curr?.[key], yamlDb);
+    let rdsValue = mapping.rdsPath.split(".").reduce((curr, key) => curr?.[key], rdsDb);
 
     // Skip if field doesn't exist in RDS and isn't required
     if (rdsValue == null && !mapping.required) {
@@ -108,7 +106,7 @@ function validateDBMatch(dbType, pushkinConfig, rdsDB) {
   return mismatches;
 }
 
-async function checkIfDBShouldBeCreated(dbName, dbType, awsProfile) {
+async function checkIfDbShouldBeCreated(dbName, dbType, awsProfileName) {
   let pushkinConfig;
   try {
     pushkinConfig = loadPushkinConfig();
@@ -122,12 +120,12 @@ async function checkIfDBShouldBeCreated(dbName, dbType, awsProfile) {
     Object.keys(pushkinConfig.productionDBs).includes(dbType) &&
     pushkinConfig.productionDBs[dbType].name === dbName;
 
-  const rdsDB = await findDBInRDS(dbName, awsProfile);
+  const rdsDb = await findDbInRds(dbName, awsProfileName);
 
-  if (inYAML && rdsDB) {
+  if (inYAML && rdsDb) {
     // Case 1: In both YAML and RDS - validate they match
     console.warn(`${dbName} found in both pushkin.yaml and RDS. Validating configuration...`);
-    const mismatches = validateDBMatch(dbType, pushkinConfig, rdsDB);
+    const mismatches = validateDbMatch(dbType, pushkinConfig, rdsDb);
 
     if (mismatches.length === 0) {
       console.log(
@@ -153,11 +151,11 @@ async function checkIfDBShouldBeCreated(dbName, dbType, awsProfile) {
       console.error(error);
       throw error;
     }
-  } else if (inYAML && !rdsDB) {
+  } else if (inYAML && !rdsDb) {
     // Case 2: In YAML but not RDS - recreate it
     console.warn(`${dbName} listed in pushkin.yaml but not found on RDS. Creating...`);
     return true;
-  } else if (!inYAML && rdsDB) {
+  } else if (!inYAML && rdsDb) {
     // Case 3: In RDS but not YAML - conflict!
     const error = new Error(
       `Database conflict: ${dbName} exists in RDS but not in pushkin.yaml. ` +
@@ -171,7 +169,7 @@ async function checkIfDBShouldBeCreated(dbName, dbType, awsProfile) {
   }
 }
 
-async function getDBConfig(dbName, dbType, verbose) {
+async function getDbConfig(dbName, dbType, verbose) {
   let pushkinConfig;
   try {
     pushkinConfig = loadPushkinConfig();
@@ -197,35 +195,35 @@ async function getDBConfig(dbName, dbType, verbose) {
  * @param {string} dbType - The type of database (e.g., "Main", "Transaction")
  * @param {string} securityGroupID - The security group ID for the database
  * @param {string} projectName - The project name
- * @param {string} awsProfile - The IAM profile to use
+ * @param {string} awsProfileName - The IAM profile to use
  * @param {boolean} verbose - Whether to log detailed information
  * @returns {Promise<object>} - The database configuration object
  */
-async function createDB(dbType, securityGroupID, projectName, awsProfile, verbose = false) {
+async function createDb(dbType, securityGroupID, projectName, awsProfileName, verbose = false) {
   console.log(`Creating ${dbType} database.`);
   const dbName = projectName
     .concat(dbType)
     .replace(/[^A-Za-z0-9]/g, "")
     .toLowerCase(); // lowercase + alphanumeric to match RDS DB names
 
-  const shouldCreate = await checkIfDBShouldBeCreated(dbName, dbType, awsProfile);
+  const shouldCreate = await checkIfDbShouldBeCreated(dbName, dbType, awsProfileName);
   if (!shouldCreate) {
     // Get existing DB's configuration from pushkin.yaml
-    return await getDBConfig(dbName, dbType, verbose);
+    return await getDbConfig(dbName, dbType, verbose);
   }
   // Create a new DB and return its configuration
   const dbPassword = crypto.randomBytes(16).toString("base64url").slice(0, 16);
-  const myDBConfig = structuredClone(dbConfig);
-  myDBConfig.DBName = dbName;
-  myDBConfig.DBInstanceIdentifier = dbName;
-  myDBConfig.VpcSecurityGroupIds = [securityGroupID];
-  myDBConfig.MasterUserPassword = dbPassword;
-  myDBConfig.Tags = [{ Key: PROJECT_TAG_KEY, Value: projectName }];
+  const myDbConfig = structuredClone(dbConfig);
+  myDbConfig.DBName = dbName;
+  myDbConfig.DBInstanceIdentifier = dbName;
+  myDbConfig.VpcSecurityGroupIds = [securityGroupID];
+  myDbConfig.MasterUserPassword = dbPassword;
+  myDbConfig.Tags = [{ Key: PROJECT_TAG_KEY, Value: projectName }];
 
-  const rdsClient = createRDSClient(awsProfile);
+  const rdsClient = createRDSClient(awsProfileName);
 
   try {
-    await rdsClient.send(new CreateDBInstanceCommand(myDBConfig));
+    await rdsClient.send(new CreateDBInstanceCommand(myDbConfig));
   } catch (error) {
     console.error(`Unable to create database ${dbName}:`, error);
     throw error;
@@ -233,7 +231,7 @@ async function createDB(dbType, securityGroupID, projectName, awsProfile, verbos
 
   if (verbose) {
     console.log(
-      `Database ${dbName} created with the following configuration:\n${JSON.stringify(myDBConfig, null, 2)}`,
+      `Database ${dbName} created with the following configuration:\n${JSON.stringify(myDbConfig, null, 2)}`,
     );
   } else {
     console.log(`Database ${dbName} created.`);
@@ -273,7 +271,7 @@ async function createDB(dbType, securityGroupID, projectName, awsProfile, verbos
   try {
     await createWaiter(
       {
-        client: createRDSClient(awsProfile),
+        client: createRDSClient(awsProfileName),
         maxWaitTime: endpoint.maxWaitTime,
         minDelay: endpoint.minDelay,
         maxDelay: endpoint.maxDelay,
@@ -305,25 +303,25 @@ async function createDB(dbType, securityGroupID, projectName, awsProfile, verbos
     console.warn("Failed to update awsResources with DB information:", error);
   }
 
-  const newDB = {
+  const newDb = {
     type: dbType,
     name: dbName,
     host: dbEndpoint.DBInstances[0].Endpoint.Address,
     url: dbEndpoint.DBInstances[0].Endpoint.Address, // This is same as 'host' for AWS, but different for local deploy in Docker
-    user: myDBConfig.MasterUsername,
-    pass: myDBConfig.MasterUserPassword,
-    port: myDBConfig.Port,
+    user: myDbConfig.MasterUsername,
+    pass: myDbConfig.MasterUserPassword,
+    port: myDbConfig.Port,
   };
 
-  console.log(`${dbName}: Returning created database object:`, newDB);
-  return newDB;
+  console.log(`${dbName}: Returning created database object:`, newDb);
+  return newDb;
 }
 
 /**
  * Retrieve connection information about all production databases from pushkin.yaml.
  * @returns {Promise<object>} - The database connection details keyed by database type
  */
-async function getDBsInfo() {
+async function getDbsInfo() {
   let pushkinConfig;
   try {
     pushkinConfig = loadPushkinConfig();
@@ -398,8 +396,8 @@ async function getDBsInfo() {
  * @param {Promise<Array>} dbDone - A promise that resolves to an array of database objects
  * @returns {Promise<object>} - The updated pushkin configuration
  */
-async function recordDBs(dbDone) {
-  console.log("recordDBs: Waiting for database promises to resolve...");
+async function recordDbs(dbDone) {
+  console.log("recordDbs: Waiting for database promises to resolve...");
 
   const { recording } = loadAwsConfig().timeouts.rds;
   const timeout = new Promise((_, reject) =>
@@ -423,10 +421,10 @@ async function recordDBs(dbDone) {
       throw new Error(`No new databases were created, received empty array.`);
     }
 
-    console.log(`recordDBs: Received ${databases.length} database(s)`);
+    console.log(`recordDbs: Received ${databases.length} database(s)`);
 
     databases.forEach((db, index) => {
-      console.log(`recordDBs: Database ${index} (${db?.type || "unknown"}):`, db);
+      console.log(`recordDbs: Database ${index} (${db?.type || "unknown"}):`, db);
     });
 
     console.log(
@@ -465,22 +463,21 @@ async function recordDBs(dbDone) {
 
     return pushkinConfig;
   } catch (error) {
-    console.error("recordDBs: Error or timeout occurred:", error);
+    console.error("recordDbs: Error or timeout occurred:", error);
     throw error;
   }
 }
 
 /**
  * Get list of databases to delete.
- * @param {string} awsProfile - The IAM profile to use
+ * @param {string} awsProfileName - The IAM profile to use
  * @param {string|null} killTag - Whether to delete only DBs tagged with project tag
  * @returns {Promise<Array<string>>} - List of database identifiers to delete
  */
-async function getDBsToDelete(awsProfile, killTag) {
-  const dbs = [];
+async function getDbsToDelete(awsProfileName, killTag) {
   let dbInstances;
   try {
-    const rdsClient = createRDSClient(awsProfile);
+    const rdsClient = createRDSClient(awsProfileName);
     const response = await rdsClient.send(new DescribeDBInstancesCommand({}));
     dbInstances = response.DBInstances ?? [];
   } catch (error) {
@@ -488,22 +485,13 @@ async function getDBsToDelete(awsProfile, killTag) {
     throw error;
   }
 
-  dbInstances.forEach((db) => {
-    // TODO: killize
-    if (!killTag) {
-      // Armageddon mode: delete all databases
-      dbs.push(db.DBInstanceIdentifier);
-    } else {
-      // Kill mode: delete only databases tagged with the project name
-      const hasProjectTag = db.TagList?.some(
-        (tag) => tag.Key === PROJECT_TAG_KEY && tag.Value === killTag,
-      );
-      if (hasProjectTag) {
-        dbs.push(db.DBInstanceIdentifier);
-      }
-    }
-  });
-  return dbs;
+  return dbInstances
+    .filter(
+      (db) =>
+        !killTag ||
+        db.TagList?.some((tag) => tag.Key === PROJECT_TAG_KEY && tag.Value === killTag),
+    )
+    .map((db) => db.DBInstanceIdentifier);
 }
 
 async function disableDeletionProtection(dbName, rdsClient) {
@@ -610,33 +598,33 @@ async function waitForDBsDeletion(dbNames, rdsClient) {
 /**
  * Delete specified list of databases.
  * @param {Promise<Array<string>>} dbs - Promise that resolves to list of database identifiers
- * @param {string} awsProfile - The IAM profile to use
+ * @param {string} awsProfileName - The IAM profile to use
  * @returns {Promise<boolean>} - Promise that resolves when databases are deleted
  */
-async function deleteDBs(dbs, awsProfile) {
-  const resolvedDBs = await dbs;
+async function deleteDbs(dbs, awsProfileName) {
+  const resolvedDbs = await dbs;
 
-  if (resolvedDBs.length === 0) {
+  if (resolvedDbs.length === 0) {
     console.log(`No databases to delete.`);
     return true;
   }
 
-  const rdsClient = createRDSClient(awsProfile);
+  const rdsClient = createRDSClient(awsProfileName);
 
-  console.log(`Checking which databases exist: ${resolvedDBs.join(", ")}`);
-  const existingDBsInRDS = await Promise.all(
-    resolvedDBs.map((dbName) => findDBInRDS(dbName, awsProfile, rdsClient)),
+  console.log(`Checking which databases exist: ${resolvedDbs.join(", ")}`);
+  const existingDbsInRds = await Promise.all(
+    resolvedDbs.map((dbName) => findDbInRds(dbName, awsProfileName, rdsClient)),
   );
-  const existingDBs = resolvedDBs.filter((_, i) => existingDBsInRDS[i]);
+  const existingDbs = resolvedDbs.filter((_, i) => existingDbsInRds[i]);
 
-  if (existingDBs.length === 0) {
+  if (existingDbs.length === 0) {
     console.log(`No databases to delete (all already deleted).`);
     return true;
   }
 
-  console.log(`Disabling deletion protection for ${existingDBs.length} database(s)...`);
+  console.log(`Disabling deletion protection for ${existingDbs.length} database(s)...`);
   await Promise.all(
-    existingDBs.map(async (dbName) => {
+    existingDbs.map(async (dbName) => {
       try {
         await disableDeletionProtection(dbName, rdsClient);
         await waitForDeletionProtectionDisabled(dbName, rdsClient);
@@ -647,9 +635,9 @@ async function deleteDBs(dbs, awsProfile) {
     }),
   );
 
-  console.log(`Deleting ${existingDBs.length} database(s)...`);
+  console.log(`Deleting ${existingDbs.length} database(s)...`);
   await Promise.all(
-    existingDBs.map(async (dbName) => {
+    existingDbs.map(async (dbName) => {
       try {
         await deleteSingleDB(dbName, rdsClient);
       } catch (error) {
@@ -660,9 +648,9 @@ async function deleteDBs(dbs, awsProfile) {
   );
 
   console.log(`Waiting for databases to be fully deleted...`);
-  await waitForDBsDeletion(existingDBs, rdsClient);
+  await waitForDBsDeletion(existingDbs, rdsClient);
 
   return true;
 }
 
-export { createDB, getDBsInfo, recordDBs, getDBsToDelete, deleteDBs };
+export { createDb, getDbsInfo, recordDbs, getDbsToDelete, deleteDbs };

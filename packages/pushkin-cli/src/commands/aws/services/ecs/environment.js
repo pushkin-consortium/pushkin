@@ -3,7 +3,7 @@
  * Builds configured Docker Compose task definition objects for RabbitMQ, API,
  * and experiment worker containers by cloning base templates from awsConfigs.js
  * and filling in project-specific values.
- * @module ecs/environment
+ * @module aws/services/ecs/environment
  */
 
 import { rabbitTask, apiTask, workerTask } from "../../awsConfigs.js";

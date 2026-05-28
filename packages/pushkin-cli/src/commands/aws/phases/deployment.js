@@ -46,7 +46,7 @@ export async function deployApplication({
   domain,
   certificate,
   builtFrontEnd,
-  configuredECS,
+  configuredEcs,
 }) {
   console.log("Deploying application...");
 
@@ -65,7 +65,7 @@ export async function deployApplication({
 
   // Set up API forwarding via Route53
   const apiForwarded = forwardAPI(
-    configuredECS,
+    configuredEcs,
     profileName,
     projectName,
     domain,
@@ -75,11 +75,11 @@ export async function deployApplication({
   // Get CloudFront domain for default domain setup
   let cloudDomain;
   if (!domain) {
-    const { balancerEndpoint } = await configuredECS;
+    const { loadBalancerEndpoint } = await configuredEcs;
     cloudDomain = await deployedFrontEnd;
     console.log(`Access your website at ${cloudDomain}`);
     console.log(
-      `Be sure to update pushkin/front-end/src/config.js so that the api URL is ${balancerEndpoint}.`,
+      `Be sure to update pushkin/front-end/src/config.js so that the api URL is ${loadBalancerEndpoint}.`,
     );
   }
 

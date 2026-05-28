@@ -3,7 +3,7 @@
  *
  * Loads user-configurable AWS deployment parameters from aws-deploy.yaml.
  * Falls back to sensible defaults if the file doesn't exist.
- * @module aws-config
+ * @module aws/utils/aws-config
  */
 
 import fs from "graceful-fs";

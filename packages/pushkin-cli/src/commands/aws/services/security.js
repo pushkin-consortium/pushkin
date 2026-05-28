@@ -1,6 +1,6 @@
 /**
  * Handles security groups, IAM role creation, verification and management, and WAF Web ACLs
- * @module security
+ * @module aws/services/security
  */
 
 import { STSClient, GetCallerIdentityCommand } from "@aws-sdk/client-sts";
@@ -20,44 +20,41 @@ import {
   AttachRolePolicyCommand,
 } from "@aws-sdk/client-iam";
 import { AWSClientFactory } from "../utils/aws-client-factory.js";
-import { loadAwsConfig } from "../utils/aws-config.js";
-import { AWS_REGION } from "../constants.js";
+import { AWS_REGION, PROJECT_TAG_KEY } from "../constants.js";
 import { pushkinACL } from "../awsConfigs.js";
-
-const PROJECT_TAG_KEY = loadAwsConfig().tagging.projectTagKey;
 const OPEN_IPV4 = { CidrIp: "0.0.0.0/0" };
 const OPEN_IPV6 = { CidrIpv6: "::/0" };
 
-function createEC2Client(awsProfile) {
-  return new AWSClientFactory(AWS_REGION, awsProfile).createClient(EC2Client);
+function createEC2Client(awsProfileName) {
+  return new AWSClientFactory(AWS_REGION, awsProfileName).createClient(EC2Client);
 }
 
 // WAFv2 CloudFront-scoped resources must always be managed in us-east-1, regardless of deployment region.
-function createWAFv2Client(awsProfile) {
-  return new AWSClientFactory("us-east-1", awsProfile).createClient(WAFV2Client);
+function createWAFv2Client(awsProfileName) {
+  return new AWSClientFactory("us-east-1", awsProfileName).createClient(WAFV2Client);
 }
 
-function createACMClient(awsProfile) {
-  return new AWSClientFactory(AWS_REGION, awsProfile).createClient(ACMClient);
+function createACMClient(awsProfileName) {
+  return new AWSClientFactory(AWS_REGION, awsProfileName).createClient(ACMClient);
 }
 
-function createIAMClient(awsProfile) {
-  return new AWSClientFactory(AWS_REGION, awsProfile).createClient(IAMClient);
+function createIAMClient(awsProfileName) {
+  return new AWSClientFactory(AWS_REGION, awsProfileName).createClient(IAMClient);
 }
 
-function createSTSClient(awsProfile) {
-  return new AWSClientFactory(AWS_REGION, awsProfile).createClient(STSClient);
+function createSTSClient(awsProfileName) {
+  return new AWSClientFactory(AWS_REGION, awsProfileName).createClient(STSClient);
 }
 
 /**
  * List SSL certificates available in ACM, returned as a display-label → ARN map.
  * WHY: This is useful for selecting a certificate when configuring services that require SSL/TLS,
  * such as load balancers or API gateways.
- * @param {string} awsProfile - The IAM role to use
+ * @param {string} awsProfileName - The IAM role to use
  * @returns {Promise<Record<string, string>>} Map of display label to certificate ARN
  */
-async function listCertificates(awsProfile) {
-  const acm = createACMClient(awsProfile);
+async function listCertificates(awsProfileName) {
+  const acm = createACMClient(awsProfileName);
   try {
     const response = await acm.send(new ListCertificatesCommand({}));
     return (response.CertificateSummaryList ?? []).reduce((acc, c) => {
@@ -75,12 +72,12 @@ async function listCertificates(awsProfile) {
  * Ensure the ECS task execution IAM role exists, creating it if necessary.
  * WHY: Fargate tasks need this role to pull container images from ECR and write logs to
  * CloudWatch. Without it, task registration succeeds but tasks fail to start.
- * @param {string} awsProfile - IAM profile name
+ * @param {string} awsProfileName - IAM profile name
  * @param {boolean} verbose - Whether to log details
  * @returns {Promise<string>} ARN of the execution role
  */
-async function ensureECSTaskExecutionRole(awsProfile, verbose = false) {
-  const iamClient = createIAMClient(awsProfile);
+async function ensureEcsTaskExecutionRole(awsProfileName, verbose = false) {
+  const iamClient = createIAMClient(awsProfileName);
   const roleName = "ecsTaskExecutionRole";
 
   try {
@@ -144,17 +141,17 @@ async function ensureECSTaskExecutionRole(awsProfile, verbose = false) {
 /**
  * Check if the IAM user is configured on the AWS SDK.
  * WHY: Check if the AWS SDK uses the provided IAM user to make API calls to AWS.
- * @param {string} awsProfile - The IAM user to check
+ * @param {string} awsProfileName - The IAM user to check
  * @returns {Promise<void>} - Resolves if the IAM user is configured, rejects with error if not
  */
-async function verifyAwsProfile(awsProfile) {
-  const sts = createSTSClient(awsProfile);
+async function verifyawsProfileName(awsProfileName) {
+  const sts = createSTSClient(awsProfileName);
 
   try {
     await sts.send(new GetCallerIdentityCommand({}));
   } catch (error) {
     console.error(
-      `The IAM user ${awsProfile} is not configured on the AWS SDK: ${error}\nFor more information see https://docs.aws.amazon.com/STS/latest/APIReference/API_GetCallerIdentity.html`,
+      `The IAM user ${awsProfileName} is not configured on the AWS SDK: ${error}\nFor more information see https://docs.aws.amazon.com/STS/latest/APIReference/API_GetCallerIdentity.html`,
     );
     throw error;
   }
@@ -164,7 +161,7 @@ async function verifyAwsProfile(awsProfile) {
  * Ensure a named security group exists, creating it with the given ingress rules if not.
  * WHY: All three Pushkin security groups (database, balancer, ECS) share the same
  * create-if-missing pattern and differ only in name, description, and port rules.
- * @param {string} awsProfile - The IAM role to use
+ * @param {string} awsProfileName - The IAM role to use
  * @param {string} projectName - The project name
  * @param {string} groupSuffix - Appended to projectName to form the group name
  * @param {string} description - Security group description
@@ -172,13 +169,13 @@ async function verifyAwsProfile(awsProfile) {
  * @returns {Promise<string>} - The security group ID
  */
 async function ensureSecurityGroup(
-  awsProfile,
+  awsProfileName,
   projectName,
   groupSuffix,
   description,
   ipPermissions,
 ) {
-  const ec2Client = createEC2Client(awsProfile);
+  const ec2Client = createEC2Client(awsProfileName);
   const groupName = `${projectName}-${groupSuffix}`;
 
   let securityGroups;
@@ -226,13 +223,13 @@ async function ensureSecurityGroup(
  * Ensure project-specific database security group exists (creates if missing).
  * WHY: Each project needs its own database security group for network isolation between projects.
  * NOTE: Allows PostgreSQL (5432) from anywhere — quite permissive; VPC-only would be more restrictive.
- * @param {string} awsProfile - The IAM role to use
+ * @param {string} awsProfileName - The IAM role to use
  * @param {string} projectName - The project name
  * @returns {Promise<string>} - The security group ID
  */
-async function ensureDatabaseSecurityGroup(awsProfile, projectName) {
+async function ensureDatabaseSecurityGroup(awsProfileName, projectName) {
   return ensureSecurityGroup(
-    awsProfile,
+    awsProfileName,
     projectName,
     "DatabaseGroup",
     `Database security group for ${projectName}`,
@@ -251,13 +248,13 @@ async function ensureDatabaseSecurityGroup(awsProfile, projectName) {
 /**
  * Ensure project-specific load balancer security group exists (creates if missing).
  * WHY: Each project needs its own load balancer security group for network isolation.
- * @param {string} awsProfile - The IAM role to use
+ * @param {string} awsProfileName - The IAM role to use
  * @param {string} projectName - The project name
  * @returns {Promise<string>} - The security group ID
  */
-async function ensureBalancerSecurityGroup(awsProfile, projectName) {
+async function ensureBalancerSecurityGroup(awsProfileName, projectName) {
   return ensureSecurityGroup(
-    awsProfile,
+    awsProfileName,
     projectName,
     "BalancerGroup",
     `Load balancer security group for ${projectName}`,
@@ -282,13 +279,13 @@ async function ensureBalancerSecurityGroup(awsProfile, projectName) {
 /**
  * Ensure project-specific ECS security group exists (creates if missing).
  * WHY: Each project needs its own ECS security group for network isolation.
- * @param {string} awsProfile - The IAM role to use
+ * @param {string} awsProfileName - The IAM role to use
  * @param {string} projectName - The project name
  * @returns {Promise<string>} - The security group ID
  */
-async function ensureECSSecurityGroup(awsProfile, projectName) {
+async function ensureEcsSecurityGroup(awsProfileName, projectName) {
   return ensureSecurityGroup(
-    awsProfile,
+    awsProfileName,
     projectName,
     "ECSGroup",
     `ECS cluster security group for ${projectName}`,
@@ -322,22 +319,22 @@ async function ensureECSSecurityGroup(awsProfile, projectName) {
 /**
  * Retrieve WAF Web ACL for CloudFront protection or create if it doesn't exist.
  * WHY: CloudFront distributions need a Web ACL to protect against common web exploits.
- * @param {string} awsProfile - The IAM profile to use
+ * @param {string} awsProfileName - The IAM profile to use
  * @param {boolean} verbose – Whether to log details about getting WAF Web ACL
  * @returns {Promise<string>} - The ACL ARN
  */
-async function getACL(awsProfile, verbose = false) {
-  const wafv2Client = createWAFv2Client(awsProfile);
+async function getAcl(awsProfileName, verbose = false) {
+  const wafv2Client = createWAFv2Client(awsProfileName);
   let aclArn;
   // Check if ACL already exists
   try {
     const listWebACLsResponse = await wafv2Client.send(
       new ListWebACLsCommand({ Scope: "CLOUDFRONT" }),
     );
-    const webACLs = listWebACLsResponse.WebACLs ?? [];
+    const webAcls = listWebACLsResponse.WebACLs ?? [];
 
-    const foundACL = webACLs.find((acl) => acl.Name === pushkinACL.Name);
-    aclArn = foundACL?.ARN;
+    const foundAcl = webAcls.find((acl) => acl.Name === pushkinACL.Name);
+    aclArn = foundAcl?.ARN;
   } catch (error) {
     console.error(`Unable to get list of ACLs:`, error);
     throw error;
@@ -376,15 +373,15 @@ async function getACL(awsProfile, verbose = false) {
  * Delete a single security group.
  * WHY: Security groups must be deleted individually, with proper error handling for dependencies.
  * @param {string} groupName - The security group name to delete
- * @param {string} awsProfile - The IAM profile to use
+ * @param {string} awsProfileName - The IAM profile to use
  * @param {boolean} verbose - Whether to log details
  * @returns {Promise<boolean>} - Returns true when complete (even if deletion failed)
  */
-async function deleteSingleSecurityGroup(groupName, awsProfile, verbose = false) {
+async function deleteSingleSecurityGroup(groupName, awsProfileName, verbose = false) {
   if (verbose) {
     console.log(`Deleting security group ${groupName}`);
   }
-  const ec2Client = createEC2Client(awsProfile);
+  const ec2Client = createEC2Client(awsProfileName);
 
   // Check if group exists
   try {
@@ -414,18 +411,18 @@ async function deleteSingleSecurityGroup(groupName, awsProfile, verbose = false)
 /**
  * Delete security groups.
  * WHY: Security groups must be deleted as part of teardown, but only after dependent resources (like RDS) are deleted.
- * @param {string} awsProfile - The IAM profile to use
+ * @param {string} awsProfileName - The IAM profile to use
  * @param {string|null} killTag - If string (project name), only delete project groups; if null/falsy, delete all (except default)
  * @param {Promise} deletedDBs - Promise that resolves when databases are deleted
  * @param {boolean} verbose - Whether to log details
  * @returns {Promise<boolean[]>} - Array of deletion results
  */
-async function deleteSecurityGroups(awsProfile, killTag, deletedDBs, verbose = false) {
+async function deleteSecurityGroups(awsProfileName, killTag, deletedDBs, verbose = false) {
   console.log(`Waiting for databases to be deleted before removing security groups...`);
   await deletedDBs;
   console.log(`Databases deleted. Starting security group deletion.`);
 
-  const ec2Client = createEC2Client(awsProfile);
+  const ec2Client = createEC2Client(awsProfileName);
 
   let securityGroups;
   try {
@@ -467,16 +464,18 @@ async function deleteSecurityGroups(awsProfile, killTag, deletedDBs, verbose = f
   }
 
   console.log(`Deleting ${groupsToDelete.length} security group(s)...`);
-  return Promise.all(groupsToDelete.map((g) => deleteSingleSecurityGroup(g, awsProfile, verbose)));
+  return Promise.all(
+    groupsToDelete.map((g) => deleteSingleSecurityGroup(g, awsProfileName, verbose)),
+  );
 }
 
 export {
-  ensureECSTaskExecutionRole,
-  verifyAwsProfile,
+  ensureEcsTaskExecutionRole,
+  verifyawsProfileName,
   listCertificates,
   ensureDatabaseSecurityGroup,
   ensureBalancerSecurityGroup,
-  ensureECSSecurityGroup,
-  getACL,
+  ensureEcsSecurityGroup,
+  getAcl,
   deleteSecurityGroups,
 };

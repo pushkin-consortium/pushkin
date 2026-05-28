@@ -6,9 +6,9 @@
 
 import { deleteCluster } from "../services/ecs/clusters.js";
 import { deleteServiceDiscovery } from "../services/ecs/discovery.js";
-import { getDBsToDelete, deleteDBs } from "../services/rds.js";
+import { getDbsToDelete, deleteDbs } from "../services/rds.js";
 import { deleteLoadBalancer, deleteTargetGroups } from "../services/elb.js";
-import { deleteCloudFrontDistribution, deleteOACs } from "../services/cloudfront.js";
+import { deleteCloudFrontDistribution, deleteOacs } from "../services/cloudfront.js";
 import { deleteResourceRecords } from "../services/route53.js";
 import { deleteS3Buckets } from "../services/s3.js";
 import { deleteSecurityGroups } from "../services/security.js";
@@ -48,17 +48,17 @@ export async function cleanupResources(profileName, killType) {
   const deletedCluster = deleteCluster(profileName, killTag, projectName, awsResources);
   const deletedServiceDiscovery = deleteServiceDiscovery(profileName, projectName, killTag);
 
-  const dbsToDelete = getDBsToDelete(profileName, killTag, awsResources);
-  const deletedDBs = deleteDBs(dbsToDelete, profileName, killTag);
+  const dbsToDelete = getDbsToDelete(profileName, killTag, awsResources);
+  const deletedDbs = deleteDbs(dbsToDelete, profileName, killTag);
 
   const deletedLoadBalancer = deleteLoadBalancer(profileName, killTag);
 
   // Delete CloudFront first, then OACs (CloudFront must be deleted before OACs can be deleted)
   const deletedCloudFront = deleteCloudFrontDistribution(profileName, projectName, killTag);
 
-  let deletedOACs;
+  let deletedOacs;
   try {
-    deletedOACs = deleteOACs(profileName, deletedCloudFront, killTag);
+    deletedOacs = deleteOacs(profileName, deletedCloudFront, killTag);
   } catch (error) {
     console.warn(`Unable to delete origin access controls:`, error); // Don't fail the whole process for this
   }
@@ -69,7 +69,7 @@ export async function cleanupResources(profileName, killType) {
 
   const deletedBucket = deleteS3Buckets(profileName, killTag, awsResources, deletedCloudFront);
 
-  const deletedGroups = deleteSecurityGroups(profileName, killTag, deletedDBs);
+  const deletedGroups = deleteSecurityGroups(profileName, killTag, deletedDbs);
 
   // Update awsResources.js to reflect deletions
   console.log(`Updating awsResources.js`);
@@ -96,9 +96,9 @@ export async function cleanupResources(profileName, killType) {
     deletedResourceRecords,
     deletedBucket,
     deletedCloudFront,
-    deletedDBs,
+    deletedDbs,
     deletedLoadBalancer,
-    deletedOACs,
+    deletedOacs,
     deletedCluster,
     deletedTargetGroup,
     deletedServiceDiscovery,

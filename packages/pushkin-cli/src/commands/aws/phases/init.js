@@ -16,8 +16,8 @@ import {
   CreateInvalidationCommand,
   CreateDistributionWithTagsCommand,
 } from "@aws-sdk/client-cloudfront";
-import { getOAC, waitForCloudFrontDeployment } from "../services/cloudfront.js";
-import { getACL } from "../services/security.js";
+import { getOac, waitForCloudFrontDeployment } from "../services/cloudfront.js";
+import { getAcl } from "../services/security.js";
 import { syncS3 } from "../services/s3.js";
 import { makeRecordSet } from "../services/route53.js";
 import { cloudFront, policy } from "../awsConfigs.js";
@@ -32,7 +32,7 @@ import { AWS_REGION } from "../constants.js";
  * domain is configured.
  * @param {string} projectName - The Pushkin project name
  * @param {string} s3BucketName - The S3 bucket name (sanitized, globally unique, AWS-compliant)
- * @param {string} awsProfile - The IAM profile to use
+ * @param {string} awsProfileName - The IAM profile to use
  * @param {string|null} domainName - The domain name, or null to skip custom domain setup
  * @param {string} myCertificate - The ACM certificate ARN
  * @param {Promise} builtFrontEnd - Promise that resolves when the front-end build is complete
@@ -41,12 +41,12 @@ import { AWS_REGION } from "../constants.js";
 const deployFrontEnd = async (
   projectName,
   s3BucketName,
-  awsProfile,
+  awsProfileName,
   domainName,
   myCertificate,
   builtFrontEnd,
 ) => {
-  const factory = new AWSClientFactory(AWS_REGION, awsProfile);
+  const factory = new AWSClientFactory(AWS_REGION, awsProfileName);
   const s3 = factory.createClient(S3Client);
   const cloudFrontClient = factory.createClient(CloudFrontClient);
 
@@ -63,8 +63,8 @@ const deployFrontEnd = async (
   }
 
   // Start OAC and ACL creation in parallel (both may take time)
-  const OAC = getOAC(awsProfile);
-  const ACLarn = getACL(awsProfile);
+  const OAC = getOac(awsProfileName);
+  const ACLarn = getAcl(awsProfileName);
 
   if (!bucketExists) {
     console.log("Bucket does not yet exist. Creating s3 bucket");
@@ -78,7 +78,7 @@ const deployFrontEnd = async (
 
   // Kick off S3 sync in parallel (waits on builtFrontEnd internally)
   await builtFrontEnd;
-  const syncMe = syncS3(s3BucketName, awsProfile);
+  const syncMe = syncS3(s3BucketName, awsProfileName);
 
   // Check for existing CloudFront distribution
   console.log(`Checking for CloudFront distribution`);
@@ -193,7 +193,7 @@ const deployFrontEnd = async (
 
   if (domainName) {
     try {
-      await makeRecordSet(domainName, projectName, awsProfile, theCloud);
+      await makeRecordSet(domainName, projectName, awsProfileName, theCloud);
     } catch (e) {
       console.error(`Unable to create or update record set for ${domainName}`);
       throw e;
@@ -203,7 +203,7 @@ const deployFrontEnd = async (
   await syncMe;
   console.log(`Finished syncing files`);
 
-  await waitForCloudFrontDeployment(theCloud.Id, awsProfile);
+  await waitForCloudFrontDeployment(theCloud.Id, awsProfileName);
 
   return theCloud.DomainName;
 };

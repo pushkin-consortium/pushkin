@@ -1,7 +1,7 @@
 /**
  * Handles building the React front-end and syncing it to S3, plus S3 bucket deletion.
  * S3: AWS object storage service used to host the static front-end files for Pushkin sites.
- * @module s3
+ * @module aws/services/s3
  */
 
 import path from "path";
@@ -21,8 +21,8 @@ import { AWSClientFactory } from "../utils/aws-client-factory.js";
 import { loadAwsConfig } from "../utils/aws-config.js";
 import { AWS_REGION, exec } from "../constants.js";
 
-const createS3Client = (awsProfile) =>
-  new AWSClientFactory(AWS_REGION, awsProfile).createClient(S3Client);
+const createS3Client = (awsProfileName) =>
+  new AWSClientFactory(AWS_REGION, awsProfileName).createClient(S3Client);
 
 /**
  * Build the project's React front-end.
@@ -119,11 +119,11 @@ async function uploadFileToS3(s3Client, bucketName, filePath, s3Key, verbose = f
  * This implementation uses the AWS SDK instead of the AWS CLI for better error handling
  * and to avoid external CLI dependencies.
  * @param {string} s3BucketName - The S3 bucket name (sanitized, globally unique, AWS-compliant)
- * @param {string} awsProfile - The IAM profile to use
+ * @param {string} awsProfileName - The IAM profile to use
  * @param {boolean} verbose - Whether to log detailed steps in syncing local front-end build with S3 bucket
  * @returns {Promise<void>} - A promise that resolves when the sync is complete
  */
-async function syncS3(s3BucketName, awsProfile, verbose = false) {
+async function syncS3(s3BucketName, awsProfileName, verbose = false) {
   console.log(`Syncing static front-end files to S3 bucket ${s3BucketName}`);
   try {
     const buildDir = path.join(process.cwd(), "pushkin/front-end/build");
@@ -138,7 +138,7 @@ async function syncS3(s3BucketName, awsProfile, verbose = false) {
       console.log(`Found ${files.length} files to upload`);
     }
 
-    const s3Client = createS3Client(awsProfile);
+    const s3Client = createS3Client(awsProfileName);
     const batchSize = loadAwsConfig().s3.uploadBatchSize;
 
     for (let i = 0; i < files.length; i += batchSize) {
@@ -230,7 +230,7 @@ async function deleteSingleBucket(s3Client, bucketName) {
 /**
  * Delete S3 buckets.
  * WHY: S3 bucket needs to be deleted during teardown to avoid orphaned resources and potential costs.
- * @param {string} awsProfile - The IAM profile name
+ * @param {string} awsProfileName - The IAM profile name
  * @param {string|null} killTag - If string (project name), only delete project bucket; if null/falsy, delete all buckets
  * @param {object} awsResources - The AWS resources object (contains s3BucketName)
  * @param {Promise} deletedCloudFront - Promise that resolves when CloudFront distribution is deleted
@@ -238,7 +238,7 @@ async function deleteSingleBucket(s3Client, bucketName) {
  * @returns {Promise<void>} - A promise that resolves when deletion is complete
  */
 async function deleteS3Buckets(
-  awsProfile,
+  awsProfileName,
   killTag,
   awsResources,
   deletedCloudFront,
@@ -247,7 +247,7 @@ async function deleteS3Buckets(
   // Wait for CloudFront distribution to be deleted first (S3 buckets can't be deleted while CloudFront uses them)
   await deletedCloudFront;
 
-  const s3Client = createS3Client(awsProfile);
+  const s3Client = createS3Client(awsProfileName);
   console.log(`Retrieving list of S3 buckets to delete...`);
 
   let buckets;

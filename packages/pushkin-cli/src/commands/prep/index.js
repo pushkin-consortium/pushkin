@@ -224,9 +224,9 @@ export function updatePushkinJs(verbose) {
       path.join(process.cwd(), "pushkin/front-end/src", ".pushkin.js"),
       `export const pushkinConfig = ${JSON.stringify(useConfig)}`,
     );
-  } catch (e) {
+  } catch (error) {
     console.error(`Unable to create .pushkin.js`);
-    throw e;
+    throw error;
   }
 }
 

@@ -16,7 +16,7 @@ import shelljs from "shelljs";
 
 // Subcommands
 import {
-  verifyAwsProfile,
+  verifyawsProfileName,
   awsInit,
   nameProject,
   addIAM,
@@ -71,11 +71,11 @@ const loadConfig = (configFile) => {
 };
 
 const updateS3 = async () => {
-  let s3BucketName, awsProfile;
+  let s3BucketName, awsProfileName;
   try {
     const awsResources = await readAwsResources();
     s3BucketName = awsResources.s3BucketName;
-    awsProfile = awsResources.iam;
+    awsProfileName = awsResources.iam;
   } catch (e) {
     console.error(`Unable to read deployment config`);
     throw e;
@@ -83,7 +83,7 @@ const updateS3 = async () => {
 
   let syncMe;
   try {
-    return syncS3(s3BucketName, awsProfile);
+    return syncS3(s3BucketName, awsProfileName);
   } catch (e) {
     console.error(`Unable to sync local build with s3 bucket`);
     throw e;
@@ -289,7 +289,7 @@ const updateMigrations = async () => {
 };
 
 const updateECS = async () => {
-  //FUBAR needs way of getting awsProfile
+  //FUBAR needs way of getting awsProfileName
   console.log(`Updating ECS services.`);
 
   let ECSName;
@@ -317,7 +317,7 @@ const updateECS = async () => {
               "service",
               "up",
               "--ecs-profile",
-              awsProfile,
+              awsProfileName,
               "--cluster-config",
               ECSName,
               "--force-deployment",
@@ -381,9 +381,9 @@ const handleCreateAutoScale = async () => {
     throw e;
   }
 
-  let awsProfile;
+  let awsProfileName;
   try {
-    awsProfile = await inquirer.prompt([
+    awsProfileName = await inquirer.prompt([
       {
         type: "input",
         name: "iam",
@@ -396,7 +396,7 @@ const handleCreateAutoScale = async () => {
     throw e;
   }
 
-  return createAutoScale(awsProfile.iam, projectName);
+  return createAutoScale(awsProfileName.iam, projectName);
 };
 
 const handleViewConfig = async (what) => {
@@ -491,9 +491,9 @@ const handlePrep = async (verbose) => {
 };
 
 const handleAWSList = async () => {
-  let awsProfile;
+  let awsProfileName;
   try {
-    awsProfile = await inquirer.prompt([
+    awsProfileName = await inquirer.prompt([
       {
         type: "input",
         name: "iam",
@@ -505,13 +505,13 @@ const handleAWSList = async () => {
     console.error("Problem getting AWS IAM username.\n", e);
     process.exit();
   }
-  return awsList(awsProfile.iam);
+  return awsList(awsProfileName.iam);
 };
 
 const handleAWSStatus = async (verbose = false) => {
-  let awsProfile;
+  let awsProfileName;
   try {
-    awsProfile = await inquirer.prompt([
+    awsProfileName = await inquirer.prompt([
       {
         type: "input",
         name: "iam",
@@ -523,7 +523,7 @@ const handleAWSStatus = async (verbose = false) => {
     console.error("Problem getting AWS IAM username.\n", e);
     process.exit();
   }
-  return awsStatus(awsProfile.iam, verbose);
+  return awsStatus(awsProfileName.iam, verbose);
 };
 
 const handleAWSKill = async () => {
@@ -562,9 +562,9 @@ const handleAWSKill = async () => {
     return;
   }
   console.log(`I hope you know what you are doing. This makes me nervous every time...`);
-  let awsProfile;
+  let awsProfileName;
   try {
-    awsProfile = await inquirer.prompt([
+    awsProfileName = await inquirer.prompt([
       {
         type: "input",
         name: "iam",
@@ -576,7 +576,7 @@ const handleAWSKill = async () => {
     console.error("Problem getting AWS IAM username.\n", e);
     process.exit();
   }
-  return awsArmageddon(awsProfile.iam, "kill");
+  return awsArmageddon(awsProfileName.iam, "kill");
 };
 
 const handleAWSArmageddon = async () => {
@@ -615,9 +615,9 @@ const handleAWSArmageddon = async () => {
     return;
   }
   console.log(`I hope you know what you are doing. This makes me nervous every time...`);
-  let awsProfile;
+  let awsProfileName;
   try {
-    awsProfile = await inquirer.prompt([
+    awsProfileName = await inquirer.prompt([
       {
         type: "input",
         name: "iam",
@@ -629,7 +629,7 @@ const handleAWSArmageddon = async () => {
     console.error("Problem getting AWS IAM username.\n", e);
     process.exit();
   }
-  return awsArmageddon(awsProfile.iam, "armageddon");
+  return awsArmageddon(awsProfileName.iam, "armageddon");
 };
 
 /**
@@ -1093,7 +1093,7 @@ const handleAWSInit = async (force) => {
     throw e;
   }
 
-  let projectName, awsProfile, s3BucketName;
+  let projectName, awsProfileName, s3BucketName;
 
   try {
     execSync("aws --version");
@@ -1148,7 +1148,7 @@ const handleAWSInit = async (force) => {
   }
 
   try {
-    awsProfile = await inquirer.prompt([
+    awsProfileName = await inquirer.prompt([
       {
         type: "input",
         name: "iam",
@@ -1162,13 +1162,13 @@ const handleAWSInit = async (force) => {
   }
 
   try {
-    await verifyAwsProfile(awsProfile.iam);
+    await verifyawsProfileName(awsProfileName.iam);
   } catch (error) {
     process.exit();
   }
   let addedIAM;
   try {
-    addedIAM = addIAM(awsProfile.iam); //this records which IAM user we are using, doesn't need to be synchronous
+    addedIAM = addIAM(awsProfileName.iam); //this records which IAM user we are using, doesn't need to be synchronous
   } catch (e) {
     console.error(e);
     process.exit();
@@ -1176,7 +1176,7 @@ const handleAWSInit = async (force) => {
 
   try {
     await Promise.all([
-      awsInit(projectName.name, s3BucketName, awsProfile.iam, config.DockerHubID),
+      awsInit(awsProfileName.iam, projectName.name, s3BucketName, config.DockerHubID),
       addedIAM,
     ]);
   } catch (e) {

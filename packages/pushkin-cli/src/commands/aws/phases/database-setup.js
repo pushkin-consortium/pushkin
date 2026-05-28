@@ -9,45 +9,45 @@ import { runMigrations, getMigrations } from '../../setupdb/index.js';
 
 /**
  * Run main table migrations for all experiments
- * @param {object} completedDBs - Completed database configuration
+ * @param {object} dbSetup - Completed database configuration
  * @returns {Promise<Map>} Migration results
  */
-async function runExperimentMigrations(completedDBs) {
+async function runExperimentMigrations(dbSetup) {
   console.log(`Handling main table migrations`);
 
   const dbsToExps = await getMigrations(
-    path.join(process.cwd(), completedDBs.usersDir || 'users'),
-    path.join(process.cwd(), completedDBs.experimentsDir),
+    path.join(process.cwd(), dbSetup.usersDir || 'users'),
+    path.join(process.cwd(), dbSetup.experimentsDir),
     true
   );
 
-  return runMigrations(dbsToExps, completedDBs.productionDBs);
+  return runMigrations(dbsToExps, dbSetup.productionDBs);
 }
 
 /**
  * Set up transaction table with core migrations
- * @param {object} completedDBs - Completed database configuration
+ * @param {object} dbSetup - Completed database configuration
  * @returns {Promise} Migration results
  */
-async function setupTransactionTable(completedDBs) {
+async function setupTransactionTable(dbSetup) {
   const transMigrations = new Map();
   transMigrations.set('Transaction', [
     { migrations: path.join(process.cwd(), 'coreMigrations'), seeds: '' },
   ]);
 
-  return runMigrations(transMigrations, completedDBs.productionDBs);
+  return runMigrations(transMigrations, dbSetup.productionDBs);
 }
 
 /**
  * Set up all databases with migrations and transaction tables
- * @param {Promise<object>|object} completedDBs - Completed database configuration (can be a promise)
+ * @param {Promise<object>|object} dbSetup - Completed database configuration (can be a promise)
  * @returns {Promise<{migrations: Map, transactions: any}>}
  */
-export async function setupDatabases(completedDBs) {
+export async function setupDatabases(dbSetup) {
   console.log('Setting up databases...');
 
   // Resolve promise if needed
-  const dbConfig = await Promise.resolve(completedDBs);
+  const dbConfig = await Promise.resolve(dbSetup);
 
   // Run migrations and transaction setup
   const [migrations, transactions] = await Promise.all([
