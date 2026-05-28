@@ -1,12 +1,12 @@
 /**
- * AWS Deployment Setup Phase
+ * AWS Deployment Configuration Phase
  * Handles gathering user input for domain and SSL certificate, and updates the pushkin.yaml configuration file accordingly.
- * @module aws/phases/setup
+ * @module aws/phases/configure-deployment
  */
 import inquirer from "inquirer";
 import { loadPushkinConfig, savePushkinConfig } from "../../../utils/pushkin-config.js";
 import { listDomains } from "../services/route53.js";
-import { verifyAwsProfile, listCertificates } from "../services/security.js";
+import { listCertificates } from "../services/security.js";
 
 async function chooseSiteDomain(profileName) {
   const NO_CUSTOM_DOMAIN = "No custom domain (use auto-generated URL)";
@@ -79,11 +79,6 @@ async function chooseSSLCertificate(profileName) {
   return certificates[certificateUserInput.certificate];
 }
 
-/**
- * Gather all user input needed for deployment (domain and SSL certificate).
- * @param {string} profileName - AWS profile name
- * @returns {Promise<{siteDomain: string, sslCertificate: string}>}
- */
 async function gatherUserInput(profileName) {
   const domain = await chooseSiteDomain(profileName);
   // Default Cloudfront certificate will be used if no custom domain is chosen
@@ -91,15 +86,6 @@ async function gatherUserInput(profileName) {
   return { siteDomain: domain, sslCertificate: certificate };
 }
 
-/**
- * Update pushkin.yaml with user input of site domain and SSL certificate.
- * @param {object} pushkinConfig - Pushkin configuration object
- * @param {string} projectName - Project name
- * @param {string} s3BucketName - S3 bucket name
- * @param {string} siteDomain - Domain name for the site
- * @param {string} sslCertificate - SSL certificate for the site
- * @returns {Promise<object>} Updated configuration
- */
 async function updateDeploymentConfig(
   pushkinConfig,
   projectName,
@@ -118,9 +104,23 @@ async function updateDeploymentConfig(
   return pushkinConfig;
 }
 
-export {
-  verifyAwsProfile,
-  loadPushkinConfig as loadDeploymentConfig,
-  gatherUserInput,
-  updateDeploymentConfig,
-};
+/**
+ * Configure deployment settings by gathering user input and updating pushkin.yaml.
+ * @param {string} awsProfileName - AWS IAM profile name
+ * @param {string} projectName - Name of the project
+ * @param {string} s3BucketName - Name of the S3 bucket
+ */
+async function configureDeployment(awsProfileName, projectName, s3BucketName) {
+  const pushkinConfig = loadPushkinConfig();
+  const { siteDomain, sslCertificate } = await gatherUserInput(awsProfileName);
+  const updatedConfig = await updateDeploymentConfig(
+    pushkinConfig,
+    projectName,
+    s3BucketName,
+    siteDomain,
+    sslCertificate,
+  );
+  return { updatedConfig, siteDomain, sslCertificate };
+}
+
+export { configureDeployment };
