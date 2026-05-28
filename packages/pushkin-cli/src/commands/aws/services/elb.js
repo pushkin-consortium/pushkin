@@ -19,12 +19,13 @@ import {
 } from "@aws-sdk/client-elastic-load-balancing-v2";
 import { createWaiter, WaiterState } from "@smithy/util-waiter";
 import { AWSClientFactory } from "../utils/aws-client-factory.js";
+import { getAwsProfile } from "../utils/aws-profile.js";
 import { loadAwsConfig } from "../utils/aws-config.js";
 import { updateAwsResourcesField } from "../utils/aws-resources.js";
 import { AWS_REGION, PROJECT_TAG_KEY } from "../constants.js";
 
-function createLoadBalancerClient(awsProfileName) {
-  return new AWSClientFactory(AWS_REGION, awsProfileName).createClient(
+function createLoadBalancerClient() {
+  return new AWSClientFactory(AWS_REGION, getAwsProfile()).createClient(
     ElasticLoadBalancingV2Client,
   );
 }
@@ -36,7 +37,6 @@ function createLoadBalancerClient(awsProfileName) {
  * - Target groups: to forward traffic from load balancer to ECS services (required for Fargate with awsvpc network mode)
  * - HTTP listener: to redirect HTTP to HTTPS
  * - HTTPS listener: to serve traffic securely and use AWS Certificate Manager (ACM) certificate
- * @param {string} awsProfileName - IAM profile to use
  * @param {object} options
  * @param {string} options.name - Name for the load balancer (and derived target group name)
  * @param {string} options.vpcId - VPC ID for the target group
@@ -47,11 +47,10 @@ function createLoadBalancerClient(awsProfileName) {
  * @returns {Promise<{loadBalancerEndpoint: string, loadBalancerZone: string, targetGroupArn: string}>}
  */
 async function createLoadBalancer(
-  awsProfileName,
   { name: loadBalancerName, vpcId, subnets, securityGroupId, sslCertificate, projectName },
 ) {
   console.log(`Creating application load balancer`);
-  const loadBalancerClient = createLoadBalancerClient(awsProfileName);
+  const loadBalancerClient = createLoadBalancerClient();
 
   // Create target group first so a failure here doesn't orphan a load balancer
   let targetGroupArn;
@@ -145,11 +144,10 @@ async function createLoadBalancer(
  * Delete all listeners on a load balancer, then poll until they are fully removed.
  * WHY: Listeners must be deleted before the load balancer can be deleted.
  * @param {string} loadBalancerArn
- * @param {string} awsProfileName
  * @returns {Promise<void>}
  */
-async function deleteListeners(loadBalancerArn, awsProfileName) {
-  const loadBalancerClient = createLoadBalancerClient(awsProfileName);
+async function deleteListeners(loadBalancerArn) {
+  const loadBalancerClient = createLoadBalancerClient();
 
   let listenerArns;
   try {
@@ -201,11 +199,10 @@ async function deleteListeners(loadBalancerArn, awsProfileName) {
 /**
  * Delete all load balancers in the account and their listeners.
  * WHY: Load balancer must be deleted before target groups can be deleted, and listeners must be deleted before load balancer can be deleted.
- * @param {string} awsProfileName
  */
-async function deleteLoadBalancer(awsProfileName) {
+async function deleteLoadBalancer() {
   // TODO: killize
-  const loadBalancerClient = createLoadBalancerClient(awsProfileName);
+  const loadBalancerClient = createLoadBalancerClient();
 
   let loadBalancerArns;
   try {
@@ -226,7 +223,7 @@ async function deleteLoadBalancer(awsProfileName) {
   await Promise.all(
     loadBalancerArns.map(async (arn) => {
       console.log(`Deleting load balancer ${arn}`);
-      await deleteListeners(arn, awsProfileName);
+      await deleteListeners(arn);
       try {
         await loadBalancerClient.send(new DeleteLoadBalancerCommand({ LoadBalancerArn: arn }));
       } catch (error) {
@@ -239,14 +236,13 @@ async function deleteLoadBalancer(awsProfileName) {
 
 /**
  * Delete all target groups after the load balancer has been deleted.
- * @param {string} awsProfileName
  * @param {Promise} deletedLoadBalancer
  */
-async function deleteTargetGroups(awsProfileName, deletedLoadBalancer) {
+async function deleteTargetGroups(deletedLoadBalancer) {
   // TODO: killize
   await deletedLoadBalancer;
 
-  const loadBalancerClient = createLoadBalancerClient(awsProfileName);
+  const loadBalancerClient = createLoadBalancerClient();
 
   let targetGroupArns;
   try {

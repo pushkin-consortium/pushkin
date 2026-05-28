@@ -5,9 +5,9 @@
  * @module pushkin-config
  */
 
+import fs from "graceful-fs";
 import path from "path";
 import jsYaml from "js-yaml";
-import { fileExists, readFile, writeFile } from "./file.js";
 
 /**
  * Gets the path to pushkin.yaml in the current project, walks up directory tree if not found in current dir
@@ -20,7 +20,7 @@ function getPushkinConfigPath() {
 
   while (true) {
     const configPath = path.join(currentDir, "pushkin.yaml");
-    if (fileExists(configPath)) return configPath;
+    if (fs.existsSync(configPath)) return configPath;
 
     if (currentDir === rootDir) break;
     currentDir = path.dirname(currentDir);
@@ -36,8 +36,15 @@ function getPushkinConfigPath() {
 function loadPushkinConfig() {
   try {
     const filePath = getPushkinConfigPath();
-    const fileContent = readFile(filePath, "utf8");
-    return jsYaml.load(fileContent);
+    const fileContent = fs.readFileSync(filePath, "utf8");
+    const config = jsYaml.load(fileContent);
+    const projectRoot = path.dirname(filePath);
+    for (const field of ["usersDir", "experimentsDir", "coreDir"]) {
+      if (config[field] != null) {
+        config[field] = path.resolve(projectRoot, config[field]);
+      }
+    }
+    return config;
   } catch (error) {
     if (error.code === "ENOENT") {
       throw new Error(`pushkin.yaml not found at ${getPushkinConfigPath()}`);
@@ -58,7 +65,7 @@ function loadPushkinConfig() {
 function savePushkinConfig(config) {
   try {
     const filePath = getPushkinConfigPath();
-    writeFile(filePath, jsYaml.dump(config), "utf8");
+    fs.writeFileSync(filePath, jsYaml.dump(config), "utf8");
   } catch (error) {
     throw new Error(`Failed to write pushkin.yaml: ${error.message}`);
   }

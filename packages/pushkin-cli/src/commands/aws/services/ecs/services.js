@@ -4,6 +4,7 @@
  * @module aws/services/ecs/services
  */
 
+import fs from "graceful-fs";
 import path from "path";
 import {
   ECSClient,
@@ -15,12 +16,12 @@ import {
 } from "@aws-sdk/client-ecs";
 import { createWaiter, WaiterState } from "@smithy/util-waiter";
 import { AWSClientFactory } from "../../utils/aws-client-factory.js";
+import { getAwsProfile } from "../../utils/aws-profile.js";
 import { loadAwsConfig } from "../../utils/aws-config.js";
-import { writeFile } from "../../../../utils/file.js";
 import { AWS_REGION } from "../../constants.js";
 
-function createEcsClient(awsProfileName) {
-  return new AWSClientFactory(AWS_REGION, awsProfileName).createClient(ECSClient);
+function createEcsClient() {
+  return new AWSClientFactory(AWS_REGION, getAwsProfile()).createClient(ECSClient);
 }
 
 /**
@@ -33,7 +34,6 @@ function createEcsClient(awsProfileName) {
  * @param {number} containerPort - Container port for load balancer
  * @param {Array<string>} subnets - Subnet IDs for Fargate tasks
  * @param {string} securityGroup - Security group ID for Fargate tasks
- * @param {string} awsProfileName - IAM profile to use
  * @param {string|null} serviceRegistryArn - Optional Cloud Map service ARN for service discovery
  * @returns {Promise<object>} Service creation/update response
  */
@@ -46,10 +46,9 @@ async function createEcsService(
   containerPort = null,
   subnets = [],
   securityGroup = null,
-  awsProfileName,
   serviceRegistryArn = null,
 ) {
-  const ecsClient = createEcsClient(awsProfileName);
+  const ecsClient = createEcsClient();
 
   // First check if service already exists
   try {
@@ -134,7 +133,7 @@ async function createEcsService(
     // Also write to a debug file
     const debugPath = path.join(process.cwd(), "ecs-service-error.json");
     try {
-      writeFile(
+      fs.writeFileSync(
         debugPath,
         JSON.stringify(
           {
@@ -149,6 +148,7 @@ async function createEcsService(
           null,
           2,
         ),
+        "utf8",
       );
       console.log(`Debug info written to: ${debugPath}`);
     } catch (writeError) {
@@ -161,11 +161,10 @@ async function createEcsService(
 /**
  * Delete all services in an ECS cluster, waiting until they are fully removed.
  * @param {string} clusterName - ECS cluster name or ARN
- * @param {string} awsProfileName - IAM profile to use
  * @returns {Promise<boolean>} True when all services are deleted
  */
-async function deleteAllServices(clusterName, awsProfileName) {
-  const ecsClient = createEcsClient(awsProfileName);
+async function deleteAllServices(clusterName) {
+  const ecsClient = createEcsClient();
 
   let serviceArns;
   try {

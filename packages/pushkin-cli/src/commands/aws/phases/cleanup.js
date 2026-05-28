@@ -8,19 +8,20 @@ import { deleteCluster } from "../services/ecs/clusters.js";
 import { deleteServiceDiscovery } from "../services/ecs/discovery.js";
 import { getDbsToDelete, deleteDbs } from "../services/rds.js";
 import { deleteLoadBalancer, deleteTargetGroups } from "../services/elb.js";
-import { deleteCloudFrontDistribution, deleteOacs } from "../services/cloudfront.js";
+import { deleteCloudFrontDistribution } from "../services/cloudfront/distributions.js";
+import { deleteOacs } from "../services/cloudfront/oac.js";
 import { deleteResourceRecords } from "../services/route53.js";
 import { deleteS3Buckets } from "../services/s3.js";
 import { deleteSecurityGroups } from "../services/security.js";
 import { readAwsResources, writeAwsResources } from "../utils/aws-resources.js";
+import { getAwsProfile } from "../utils/aws-profile.js";
 
 /**
  * Delete all AWS resources in proper dependency order
- * @param {string} profileName - AWS profile name
  * @param {string} killType - 'kill' to delete project resources only, 'armageddon' to delete all
  * @returns {Promise<void>}
  */
-export async function cleanupResources(profileName, killType) {
+export async function cleanupResources(killType) {
   console.log("Starting AWS resource cleanup...");
 
   // Load project information
@@ -45,38 +46,38 @@ export async function cleanupResources(profileName, killType) {
   const killTag = killType === "kill" ? projectName : false;
 
   // Start deletions in dependency order
-  const deletedCluster = deleteCluster(profileName, killTag, projectName, awsResources);
-  const deletedServiceDiscovery = deleteServiceDiscovery(profileName, projectName, killTag);
+  const deletedCluster = deleteCluster(killTag, projectName, awsResources);
+  const deletedServiceDiscovery = deleteServiceDiscovery(projectName, killTag);
 
-  const dbsToDelete = getDbsToDelete(profileName, killTag, awsResources);
-  const deletedDbs = deleteDbs(dbsToDelete, profileName, killTag);
+  const dbsToDelete = getDbsToDelete(killTag, awsResources);
+  const deletedDbs = deleteDbs(dbsToDelete, killTag);
 
-  const deletedLoadBalancer = deleteLoadBalancer(profileName, killTag);
+  const deletedLoadBalancer = deleteLoadBalancer(killTag);
 
   // Delete CloudFront first, then OACs (CloudFront must be deleted before OACs can be deleted)
-  const deletedCloudFront = deleteCloudFrontDistribution(profileName, projectName, killTag);
+  const deletedCloudFront = deleteCloudFrontDistribution(projectName, killTag);
 
   let deletedOacs;
   try {
-    deletedOacs = deleteOacs(profileName, deletedCloudFront, killTag);
+    deletedOacs = deleteOacs(deletedCloudFront, killTag);
   } catch (error) {
     console.warn(`Unable to delete origin access controls:`, error); // Don't fail the whole process for this
   }
 
-  const deletedResourceRecords = deleteResourceRecords(profileName, killTag, projectName);
+  const deletedResourceRecords = deleteResourceRecords(killTag, projectName);
 
-  const deletedTargetGroup = deleteTargetGroups(profileName, deletedLoadBalancer);
+  const deletedTargetGroup = deleteTargetGroups(deletedLoadBalancer);
 
-  const deletedBucket = deleteS3Buckets(profileName, killTag, awsResources, deletedCloudFront);
+  const deletedBucket = deleteS3Buckets(killTag, awsResources, deletedCloudFront);
 
-  const deletedGroups = deleteSecurityGroups(profileName, killTag, deletedDbs);
+  const deletedGroups = deleteSecurityGroups(killTag, deletedDbs);
 
   // Update awsResources.js to reflect deletions
   console.log(`Updating awsResources.js`);
   let awsResourcesNull = {
     name: projectName,
     s3BucketName: null,
-    iam: profileName,
+    iam: getAwsProfile(),
     dbs: [],
     cloudFrontId: null,
     ECSName: null,

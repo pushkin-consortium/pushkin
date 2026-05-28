@@ -25,6 +25,7 @@ import {
   awsStatus,
   createAutoScale,
 } from "./commands/aws/index.js";
+import { initAwsProfile } from "./commands/aws/utils/aws-profile.js";
 import {
   deleteExperiment,
   getJsPsychImports,
@@ -71,19 +72,18 @@ const loadConfig = (configFile) => {
 };
 
 const updateS3 = async () => {
-  let s3BucketName, awsProfileName;
+  let s3BucketName;
   try {
     const awsResources = await readAwsResources();
     s3BucketName = awsResources.s3BucketName;
-    awsProfileName = awsResources.iam;
+    initAwsProfile(awsResources.iam);
   } catch (e) {
     console.error(`Unable to read deployment config`);
     throw e;
   }
 
-  let syncMe;
   try {
-    return syncS3(s3BucketName, awsProfileName);
+    return syncS3(s3BucketName);
   } catch (e) {
     console.error(`Unable to sync local build with s3 bucket`);
     throw e;
@@ -91,7 +91,7 @@ const updateS3 = async () => {
 };
 
 // Helper function to interactively set up Docker Hub credentials
-const setupDockerCredentials = async (DHID) => {
+const setupDockerCredentials = async (DockerHubId) => {
   console.log("\nDocker Hub now requires Personal Access Tokens (PAT) for authentication.");
   console.log("To create a PAT:");
   console.log("1. Go to https://hub.docker.com/settings/security");
@@ -113,7 +113,7 @@ const setupDockerCredentials = async (DHID) => {
     fs.writeFileSync(path.join(process.cwd(), ".docker"), tokenAnswer.token);
 
     // Try to log in with the token
-    execSync(`docker login --username ${DHID} --password-stdin`, {
+    execSync(`docker login --username ${DockerHubId} --password-stdin`, {
       input: tokenAnswer.token,
       stdio: ["pipe", "pipe", "pipe"],
     });
@@ -128,16 +128,16 @@ const setupDockerCredentials = async (DHID) => {
 
 const dockerLogin = async () => {
   //get dockerhub id
-  let DHID;
+  let DockerHubId;
   try {
     let config = await loadConfig(path.join(process.cwd(), "pushkin.yaml"));
-    DHID = config.DockerHubID;
+    DockerHubId = config.DockerHubID;
   } catch (e) {
     console.error(`Unable to load pushkin.yaml`);
     throw e;
   }
 
-  if (DHID == "") {
+  if (DockerHubId == "") {
     throw new Error(`Your DockerHub ID has disappeared from pushkin.yaml.\n I am not sure how that happened.\n
       If you run '$ pushkin setDockerHub' and then retry aws update, it might work. Depending on exactly why your DockerHub ID wasn't in pushkin.yaml.`);
   }
@@ -202,12 +202,12 @@ const dockerLogin = async () => {
       // Try to log in using stored token first
       try {
         const token = fs.readFileSync(tokenPath, "utf8").trim();
-        execSync(`docker login --username ${DHID} --password-stdin`, {
+        execSync(`docker login --username ${DockerHubId} --password-stdin`, {
           input: token,
           stdio: ["pipe", "pipe", "pipe"],
         });
         console.log(`Successfully authenticated with Docker Hub using stored credentials!`);
-        return DHID;
+        return DockerHubId;
       } catch {
         console.log(`Failed to authenticate with stored credentials.`);
       }
@@ -228,7 +228,7 @@ const dockerLogin = async () => {
     ]);
 
     if (choice.authMethod === "token") {
-      await setupDockerCredentials(DHID);
+      await setupDockerCredentials(DockerHubId);
     } else {
       console.log("\nPlease run 'docker login' in another terminal and press Enter when done.");
       await inquirer.prompt([
@@ -242,14 +242,14 @@ const dockerLogin = async () => {
     }
   }
 
-  return DHID;
+  return DockerHubId;
 };
 
 const updateDocker = async () => {
-  let DHID = await dockerLogin();
+  let DockerHubId = await dockerLogin();
 
   try {
-    return publishToDocker(DHID);
+    return publishToDocker(DockerHubId);
   } catch (e) {
     console.error("Unable to publish images to DockerHub");
     throw e;
@@ -262,7 +262,7 @@ const updateMigrations = async () => {
     let config = await loadConfig(path.join(process.cwd(), "pushkin.yaml"));
     experimentsDir = config.experimentsDir;
     usersDir = config.usersDir || "users";
-    productionDBs = config.productionDBs;
+    productionDBs = config.databases?.production;
   } catch (e) {
     console.error(`Unable to load pushkin.yaml`);
     throw e;
@@ -396,7 +396,8 @@ const handleCreateAutoScale = async () => {
     throw e;
   }
 
-  return createAutoScale(awsProfileName.iam, projectName);
+  initAwsProfile(awsProfileName.iam);
+  return createAutoScale(projectName);
 };
 
 const handleViewConfig = async (what) => {
@@ -428,7 +429,7 @@ const handleUpdateDB = async (verbose) => {
 
   try {
     settingUpDB = await setupdb(
-      config.databases,
+      config.databases?.local,
       path.join(process.cwd(), config.usersDir || "users"),
       path.join(process.cwd(), config.experimentsDir),
       verbose,
@@ -505,7 +506,8 @@ const handleAWSList = async () => {
     console.error("Problem getting AWS IAM username.\n", e);
     process.exit();
   }
-  return awsList(awsProfileName.iam);
+  initAwsProfile(awsProfileName.iam);
+  return awsList();
 };
 
 const handleAWSStatus = async (verbose = false) => {
@@ -523,7 +525,8 @@ const handleAWSStatus = async (verbose = false) => {
     console.error("Problem getting AWS IAM username.\n", e);
     process.exit();
   }
-  return awsStatus(awsProfileName.iam, verbose);
+  initAwsProfile(awsProfileName.iam);
+  return awsStatus(verbose);
 };
 
 const handleAWSKill = async () => {
@@ -576,7 +579,8 @@ const handleAWSKill = async () => {
     console.error("Problem getting AWS IAM username.\n", e);
     process.exit();
   }
-  return awsArmageddon(awsProfileName.iam, "kill");
+  initAwsProfile(awsProfileName.iam);
+  return awsArmageddon("kill");
 };
 
 const handleAWSArmageddon = async () => {
@@ -629,7 +633,8 @@ const handleAWSArmageddon = async () => {
     console.error("Problem getting AWS IAM username.\n", e);
     process.exit();
   }
-  return awsArmageddon(awsProfileName.iam, "armageddon");
+  initAwsProfile(awsProfileName.iam);
+  return awsArmageddon("armageddon");
 };
 
 /**
@@ -1077,9 +1082,9 @@ const handleInstall = async (templateType, options, verbose) => {
 };
 
 const handleAWSInit = async (force) => {
-  let DHID;
+  let DockerHubId;
   try {
-    DHID = await dockerLogin();
+    DockerHubId = await dockerLogin();
   } catch (error) {
     console.log(error);
     process.exit();
@@ -1161,8 +1166,10 @@ const handleAWSInit = async (force) => {
     process.exit();
   }
 
+  initAwsProfile(awsProfileName.iam);
+
   try {
-    await verifyawsProfileName(awsProfileName.iam);
+    await verifyawsProfileName();
   } catch (error) {
     process.exit();
   }
@@ -1175,10 +1182,7 @@ const handleAWSInit = async (force) => {
   }
 
   try {
-    await Promise.all([
-      awsInit(awsProfileName.iam, projectName.name, s3BucketName, config.DockerHubID),
-      addedIAM,
-    ]);
+    await Promise.all([awsInit(projectName.name, s3BucketName, config.DockerHubID), addedIAM]);
   } catch (e) {
     throw e;
   }
@@ -1212,7 +1216,7 @@ const killLocal = async () => {
   }
   try {
     await exec(
-      `docker volume rm pushkin_test_db_volume pushkin_message_queue_volume; docker images -a | grep "_worker" | awk '{print $3}' | xargs docker rmi -f`,
+      `docker volume rm pushkin_local-experiment-db-volume pushkin_message_queue_volume; docker images -a | grep "_worker" | awk '{print $3}' | xargs docker rmi -f`,
     );
     await exec(`docker rmi -f api`);
     await exec(`docker rmi -f server`);

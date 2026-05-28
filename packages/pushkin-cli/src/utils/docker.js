@@ -4,13 +4,13 @@
  * @module docker
  */
 
+import fs from "graceful-fs";
 import path from "path";
 import jsYaml from "js-yaml";
 import { quote } from "shell-quote";
 import { exec } from "../commands/aws/constants.js";
 import { readConfig } from "../commands/prep/index.js";
 import { loadPushkinConfig } from "./pushkin-config.js";
-import { readFile, isDirectory } from "./file.js";
 
 /**
  * Rebuilds the worker for a given experiment
@@ -32,9 +32,9 @@ const rebuildWorker = async function (experiment, verbose = false) {
   if (verbose) {
     console.log(`Rebuilding AWS-compatible worker for ${experiment}`);
   }
-  const expDir = path.join(process.cwd(), pushkinConfig.experimentsDir, experiment);
+  const expDir = path.join(pushkinConfig.experimentsDir, experiment);
   try {
-    if (!isDirectory(expDir)) return "";
+    if (!fs.statSync(expDir).isDirectory()) return "";
   } catch (error) {
     console.warn(`Experiment directory not found: ${expDir}`, error);
     return "";
@@ -78,14 +78,18 @@ const rebuildWorker = async function (experiment, verbose = false) {
  * WHY: This is necessary for deploying workers to AWS, since they need to be built for Linux/AMD64
  * and the CLI may be running on a different platform. By pushing to DockerHub, we can ensure that
  * the correct images are available for AWS to pull
- * @param {string} DHID - The DockerHub ID
+ * @param {string} DockerHubId - The DockerHub ID
  * @param {Promise} rebuiltWorkers - Optional promise to wait for workers that need to be rebuilt
  * to finish rebuilding before pushing. The function itself pushes all workers on docker-compose
  * @param {boolean} verbose – Whether to log detailed steps
  * @returns {Promise} - A promise that resolves when the images are published
  */
-const publishToDocker = async (DHID, rebuiltWorkers = Promise.resolve(), verbose = false) => {
-  if (!DHID) {
+const publishToDocker = async (
+  DockerHubId,
+  rebuiltWorkers = Promise.resolve(),
+  verbose = false,
+) => {
+  if (!DockerHubId) {
     throw new Error(
       "DockerHub ID is required to publish images to Docker. Please set it using '$ pushkin setDockerHub' and try again.",
     );
@@ -96,7 +100,7 @@ const publishToDocker = async (DHID, rebuiltWorkers = Promise.resolve(), verbose
     console.log("Building API");
   }
   try {
-    const imageTag = `${DHID}/api:latest`;
+    const imageTag = `${DockerHubId}/api:latest`;
     const buildCommand = quote([
       "docker",
       "buildx",
@@ -119,7 +123,7 @@ const publishToDocker = async (DHID, rebuiltWorkers = Promise.resolve(), verbose
   }
   let pushedAPI;
   try {
-    const imageTag = `${DHID}/api:latest`;
+    const imageTag = `${DockerHubId}/api:latest`;
     const pushCommand = quote(["docker", "push", imageTag]);
     pushedAPI = exec(pushCommand, { cwd: process.cwd() }); // async; awaited in Promise.all at the end
   } catch (error) {
@@ -131,7 +135,7 @@ const publishToDocker = async (DHID, rebuiltWorkers = Promise.resolve(), verbose
   let docker_compose;
   try {
     const dockerComposePath = path.join(process.cwd(), "pushkin/docker-compose.dev.yml");
-    docker_compose = jsYaml.load(readFile(dockerComposePath, "utf8"));
+    docker_compose = jsYaml.load(fs.readFileSync(dockerComposePath, "utf8"));
   } catch (error) {
     console.error(`Failed to load the docker-compose:`, error);
     throw error;
@@ -151,7 +155,7 @@ const publishToDocker = async (DHID, rebuiltWorkers = Promise.resolve(), verbose
     }
     try {
       const imageName = service.image.split(":")[0];
-      const targetImage = `${DHID}/${imageName}:latest`;
+      const targetImage = `${DockerHubId}/${imageName}:latest`;
       const tagCommand = quote(["docker", "tag", service.image, targetImage]);
       const pushCommand = quote(["docker", "push", targetImage]);
       await exec(tagCommand);

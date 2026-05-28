@@ -21,6 +21,7 @@ import {
   DescribeLoadBalancersCommand,
 } from "@aws-sdk/client-elastic-load-balancing-v2";
 import { AWSClientFactory } from "../utils/aws-client-factory.js";
+import { getAwsProfile } from "../utils/aws-profile.js";
 import { readAwsResources, writeAwsResources } from "../utils/aws-resources.js";
 import { loadPushkinConfig } from "../../../../utils/pushkin-config.js";
 import {
@@ -33,13 +34,12 @@ import { AWS_REGION } from "../constants.js";
 
 /**
  * Set up CloudWatch alarms, SNS notifications, and an autoscaling policy for a deployed site.
- * @param {string} awsProfileName - AWS profile name
  * @param {string} projectName - Project name
  */
-export async function createAutoScale(awsProfileName, projectName) {
+export async function createAutoScale(projectName) {
   const shortName = projectName.replace(/[^A-Za-z0-9]/g, "");
   const snsName = shortName.concat("Alarms");
-  const factory = new AWSClientFactory(AWS_REGION, awsProfileName);
+  const factory = new AWSClientFactory(AWS_REGION, getAwsProfile());
 
   // Load resource identifiers
   let awsResources;
@@ -65,12 +65,12 @@ export async function createAutoScale(awsProfileName, projectName) {
   const alarmMainHigh = {
     ...JSON.parse(JSON.stringify(alarmRDSWriteLatencyHigh)),
     AlarmName: `${shortName}MainWriteLatencyHigh`,
-    Dimensions: [{ Name: "DBInstanceIdentifier", Value: config.productionDBs.Main.name }],
+    Dimensions: [{ Name: "DBInstanceIdentifier", Value: config.databases.production.experiment.name }],
   };
   const alarmTransactionHigh = {
     ...JSON.parse(JSON.stringify(alarmRDSWriteLatencyHigh)),
     AlarmName: `${shortName}TransactionWriteLatencyHigh`,
-    Dimensions: [{ Name: "DBInstanceIdentifier", Value: config.productionDBs.Transaction.name }],
+    Dimensions: [{ Name: "DBInstanceIdentifier", Value: config.databases.production.transaction.name }],
   };
 
   // Get load balancer ARN (needed for scaling policy resource label)

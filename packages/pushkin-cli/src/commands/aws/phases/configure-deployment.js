@@ -8,14 +8,14 @@ import { loadPushkinConfig, savePushkinConfig } from "../../../utils/pushkin-con
 import { listDomains } from "../services/route53.js";
 import { listCertificates } from "../services/security.js";
 
-async function chooseSiteDomain(profileName) {
+async function chooseSiteDomain() {
   const NO_CUSTOM_DOMAIN = "No custom domain (use auto-generated URL)";
   const ENTER_CUSTOM_DOMAIN = "Enter a custom domain/subdomain";
   let domains = [NO_CUSTOM_DOMAIN];
 
   console.log("Choosing domain name for site:");
   try {
-    const listDomainsResponse = await listDomains(profileName);
+    const listDomainsResponse = await listDomains();
     listDomainsResponse.Domains.forEach((domain) => {
       domains.push(domain.DomainName);
     });
@@ -56,11 +56,11 @@ async function chooseSiteDomain(profileName) {
   return domainUserInput.domain;
 }
 
-async function chooseSSLCertificate(profileName) {
+async function chooseSSLCertificate() {
   console.log("Choosing SSL certificate for secure HTTPS connections:");
   let certificates;
   try {
-    certificates = await listCertificates(profileName);
+    certificates = await listCertificates();
   } catch (error) {
     console.error(`Unable to list certificates from AWS:`, error);
     throw error;
@@ -79,10 +79,10 @@ async function chooseSSLCertificate(profileName) {
   return certificates[certificateUserInput.certificate];
 }
 
-async function gatherUserInput(profileName) {
-  const domain = await chooseSiteDomain(profileName);
+async function gatherUserInput() {
+  const domain = await chooseSiteDomain();
   // Default Cloudfront certificate will be used if no custom domain is chosen
-  const certificate = domain ? await chooseSSLCertificate(profileName) : null;
+  const certificate = domain ? await chooseSSLCertificate() : null;
   return { siteDomain: domain, sslCertificate: certificate };
 }
 
@@ -106,13 +106,12 @@ async function updateDeploymentConfig(
 
 /**
  * Configure deployment settings by gathering user input and updating pushkin.yaml.
- * @param {string} awsProfileName - AWS IAM profile name
  * @param {string} projectName - Name of the project
  * @param {string} s3BucketName - Name of the S3 bucket
  */
-async function configureDeployment(awsProfileName, projectName, s3BucketName) {
+async function configureDeployment(projectName, s3BucketName) {
   const pushkinConfig = loadPushkinConfig();
-  const { siteDomain, sslCertificate } = await gatherUserInput(awsProfileName);
+  const { siteDomain, sslCertificate } = await gatherUserInput();
   const updatedConfig = await updateDeploymentConfig(
     pushkinConfig,
     projectName,

@@ -20,28 +20,28 @@ import {
   waitUntilStackDeleteComplete,
 } from "@aws-sdk/client-cloudformation";
 import { AWSClientFactory } from "../../utils/aws-client-factory.js";
+import { getAwsProfile } from "../../utils/aws-profile.js";
 import { loadAwsConfig } from "../../utils/aws-config.js";
 import { AWS_REGION, PROJECT_TAG_KEY } from "../../constants.js";
 import { deleteAllServices } from "./services.js";
 
-function createEcsClient(awsProfileName) {
-  return new AWSClientFactory(AWS_REGION, awsProfileName).createClient(ECSClient);
+function createEcsClient() {
+  return new AWSClientFactory(AWS_REGION, getAwsProfile()).createClient(ECSClient);
 }
 
-function createCFClient(awsProfileName) {
-  return new AWSClientFactory(AWS_REGION, awsProfileName).createClient(CloudFormationClient);
+function createCFClient() {
+  return new AWSClientFactory(AWS_REGION, getAwsProfile()).createClient(CloudFormationClient);
 }
 
 /**
  * Create an ECS cluster for the project, or skip if it already exists.
  * WHY: ECS clusters are the logical grouping of resources for running containers.
- * @param {string} awsProfileName - AWS IAM profile to use for authentication
  * @param {string} ecsName - Cluster name (alphanumeric project name)
  * @param {string} projectName - Project name (for tagging)
  */
-async function createCluster(awsProfileName, ecsName, projectName) {
+async function createCluster(ecsName, projectName) {
   console.log("Launching ECS cluster");
-  const ecsClient = createEcsClient(awsProfileName);
+  const ecsClient = createEcsClient();
   try {
     await ecsClient.send(
       new CreateClusterCommand({
@@ -63,14 +63,13 @@ async function createCluster(awsProfileName, ecsName, projectName) {
 /**
  * Delete all CloudFormation stacks, optionally filtered by tag.
  * CloudFormation is the AWS service used to manage CRUD operations of AWS resources as a stack.
- * @param {string} awsProfileName - IAM profile to use
  * @param {string|null} killTag - If set, only delete stacks tagged with this project name
  * @returns {Promise<boolean>} Resolves when all stacks are deleted
  */
-async function deleteStack(awsProfileName, killTag) {
+async function deleteStack(killTag) {
   console.log(`Deleting CloudFormation stacks`);
 
-  const cfClient = createCFClient(awsProfileName);
+  const cfClient = createCFClient();
 
   let stacks;
   try {
@@ -128,16 +127,15 @@ async function deleteStack(awsProfileName, killTag) {
 /**
  * Delete ECS cluster(s) and all running tasks and services within them.
  * Deletes CloudFormation stacks first, then stops tasks and services before removing clusters.
- * @param {string} awsProfileName - IAM profile to use
  * @param {string|null} killTag - If set, only delete the cluster for this project
  * @param {string} projectName - Project name
  * @param {object} awsResources - Tracked AWS resource IDs
  * @returns {Promise} Resolves when clusters are deleted
  */
-async function deleteCluster(awsProfileName, killTag, projectName, awsResources) {
-  await deleteStack(awsProfileName, killTag);
+async function deleteCluster(killTag, projectName, awsResources) {
+  await deleteStack(killTag);
 
-  const ecsClient = createEcsClient(awsProfileName);
+  const ecsClient = createEcsClient();
 
   let clusterArns;
   try {
@@ -161,7 +159,9 @@ async function deleteCluster(awsProfileName, killTag, projectName, awsResources)
 
     let describeResponse;
     try {
-      describeResponse = await ecsClient.send(new DescribeClustersCommand({ clusters: [ecsName] }));
+      describeResponse = await ecsClient.send(
+        new DescribeClustersCommand({ clusters: [ecsName] }),
+      );
     } catch (error) {
       console.error(`Unable to describe ECS cluster ${ecsName}:`, error);
       throw error;
@@ -219,7 +219,7 @@ async function deleteCluster(awsProfileName, killTag, projectName, awsResources)
         console.log("All tasks have stopped.");
       }
 
-      await deleteAllServices(clusterArn, awsProfileName);
+      await deleteAllServices(clusterArn);
     }),
   );
 

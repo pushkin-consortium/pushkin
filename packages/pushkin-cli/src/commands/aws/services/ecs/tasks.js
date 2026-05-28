@@ -5,6 +5,7 @@
  * @module aws/services/ecs/tasks
  */
 
+import fs from "graceful-fs";
 import path from "path";
 import jsYaml from "js-yaml";
 import crypto from "crypto";
@@ -14,9 +15,9 @@ import {
   RegisterTaskDefinitionCommand,
   DescribeClustersCommand,
 } from "@aws-sdk/client-ecs";
-import { createDirectory, readFile, writeFile } from "../../../../utils/file.js";
 import { AWS_REGION } from "../../constants.js";
 import { AWSClientFactory } from "../../utils/aws-client-factory.js";
+import { getAwsProfile } from "../../utils/aws-profile.js";
 import { updateAwsResourcesField } from "../../utils/aws-resources.js";
 import { loadPushkinConfig, savePushkinConfig } from "../../../../utils/pushkin-config.js";
 import { ensureEcsTaskExecutionRole } from "../security.js";
@@ -25,8 +26,8 @@ import { buildRabbitTask, buildAPITask, buildWorkerTask } from "./environment.js
 import { createEcsService } from "./services.js";
 import { ensureServiceDiscoveryNamespace, registerServiceWithDiscovery } from "./discovery.js";
 
-function createEcsClient(awsProfileName) {
-  return new AWSClientFactory(AWS_REGION, awsProfileName).createClient(ECSClient);
+function createEcsClient() {
+  return new AWSClientFactory(AWS_REGION, getAwsProfile()).createClient(ECSClient);
 }
 
 /**
@@ -111,11 +112,10 @@ function dockerComposeToECSTaskDefinition(composeService, family, serviceName, e
  * Register an ECS task definition with AWS.
  * WHY: Before we can run tasks on ECS, we need to register the task definition with AWS.
  * @param {object} taskDefParams - Task definition parameters
- * @param {string} awsProfileName - IAM profile to use
  * @returns {Promise<string>} Task definition ARN
  */
-async function registerECSTaskDefinition(taskDefParams, awsProfileName) {
-  const ecsClient = createEcsClient(awsProfileName);
+async function registerECSTaskDefinition(taskDefParams) {
+  const ecsClient = createEcsClient();
 
   try {
     const response = await ecsClient.send(new RegisterTaskDefinitionCommand(taskDefParams));
@@ -135,7 +135,6 @@ async function registerECSTaskDefinition(taskDefParams, awsProfileName) {
  * @param {object} task - Docker Compose service definition
  * @param {object} context - Shared deployment context
  * @param {string} context.ecsName - ECS cluster name
- * @param {string} context.awsProfileName - IAM profile to use
  * @param {string} context.executionRoleArn - ARN of the ECS task execution role
  * @param {Array<string>} context.subnets - Subnet IDs for the Fargate task
  * @param {string} context.securityGroupId - Security group ID for the Fargate task
@@ -145,9 +144,9 @@ async function registerECSTaskDefinition(taskDefParams, awsProfileName) {
  * @param {string|null} serviceRegistryArn - Cloud Map service ARN for service discovery (null = no discovery)
  */
 async function deployService(name, task, context, loadBalancer = null, serviceRegistryArn = null) {
-  const { ecsName, awsProfileName, executionRoleArn, subnets, securityGroupId } = context;
+  const { ecsName, executionRoleArn, subnets, securityGroupId } = context;
 
-  writeFile(path.join(process.cwd(), "ECStasks", `${name}.yml`), jsYaml.dump(task));
+  fs.writeFileSync(path.join(process.cwd(), "ECStasks", `${name}.yml`), jsYaml.dump(task), "utf8");
 
   const serviceName = Object.keys(task.services)[0];
   const taskDefParams = dockerComposeToECSTaskDefinition(
@@ -158,7 +157,7 @@ async function deployService(name, task, context, loadBalancer = null, serviceRe
   );
 
   console.log(`Registering task definition for ${name}`);
-  const taskDefArn = await registerECSTaskDefinition(taskDefParams, awsProfileName);
+  const taskDefArn = await registerECSTaskDefinition(taskDefParams);
 
   console.log(`Creating ECS service for ${name}`);
   await createEcsService(
@@ -170,7 +169,6 @@ async function deployService(name, task, context, loadBalancer = null, serviceRe
     loadBalancer?.port ?? null,
     subnets,
     securityGroupId,
-    awsProfileName,
     serviceRegistryArn,
   );
 
@@ -181,26 +179,30 @@ async function deployService(name, task, context, loadBalancer = null, serviceRe
  * Deploy all ECS services (RabbitMQ, API, and experiment workers).
  * WHY: This is the final step in the deployment process — takes all the infrastructure set up
  * earlier and actually deploys the application containers to run in the ECS cluster.
- * @param {string} projectName - The name of the project
- * @param {string} awsProfileName - IAM role to use
  * @param {object} options
  * @param {string} options.ecsName - The name of the ECS cluster
  * @param {string} options.vpcId - VPC ID for Cloud Map Service Discovery namespace
  * @param {Array<string>} options.subnets - Array of subnet IDs for Fargate tasks
  * @param {string} options.securityGroupId - Security group ID for Fargate tasks
- * @param {string} options.DHID - The DockerHub ID
+ * @param {string} options.DockerHubId - The DockerHub ID
  * @param {string} options.targetGroupArn - The target group ARN
  * @param {Promise} options.dbSetup - Resolves when the databases are ready
  * @param {string} options.projectName - The name of the project (for tagging)
  * @returns {Promise} Resolves when all services are deployed
  */
-async function createEcsTask(
-  awsProfileName,
-  { ecsName, vpcId, subnets, securityGroupId, DHID, targetGroupArn, dbSetup, projectName },
-) {
-  createDirectory(path.join(process.cwd(), "ECStasks"));
+async function createEcsTask({
+  ecsName,
+  vpcId,
+  subnets,
+  securityGroupId,
+  DockerHubId,
+  targetGroupArn,
+  dbSetup,
+  projectName,
+}) {
+  fs.mkdirSync(path.join(process.cwd(), "ECStasks"), { recursive: true });
 
-  const executionRoleArn = await ensureEcsTaskExecutionRole(awsProfileName);
+  const executionRoleArn = await ensureEcsTaskExecutionRole();
 
   try {
     updateAwsResourcesField("ECSName", ecsName);
@@ -249,7 +251,7 @@ async function createEcsTask(
   let dockerCompose;
   try {
     dockerCompose = jsYaml.load(
-      readFile(path.join(process.cwd(), "pushkin/docker-compose.dev.yml"), "utf8"),
+      fs.readFileSync(path.join(process.cwd(), "pushkin/docker-compose.dev.yml"), "utf8"),
     );
   } catch (error) {
     console.error(`Failed to load the docker-compose:`, error);
@@ -265,22 +267,18 @@ async function createEcsTask(
   const dbInfoByTask = await getDbsInfo();
 
   console.log(`Verifying ECS cluster exists: "${ecsName}"`);
-  const { clusters } = await createEcsClient(awsProfileName).send(
+  const { clusters } = await createEcsClient().send(
     new DescribeClustersCommand({ clusters: [ecsName] }),
   );
   if (!clusters?.[0]) throw new Error(`Cluster ${ecsName} not found`);
 
-  const context = { ecsName, awsProfileName, executionRoleArn, subnets, securityGroupId };
+  const context = { ecsName, executionRoleArn, subnets, securityGroupId };
 
   // Set up Cloud Map namespace and register message-queue so other tasks can reach it by DNS name.
   // This must complete before deploying services that reference the registry ARN.
   console.log(`Setting up Service Discovery namespace for ${projectName}`);
-  const namespaceId = await ensureServiceDiscoveryNamespace(projectName, vpcId, awsProfileName);
-  const messageQueueRegistryArn = await registerServiceWithDiscovery(
-    "message-queue",
-    namespaceId,
-    awsProfileName,
-  );
+  const namespaceId = await ensureServiceDiscoveryNamespace(projectName, vpcId);
+  const messageQueueRegistryArn = await registerServiceWithDiscovery("message-queue", namespaceId);
 
   const composedRabbit = deployService(
     "message-queue",
@@ -291,7 +289,7 @@ async function createEcsTask(
   );
   const composedAPI = deployService(
     "api",
-    buildAPITask(projectName, DHID, rabbitAddress),
+    buildAPITask(projectName, DockerHubId, rabbitAddress),
     context,
     {
       port: 80,
@@ -301,7 +299,7 @@ async function createEcsTask(
   const composedWorkers = workerList.map((worker) =>
     deployService(
       worker,
-      buildWorkerTask(worker, projectName, DHID, rabbitAddress, dbInfoByTask),
+      buildWorkerTask(worker, projectName, DockerHubId, rabbitAddress, dbInfoByTask),
       context,
     ),
   );

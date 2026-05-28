@@ -30,14 +30,14 @@ function buildRabbitTask(projectName, rabbitUser, rabbitPW, rabbitCookie) {
 /**
  * Build a configured API task definition
  * @param {string} projectName - Project name
- * @param {string} DHID - Docker Hub ID
+ * @param {string} DockerHubId - Docker Hub ID
  * @param {string} rabbitAddress - Full AMQP connection string
  * @returns {object} Configured Docker Compose service definition
  */
-function buildAPITask(projectName, DHID, rabbitAddress) {
+function buildAPITask(projectName, DockerHubId, rabbitAddress) {
   const task = structuredClone(apiTask);
   task.services["api"].environment.AMQP_ADDRESS = rabbitAddress;
-  task.services["api"].image = `${DHID}/api:latest`;
+  task.services["api"].image = `${DockerHubId}/api:latest`;
   task.services["api"].logging.options["awslogs-group"] = `ecs/${projectName}`;
   task.services["api"].logging.options["awslogs-stream-prefix"] = `ecs/api/${projectName}`;
   return task;
@@ -47,33 +47,33 @@ function buildAPITask(projectName, DHID, rabbitAddress) {
  * Build a configured worker task definition for a single experiment worker
  * @param {string} workerName - Worker service name (experiment name)
  * @param {string} projectName - Project name
- * @param {string} DHID - Docker Hub ID
+ * @param {string} DockerHubId - Docker Hub ID
  * @param {string} rabbitAddress - Full AMQP connection string
  * @param {object} dbInfoByTask - Database connection info, keyed by DB type (Main, Transaction)
  * @returns {object} Configured Docker Compose service definition
  */
-function buildWorkerTask(workerName, projectName, DHID, rabbitAddress, dbInfoByTask) {
+function buildWorkerTask(workerName, projectName, DockerHubId, rabbitAddress, dbInfoByTask) {
   const task = {
     version: workerTask.version,
     services: {},
   };
   task.services[workerName] = structuredClone(workerTask.services["EXPERIMENT_NAME"]);
-  task.services[workerName].image = `${DHID}/${workerName}:latest`;
+  task.services[workerName].image = `${DockerHubId}/${workerName}:latest`;
   task.services[workerName].logging.options["awslogs-group"] = `ecs/${projectName}`;
   task.services[workerName].logging.options["awslogs-stream-prefix"] =
     `ecs/${workerName}/${projectName}`;
   task.services[workerName].environment = {
     AMQP_ADDRESS: rabbitAddress,
-    DB_HOST: dbInfoByTask["Main"].endpoint,
-    DB_USER: dbInfoByTask["Main"].username,
-    DB_DB: dbInfoByTask["Main"].name,
-    DB_PASS: dbInfoByTask["Main"].password,
-    DB_URL: dbInfoByTask["Main"].endpoint,
-    TRANS_HOST: dbInfoByTask["Transaction"].endpoint,
-    TRANS_USER: dbInfoByTask["Transaction"].username,
-    TRANS_DB: dbInfoByTask["Transaction"].name,
-    TRANS_PASS: dbInfoByTask["Transaction"].password,
-    TRANS_URL: dbInfoByTask["Transaction"].endpoint,
+    DB_HOST: dbInfoByTask["experiment"].endpoint,
+    DB_USER: dbInfoByTask["experiment"].username,
+    DB_DB: dbInfoByTask["experiment"].name,
+    DB_PASS: dbInfoByTask["experiment"].password,
+    DB_URL: dbInfoByTask["experiment"].endpoint,
+    TRANS_HOST: dbInfoByTask["transaction"].endpoint,
+    TRANS_USER: dbInfoByTask["transaction"].username,
+    TRANS_DB: dbInfoByTask["transaction"].name,
+    TRANS_PASS: dbInfoByTask["transaction"].password,
+    TRANS_URL: dbInfoByTask["transaction"].endpoint,
   };
   return task;
 }

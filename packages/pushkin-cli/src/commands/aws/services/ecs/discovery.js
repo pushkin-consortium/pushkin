@@ -18,10 +18,11 @@ import {
   GetOperationCommand,
 } from "@aws-sdk/client-servicediscovery";
 import { AWSClientFactory } from "../../utils/aws-client-factory.js";
+import { getAwsProfile } from "../../utils/aws-profile.js";
 import { AWS_REGION } from "../../constants.js";
 
-function createServiceDiscoveryClient(awsProfileName) {
-  return new AWSClientFactory(AWS_REGION, awsProfileName).createClient(ServiceDiscoveryClient);
+function createServiceDiscoveryClient() {
+  return new AWSClientFactory(AWS_REGION, getAwsProfile()).createClient(ServiceDiscoveryClient);
 }
 
 // Polling interval and timeout for Cloud Map operations (no built-in SDK waiters exist)
@@ -58,11 +59,10 @@ async function waitForOperation(client, operationId, description) {
  * Create or get the existing Cloud Map private DNS namespace for a project.
  * @param {string} projectName - The project name
  * @param {string} vpcId - VPC ID to associate the namespace with
- * @param {string} awsProfileName - IAM profile to use
  * @returns {Promise<string>} The namespace ID
  */
-async function ensureServiceDiscoveryNamespace(projectName, vpcId, awsProfileName) {
-  const client = createServiceDiscoveryClient(awsProfileName);
+async function ensureServiceDiscoveryNamespace(projectName, vpcId) {
+  const client = createServiceDiscoveryClient();
   const namespaceName = `${projectName}.local`;
 
   let listResponse;
@@ -110,11 +110,10 @@ async function ensureServiceDiscoveryNamespace(projectName, vpcId, awsProfileNam
  * Register an ECS service with Cloud Map so ECS keeps DNS records up to date.
  * @param {string} serviceName - The service name (e.g., 'message-queue')
  * @param {string} namespaceId - The Cloud Map namespace ID
- * @param {string} awsProfileName - IAM profile to use
  * @returns {Promise<string>} The service registry ARN for use in ECS service configuration
  */
-async function registerServiceWithDiscovery(serviceName, namespaceId, awsProfileName) {
-  const client = createServiceDiscoveryClient(awsProfileName);
+async function registerServiceWithDiscovery(serviceName, namespaceId) {
+  const client = createServiceDiscoveryClient();
 
   let listResponse;
   try {
@@ -161,13 +160,12 @@ async function registerServiceWithDiscovery(serviceName, namespaceId, awsProfile
 /**
  * Delete Cloud Map Service Discovery resources for a project (or all namespaces in armageddon mode).
  * Services must be deleted before their namespace can be removed.
- * @param {string} awsProfileName - IAM profile to use
  * @param {string} projectName - The project name (used to identify the namespace)
  * @param {string|null} killTag - Project name to scope deletion; null = delete everything
  * @returns {Promise<void>}
  */
-async function deleteServiceDiscovery(awsProfileName, projectName, killTag) {
-  const client = createServiceDiscoveryClient(awsProfileName);
+async function deleteServiceDiscovery(projectName, killTag) {
+  const client = createServiceDiscoveryClient();
   const namespaceName = `${projectName}.local`;
 
   console.log("Checking for Service Discovery resources to delete...");

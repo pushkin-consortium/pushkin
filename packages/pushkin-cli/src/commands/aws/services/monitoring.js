@@ -10,21 +10,21 @@ import {
   PutRetentionPolicyCommand,
 } from "@aws-sdk/client-cloudwatch-logs";
 import { AWSClientFactory } from "../utils/aws-client-factory.js";
+import { getAwsProfile } from "../utils/aws-profile.js";
 import { loadAwsConfig } from "../utils/aws-config.js";
 import { AWS_REGION } from "../constants.js";
 
-function createCloudWatchClient(awsProfileName) {
-  return new AWSClientFactory(AWS_REGION, awsProfileName).createClient(CloudWatchLogsClient);
+function createCloudWatchClient() {
+  return new AWSClientFactory(AWS_REGION, getAwsProfile()).createClient(CloudWatchLogsClient);
 }
 
 /**
  * Create CloudWatch log group for ECS.
- * @param {string} awsProfileName - The IAM role to use
  * @param {string} projectName - The project name
  * @returns {Promise<void>} - A promise that resolves when the log group is created
  */
-async function createLogGroup(awsProfileName, projectName) {
-  const cloudWatchLogsClient = createCloudWatchClient(awsProfileName);
+async function createLogGroup(projectName) {
+  const cloudWatchLogsClient = createCloudWatchClient();
   const logGroupName = `ecs/${projectName}`;
   try {
     await cloudWatchLogsClient.send(new CreateLogGroupCommand({ logGroupName }));

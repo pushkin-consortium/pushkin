@@ -17,19 +17,20 @@ import {
 import { createWaiter, WaiterState } from "@smithy/util-waiter";
 import { loadPushkinConfig, savePushkinConfig } from "../../../utils/pushkin-config.js";
 import { AWSClientFactory } from "../utils/aws-client-factory.js";
+import { getAwsProfile } from "../utils/aws-profile.js";
 import { loadAwsConfig } from "../utils/aws-config.js";
 import { readAwsResources, writeAwsResources } from "../utils/aws-resources.js";
 import { dbConfig } from "../awsConfigs.js";
 import { AWS_REGION, PROJECT_TAG_KEY } from "../constants.js";
 
-function createRDSClient(awsProfileName) {
-  return new AWSClientFactory(AWS_REGION, awsProfileName).createClient(RDSClient);
+function createRDSClient() {
+  return new AWSClientFactory(AWS_REGION, getAwsProfile()).createClient(RDSClient);
 }
 
-async function findDbInRds(dbName, awsProfileName, rdsClient = null) {
+async function findDbInRds(dbName, rdsClient = null) {
   try {
     if (!rdsClient) {
-      rdsClient = createRDSClient(awsProfileName);
+      rdsClient = createRDSClient();
     }
     const response = await rdsClient.send(
       new DescribeDBInstancesCommand({ DBInstanceIdentifier: dbName }),
@@ -46,7 +47,7 @@ async function findDbInRds(dbName, awsProfileName, rdsClient = null) {
 }
 
 function validateDbMatch(dbType, pushkinConfig, rdsDb) {
-  const yamlDb = pushkinConfig.productionDBs[dbType];
+  const yamlDb = pushkinConfig.databases.production[dbType];
   const mismatches = [];
   // Maps pushkin.yaml fields to their AWS RDS API equivalents for validation.
   // yamlPath/rdsPath use dot-notation for nested traversal (e.g. "Endpoint.Port").
@@ -106,7 +107,7 @@ function validateDbMatch(dbType, pushkinConfig, rdsDb) {
   return mismatches;
 }
 
-async function checkIfDbShouldBeCreated(dbName, dbType, awsProfileName) {
+async function checkIfDbShouldBeCreated(dbName, dbType) {
   let pushkinConfig;
   try {
     pushkinConfig = loadPushkinConfig();
@@ -116,11 +117,11 @@ async function checkIfDbShouldBeCreated(dbName, dbType, awsProfileName) {
   }
 
   const inYAML =
-    pushkinConfig.productionDBs &&
-    Object.keys(pushkinConfig.productionDBs).includes(dbType) &&
-    pushkinConfig.productionDBs[dbType].name === dbName;
+    pushkinConfig.databases.production &&
+    Object.keys(pushkinConfig.databases.production).includes(dbType) &&
+    pushkinConfig.databases.production[dbType].name === dbName;
 
-  const rdsDb = await findDbInRds(dbName, awsProfileName);
+  const rdsDb = await findDbInRds(dbName);
 
   if (inYAML && rdsDb) {
     // Case 1: In both YAML and RDS - validate they match
@@ -180,10 +181,10 @@ async function getDbConfig(dbName, dbType, verbose) {
   if (verbose) {
     console.log(
       `${dbName}: Returning existing database config:`,
-      pushkinConfig.productionDBs[dbType],
+      pushkinConfig.databases.production[dbType],
     );
   }
-  return pushkinConfig.productionDBs[dbType];
+  return pushkinConfig.databases.production[dbType];
 }
 
 /**
@@ -192,21 +193,22 @@ async function getDbConfig(dbName, dbType, verbose) {
  * 1. Generate database name
  * 2. Check if database should be created (validates against RDS and pushkin.yaml)
  * 3. Either create new database or return existing configuration
- * @param {string} dbType - The type of database (e.g., "Main", "Transaction")
+ * @param {string} dbType - The type of database (e.g., "experiment", "transaction")
  * @param {string} securityGroupID - The security group ID for the database
  * @param {string} projectName - The project name
- * @param {string} awsProfileName - The IAM profile to use
  * @param {boolean} verbose - Whether to log detailed information
  * @returns {Promise<object>} - The database configuration object
  */
-async function createDb(dbType, securityGroupID, projectName, awsProfileName, verbose = false) {
+async function createDb(dbType, securityGroupID, projectName, verbose = false) {
   console.log(`Creating ${dbType} database.`);
   const dbName = projectName
-    .concat(dbType)
-    .replace(/[^A-Za-z0-9]/g, "")
-    .toLowerCase(); // lowercase + alphanumeric to match RDS DB names
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .concat("-" + dbType + "-db"); // e.g. pushkinquickstart-experiment-db
 
-  const shouldCreate = await checkIfDbShouldBeCreated(dbName, dbType, awsProfileName);
+  const shouldCreate = await checkIfDbShouldBeCreated(dbName, dbType);
   if (!shouldCreate) {
     // Get existing DB's configuration from pushkin.yaml
     return await getDbConfig(dbName, dbType, verbose);
@@ -220,7 +222,7 @@ async function createDb(dbType, securityGroupID, projectName, awsProfileName, ve
   myDbConfig.MasterUserPassword = dbPassword;
   myDbConfig.Tags = [{ Key: PROJECT_TAG_KEY, Value: projectName }];
 
-  const rdsClient = createRDSClient(awsProfileName);
+  const rdsClient = createRDSClient();
 
   try {
     await rdsClient.send(new CreateDBInstanceCommand(myDbConfig));
@@ -271,7 +273,7 @@ async function createDb(dbType, securityGroupID, projectName, awsProfileName, ve
   try {
     await createWaiter(
       {
-        client: createRDSClient(awsProfileName),
+        client: createRDSClient(),
         maxWaitTime: endpoint.maxWaitTime,
         minDelay: endpoint.minDelay,
         maxDelay: endpoint.maxDelay,
@@ -330,19 +332,19 @@ async function getDbsInfo() {
     throw error;
   }
 
-  // Check if productionDBs exists and is an object
-  if (!pushkinConfig.productionDBs || typeof pushkinConfig.productionDBs !== "object") {
+  // Check if databases.production exists and is an object
+  if (!pushkinConfig.databases.production || typeof pushkinConfig.databases.production !== "object") {
     throw new Error(
-      `Error: No productionDBs found in pushkin.yaml. This suggests database creation did not complete properly.`,
+      `Error: No databases.production found in pushkin.yaml. This suggests database creation did not complete properly.`,
     );
   }
 
-  const dbKeys = Object.keys(pushkinConfig.productionDBs);
+  const dbKeys = Object.keys(pushkinConfig.databases.production);
 
   // Check if there's at least one database
   if (dbKeys.length === 0) {
     throw new Error(
-      `Error: productionDBs exists but is empty in pushkin.yaml. This suggests database creation did not complete properly.`,
+      `Error: databases.production exists but is empty in pushkin.yaml. This suggests database creation did not complete properly.`,
     );
   }
 
@@ -351,7 +353,7 @@ async function getDbsInfo() {
   // Build database info object keyed by type
   const dbsByType = {};
   for (const key of dbKeys) {
-    const db = pushkinConfig.productionDBs[key];
+    const db = pushkinConfig.databases.production[key];
 
     // Validate that the database has required fields
     if (!db.type) {
@@ -438,15 +440,14 @@ async function recordDbs(dbDone) {
       throw error;
     }
 
-    // Initialize productionDBs if it doesn't exist
-    if (pushkinConfig.productionDBs == null) {
-      pushkinConfig.productionDBs = {};
+    if (pushkinConfig.databases.production == null) {
+      pushkinConfig.databases.production = {};
     }
 
     // Record all databases using their type as the key
     databases.forEach((db) => {
       if (db && db.type) {
-        pushkinConfig.productionDBs[db.type] = db;
+        pushkinConfig.databases.production[db.type] = db;
         console.log(`Recorded ${db.type} database: ${db.name}`);
       } else {
         console.warn(`Skipping database with missing type:`, db);
@@ -470,14 +471,13 @@ async function recordDbs(dbDone) {
 
 /**
  * Get list of databases to delete.
- * @param {string} awsProfileName - The IAM profile to use
  * @param {string|null} killTag - Whether to delete only DBs tagged with project tag
  * @returns {Promise<Array<string>>} - List of database identifiers to delete
  */
-async function getDbsToDelete(awsProfileName, killTag) {
+async function getDbsToDelete(killTag) {
   let dbInstances;
   try {
-    const rdsClient = createRDSClient(awsProfileName);
+    const rdsClient = createRDSClient();
     const response = await rdsClient.send(new DescribeDBInstancesCommand({}));
     dbInstances = response.DBInstances ?? [];
   } catch (error) {
@@ -598,10 +598,9 @@ async function waitForDBsDeletion(dbNames, rdsClient) {
 /**
  * Delete specified list of databases.
  * @param {Promise<Array<string>>} dbs - Promise that resolves to list of database identifiers
- * @param {string} awsProfileName - The IAM profile to use
  * @returns {Promise<boolean>} - Promise that resolves when databases are deleted
  */
-async function deleteDbs(dbs, awsProfileName) {
+async function deleteDbs(dbs) {
   const resolvedDbs = await dbs;
 
   if (resolvedDbs.length === 0) {
@@ -609,11 +608,11 @@ async function deleteDbs(dbs, awsProfileName) {
     return true;
   }
 
-  const rdsClient = createRDSClient(awsProfileName);
+  const rdsClient = createRDSClient();
 
   console.log(`Checking which databases exist: ${resolvedDbs.join(", ")}`);
   const existingDbsInRds = await Promise.all(
-    resolvedDbs.map((dbName) => findDbInRds(dbName, awsProfileName, rdsClient)),
+    resolvedDbs.map((dbName) => findDbInRds(dbName, rdsClient)),
   );
   const existingDbs = resolvedDbs.filter((_, i) => existingDbsInRds[i]);
 
