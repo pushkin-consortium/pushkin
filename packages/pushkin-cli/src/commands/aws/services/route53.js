@@ -13,24 +13,24 @@ import { Route53DomainsClient, ListDomainsCommand } from "@aws-sdk/client-route-
 import { createWaiter, WaiterState } from "@smithy/util-waiter";
 import { loadPushkinConfig } from "../../../utils/pushkin-config.js";
 import { AWSClientFactory } from "../utils/aws-client-factory.js";
+import { getAwsProfile } from "../utils/aws-profile.js";
 import { loadAwsConfig } from "../utils/aws-config.js";
 import { AWS_REGION } from "../constants.js";
 
-function createRoute53Client(awsProfileName) {
-  return new AWSClientFactory(AWS_REGION, awsProfileName).createClient(Route53Client);
+function createRoute53Client() {
+  return new AWSClientFactory(AWS_REGION, getAwsProfile()).createClient(Route53Client);
 }
 
-function createRoute53DomainsClient(awsProfileName) {
-  return new AWSClientFactory(AWS_REGION, awsProfileName).createClient(Route53DomainsClient);
+function createRoute53DomainsClient() {
+  return new AWSClientFactory(AWS_REGION, getAwsProfile()).createClient(Route53DomainsClient);
 }
 
 /**
  * List all registered domains in Route53 for the given AWS profile.
- * @param {string} awsProfileName - The IAM profile name
  * @returns {Promise<object>} - A promise that resolves to the list of registered domains
  */
-async function listDomains(awsProfileName) {
-  const route53DomainsClient = createRoute53DomainsClient(awsProfileName);
+async function listDomains() {
+  const route53DomainsClient = createRoute53DomainsClient();
   return await route53DomainsClient.send(new ListDomainsCommand({}));
 }
 /**
@@ -38,35 +38,29 @@ async function listDomains(awsProfileName) {
  * WHY: A user may configure a subdomain (e.g. something.gameswithwords.org) but the hosted zone is
  * registered for the parent domain (gameswithwords.org). We walk up the domain tree until we find a match.
  * @param {string} domain - Domain to look up
- * @param {string} awsProfileName - IAM profile to use
  * @returns {Promise<string>} Hosted zone ID
  */
-async function findHostedZone(domain, awsProfileName) {
+async function findHostedZone(domain) {
   // NOTE: Possible future improvement: if we find a parent domain match, we could ask the user if
   // they want to create a new hosted zone for the subdomain (if they have permissions to do so) in
   // order to keep the site's DNS records separate and avoid potential conflicts with other projects
   // using the same parent domain.
   console.log(`Retrieving hosted zone ID for ${domain}`);
-  const route53Client = createRoute53Client(awsProfileName);
+  const route53Client = createRoute53Client();
   let zoneDomain = domain;
 
   while (true) {
     let matchingZone;
-    try {
-      let params = { DNSName: zoneDomain };
-      let response;
-      do {
-        response = await route53Client.send(new ListHostedZonesByNameCommand(params));
-        matchingZone = response.HostedZones.find((zone) => {
-          const zoneName = zone.Name.endsWith(".") ? zone.Name.slice(0, -1) : zone.Name;
-          return zoneName === zoneDomain || domain.endsWith("." + zoneName);
-        });
-        params = { DNSName: response.NextDNSName, HostedZoneId: response.NextHostedZoneId };
-      } while (!matchingZone && response.IsTruncated);
-    } catch (error) {
-      console.error(`Unable to retrieve hosted zone for ${zoneDomain}:`, error);
-      throw error;
-    }
+    let params = { DNSName: zoneDomain };
+    let response;
+    do {
+      response = await route53Client.send(new ListHostedZonesByNameCommand(params));
+      matchingZone = response.HostedZones.find((zone) => {
+        const zoneName = zone.Name.endsWith(".") ? zone.Name.slice(0, -1) : zone.Name;
+        return zoneName === zoneDomain || domain.endsWith("." + zoneName);
+      });
+      params = { DNSName: response.NextDNSName, HostedZoneId: response.NextHostedZoneId };
+    } while (!matchingZone && response.IsTruncated);
 
     if (matchingZone) {
       const zoneID = matchingZone.Id.split("/hostedzone/")[1];
@@ -90,24 +84,18 @@ async function findHostedZone(domain, awsProfileName) {
  * route traffic to the site.
  * @param {string} domainName - The domain name
  * @param {string} projectName - The project name
- * @param {string} awsProfileName - The IAM profile to use
  * @param {{DomainName: string}} theCloud - The CloudFront distribution object
  * @returns {Promise<object>} - A promise that resolves with the ChangeResourceRecordSets response
  */
-async function makeRecordSet(domainName, projectName, awsProfileName, theCloud) {
-  const zoneID = await findHostedZone(domainName, awsProfileName);
-  const route53 = createRoute53Client(awsProfileName);
+async function makeRecordSet(domainName, projectName, theCloud) {
+  const zoneID = await findHostedZone(domainName);
+  const route53 = createRoute53Client();
 
   // If there was a failed init, there may already be resource record sets
   // which will cause this to fail. So, we'll try to delete them first.
-  let existingRecords;
-  try {
-    const data = await route53.send(new ListResourceRecordSetsCommand({ HostedZoneId: zoneID }));
-    existingRecords = data.ResourceRecordSets;
-  } catch (error) {
-    console.error(`Unable to list resource record sets for ${domainName}:`, error);
-    throw error;
-  }
+  const { ResourceRecordSets: existingRecords } = await route53.send(
+    new ListResourceRecordSetsCommand({ HostedZoneId: zoneID }),
+  );
 
   if (existingRecords.length > 0) {
     // Filter out NS and SOA records - these are required and cannot be deleted
@@ -209,21 +197,14 @@ async function makeRecordSet(domainName, projectName, awsProfileName, theCloud) 
     },
   );
 
-  let recordSetChange;
-  try {
-    console.log(`Creating resource record sets for ${domainName}`);
-    recordSetChange = await route53.send(
-      new ChangeResourceRecordSetsCommand({
-        HostedZoneId: zoneID,
-        ChangeBatch: recordSet,
-      }),
-    );
-    console.log(`Updated record set for ${domainName}.`);
-  } catch (error) {
-    console.error(`Unable to create resource record set for ${domainName}:`, error);
-    throw error;
-  }
-
+  console.log(`Creating resource record sets for ${domainName}`);
+  const recordSetChange = await route53.send(
+    new ChangeResourceRecordSetsCommand({
+      HostedZoneId: zoneID,
+      ChangeBatch: recordSet,
+    }),
+  );
+  console.log(`Updated record set for ${domainName}.`);
   return recordSetChange;
 }
 
@@ -231,25 +212,18 @@ async function makeRecordSet(domainName, projectName, awsProfileName, theCloud) 
  * Delete all Route53 resource records for the current project's domain.
  * WHY: We want to clean up DNS records when tearing down the project to avoid future projects
  * accidentally reusing them and to keep the hosted zone tidy.
- * @param {string} awsProfileName - The IAM profile to use
  * @param {string|null} killTag - Project name to filter by; if null/falsy, deletes all records with a SetIdentifier
  * @param {string} projectName - The project name
  */
-async function deleteResourceRecords(awsProfileName, killTag, projectName) {
-  let pushkinConfig;
-  try {
-    pushkinConfig = loadPushkinConfig();
-  } catch (error) {
-    console.error(`Failed to load pushkin.yaml:`, error);
-    throw error;
-  }
+async function deleteResourceRecords(killTag, projectName) {
+  const pushkinConfig = loadPushkinConfig();
   const myDomain = pushkinConfig.info.rootDomain;
 
   console.log(`Deleting resource records for ${myDomain}`);
 
   let zoneID;
   try {
-    zoneID = await findHostedZone(myDomain, awsProfileName);
+    zoneID = await findHostedZone(myDomain);
   } catch (error) {
     if (error.message.startsWith("No hosted zone found")) {
       console.warn(`No hosted zone found for ${myDomain}`);
@@ -258,33 +232,28 @@ async function deleteResourceRecords(awsProfileName, killTag, projectName) {
     throw error;
   }
 
-  const route53Client = createRoute53Client(awsProfileName);
+  const route53Client = createRoute53Client();
   const changes = [];
 
-  try {
-    let isTruncated = true;
-    let nextRecordName;
-    let nextRecordType;
-    while (isTruncated) {
-      const response = await route53Client.send(
-        new ListResourceRecordSetsCommand({
-          HostedZoneId: zoneID,
-          StartRecordName: nextRecordName,
-          StartRecordType: nextRecordType,
-        }),
-      );
-      for (const rr of response.ResourceRecordSets) {
-        if (rr.SetIdentifier === projectName || (!killTag && rr.SetIdentifier)) {
-          changes.push({ Action: "DELETE", ResourceRecordSet: rr });
-        }
+  let isTruncated = true;
+  let nextRecordName;
+  let nextRecordType;
+  while (isTruncated) {
+    const response = await route53Client.send(
+      new ListResourceRecordSetsCommand({
+        HostedZoneId: zoneID,
+        StartRecordName: nextRecordName,
+        StartRecordType: nextRecordType,
+      }),
+    );
+    for (const rr of response.ResourceRecordSets) {
+      if (rr.SetIdentifier === projectName || (!killTag && rr.SetIdentifier)) {
+        changes.push({ Action: "DELETE", ResourceRecordSet: rr });
       }
-      isTruncated = response.IsTruncated;
-      nextRecordName = response.NextRecordName;
-      nextRecordType = response.NextRecordType;
     }
-  } catch (error) {
-    console.error(`Unable to retrieve resource records for ${myDomain}:`, error);
-    throw error;
+    isTruncated = response.IsTruncated;
+    nextRecordName = response.NextRecordName;
+    nextRecordType = response.NextRecordType;
   }
 
   if (changes.length === 0) return true;
@@ -301,29 +270,28 @@ async function deleteResourceRecords(awsProfileName, killTag, projectName) {
  * Create a Route53 A record pointing api.{domain} at the load balancer.
  * Awaits configuredECS and deployedFrontEnd before creating the DNS record — the front-end
  * setup creates a record set for the domain, and we must not overwrite it prematurely.
- * Skipped entirely if myDomain is null (no custom domain).
- * @param {Promise<{loadBalancerEndpoint: string, loadBalancerZone: string}>} configuredECS
- * @param {string} awsProfileName – The IAM profile to use
+ * Skipped entirely if siteDomain is null (no custom domain).
+ * @param {Promise<{loadBalancerEndpoint: string, loadBalancerZone: string}>} configuredEcs
  * @param {string} projectName – The project name
- * @param {string} myDomain – The root domain for the site (e.g. gameswithwords.org)
+ * @param {string} siteDomain – The root domain for the site (e.g. gameswithwords.org)
  * @param {Promise} deployedFrontEnd – A promise that resolves when the front-end is deployed
  */
-async function forwardAPI(configuredEcs, awsProfileName, projectName, myDomain, deployedFrontEnd) {
+async function forwardAPI(configuredEcs, projectName, siteDomain, deployedFrontEnd) {
   const { loadBalancerEndpoint, loadBalancerZone } = await configuredEcs;
   await deployedFrontEnd;
 
-  if (!myDomain) return true;
+  if (!siteDomain) return true;
 
-  const zoneID = await findHostedZone(myDomain, awsProfileName);
+  const zoneID = await findHostedZone(siteDomain);
 
-  console.log(`Updating record set for ${myDomain} in order to forward API`);
+  console.log(`Updating record set for ${siteDomain} in order to forward API`);
   const recordSet = {
     Comment: "",
     Changes: [
       {
         Action: "UPSERT",
         ResourceRecordSet: {
-          Name: `api.${myDomain}`,
+          Name: `api.${siteDomain}`,
           Type: "A",
           Region: AWS_REGION,
           SetIdentifier: projectName,
@@ -336,20 +304,14 @@ async function forwardAPI(configuredEcs, awsProfileName, projectName, myDomain, 
       },
     ],
   };
-  try {
-    const route53Client = createRoute53Client(awsProfileName);
-    await route53Client.send(
-      new ChangeResourceRecordSetsCommand({
-        HostedZoneId: zoneID,
-        ChangeBatch: recordSet,
-      }),
-    );
-    console.log(`Updated record set for ${myDomain}.`);
-  } catch (error) {
-    console.error(`Unable to create resource record set for ${myDomain}:`, error);
-    throw error;
-  }
-
+  const route53Client = createRoute53Client();
+  await route53Client.send(
+    new ChangeResourceRecordSetsCommand({
+      HostedZoneId: zoneID,
+      ChangeBatch: recordSet,
+    }),
+  );
+  console.log(`Updated record set for ${siteDomain}.`);
   return true;
 }
 
