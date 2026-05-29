@@ -98,16 +98,24 @@ async function updateDeploymentConfig(
   pushkinConfig.info.rootDomain = siteDomain;
   pushkinConfig.info.sslCertificate = sslCertificate;
 
+  if (pushkinConfig.databases?.production) {
+    for (const db of Object.values(pushkinConfig.databases.production)) {
+      db.name = null;
+      db.url = null;
+      db.pass = null;
+      // Leave port and user in place, since those are unlikely to change
+    }
+  }
+
   await savePushkinConfig(pushkinConfig);
 
-  console.log(`Successfully updated pushkin.yaml with deployment information.`);
   return pushkinConfig;
 }
 
 /**
  * Configure deployment settings by gathering user input and updating pushkin.yaml.
- * @param {string} projectName - Name of the project
- * @param {string} s3BucketName - Name of the S3 bucket
+ * @param {string} projectName
+ * @param {string} s3BucketName
  */
 async function configureDeployment(projectName, s3BucketName) {
   const pushkinConfig = loadPushkinConfig();
