@@ -82,8 +82,8 @@ async function findHostedZone(domain) {
  * Creates four Route53 DNS records for the specified domain pointing to the CloudFront distribution.
  * WHY: We need four records (A and AAAA for both the root domain and www subdomain) to properly
  * route traffic to the site.
- * @param {string} domainName - The domain name
- * @param {string} projectName - The project name
+ * @param {string} domainName
+ * @param {string} projectName
  * @param {{DomainName: string}} theCloud - The CloudFront distribution object
  * @returns {Promise<object>} - A promise that resolves with the ChangeResourceRecordSets response
  */
@@ -213,7 +213,7 @@ async function makeRecordSet(domainName, projectName, theCloud) {
  * WHY: We want to clean up DNS records when tearing down the project to avoid future projects
  * accidentally reusing them and to keep the hosted zone tidy.
  * @param {string|null} killTag - Project name to filter by; if null/falsy, deletes all records with a SetIdentifier
- * @param {string} projectName - The project name
+ * @param {string} projectName
  */
 async function deleteResourceRecords(killTag, projectName) {
   const pushkinConfig = loadPushkinConfig();

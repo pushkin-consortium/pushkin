@@ -57,7 +57,7 @@ async function waitForOperation(client, operationId, description) {
 
 /**
  * Create or get the existing Cloud Map private DNS namespace for a project.
- * @param {string} projectName - The project name
+ * @param {string} projectName
  * @param {string} vpcId - VPC ID to associate the namespace with
  * @returns {Promise<string>} The namespace ID
  */

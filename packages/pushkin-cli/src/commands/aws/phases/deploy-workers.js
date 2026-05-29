@@ -11,10 +11,10 @@ import { forwardAPI } from "../services/route53.js";
 /**
  * Rebuild and publish Docker workers, then configure API routing.
  * @param {object} options
- * @param {string} options.DockerHubId - DockerHub ID
- * @param {string} options.projectName - Project name
- * @param {string} options.siteDomain - Domain name
- * @param {string} options.experimentsDir - Path to experiments directory
+ * @param {string} options.DockerHubId
+ * @param {string} options.projectName
+ * @param {string} options.siteDomain
+ * @param {string} options.experimentsDir
  * @param {Promise} options.configuredEcs - Promise resolving when ECS is configured
  * @param {Promise} options.deployedFrontEnd - Promise resolving when frontend is deployed (ensures Route53 hosted zone exists before API record is created)
  */

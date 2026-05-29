@@ -159,7 +159,7 @@ async function verifyawsProfileName() {
  * Ensure a named security group exists, creating it with the given ingress rules if not.
  * WHY: All three Pushkin security groups (database, balancer, ECS) share the same
  * create-if-missing pattern and differ only in name, description, and port rules.
- * @param {string} projectName - The project name
+ * @param {string} projectName
  * @param {string} groupSuffix - Appended to projectName to form the group name
  * @param {string} description - Security group description
  * @param {Array} ipPermissions - Ingress rules passed to AuthorizeSecurityGroupIngress
@@ -219,7 +219,7 @@ async function ensureSecurityGroup(
  * Ensure project-specific database security group exists (creates if missing).
  * WHY: Each project needs its own database security group for network isolation between projects.
  * NOTE: Allows PostgreSQL (5432) from anywhere — quite permissive; VPC-only would be more restrictive.
- * @param {string} projectName - The project name
+ * @param {string} projectName
  * @returns {Promise<string>} - The security group ID
  */
 async function ensureDatabaseSecurityGroup(projectName) {
@@ -242,7 +242,7 @@ async function ensureDatabaseSecurityGroup(projectName) {
 /**
  * Ensure project-specific load balancer security group exists (creates if missing).
  * WHY: Each project needs its own load balancer security group for network isolation.
- * @param {string} projectName - The project name
+ * @param {string} projectName
  * @returns {Promise<string>} - The security group ID
  */
 async function ensureBalancerSecurityGroup(projectName) {
@@ -271,7 +271,7 @@ async function ensureBalancerSecurityGroup(projectName) {
 /**
  * Ensure project-specific ECS security group exists (creates if missing).
  * WHY: Each project needs its own ECS security group for network isolation.
- * @param {string} projectName - The project name
+ * @param {string} projectName
  * @returns {Promise<string>} - The security group ID
  */
 async function ensureEcsSecurityGroup(projectName) {

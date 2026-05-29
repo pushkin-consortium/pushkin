@@ -19,8 +19,8 @@ import { createLogGroup } from "../../services/monitoring.js";
  * - ECS cluster: resources that will run the Fargate tasks for the API, RabbitMQ, and experiment workers
  * - Load balancer: the public DNS entry point for the deployed API and workers
  * - ECS task definitions and services: defines how to run the API, RabbitMQ, and experiment workers on Fargate
- * @param {string} projectName - The project name
- * @param {string} DockerHubId - Docker Hub ID to pull images from Docker with
+ * @param {string} projectName
+ * @param {string} DockerHubId
  * @param {string} sslCertificate - The SSL certificate for terminating HTTPS traffic at the load balancer
  * @param {Promise} dbSetup - A promise that resolves when databases are set up
  * @returns {Promise<{loadBalancerEndpoint: string, loadBalancerZone: string}>}

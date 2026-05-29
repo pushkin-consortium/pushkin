@@ -34,7 +34,7 @@ import { AWS_REGION } from "../constants.js";
 
 /**
  * Set up CloudWatch alarms, SNS notifications, and an autoscaling policy for a deployed site.
- * @param {string} projectName - Project name
+ * @param {string} projectName
  */
 export async function createAutoScale(projectName) {
   const shortName = projectName.replace(/[^A-Za-z0-9]/g, "");

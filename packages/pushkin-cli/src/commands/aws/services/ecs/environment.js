@@ -10,7 +10,7 @@ import { rabbitTask, apiTask, workerTask } from "../../awsConfigs.js";
 
 /**
  * Build a configured RabbitMQ task definition
- * @param {string} projectName - Project name
+ * @param {string} projectName
  * @param {string} rabbitUser - RabbitMQ username
  * @param {string} rabbitPW - RabbitMQ password
  * @param {string} rabbitCookie - RabbitMQ Erlang cookie
@@ -29,8 +29,8 @@ function buildRabbitTask(projectName, rabbitUser, rabbitPW, rabbitCookie) {
 
 /**
  * Build a configured API task definition
- * @param {string} projectName - Project name
- * @param {string} DockerHubId - Docker Hub ID
+ * @param {string} projectName
+ * @param {string} DockerHubId
  * @param {string} rabbitAddress - Full AMQP connection string
  * @returns {object} Configured Docker Compose service definition
  */
@@ -46,8 +46,8 @@ function buildAPITask(projectName, DockerHubId, rabbitAddress) {
 /**
  * Build a configured worker task definition for a single experiment worker
  * @param {string} workerName - Worker service name (experiment name)
- * @param {string} projectName - Project name
- * @param {string} DockerHubId - Docker Hub ID
+ * @param {string} projectName
+ * @param {string} DockerHubId
  * @param {string} rabbitAddress - Full AMQP connection string
  * @param {object} dbInfoByTask - Database connection info, keyed by DB type (Main, Transaction)
  * @returns {object} Configured Docker Compose service definition

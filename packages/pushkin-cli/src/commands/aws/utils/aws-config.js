@@ -257,7 +257,7 @@ export function getDefaultConfig() {
 /**
  * Validate configuration values
  * Returns array of validation errors, empty if valid
- * @param {object} config - Configuration object to validate
+ * @param {object} config
  * @returns {Array<string>} - Array of error messages
  */
 export function validateConfig(config) {

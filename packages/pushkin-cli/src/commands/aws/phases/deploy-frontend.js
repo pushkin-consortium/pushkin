@@ -21,7 +21,7 @@ import { makeRecordSet } from "../services/route53.js";
  * @param {string} options.s3BucketName - The S3 bucket name (sanitized, globally unique, AWS-compliant)
  * @param {string|null} options.domainName - The domain name, or null to skip custom domain setup
  * @param {string} options.sslCertificate - The ACM certificate ARN
- * @param {string} options.projectName - The Pushkin project name
+ * @param {string} options.projectName
  * @param {Promise} options.builtFrontEnd - Promise that resolves when the front-end build is complete
  * @returns {Promise<string>} The CloudFront domain name for the deployed front-end
  */

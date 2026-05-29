@@ -20,7 +20,7 @@ function createCloudWatchClient() {
 
 /**
  * Create CloudWatch log group for ECS.
- * @param {string} projectName - The project name
+ * @param {string} projectName
  * @returns {Promise<void>} - A promise that resolves when the log group is created
  */
 async function createLogGroup(projectName) {

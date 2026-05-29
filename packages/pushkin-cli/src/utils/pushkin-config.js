@@ -1,7 +1,6 @@
 /**
  * Pushkin Config File Manager
  * Utility module for reading and writing the pushkin.yaml configuration file.
- * Assumes pushkin.yaml is located at the root of the project directory.
  * @module pushkin-config
  */
 
@@ -28,8 +27,9 @@ function getPushkinConfigPath() {
 
   throw new Error("No pushkin project found here or in any parent directories");
 }
+
 /**
- * Loads and parses pushkin.yaml
+ * Loads and parses pushkin.yaml.
  * @returns {object} Parsed configuration object
  * @throws {Error} If file cannot be read or parsed
  */
@@ -65,11 +65,17 @@ function loadPushkinConfig() {
 function savePushkinConfig(config) {
   try {
     const filePath = getPushkinConfigPath();
-    fs.writeFileSync(filePath, jsYaml.dump(config), "utf8");
+    const projectRoot = path.dirname(filePath);
+    const configToWrite = { ...config };
+    for (const field of ["usersDir", "experimentsDir", "coreDir"]) {
+      if (configToWrite[field] != null && path.isAbsolute(configToWrite[field])) {
+        configToWrite[field] = path.relative(projectRoot, configToWrite[field]);
+      }
+    }
+    fs.writeFileSync(filePath, jsYaml.dump(configToWrite), "utf8");
   } catch (error) {
     throw new Error(`Failed to write pushkin.yaml: ${error.message}`);
   }
 }
 
-// Export functions
 export { getPushkinConfigPath, loadPushkinConfig, savePushkinConfig };

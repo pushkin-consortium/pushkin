@@ -9,18 +9,14 @@ import { createDb, recordDbs } from "../services/rds.js";
 
 /**
  * Provisions databases for the AWS deployment.
- * @param {string} projectName - The name of the project.
+ * @param {string} projectName
  * @returns {Promise<object>} - A promise that resolves to the completed databases.
  */
 async function provisionDbs(projectName) {
   const securityGroupID = await ensureDatabaseSecurityGroup(projectName);
 
   const initializedMainDb = createDb("experiment", securityGroupID, projectName);
-  const initializedTransactionDb = createDb(
-    "transaction",
-    securityGroupID,
-    projectName,
-  );
+  const initializedTransactionDb = createDb("transaction", securityGroupID, projectName);
 
   const dbSetup = await recordDbs(Promise.all([initializedMainDb, initializedTransactionDb]));
 

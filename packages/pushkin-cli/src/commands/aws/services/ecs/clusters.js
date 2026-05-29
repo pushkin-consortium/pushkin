@@ -128,7 +128,7 @@ async function deleteStack(killTag) {
  * Delete ECS cluster(s) and all running tasks and services within them.
  * Deletes CloudFormation stacks first, then stops tasks and services before removing clusters.
  * @param {string|null} killTag - If set, only delete the cluster for this project
- * @param {string} projectName - Project name
+ * @param {string} projectName
  * @param {object} awsResources - Tracked AWS resource IDs
  * @returns {Promise} Resolves when clusters are deleted
  */

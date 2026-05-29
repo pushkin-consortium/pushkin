@@ -195,7 +195,7 @@ async function getDbConfig(dbName, dbType, verbose) {
  * 3. Either create new database or return existing configuration
  * @param {string} dbType - The type of database (e.g., "experiment", "transaction")
  * @param {string} securityGroupID - The security group ID for the database
- * @param {string} projectName - The project name
+ * @param {string} projectName
  * @param {boolean} verbose - Whether to log detailed information
  * @returns {Promise<object>} - The database configuration object
  */

@@ -184,10 +184,10 @@ async function deployService(name, task, context, loadBalancer = null, serviceRe
  * @param {string} options.vpcId - VPC ID for Cloud Map Service Discovery namespace
  * @param {Array<string>} options.subnets - Array of subnet IDs for Fargate tasks
  * @param {string} options.securityGroupId - Security group ID for Fargate tasks
- * @param {string} options.DockerHubId - The DockerHub ID
- * @param {string} options.targetGroupArn - The target group ARN
+ * @param {string} options.DockerHubId
+ * @param {string} options.targetGroupArn
  * @param {Promise} options.dbSetup - Resolves when the databases are ready
- * @param {string} options.projectName - The name of the project (for tagging)
+ * @param {string} options.projectName
  * @returns {Promise} Resolves when all services are deployed
  */
 async function createEcsTask({

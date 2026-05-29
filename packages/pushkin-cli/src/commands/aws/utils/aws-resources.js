@@ -36,7 +36,7 @@ export function readAwsResources() {
 
 /**
  * Writes awsResources.js file to the current project
- * @param {object} awsResources - The awsResources object to write
+ * @param {object} awsResources
  * @throws {Error} If file cannot be written
  */
 export function writeAwsResources(awsResources) {
@@ -51,8 +51,8 @@ export function writeAwsResources(awsResources) {
 
 /**
  * Updates a specific field in awsResources.js
- * @param {string} field - The field to update
- * @param {*} value - The value to set
+ * @param {string} field
+ * @param {*} value
  * @throws {Error} If file cannot be read or written
  */
 export function updateAwsResourcesField(field, value) {
