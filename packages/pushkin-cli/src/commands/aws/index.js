@@ -1,7 +1,3 @@
-import { v4 as uuid } from "uuid";
-import fs from "graceful-fs";
-import path from "path";
-import jsYaml from "js-yaml";
 import { configureDeployment } from "./phases/configure-deployment.js";
 import { provisionDbs } from "./phases/provision-databases.js";
 import { setupBackend } from "./phases/provision-backend.js";
@@ -10,18 +6,22 @@ import { deployFrontEnd } from "./phases/deploy-frontend.js";
 import { deployWorkers } from "./phases/deploy-workers.js";
 import { cleanupResources } from "./phases/cleanup.js";
 import { listAllResources, getProjectStatus } from "./phases/status.js";
-import { verifyawsProfileName } from "./services/security.js";
+import { verifyAwsProfileName } from "./services/security.js";
 import { buildFrontend } from "./services/s3.js";
+import { readAwsResources, writeAwsResources } from "./utils/aws-resources.js";
 import { updatePushkinJs } from "../prep/index.js";
 
 export { createAutoScale } from "./subcommands/autoscale.js";
 export { getProjectStatus as awsStatus };
 
 /**
- *
+ *  Initialize a new Pushkin project on AWS, including S3 bucket, CloudFront distribution, RDS databases, and ECS backend.
+ * @param {string} projectName
+ * @param {string} s3BucketName
+ * @param {string} DockerHubId
  */
 async function awsInit(projectName, s3BucketName, DockerHubId) {
-  await verifyawsProfileName();
+  await verifyAwsProfileName();
   const { updatedConfig, siteDomain, sslCertificate } = await configureDeployment(
     projectName,
     s3BucketName,
@@ -65,93 +65,10 @@ async function awsInit(projectName, s3BucketName, DockerHubId) {
 /**
  *
  */
-async function nameProject(projectName) {
-  console.log(`Recording project name`);
-  let awsResources = {};
-  let stdOut, temp, pushkinConfig;
-  awsResources.name = projectName;
-  // make a name for use as a bucket (AWS has rules)
-  temp = projectName
-    .replace(/[^\w\s]/g, "")
-    .replace(/ /g, "-")
-    .replace(/_/g, "-")
-    .concat(uuid())
-    .toLowerCase();
-  if (temp.search(/[a-zA-Z]/g) != 0) {
-    temp = "p".concat(temp);
-  }
-  awsResources.awsName = temp;
-  try {
-    stdOut = fs.writeFileSync(
-      path.join(process.cwd(), "awsResources.js"),
-      jsYaml.dump(awsResources),
-      "utf8",
-    );
-  } catch (e) {
-    console.error(
-      `Could not write to the pushkin CLI's AWS config file. This is a very strange error. Please contact the dev team.`,
-    );
-    throw e;
-  }
-
-  console.log("Resetting db info");
-  try {
-    pushkinConfig = jsYaml.load(fs.readFileSync(path.join(process.cwd(), "pushkin.yaml"), "utf8"));
-  } catch (e) {
-    console.error(`Couldn't load pushkin.yaml`);
-    throw e;
-  }
-
-  if (pushkinConfig.databases?.production) {
-    Object.keys(pushkinConfig.databases.production).forEach((db) => {
-      pushkinConfig.databases.production[db].name = null;
-      pushkinConfig.databases.production[db].url = null;
-      pushkinConfig.databases.production[db].pass = null;
-      // Leave port and user in place, since those are unlikely to change
-    });
-    try {
-      fs.promises.writeFile(
-        path.join(process.cwd(), "pushkin.yaml"),
-        jsYaml.dump(pushkinConfig),
-        "utf8",
-      );
-    } catch (e) {
-      console.error(`Couldn't save pushkin.yaml`);
-      throw e;
-    }
-  }
-
-  return awsResources.awsName;
-}
-
-/**
- *
- */
 async function addIAM(iam) {
-  let awsResources;
-  try {
-    awsResources = jsYaml.load(
-      fs.readFileSync(path.join(process.cwd(), "awsResources.js"), "utf8"),
-    );
-  } catch (e) {
-    console.error(
-      `Could not read the pushkin CLI's AWS config file. This is a very strange error. Please contact the dev team.`,
-    );
-    throw e;
-  }
+  const awsResources = readAwsResources();
   awsResources.iam = iam;
-  try {
-    fs.writeFileSync(
-      path.join(process.cwd(), "awsResources.js"),
-      jsYaml.dump(awsResources),
-      "utf8",
-    );
-  } catch (e) {
-    console.error(
-      `Could not write to the pushkin CLI's AWS config file. This is a very strange error. Please contact the dev team.`,
-    );
-    throw e;
-  }
+  writeAwsResources(awsResources);
 }
 
 /**
@@ -169,4 +86,4 @@ async function awsList() {
   return listAllResources();
 }
 
-export { awsInit, nameProject, addIAM, awsArmageddon, awsList };
+export { awsInit, addIAM, awsArmageddon, awsList };
