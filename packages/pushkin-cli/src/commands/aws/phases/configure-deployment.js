@@ -93,19 +93,11 @@ async function updateDeploymentConfig(
   siteDomain,
   sslCertificate,
 ) {
+  if (!pushkinConfig.info) pushkinConfig.info = {};
   pushkinConfig.info.projectName = projectName;
   pushkinConfig.info.s3BucketName = s3BucketName;
   pushkinConfig.info.rootDomain = siteDomain;
   pushkinConfig.info.sslCertificate = sslCertificate;
-
-  if (pushkinConfig.databases?.production) {
-    for (const db of Object.values(pushkinConfig.databases.production)) {
-      db.name = null;
-      db.url = null;
-      db.pass = null;
-      // Leave port and user in place, since those are unlikely to change
-    }
-  }
 
   await savePushkinConfig(pushkinConfig);
 
