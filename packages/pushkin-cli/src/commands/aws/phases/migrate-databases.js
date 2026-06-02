@@ -5,13 +5,9 @@
  */
 
 import path from "path";
-import { fileURLToPath } from "url";
 import { runMigrations, getMigrations } from "../../../utils/db-migrations.js";
 
-const TRANSACTION_MIGRATIONS_DIR = path.join(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "../../../utils/transaction-migrations",
-);
+const TRANSACTION_MIGRATIONS_DIR = path.join(__dirname, "../../../utils/transaction-migrations");
 
 async function migrateExperimentDb(dbConfig) {
   const experimentMigrations = await getMigrations(
