@@ -4,7 +4,7 @@ import jsYaml from "js-yaml";
 import knex from "knex";
 import { URL } from "url";
 
-const ensureProductionDBField = function (configPath, verbose) {
+function ensureProductionDbField(configPath, verbose) {
   let config;
   try {
     const configFileContents = fs.readFileSync(configPath, "utf8");
@@ -23,7 +23,69 @@ const ensureProductionDBField = function (configPath, verbose) {
       throw e;
     }
   }
-};
+}
+
+async function waitForDbReady(knexInstance, dbType, maxRetries = 10) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      await knexInstance.raw("SELECT 1");
+      console.log(`Database ${dbType} is ready for connections`);
+      return;
+    } catch (error) {
+      const waitTime = Math.min(1000 * Math.pow(2, i), 30000);
+      console.log(
+        `Database ${dbType} not ready yet (attempt ${i + 1}/${maxRetries}), waiting ${waitTime}ms...`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, waitTime));
+
+      if (i === maxRetries - 1) {
+        throw new Error(
+          `Database ${dbType} did not become ready after ${maxRetries} attempts: ${error.message}`,
+        );
+      }
+    }
+  }
+}
+
+/**
+ * Build Knex configuration object for database connection.
+ * @param {object} dbInfo - Database connection info (url, user, port, pass, name)
+ * @returns {object} Knex configuration object
+ */
+function buildKnexConfig(dbInfo) {
+  let parsedHost;
+  try {
+    parsedHost = new URL(dbInfo.host).hostname;
+  } catch {
+    parsedHost = dbInfo.host;
+  }
+  return {
+    client: "pg",
+    version: "11",
+    connection: {
+      host: dbInfo.host,
+      user: dbInfo.user,
+      port: dbInfo.port,
+      password: dbInfo.password,
+      database: dbInfo.database,
+      ssl:
+        parsedHost && parsedHost.endsWith(".rds.amazonaws.com") ?
+          { rejectUnauthorized: false }
+        : false,
+    },
+    pool: {
+      min: 0,
+      max: 5,
+      acquireTimeoutMillis: 60000,
+      createTimeoutMillis: 60000,
+      destroyTimeoutMillis: 5000,
+      idleTimeoutMillis: 30000,
+      reapIntervalMillis: 1000,
+      createRetryIntervalMillis: 200,
+    },
+    acquireConnectionTimeout: 60000,
+  };
+}
 
 /**
  * Collects all database migration and seed files from the users directory and experiments directory,
@@ -37,11 +99,11 @@ const ensureProductionDBField = function (configPath, verbose) {
  *   Map of database names to arrays of migration/seed directory paths
  * @throws {Error} If config files cannot be read or parsed
  */
-export async function getMigrations(usersDir, experimentsDir, production, verbose) {
+async function getMigrations(usersDir, experimentsDir, production, verbose) {
   const dbsToExps = new Map();
 
   const usersConfigPath = path.join(usersDir, "config.yaml");
-  ensureProductionDBField(usersConfigPath, verbose);
+  ensureProductionDbField(usersConfigPath, verbose);
 
   let usersConfig;
   try {
@@ -72,7 +134,7 @@ export async function getMigrations(usersDir, experimentsDir, production, verbos
     if (!fs.lstatSync(expDirPath).isDirectory()) return;
 
     const expConfigPath = path.join(expDirPath, "config.yaml");
-    ensureProductionDBField(expConfigPath, verbose);
+    ensureProductionDbField(expConfigPath, verbose);
 
     try {
       expConfig = jsYaml.load(fs.readFileSync(expConfigPath, "utf8"));
@@ -100,68 +162,6 @@ export async function getMigrations(usersDir, experimentsDir, production, verbos
   return dbsToExps;
 }
 
-const waitForDBReady = async (knexInstance, dbName, maxRetries = 10) => {
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      await knexInstance.raw("SELECT 1");
-      console.log(`Database ${dbName} is ready for connections`);
-      return;
-    } catch (error) {
-      const waitTime = Math.min(1000 * Math.pow(2, i), 30000);
-      console.log(
-        `Database ${dbName} not ready yet (attempt ${i + 1}/${maxRetries}), waiting ${waitTime}ms...`,
-      );
-      await new Promise((resolve) => setTimeout(resolve, waitTime));
-
-      if (i === maxRetries - 1) {
-        throw new Error(
-          `Database ${dbName} did not become ready after ${maxRetries} attempts: ${error.message}`,
-        );
-      }
-    }
-  }
-};
-
-/**
- * Build Knex configuration object for database connection.
- * @param {object} dbInfo - Database connection info (url, user, port, pass, name)
- * @returns {object} Knex configuration object
- */
-function buildKnexConfig(dbInfo) {
-  let parsedHost;
-  try {
-    parsedHost = new URL(dbInfo.url).hostname;
-  } catch {
-    parsedHost = dbInfo.url;
-  }
-  return {
-    client: "pg",
-    version: "11",
-    connection: {
-      host: dbInfo.url,
-      user: dbInfo.user,
-      port: dbInfo.port,
-      password: dbInfo.pass,
-      database: dbInfo.name,
-      ssl:
-        parsedHost && parsedHost.endsWith(".rds.amazonaws.com") ?
-          { rejectUnauthorized: false }
-        : false,
-    },
-    pool: {
-      min: 0,
-      max: 5,
-      acquireTimeoutMillis: 60000,
-      createTimeoutMillis: 60000,
-      destroyTimeoutMillis: 5000,
-      idleTimeoutMillis: 30000,
-      reapIntervalMillis: 1000,
-      createRetryIntervalMillis: 200,
-    },
-    acquireConnectionTimeout: 60000,
-  };
-}
-
 /**
  * Run database migrations and seeds for all configured databases.
  * Connects to each database using Knex, runs migrations to create/update table schemas,
@@ -172,7 +172,7 @@ function buildKnexConfig(dbInfo) {
  * @returns {Promise<Array>} Promise that resolves when all migrations complete
  * @throws {Error} If any migration or seed operation fails
  */
-export async function runMigrations(dbsToExps, dbConfigs, verbose) {
+async function runMigrations(dbsToExps, dbConfigs, verbose) {
   let migrationPromises = [];
   dbsToExps.forEach((migAndSeedDirs, db) => {
     if (!dbConfigs[db]) {
@@ -181,14 +181,14 @@ export async function runMigrations(dbsToExps, dbConfigs, verbose) {
     }
 
     let dbInfo = dbConfigs[db];
-    if (!dbInfo.url) {
+    if (!dbInfo.host) {
       if (verbose)
-        console.log(`No url listed for database ${dbInfo.name}. Defaulting to 'localhost'.`);
-      dbInfo.url = "localhost";
+        console.log(`No host listed for database ${dbInfo.database}. Defaulting to 'localhost'.`);
+      dbInfo.host = "localhost";
     }
 
     const migDirs = migAndSeedDirs.map((dir) => dir.migrations);
-    const seedDirs = migAndSeedDirs.map((dir) => dir.seeds).filter((value) => value != "");
+    const seedDirs = migAndSeedDirs.map((dir) => dir.seeds).filter(Boolean);
 
     const knexClient = knex(buildKnexConfig(dbInfo));
 
@@ -197,7 +197,7 @@ export async function runMigrations(dbsToExps, dbConfigs, verbose) {
         if (verbose) console.log(`Running migrations for ${db}`);
 
         try {
-          await waitForDBReady(knexClient, db);
+          await waitForDbReady(knexClient, db);
           await knexClient.migrate.latest({ directory: migDirs });
           if (verbose) console.log(`Ran migrations for ${db}`);
 
@@ -220,3 +220,5 @@ export async function runMigrations(dbsToExps, dbConfigs, verbose) {
 
   return Promise.all(migrationPromises);
 }
+
+export { getMigrations, runMigrations };
