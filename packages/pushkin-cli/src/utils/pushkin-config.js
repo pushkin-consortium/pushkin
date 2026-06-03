@@ -38,7 +38,11 @@ function loadPushkinConfig() {
     const filePath = getPushkinConfigPath();
     const fileContent = fs.readFileSync(filePath, "utf8");
     const config = jsYaml.load(fileContent);
+    if (config == null) {
+      throw new Error("pushkin.yaml is empty or contains no valid YAML");
+    }
     const projectRoot = path.dirname(filePath);
+    if (config.usersDir == null) config.usersDir = "users";
     for (const field of ["usersDir", "experimentsDir", "coreDir"]) {
       if (config[field] != null) {
         config[field] = path.resolve(projectRoot, config[field]);
