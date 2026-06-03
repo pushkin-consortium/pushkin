@@ -23,7 +23,7 @@ import {
 import { AWSClientFactory } from "../utils/aws-client-factory.js";
 import { getAwsProfile } from "../utils/aws-profile.js";
 import { readAwsResources, writeAwsResources } from "../utils/aws-resources.js";
-import { loadPushkinConfig } from "../../../../utils/pushkin-config.js";
+import { loadPushkinConfig } from "../../../utils/pushkin-config.js";
 import {
   alarmCPUHigh,
   alarmRAMHigh,
@@ -65,12 +65,16 @@ export async function createAutoScale(projectName) {
   const alarmMainHigh = {
     ...JSON.parse(JSON.stringify(alarmRDSWriteLatencyHigh)),
     AlarmName: `${shortName}MainWriteLatencyHigh`,
-    Dimensions: [{ Name: "DBInstanceIdentifier", Value: config.databases.production.experiment.name }],
+    Dimensions: [
+      { Name: "DBInstanceIdentifier", Value: config.databases.production.experiment.database },
+    ],
   };
   const alarmTransactionHigh = {
     ...JSON.parse(JSON.stringify(alarmRDSWriteLatencyHigh)),
     AlarmName: `${shortName}TransactionWriteLatencyHigh`,
-    Dimensions: [{ Name: "DBInstanceIdentifier", Value: config.databases.production.transaction.name }],
+    Dimensions: [
+      { Name: "DBInstanceIdentifier", Value: config.databases.production.transaction.database },
+    ],
   };
 
   // Get load balancer ARN (needed for scaling policy resource label)

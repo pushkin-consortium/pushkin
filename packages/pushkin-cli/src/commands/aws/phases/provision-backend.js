@@ -4,12 +4,12 @@
  * @module aws/phases/provision-backend
  */
 
-import { getDefaultVpc, getSubnets } from "../services/network.js";
+import { getDefaultVpc, getSubnets } from "../services/ecs/ec2.js";
 import { ensureBalancerSecurityGroup, ensureEcsSecurityGroup } from "../services/security.js";
 import { createLoadBalancer } from "../services/elb.js";
 import { createCluster } from "../services/ecs/clusters.js";
 import { createEcsTask } from "../services/ecs/tasks.js";
-import { createLogGroup } from "../../services/monitoring.js";
+import { createLogGroup } from "../services/monitoring.js";
 
 /**
  * Set up backend ECS resources:

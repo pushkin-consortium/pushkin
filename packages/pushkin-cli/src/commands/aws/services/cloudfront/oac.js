@@ -11,12 +11,12 @@ import {
   CreateOriginAccessControlCommand,
   DeleteOriginAccessControlCommand,
 } from "@aws-sdk/client-cloudfront";
-import { AWSClientFactory } from "../utils/aws-client-factory.js";
-import { getAwsProfile } from "../utils/aws-profile.js";
-import { loadAwsConfig } from "../utils/aws-config.js";
-import { readAwsResources, updateAwsResourcesField } from "../utils/aws-resources.js";
-import { OriginAccessControl } from "../awsConfigs.js";
-import { AWS_REGION } from "../constants.js";
+import { AWSClientFactory } from "../../utils/aws-client-factory.js";
+import { getAwsProfile } from "../../utils/aws-profile.js";
+import { loadAwsConfig } from "../../utils/aws-config.js";
+import { readAwsResources, updateAwsResourcesField } from "../../utils/aws-resources.js";
+import { OriginAccessControl } from "../../awsConfigs.js";
+import { AWS_REGION } from "../../constants.js";
 
 function createCloudFrontClient() {
   return new AWSClientFactory(AWS_REGION, getAwsProfile()).createClient(CloudFrontClient);
@@ -91,7 +91,8 @@ async function getOac(verbose = false) {
   const existingOacId = await findOacByName(OriginAccessControl.Name);
   let oacId;
   if (existingOacId) {
-    if (verbose) console.log(`Found existing OAC with name ${OriginAccessControl.Name}, reusing it.`);
+    if (verbose)
+      console.log(`Found existing OAC with name ${OriginAccessControl.Name}, reusing it.`);
     oacId = existingOacId;
   } else {
     if (verbose) console.log(`No OAC with name ${OriginAccessControl.Name}, creating new OAC.`);
@@ -150,7 +151,9 @@ async function deleteOacs(deletedCloudFront, verbose = false) {
   const config = loadAwsConfig();
   const waitInterval = config.timeouts.cloudfront.checkInterval * 1000;
   if (verbose)
-    console.log(`Waiting ${waitInterval / 1000} seconds for CloudFront to fully release OAC references...`);
+    console.log(
+      `Waiting ${waitInterval / 1000} seconds for CloudFront to fully release OAC references...`,
+    );
   await new Promise((resolve) => setTimeout(resolve, waitInterval));
 
   const client = createCloudFrontClient();

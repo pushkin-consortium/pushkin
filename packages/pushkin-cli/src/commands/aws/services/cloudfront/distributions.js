@@ -15,14 +15,15 @@ import {
   waitUntilDistributionDeployed,
   GetDistributionConfigCommand,
   ListTagsForResourceCommand,
+  TagResourceCommand,
 } from "@aws-sdk/client-cloudfront";
 import { createWaiter, WaiterState } from "@smithy/util-waiter";
-import { AWSClientFactory } from "../utils/aws-client-factory.js";
-import { getAwsProfile } from "../utils/aws-profile.js";
-import { loadAwsConfig } from "../utils/aws-config.js";
-import { updateAwsResourcesField } from "../utils/aws-resources.js";
-import { cloudFront } from "../awsConfigs.js";
-import { AWS_REGION, PROJECT_TAG_KEY } from "../constants.js";
+import { AWSClientFactory } from "../../utils/aws-client-factory.js";
+import { getAwsProfile } from "../../utils/aws-profile.js";
+import { loadAwsConfig } from "../../utils/aws-config.js";
+import { updateAwsResourcesField } from "../../utils/aws-resources.js";
+import { cloudFront } from "../../awsConfigs.js";
+import { AWS_REGION, PROJECT_TAG_KEY } from "../../constants.js";
 
 function createCloudFrontClient() {
   return new AWSClientFactory(AWS_REGION, getAwsProfile()).createClient(CloudFrontClient);
@@ -67,17 +68,29 @@ async function waitForCloudFrontDeployment(distributionId, verbose = false) {
  * @param {string} options.webAclArn - WAF Web ACL ARN
  * @returns {Promise<object>} The CloudFront distribution object
  */
-async function ensureDistribution({ s3BucketName, projectName, domainName, sslCertificate, oacId, webAclArn }) {
+async function ensureDistribution({
+  s3BucketName,
+  projectName,
+  domainName,
+  sslCertificate,
+  oacId,
+  webAclArn,
+}) {
   const client = createCloudFrontClient();
   const { DistributionList } = await client.send(new ListDistributionsCommand({}));
+  const allDistributions = DistributionList?.Items ?? [];
 
   let targetDistribution;
-  for (const distribution of DistributionList?.Items ?? []) {
+
+  // Pass 1: find a distribution already pointing at this S3 bucket
+  for (const distribution of allDistributions) {
     let originId;
     try {
       originId = distribution.Origins.Items[0].Id;
     } catch {
-      console.warn(`Found an incompletely-specified CloudFront distribution. This may not be a problem, but you should check.`);
+      console.warn(
+        `Found an incompletely-specified CloudFront distribution. This may not be a problem, but you should check.`,
+      );
       continue;
     }
     if (originId === s3BucketName) {
@@ -96,6 +109,56 @@ async function ensureDistribution({ s3BucketName, projectName, domainName, sslCe
         }),
       );
       break;
+    }
+  }
+
+  // Pass 2: no bucket match — check if the target domain is already claimed by another
+  // distribution (e.g. a previous deployment with a different bucket). Update that
+  // distribution in-place rather than trying to create a new one that would conflict.
+  if (!targetDistribution && domainName) {
+    const domainAliases = domainName.split(".").length > 2
+      ? [domainName]
+      : [domainName, `www.${domainName}`];
+
+    for (const distribution of allDistributions) {
+      const aliases = distribution.Aliases?.Items ?? [];
+      if (domainAliases.some((a) => aliases.includes(a))) {
+        console.log(
+          `Domain ${domainName} is already attached to distribution ${distribution.Id}. ` +
+          `Updating its origin to the new S3 bucket...`,
+        );
+
+        const { DistributionConfig: config, ETag } = await client.send(
+          new GetDistributionConfigCommand({ Id: distribution.Id }),
+        );
+
+        // Swap origin to new bucket
+        config.Origins.Items[0].Id = s3BucketName;
+        config.Origins.Items[0].DomainName = `${s3BucketName}.s3.amazonaws.com`;
+        config.Origins.Items[0].OriginAccessControlId = oacId;
+        config.DefaultCacheBehavior.TargetOriginId = s3BucketName;
+        config.WebACLId = webAclArn;
+
+        const updated = await client.send(
+          new UpdateDistributionCommand({
+            Id: distribution.Id,
+            IfMatch: ETag,
+            DistributionConfig: config,
+          }),
+        );
+        targetDistribution = updated.Distribution;
+
+        // Re-tag for this project
+        await client.send(
+          new TagResourceCommand({
+            Resource: distribution.ARN,
+            Tags: { Items: [{ Key: PROJECT_TAG_KEY, Value: projectName }] },
+          }),
+        );
+
+        updateAwsResourcesField("cloudFrontId", targetDistribution.Id);
+        break;
+      }
     }
   }
 
@@ -216,7 +279,11 @@ async function deleteCloudFrontDistribution(projectName, killTag, verbose = fals
       if (verbose) console.log(`Disabling cloudfront distribution ${distId}`);
 
       await client.send(
-        new UpdateDistributionCommand({ Id: distId, IfMatch: ETag, DistributionConfig: cloudConfig }),
+        new UpdateDistributionCommand({
+          Id: distId,
+          IfMatch: ETag,
+          DistributionConfig: cloudConfig,
+        }),
       );
 
       if (verbose) console.log(`Waiting for cloudfront distribution ${distId} to be disabled...`);
@@ -231,7 +298,8 @@ async function deleteCloudFrontDistribution(projectName, killTag, verbose = fals
               response.Distribution.DistributionConfig.Enabled === false &&
               response.Distribution.Status !== "InProgress";
             if (ready) return { state: WaiterState.SUCCESS };
-            if (verbose) console.log(`Waiting for cloudfront distribution ${distId} to be disabled...`);
+            if (verbose)
+              console.log(`Waiting for cloudfront distribution ${distId} to be disabled...`);
             return { state: WaiterState.RETRY };
           } catch (error) {
             if (error.name === "NoSuchDistribution") return { state: WaiterState.SUCCESS };

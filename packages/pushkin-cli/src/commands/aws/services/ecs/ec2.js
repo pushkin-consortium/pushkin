@@ -4,9 +4,9 @@
  */
 
 import { EC2Client, DescribeSubnetsCommand, DescribeVpcsCommand } from "@aws-sdk/client-ec2";
-import { AWSClientFactory } from "../utils/aws-client-factory.js";
+import { AWSClientFactory } from "../../utils/aws-client-factory.js";
 import { getAwsProfile } from "../../utils/aws-profile.js";
-import { AWS_REGION } from "../constants.js";
+import { AWS_REGION } from "../../constants.js";
 
 function createEc2Client() {
   const factory = new AWSClientFactory(AWS_REGION, getAwsProfile());
