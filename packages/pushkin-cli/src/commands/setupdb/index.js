@@ -1,5 +1,4 @@
 import path from "path";
-import { fileURLToPath } from "url";
 import fs from "graceful-fs";
 import jsYaml from "js-yaml";
 import * as compose from "docker-compose";
@@ -9,7 +8,7 @@ import { exec as execCallback } from "child_process";
 import { getMigrations, runMigrations } from "../../utils/db-migrations.js";
 
 const exec = util.promisify(execCallback);
-const coreMigrationsDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "../../utils/transaction-migrations");
+const coreMigrationsDir = path.join(__dirname, "../../utils/transaction-migrations");
 
 /**
  * Overwrite testDB and transactionDB passwords with secure randomly generated ones
@@ -23,9 +22,9 @@ export const securePasswords = () => {
   const testDBPass = crypto.randomBytes(16).toString("hex");
   const transactionsPass = crypto.randomBytes(16).toString("hex");
   // Update passwords
-  config.databases.local.experiment.pass = testDBPass;
+  config.databases.local.experiment.password = testDBPass;
   composeFile.services["local-experiment-db"].environment.POSTGRES_PASSWORD = testDBPass;
-  config.databases.local.transaction.pass = transactionsPass;
+  config.databases.local.transaction.password = transactionsPass;
   composeFile.services["local-transaction-db"].environment.POSTGRES_PASSWORD = transactionsPass;
   // Write new pushkin.yaml and docker-compose.dev.yml
   fs.writeFileSync("pushkin.yaml", jsYaml.dump(config));
@@ -109,12 +108,54 @@ export async function setupLocalTransactionsDB(verbose) {
     );
   }
 
-  // Create transactions DB service if it doesn't exist
-  if (!composeFile.services["local-transaction-db"]) {
-    if (verbose)
-      console.log(`No transaction db for logging found in docker-compose.dev.yml. Creating.`);
+  let composeChanged = false;
+  let configChanged = false;
 
-    // Add Docker Compose service for transactions database
+  if (!pushkinConfig.databases) pushkinConfig.databases = {};
+  if (!pushkinConfig.databases.local) pushkinConfig.databases.local = {};
+
+  // Migrate old test_db service → local-experiment-db
+  if (!composeFile.services["local-experiment-db"]) {
+    if (verbose) console.log(`No experiment db found in docker-compose.dev.yml. Creating.`);
+    composeFile.services["local-experiment-db"] = {
+      image: "postgres:11",
+      environment: {
+        POSTGRES_PASSWORD: "example",
+        POSTGRES_DB: "local-experiment-db",
+      },
+      ports: ["5432:5432"],
+      volumes: ["local-experiment-db-volume:/var/lib/postgresql/data"],
+      healthcheck: {
+        test: ["CMD-SHELL", "pg_isready -U postgres"],
+        interval: "10s",
+        timeout: "5s",
+        retries: 5,
+      },
+    };
+    if (!composeFile.volumes) composeFile.volumes = {};
+    composeFile.volumes["local-experiment-db-volume"] = null;
+    // Remove the old test_db service if present
+    delete composeFile.services["test_db"];
+    delete composeFile.volumes["test_db_volume"];
+    composeChanged = true;
+  }
+
+  if (!pushkinConfig.databases.local.experiment) {
+    pushkinConfig.databases.local.experiment = {
+      user: "postgres",
+      password: "example",
+      host: "local-experiment-db",
+      port: "5432",
+      database: "local-experiment-db",
+    };
+    // Remove old localtestdb entry if present
+    delete pushkinConfig.databases.localtestdb;
+    configChanged = true;
+  }
+
+  // Add transaction DB service if it doesn't exist
+  if (!composeFile.services["local-transaction-db"]) {
+    if (verbose) console.log(`No transaction db found in docker-compose.dev.yml. Creating.`);
     composeFile.services["local-transaction-db"] = {
       image: "postgres:11",
       environment: {
@@ -131,33 +172,34 @@ export async function setupLocalTransactionsDB(verbose) {
       },
     };
     composeFile.volumes["local-transaction-db-volume"] = null;
+    composeChanged = true;
+  }
 
-    // Write updated docker-compose file
-    if (verbose) console.log(`Updating pushkin/docker-compose.dev.yml to include transaction db`);
+  if (!pushkinConfig.databases.local.transaction) {
+    pushkinConfig.databases.local.transaction = {
+      user: "postgres",
+      password: "example",
+      host: "local-transaction-db",
+      port: "5433",
+      database: "local-transaction-db",
+    };
+    configChanged = true;
+  }
+
+  if (composeChanged) {
+    if (verbose) console.log(`Updating pushkin/docker-compose.dev.yml`);
     await fs.promises.writeFile(
       path.join(process.cwd(), "pushkin/docker-compose.dev.yml"),
       jsYaml.dump(composeFile),
     );
-
-    // Add database config to pushkin.yaml
-    if (!pushkinConfig.databases.local) pushkinConfig.databases.local = {};
-    pushkinConfig.databases.local.transaction = {
-      user: "postgres",
-      pass: "example",
-      host: "local-transaction-db",
-      port: "5433",
-      url: "localhost",
-      name: "local-transaction-db",
-    };
-
-    // Write updated pushkin.yaml
-    if (verbose) console.log(`Updating pushkin.yaml`);
-    await fs.promises.writeFile(
-      path.join(process.cwd(), "pushkin.yaml"),
-      jsYaml.dump(pushkinConfig),
-    );
   }
-  if (verbose) console.log("Finished updating configs for test transactions db");
+
+  if (configChanged) {
+    if (verbose) console.log(`Updating pushkin.yaml`);
+    await fs.promises.writeFile(path.join(process.cwd(), "pushkin.yaml"), jsYaml.dump(pushkinConfig));
+  }
+
+  if (verbose) console.log("Finished updating configs for local databases");
   return true;
 }
 
