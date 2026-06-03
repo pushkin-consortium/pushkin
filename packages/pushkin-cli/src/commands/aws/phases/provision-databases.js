@@ -4,23 +4,26 @@
  * @module aws/phases/provision-databases
  */
 
+import { loadPushkinConfig } from "../../../utils/pushkin-config.js";
 import { ensureDatabaseSecurityGroup } from "../services/security.js";
-import { createDb, recordDbs } from "../services/rds.js";
+import { createDb } from "../services/rds.js";
 
 /**
  * Provisions databases for the AWS deployment.
+ * Each DB writes its credentials to pushkin.yaml immediately on success, so a partial
+ * failure doesn't orphan already-created databases without saved credentials.
  * @param {string} projectName
- * @returns {Promise<object>} - A promise that resolves to the completed databases.
+ * @returns {Promise<object>} - A promise that resolves to the updated pushkin config.
  */
 async function provisionDbs(projectName) {
   const securityGroupID = await ensureDatabaseSecurityGroup(projectName);
 
-  const initializedMainDb = createDb("experiment", securityGroupID, projectName);
-  const initializedTransactionDb = createDb("transaction", securityGroupID, projectName);
+  await Promise.all([
+    createDb("experiment", securityGroupID, projectName),
+    createDb("transaction", securityGroupID, projectName),
+  ]);
 
-  const dbSetup = await recordDbs(Promise.all([initializedMainDb, initializedTransactionDb]));
-
-  return dbSetup;
+  return loadPushkinConfig();
 }
 
 export { provisionDbs };
