@@ -1,8 +1,6 @@
 #!/usr/bin/env node
 
-import { execSync, exec, execFile } from "child_process";
-/* eslint-disable-next-line no-unused-vars */
-import commandLineArgs from "command-line-args"; // commandLineArgs is necessary for the CLI to run
+import { execSync, exec } from "child_process";
 import * as commander from "commander";
 import "core-js/stable";
 import * as compose from "docker-compose";
@@ -16,9 +14,7 @@ import shelljs from "shelljs";
 
 // Subcommands
 import {
-  verifyawsProfileName,
   awsInit,
-  nameProject,
   addIAM,
   awsArmageddon,
   awsList,
@@ -38,60 +34,27 @@ import {
 import { prep, setEnv, updatePasswords } from "./commands/prep/index.js";
 import { setupdb, setupLocalTransactionsDB, securePasswords } from "./commands/setupdb/index.js";
 import { initSite, setupPushkinSite } from "./commands/sites/index.js";
-import { readAwsResources } from "./commands/aws/utils/aws-resources.js";
+import { readAwsResources, writeAwsResources } from "./commands/aws/utils/aws-resources.js";
 
 import pacMan from "./utils/package-manager.js";
-import { getPushkinConfigPath } from "./utils/pushkin-config.js";
-import { syncS3 } from "./commands/aws/services/s3.js";
-import { publishToDocker } from "./utils/docker.js";
+import {
+  getPushkinConfigPath,
+  loadPushkinConfig,
+  savePushkinConfig,
+} from "./utils/pushkin-config.js";
+import { generateBucketName } from "./commands/aws/services/s3.js";
 
-const setCwdToProjectRoot = () => {
+function setCwdToProjectRoot() {
   try {
     process.chdir(path.dirname(getPushkinConfigPath()));
   } catch (error) {
-    console.error(error.message);
+    console.error(error);
     process.exit(1);
   }
-};
-
-// Commander.js setup
-const program = new commander.Command();
-const version = require("../package.json").version;
-program.version(version);
-
-const loadConfig = (configFile) => {
-  // could add some validation to make sure everything expected in the config is there
-  return new Promise((resolve, reject) => {
-    try {
-      resolve(jsYaml.load(fs.readFileSync(configFile, "utf8")));
-    } catch (e) {
-      console.error(`Pushkin config file missing, error: ${e}`);
-      process.exit(1);
-    }
-  });
-};
-
-const updateS3 = async () => {
-  let s3BucketName;
-  try {
-    const awsResources = await readAwsResources();
-    s3BucketName = awsResources.s3BucketName;
-    initAwsProfile(awsResources.iam);
-  } catch (e) {
-    console.error(`Unable to read deployment config`);
-    throw e;
-  }
-
-  try {
-    return syncS3(s3BucketName);
-  } catch (e) {
-    console.error(`Unable to sync local build with s3 bucket`);
-    throw e;
-  }
-};
+}
 
 // Helper function to interactively set up Docker Hub credentials
-const setupDockerCredentials = async (DockerHubId) => {
+async function setupDockerCredentials(DockerHubId) {
   console.log("\nDocker Hub now requires Personal Access Tokens (PAT) for authentication.");
   console.log("To create a PAT:");
   console.log("1. Go to https://hub.docker.com/settings/security");
@@ -124,18 +87,12 @@ const setupDockerCredentials = async (DockerHubId) => {
     console.error("Please verify your token is correct.");
     throw error;
   }
-};
+}
 
-const dockerLogin = async () => {
+async function dockerLogin() {
   //get dockerhub id
-  let DockerHubId;
-  try {
-    let config = await loadConfig(path.join(process.cwd(), "pushkin.yaml"));
-    DockerHubId = config.DockerHubID;
-  } catch (e) {
-    console.error(`Unable to load pushkin.yaml`);
-    throw e;
-  }
+  const config = loadPushkinConfig();
+  let DockerHubId = config.DockerHubID;
 
   if (DockerHubId == "") {
     throw new Error(`Your DockerHub ID has disappeared from pushkin.yaml.\n I am not sure how that happened.\n
@@ -243,195 +200,49 @@ const dockerLogin = async () => {
   }
 
   return DockerHubId;
-};
+}
 
-const updateDocker = async () => {
-  let DockerHubId = await dockerLogin();
-
-  try {
-    return publishToDocker(DockerHubId);
-  } catch (e) {
-    console.error("Unable to publish images to DockerHub");
-    throw e;
-  }
-};
-
-const updateMigrations = async () => {
-  let experimentsDir, usersDir, productionDBs;
-  try {
-    let config = await loadConfig(path.join(process.cwd(), "pushkin.yaml"));
-    experimentsDir = config.experimentsDir;
-    usersDir = config.usersDir || "users";
-    productionDBs = config.databases?.production;
-  } catch (e) {
-    console.error(`Unable to load pushkin.yaml`);
-    throw e;
-  }
-  console.log(`Handling migrations`);
-  let ranMigrations, dbsToExps;
-  try {
-    dbsToExps = await getMigrations(
-      path.join(process.cwd(), usersDir),
-      path.join(process.cwd(), experimentsDir),
-      true,
-    );
-  } catch (e) {
-    console.error(`Unable to run database migrations`);
-    throw e;
-  }
-  try {
-    ranMigrations = runMigrations(dbsToExps, productionDBs);
-  } catch (e) {
-    console.error(`Unable to run database migrations`);
-    throw e;
-  }
-  return ranMigrations;
-};
-
-const updateECS = async () => {
-  //FUBAR needs way of getting awsProfileName
-  console.log(`Updating ECS services.`);
-
-  let ECSName;
-  try {
-    let config = await loadConfig(path.join(process.cwd(), "pushkin.yaml"));
-    ECSName = config.ECSName;
-  } catch (e) {
-    console.error(`Unable to load pushkin.yaml`);
-    throw e;
-  }
-
-  const yamls = fs.readdirSync(path.join(process.cwd(), "ECSTasks"));
-  return Promise.all(
-    yamls.forEach((yaml) => {
-      if (yaml != "ecs-params.yml") {
-        try {
-          temp = execFile(
-            "ecs-cli",
-            [
-              "compose",
-              "-f",
-              yaml,
-              "-p",
-              yaml.split(".")[0],
-              "service",
-              "up",
-              "--ecs-profile",
-              awsProfileName,
-              "--cluster-config",
-              ECSName,
-              "--force-deployment",
-            ],
-            { cwd: path.join(process.cwd(), "ECStasks") },
-          );
-        } catch (e) {
-          console.warn("\x1b[31m%s\x1b[0m", `Unable to update service ${yaml}.`);
-          console.warn("\x1b[31m%s\x1b[0m", e);
-        }
-      }
-    }),
-  );
-};
-
-const handleAWSUpdate = async () => {
-  console.log(`Loading deployment config`);
-
-  let publishedToDocker;
-  try {
-    publishedToDocker = updateDocker();
-  } catch (e) {
-    throw e;
-  }
-
-  let syncMe;
-  try {
-    syncMe = updateS3();
-  } catch (e) {
-    throw e;
-  }
-
-  let ranMigrations;
-  try {
-    ranMigrations = updateMigrations();
-  } catch (e) {
-    throw e;
-  }
-
-  await Promise.all([publishedToDocker, syncMe, ranMigrations]);
-  //Technically only publishedToDocker needs to finish before we update ECS
-  //But waiting for everything increases that likelihood
-
-  let compose;
-  try {
-    compose = updateECS();
-  } catch (e) {
-    throw e;
-  }
-
-  return compose; // this is a promise, so can be awaited
-};
-
-const handleCreateAutoScale = async () => {
-  let projectName;
-  try {
-    let temp = loadConfig(path.join(process.cwd(), "pushkin.yaml"));
-    projectName = temp.info.projectName.replace(/[^A-Za-z0-9]/g, "");
-  } catch (e) {
-    console.error(`Unable to find project name`);
-    throw e;
-  }
-
-  let awsProfileName;
-  try {
-    awsProfileName = await inquirer.prompt([
-      {
-        type: "input",
-        name: "iam",
-        message:
-          "Provide your AWS profile username that you want to use for managing this project.",
-      },
-    ]);
-  } catch (e) {
-    console.error("Problem getting AWS IAM username.\n", e);
-    throw e;
-  }
-
-  initAwsProfile(awsProfileName.iam);
-  return createAutoScale(projectName);
-};
-
-const handleViewConfig = async (what) => {
+async function handleCreateAutoScale() {
   setCwdToProjectRoot();
-  let x = await ((what == "site") | !what ?
-    loadConfig(path.join(process.cwd(), "pushkin.yaml"))
-  : "");
-  let exps = fs.readdirSync(path.join(process.cwd(), "experiments"));
-  let y = await Promise.all(
-    exps.map(async (exp) => {
-      return (await ((what == exp) | !what)) ?
-          loadConfig(path.join(process.cwd(), "experiments", exp, "config.yaml"))
-        : "";
-    }),
-  );
-  //Thanks to https://stackoverflow.com/questions/49627044/javascript-how-to-await-multiple-promises
-};
+  const config = loadPushkinConfig();
+  const projectName = config.info.projectName.replace(/[^A-Za-z0-9]/g, "");
+  const { iam } = readAwsResources();
+  initAwsProfile(iam);
+  return createAutoScale(projectName);
+}
 
-const handleUpdateDB = async (verbose) => {
+function handleViewConfig(target) {
+  setCwdToProjectRoot();
+
+  const showSite = target === "site" || !target;
+  if (showSite) {
+    console.log("=== Site config (pushkin.yaml) ===");
+    console.log(loadPushkinConfig());
+  }
+
+  const experiments = fs.readdirSync(path.join(process.cwd(), "experiments"));
+  for (const exp of experiments) {
+    if (target === exp || !target) {
+      console.log(`=== Experiment config (${exp}/config.yaml) ===`);
+      const expConfig = jsYaml.load(
+        fs.readFileSync(path.join(process.cwd(), "experiments", exp, "config.yaml"), "utf8"),
+      );
+      console.log(expConfig);
+    }
+  }
+}
+
+async function handleUpdateDB(verbose) {
   if (verbose) console.log("--verbose flag set inside handleUpdateDB()");
   setCwdToProjectRoot();
-  let settingUpDB, config;
-  try {
-    config = await loadConfig(path.join(process.cwd(), "pushkin.yaml"));
-  } catch (err) {
-    console.log("Could not load pushkin.yaml");
-    throw err;
-  }
+  const config = loadPushkinConfig();
+  let settingUpDB;
 
   try {
     settingUpDB = await setupdb(
       config.databases?.local,
-      path.join(process.cwd(), config.usersDir || "users"),
-      path.join(process.cwd(), config.experimentsDir),
+      config.usersDir,
+      config.experimentsDir,
       verbose,
     );
     console.log("✅ Database setup complete!");
@@ -457,185 +268,109 @@ const handleUpdateDB = async (verbose) => {
     process.exit(1);
   }
   return settingUpDB;
-};
+}
 
 // For removing any .DS_Store files if present.
-const removeDS = (verbose) => {
+function removeDS(verbose) {
   if (verbose) {
     console.log("--verbose flag set inside removeDS()");
     console.log("Removing any .DS_Store files, if present.");
   }
   shelljs.rm("-rf", "*/.DS_Store");
   shelljs.rm("-rf", "./.DS_Store");
-};
+}
 
-const handlePrep = async (verbose) => {
+async function handlePrep(verbose) {
   if (verbose) console.log("--verbose flag set inside handlePrep()");
   setCwdToProjectRoot();
-  const config = await loadConfig(path.join(process.cwd(), "pushkin.yaml"));
+  const config = loadPushkinConfig();
   let out;
   if (verbose) {
-    console.log(path.join(process.cwd(), config.experimentsDir));
-    console.log(path.join(process.cwd(), config.coreDir));
+    console.log(config.experimentsDir);
+    console.log(config.coreDir);
   }
   try {
-    out = await prep(
-      path.join(process.cwd(), config.experimentsDir),
-      path.join(process.cwd(), config.coreDir),
-      verbose,
-    );
+    out = await prep(config.experimentsDir, config.coreDir, verbose);
   } catch (err) {
     console.error(err);
     process.exit();
   }
   return;
-};
+}
 
-const handleAWSList = async () => {
-  let awsProfileName;
-  try {
-    awsProfileName = await inquirer.prompt([
-      {
-        type: "input",
-        name: "iam",
-        message:
-          "Provide your AWS profile username that you want to use for managing this project.",
-      },
-    ]);
-  } catch (e) {
-    console.error("Problem getting AWS IAM username.\n", e);
-    process.exit();
-  }
-  initAwsProfile(awsProfileName.iam);
+async function handleAWSList() {
+  setCwdToProjectRoot();
+  const { iam } = readAwsResources();
+  initAwsProfile(iam);
   return awsList();
-};
+}
 
-const handleAWSStatus = async (verbose = false) => {
-  let awsProfileName;
-  try {
-    awsProfileName = await inquirer.prompt([
-      {
-        type: "input",
-        name: "iam",
-        message:
-          "Provide your AWS profile username that you want to use for managing this project.",
-      },
-    ]);
-  } catch (e) {
-    console.error("Problem getting AWS IAM username.\n", e);
-    process.exit();
-  }
-  initAwsProfile(awsProfileName.iam);
+async function handleAWSStatus(verbose = false) {
+  setCwdToProjectRoot();
+  const { iam } = readAwsResources();
+  initAwsProfile(iam);
   return awsStatus(verbose);
-};
+}
 
-const handleAWSKill = async () => {
-  let nukeMe;
-  try {
-    nukeMe = await inquirer.prompt([
-      {
-        type: "input",
-        name: "kill",
-        message: `This command will DELETE your website.\n This cannot be undone.\n Are you SURE you want to do this?\n Confirm by typing 'kill my website'.`,
-      },
-    ]);
-  } catch (e) {
-    console.error("Problem getting permission.\n", e);
-    process.exit();
-  }
-  if (nukeMe.kill != "kill my website") {
+async function handleAWSKill() {
+  setCwdToProjectRoot();
+  const { kill: confirm1 } = await inquirer.prompt([
+    {
+      type: "input",
+      name: "kill",
+      message: `This command will DELETE your website.\n This cannot be undone.\n Are you SURE you want to do this?\n Confirm by typing 'kill my website'.`,
+    },
+  ]);
+  if (confirm1 !== "kill my website") {
     console.log("That is probably wise. Exiting.");
     return;
   }
-  let nukeMeTwice;
-  try {
-    nukeMeTwice = await inquirer.prompt([
-      {
-        type: "input",
-        name: "kill",
-        message: `Your database -- along with any data -- will be deleted.\n Confirm this is what you want by typing 'kill my data'.`,
-      },
-    ]);
-  } catch (e) {
-    console.error("Problem getting permission.\n", e);
-    process.exit();
-  }
-  if (nukeMeTwice.kill != "kill my data") {
+  const { kill: confirm2 } = await inquirer.prompt([
+    {
+      type: "input",
+      name: "kill",
+      message: `Your database -- along with any data -- will be deleted.\n Confirm this is what you want by typing 'kill my data'.`,
+    },
+  ]);
+  if (confirm2 !== "kill my data") {
     console.log("That is probably wise. Exiting.");
     return;
   }
   console.log(`I hope you know what you are doing. This makes me nervous every time...`);
-  let awsProfileName;
-  try {
-    awsProfileName = await inquirer.prompt([
-      {
-        type: "input",
-        name: "iam",
-        message:
-          "Provide your AWS profile username that you want to use for managing this project.",
-      },
-    ]);
-  } catch (e) {
-    console.error("Problem getting AWS IAM username.\n", e);
-    process.exit();
-  }
-  initAwsProfile(awsProfileName.iam);
+  const { iam: killIam } = readAwsResources();
+  initAwsProfile(killIam);
   return awsArmageddon("kill");
-};
+}
 
-const handleAWSArmageddon = async () => {
-  let nukeMe;
-  try {
-    nukeMe = await inquirer.prompt([
-      {
-        type: "input",
-        name: "armageddon",
-        message: `This command will delete more or less EVERYTHING on your AWS account.\n This cannot be undone.\n Are you SURE you want to do this?\n Confirm by typing 'armageddon'.`,
-      },
-    ]);
-  } catch (e) {
-    console.error("Problem getting permission.\n", e);
-    process.exit();
-  }
-  if (nukeMe.armageddon != "armageddon") {
+async function handleAWSArmageddon() {
+  setCwdToProjectRoot();
+  const { armageddon: confirm1 } = await inquirer.prompt([
+    {
+      type: "input",
+      name: "armageddon",
+      message: `This command will delete more or less EVERYTHING on your AWS account.\n This cannot be undone.\n Are you SURE you want to do this?\n Confirm by typing 'armageddon'.`,
+    },
+  ]);
+  if (confirm1 !== "armageddon") {
     console.log("That is probably wise. Exiting.");
     return;
   }
-  let nukeMeTwice;
-  try {
-    nukeMeTwice = await inquirer.prompt([
-      {
-        type: "input",
-        name: "armageddon",
-        message: `Your database -- along with any data -- will be deleted.\n Confirm this is what you want by typing 'nuke my data'.`,
-      },
-    ]);
-  } catch (e) {
-    console.error("Problem getting permission.\n", e);
-    process.exit();
-  }
-  if (nukeMeTwice.armageddon != "nuke my data") {
+  const { armageddon: confirm2 } = await inquirer.prompt([
+    {
+      type: "input",
+      name: "armageddon",
+      message: `Your database -- along with any data -- will be deleted.\n Confirm this is what you want by typing 'nuke my data'.`,
+    },
+  ]);
+  if (confirm2 !== "nuke my data") {
     console.log("That is probably wise. Exiting.");
     return;
   }
   console.log(`I hope you know what you are doing. This makes me nervous every time...`);
-  let awsProfileName;
-  try {
-    awsProfileName = await inquirer.prompt([
-      {
-        type: "input",
-        name: "iam",
-        message:
-          "Provide your AWS profile username that you want to use for managing this project.",
-      },
-    ]);
-  } catch (e) {
-    console.error("Problem getting AWS IAM username.\n", e);
-    process.exit();
-  }
-  initAwsProfile(awsProfileName.iam);
+  const { iam: armageddonIam } = readAwsResources();
+  initAwsProfile(armageddonIam);
   return awsArmageddon("armageddon");
-};
+}
 
 /**
  * Fetches all templates of a given type under a given scope from npm.
@@ -644,7 +379,7 @@ const handleAWSArmageddon = async () => {
  * @param {boolean} verbose Output extra information to the console for debugging purposes.
  * @returns {Array<string>} An array of template names.
  */
-const getTemplates = async (scope, templateType, verbose) => {
+async function getTemplates(scope, templateType, verbose) {
   let response;
   let body;
   let templates = [];
@@ -671,7 +406,7 @@ const getTemplates = async (scope, templateType, verbose) => {
     process.exit(1);
   }
   return templates;
-};
+}
 
 /**
  * Fetches all versions of a given template package from npm.
@@ -679,7 +414,7 @@ const getTemplates = async (scope, templateType, verbose) => {
  * @param {boolean} verbose Output extra information to the console for debugging purposes.
  * @returns {object} An object containing the package name, a list of available versions, and the latest version.
  */
-const getVersions = async (packageName, verbose) => {
+async function getVersions(packageName, verbose) {
   let response;
   let body;
   let versions = new Object();
@@ -697,7 +432,7 @@ const getVersions = async (packageName, verbose) => {
     process.exit(1);
   }
   return versions;
-};
+}
 
 /**
  * The primary function for installing site and experiment templates
@@ -710,7 +445,7 @@ const getVersions = async (packageName, verbose) => {
  * @param {string} options.expImport The local path to a jsPsych experiment.html (basic exp template only)
  * @param {boolean} verbose Output extra information to the console for debugging purposes
  */
-const handleInstall = async (templateType, options, verbose) => {
+async function handleInstall(templateType, options, verbose) {
   if (verbose) console.log("--verbose flag set inside handleInstall()");
   /* The first major section of handleInstall() is substantially similar for site and exp templates.
   The main goals are to determine which template the user wants, install it as a dependency of their site,
@@ -780,8 +515,8 @@ const handleInstall = async (templateType, options, verbose) => {
     // Then replace any whitespace with underscores
     shortName = longName.replace(/[^\w\s]/g, "").replace(/\s/g, "_");
     // Check that the experiment name is not already in use
-    config = await loadConfig("pushkin.yaml");
-    const expNames = fs.readdirSync(path.join(process.cwd(), config.experimentsDir));
+    config = loadPushkinConfig();
+    const expNames = fs.readdirSync(config.experimentsDir);
     // Compare the experiment's short name to the short names of existing experiments
     // All names must be lowercased to avoid name collisions with experiment workers (which must be lowercase)
     if (expNames.map((name) => name.toLowerCase()).includes(shortName.toLowerCase())) {
@@ -1074,124 +809,70 @@ const handleInstall = async (templateType, options, verbose) => {
     if (newExpJs) {
       if (verbose) console.log(`Writing new experiment.js file`);
       fs.writeFileSync(
-        path.join(process.cwd(), config.experimentsDir, shortName, "web page/src/experiment.js"),
+        path.join(config.experimentsDir, shortName, "web page/src/experiment.js"),
         newExpJs,
       );
     }
   }
-};
+}
 
-const handleAWSInit = async (force) => {
-  let DockerHubId;
-  try {
-    DockerHubId = await dockerLogin();
-  } catch (error) {
-    console.log(error);
-    process.exit();
-  }
-
-  let config;
-  try {
-    config = await loadConfig(path.join(process.cwd(), "pushkin.yaml"));
-  } catch (e) {
-    console.error(`Unable to load pushkin.yaml`);
-    throw e;
-  }
-
-  let projectName, awsProfileName, s3BucketName;
+async function handleAWSInit(force) {
+  setCwdToProjectRoot();
+  await dockerLogin();
+  const config = loadPushkinConfig();
 
   try {
-    execSync("aws --version");
-  } catch (e) {
+    execSync("aws --version", { stdio: "ignore" });
+  } catch {
     console.error("Please install the AWS CLI before continuing.");
-    process.exit();
+    process.exit(1);
   }
 
+  let projectName, s3BucketName;
   let newProj = true;
-  if (config.info.projectName) {
-    let myChoices = config.info.projectName ? [config.info.projectName, "new"] : ["new"];
-    try {
-      projectName = await inquirer.prompt([
-        {
-          type: "list",
-          name: "name",
-          choices: myChoices,
-          message: "Which project?",
-        },
-      ]);
-    } catch (e) {
-      throw e;
-    }
-    if (projectName.name != "new") {
+
+  if (config.info?.projectName) {
+    projectName = await inquirer.prompt([
+      {
+        type: "list",
+        name: "name",
+        choices: [config.info.projectName, "new"],
+        message: "Which project?",
+      },
+    ]);
+    if (projectName.name !== "new") {
       newProj = false;
       s3BucketName = config.info.s3BucketName;
     }
     if (force) {
-      try {
-        //Run this anyway to reset awsResources.js and remove productionDBs from pushkin.yaml
-        s3BucketName = await nameProject(projectName.name);
-      } catch (e) {
-        throw e;
-      }
+      // Reset awsResources.js for re-deployment
+      s3BucketName = generateBucketName(projectName.name);
+      writeAwsResources({ name: projectName.name, s3BucketName });
     }
   }
 
   if (newProj) {
-    try {
-      projectName = await inquirer.prompt([
-        { type: "input", name: "name", message: "Name your project" },
-      ]);
-    } catch (e) {
-      console.error(e);
-      process.exit();
-    }
-    try {
-      s3BucketName = await nameProject(projectName.name);
-    } catch (e) {
-      throw e;
-    }
-  }
-
-  try {
-    awsProfileName = await inquirer.prompt([
-      {
-        type: "input",
-        name: "iam",
-        message:
-          "Provide your AWS profile username that you want to use for managing this project.",
-      },
+    projectName = await inquirer.prompt([
+      { type: "input", name: "name", message: "Name your project" },
     ]);
-  } catch (e) {
-    console.error("Problem getting AWS IAM username.\n", e);
-    process.exit();
+    s3BucketName = generateBucketName(projectName.name);
+    writeAwsResources({ name: projectName.name, s3BucketName });
   }
 
-  initAwsProfile(awsProfileName.iam);
-
-  try {
-    await verifyawsProfileName();
-  } catch (error) {
-    process.exit();
-  }
-  let addedIAM;
-  try {
-    addedIAM = addIAM(awsProfileName.iam); //this records which IAM user we are using, doesn't need to be synchronous
-  } catch (e) {
-    console.error(e);
-    process.exit();
-  }
-
-  try {
-    await Promise.all([awsInit(projectName.name, s3BucketName, config.DockerHubID), addedIAM]);
-  } catch (e) {
-    throw e;
-  }
+  const { iam } = await inquirer.prompt([
+    {
+      type: "input",
+      name: "iam",
+      message: "Provide your AWS profile username that you want to use for managing this project.",
+    },
+  ]);
+  initAwsProfile(iam);
+  const addedIAM = addIAM(iam);
+  await Promise.all([awsInit(projectName.name, s3BucketName, config.DockerHubID), addedIAM]);
   console.log("finished aws init");
+}
 
-  return;
-};
-
-const killLocal = async () => {
+async function killLocal() {
   console.log(
     "Removing all containers and volumes, as well as pushkin images. To additionally remove third-party images, run `pushkin armageddon`.",
   );
@@ -1226,7 +907,7 @@ const killLocal = async () => {
   }
   console.log("Completed kill");
   return;
-};
+}
 
 /**
  * The primary function for deleting and archiving/unarchiving experiments
@@ -1235,14 +916,13 @@ const killLocal = async () => {
  * @param {boolean} force Whether to suppress the deletion confirmation prompt
  * @param {boolean} verbose Output extra information to the console for debugging purposes
  */
-const handleRemove = async (experiments, mode, force, verbose) => {
+async function handleRemove(experiments, mode, force, verbose) {
   if (verbose) console.log("--verbose flag set inside handleRemove()");
   // Make sure we're in the root of the site directory
   setCwdToProjectRoot();
-  // Load the pushkin.yaml file
-  const config = jsYaml.load(fs.readFileSync(path.join(process.cwd(), "pushkin.yaml"), "utf8"));
+  const config = loadPushkinConfig();
   // Get the path to the experiments directory
-  const expDir = path.join(process.cwd(), config.experimentsDir);
+  const expDir = config.experimentsDir;
   // Check that the experiments directory exists
   if (!fs.existsSync(expDir)) {
     console.error(`Experiments folder (${expDir}) not found.`);
@@ -1373,7 +1053,7 @@ const handleRemove = async (experiments, mode, force, verbose) => {
     console.error("Problem removing experiment(s)", e);
     throw e;
   }
-};
+}
 
 /**
  * Writes the previously used published version of a Pushkin utility package to file before updating to a dev version
@@ -1384,7 +1064,7 @@ const handleRemove = async (experiments, mode, force, verbose) => {
  * @param {boolean} revert Revert to the previously used published versions of Pushkin utilities
  * @param {boolean} verbose Output extra information to the console for debugging purposes
  */
-const addDevPackage = (pkg, location, component, componentPath, revert, verbose) => {
+function addDevPackage(pkg, location, component, componentPath, revert, verbose) {
   if (verbose) console.log("--verbose flag set inside addDevPackage()");
   // Write the published version to file for use with the --revert flag
   let pkgJson;
@@ -1479,7 +1159,7 @@ const addDevPackage = (pkg, location, component, componentPath, revert, verbose)
       process.exit(1);
     }
   }
-};
+}
 
 /**
  * Updates the experiment worker's Dockerfile to copy yalc-related files
@@ -1488,7 +1168,7 @@ const addDevPackage = (pkg, location, component, componentPath, revert, verbose)
  * @param {boolean} revert Remove copying of yalc-related files from the Dockerfile
  * @param {boolean} verbose Output extra information to the console for debugging purposes
  */
-const updateWorkerDockerfile = (experiment, componentPath, revert, verbose) => {
+function updateWorkerDockerfile(experiment, componentPath, revert, verbose) {
   if (verbose) console.log("--verbose flag set inside updateWorkerDockerfile()");
   if (verbose) console.log(`Updating Dockerfile for ${experiment} worker`);
   let dockerfile;
@@ -1533,7 +1213,7 @@ const updateWorkerDockerfile = (experiment, componentPath, revert, verbose) => {
       process.exit(1);
     }
   }
-};
+}
 
 /**
  * The main function for the `use-dev` command
@@ -1545,7 +1225,7 @@ const updateWorkerDockerfile = (experiment, componentPath, revert, verbose) => {
  * @param {boolean} revert Revert to the previously used published versions of Pushkin utilities
  * @param {boolean} verbose Output extra information to the console for debugging purposes
  */
-const handleUseDev = (packages, pkgsPath, workerExps, update, revert, verbose) => {
+function handleUseDev(packages, pkgsPath, workerExps, update, revert, verbose) {
   if (verbose) console.log("--verbose flag set inside handleUseDev()");
   for (const pkg of packages) {
     // Using a for loop here instead of forEach() to loop over the packages
@@ -1595,13 +1275,17 @@ const handleUseDev = (packages, pkgsPath, workerExps, update, revert, verbose) =
       }
     }
   }
-};
+}
 
 /**
  * The entry point for `pushkin` commands
  * See commander documentation (https://www.npmjs.com/package/commander)
  */
 async function main() {
+  const program = new commander.Command();
+  const version = require("../package.json").version;
+  program.version(version);
+
   program
     .command("install")
     .alias("i")
@@ -1877,7 +1561,6 @@ async function main() {
     .description(
       `For working with AWS. Commands include:\n
       init: initialize an AWS deployment.\n
-      update: update an AWS deployment.\n
       status: show detailed status of current project's AWS resources.\n
       kill: delete AWS resources of current project.\n
       armageddon: delete AWS resources created by Pushkin.\n
@@ -1890,26 +1573,17 @@ async function main() {
     )
     .option("-v, --verbose", "output extra debugging info")
     .action(async (cmd, options) => {
-      setCwdToProjectRoot();
       switch (cmd) {
         case "init":
           try {
             setEnv(false, options.verbose); // synchronous
             await handleAWSInit(options.force);
-            // Give async operations a moment to clean up, then exit
+            // AWS SDK v3 uses persistent HTTP keep-alive connections that prevent Node from
+            // exiting naturally; give them a moment to drain before forcing exit.
             setTimeout(() => process.exit(0), 1000);
           } catch (e) {
             console.error(e);
             process.exit(1);
-          }
-          break;
-        case "update":
-          try {
-            //await handleAWSUpdate();
-            console.warn("\x1b[31m%s\x1b[0m", `Not currently implemented. Sorry.`);
-          } catch (e) {
-            console.error(e);
-            process.exit();
           }
           break;
         case "kill":
@@ -1917,7 +1591,7 @@ async function main() {
             await handleAWSKill();
           } catch (e) {
             console.error(e);
-            process.exit();
+            process.exit(1);
           }
           break;
         case "armageddon":
@@ -1925,7 +1599,7 @@ async function main() {
             await handleAWSArmageddon();
           } catch (e) {
             console.error(e);
-            process.exit();
+            process.exit(1);
           }
           break;
         case "list":
@@ -1933,7 +1607,7 @@ async function main() {
             await handleAWSList();
           } catch (e) {
             console.error(e);
-            process.exit();
+            process.exit(1);
           }
           break;
         case "status":
@@ -1941,7 +1615,7 @@ async function main() {
             await handleAWSStatus(options.verbose);
           } catch (e) {
             console.error(e);
-            process.exit();
+            process.exit(1);
           }
           break;
         default:
@@ -1957,21 +1631,9 @@ async function main() {
       inquirer
         .prompt([{ type: "input", name: "ID", message: "What is your DockerHub ID?" }])
         .then(async (answers) => {
-          let config;
-          try {
-            config = await loadConfig(path.join(process.cwd(), "pushkin.yaml"));
-          } catch (e) {
-            console.error(e);
-            process.exit();
-          }
+          const config = loadPushkinConfig();
           config.DockerHubID = answers.ID;
-          try {
-            fs.writeFileSync(path.join(process.cwd(), "pushkin.yaml"), jsYaml.dump(config));
-          } catch (e) {
-            console.error("Unable to rewrite pushkin.yaml.");
-            console.error(e);
-            process.exit();
-          }
+          savePushkinConfig(config);
           console.log("\nDocker Hub now requires Personal Access Tokens (PAT) for authentication.");
           console.log("To create a PAT:");
           console.log("1. Go to https://hub.docker.com/settings/security");
@@ -2169,12 +1831,12 @@ async function main() {
     });
 
   program
-    .command("config [what]")
+    .command("config [target]")
     .description(
-      "View config file for `what`, with possible values being `site` or any of the installed experiments by name. Defaults to all.",
+      "View config file for [target], with possible values being `site` or any of the installed experiments by name. Defaults to all.",
     )
-    .action((what) => {
-      handleViewConfig(what);
+    .action((target) => {
+      handleViewConfig(target);
     });
 
   program
@@ -2189,12 +1851,11 @@ async function main() {
     .action(async (cmd) => {
       switch (cmd) {
         case "updateDB":
-          setCwdToProjectRoot();
           try {
             await handleUpdateDB();
           } catch (e) {
             console.error(e);
-            process.exit();
+            process.exit(1);
           }
           break;
         case "setup-transaction-db":
@@ -2203,7 +1864,7 @@ async function main() {
             await setupLocalTransactionsDB();
           } catch (e) {
             console.error(e);
-            process.exit();
+            process.exit(1);
           }
           break;
         case "zip":
@@ -2211,16 +1872,15 @@ async function main() {
             execSync(`zip -r Archive.zip . -x "*node_modules*" -x "*.git*" -x "*.DS_Store"`);
           } catch (e) {
             console.error(e);
-            process.exit();
+            process.exit(1);
           }
           break;
         case "aws-auto-scale":
-          setCwdToProjectRoot();
           try {
             await handleCreateAutoScale();
           } catch (e) {
             console.error(e);
-            process.exit();
+            process.exit(1);
           }
           break;
         default:
