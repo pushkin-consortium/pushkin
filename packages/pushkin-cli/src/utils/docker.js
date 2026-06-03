@@ -29,9 +29,7 @@ const rebuildWorker = async function (experiment, verbose = false) {
     console.error(`Failed to load pushkin.yaml:`, error);
     throw error;
   }
-  if (verbose) {
-    console.log(`Rebuilding AWS-compatible worker for ${experiment}`);
-  }
+  console.log(`Building worker for ${experiment} (linux/amd64)...`);
   const expDir = path.join(pushkinConfig.experimentsDir, experiment);
   try {
     if (!fs.statSync(expDir).isDirectory()) return "";
@@ -96,9 +94,7 @@ const publishToDocker = async (
   }
   console.log("Publishing images to DockerHub");
 
-  if (verbose) {
-    console.log("Building API");
-  }
+  console.log("Building API (linux/amd64)...");
   try {
     const imageTag = `${DockerHubId}/api:latest`;
     const buildCommand = quote([
@@ -118,9 +114,7 @@ const publishToDocker = async (
     throw error;
   }
 
-  if (verbose) {
-    console.log("Pushing API to DockerHub");
-  }
+  console.log(`Pushing ${DockerHubId}/api to DockerHub...`);
   let pushedAPI;
   try {
     const imageTag = `${DockerHubId}/api:latest`;
@@ -150,9 +144,7 @@ const publishToDocker = async (
       return "";
     }
 
-    if (verbose) {
-      console.log(`Pushing service: ${s}`);
-    }
+    console.log(`Pushing ${s} to DockerHub...`);
     try {
       const imageName = service.image.split(":")[0];
       const targetImage = `${DockerHubId}/${imageName}:latest`;
@@ -176,7 +168,8 @@ const publishToDocker = async (
     throw error;
   }
 
-  return Promise.all([pushedAPI].concat(pushedWorkers));
+  await Promise.all([pushedAPI].concat(pushedWorkers));
+  console.log("✓ All images published to DockerHub");
 };
 
 // Export functions
