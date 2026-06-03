@@ -113,7 +113,7 @@ export const setupPushkinExp = async (longName, shortName, expDir, rootDir, verb
   expConfig.experimentName = longName;
   // Update exp config file with db password from main config
   const pushkinYaml = jsYaml.load(fs.readFileSync(path.join(rootDir, "pushkin.yaml")));
-  expConfig.worker.service.environment.DB_PASS = pushkinYaml.databases.local.experiment.pass;
+  expConfig.worker.service.environment.DB_PASS = pushkinYaml.databases.local.experiment.password;
 
   try {
     fs.writeFileSync(path.join(expDir, 'config.yaml'), jsYaml.dump(expConfig), 'utf8');

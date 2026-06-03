@@ -142,7 +142,7 @@ async function ensureEcsTaskExecutionRole(verbose = false) {
  * WHY: Check if the AWS SDK uses the provided IAM user to make API calls to AWS.
  * @returns {Promise<void>} - Resolves if the IAM user is configured, rejects with error if not
  */
-async function verifyawsProfileName() {
+async function verifyAwsProfileName() {
   const sts = createSTSClient();
 
   try {
@@ -165,12 +165,7 @@ async function verifyawsProfileName() {
  * @param {Array} ipPermissions - Ingress rules passed to AuthorizeSecurityGroupIngress
  * @returns {Promise<string>} - The security group ID
  */
-async function ensureSecurityGroup(
-  projectName,
-  groupSuffix,
-  description,
-  ipPermissions,
-) {
+async function ensureSecurityGroup(projectName, groupSuffix, description, ipPermissions) {
   const ec2Client = createEC2Client();
   const groupName = `${projectName}-${groupSuffix}`;
 
@@ -451,14 +446,12 @@ async function deleteSecurityGroups(killTag, deletedDBs, verbose = false) {
   }
 
   console.log(`Deleting ${groupsToDelete.length} security group(s)...`);
-  return Promise.all(
-    groupsToDelete.map((g) => deleteSingleSecurityGroup(g, verbose)),
-  );
+  return Promise.all(groupsToDelete.map((g) => deleteSingleSecurityGroup(g, verbose)));
 }
 
 export {
   ensureEcsTaskExecutionRole,
-  verifyawsProfileName,
+  verifyAwsProfileName,
   listCertificates,
   ensureDatabaseSecurityGroup,
   ensureBalancerSecurityGroup,

@@ -64,16 +64,16 @@ function buildWorkerTask(workerName, projectName, DockerHubId, rabbitAddress, db
     `ecs/${workerName}/${projectName}`;
   task.services[workerName].environment = {
     AMQP_ADDRESS: rabbitAddress,
-    DB_HOST: dbInfoByTask["experiment"].endpoint,
-    DB_USER: dbInfoByTask["experiment"].username,
-    DB_DB: dbInfoByTask["experiment"].name,
+    DB_HOST: dbInfoByTask["experiment"].host,
+    DB_USER: dbInfoByTask["experiment"].user,
+    DB_DB: dbInfoByTask["experiment"].database,
     DB_PASS: dbInfoByTask["experiment"].password,
-    DB_URL: dbInfoByTask["experiment"].endpoint,
-    TRANS_HOST: dbInfoByTask["transaction"].endpoint,
-    TRANS_USER: dbInfoByTask["transaction"].username,
-    TRANS_DB: dbInfoByTask["transaction"].name,
+    DB_URL: dbInfoByTask["experiment"].host,
+    TRANS_HOST: dbInfoByTask["transaction"].host,
+    TRANS_USER: dbInfoByTask["transaction"].user,
+    TRANS_DB: dbInfoByTask["transaction"].database,
     TRANS_PASS: dbInfoByTask["transaction"].password,
-    TRANS_URL: dbInfoByTask["transaction"].endpoint,
+    TRANS_URL: dbInfoByTask["transaction"].host,
   };
   return task;
 }

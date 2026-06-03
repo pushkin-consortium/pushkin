@@ -53,17 +53,17 @@ const getCloudFrontStatus = async (distributionId, verbose = false) => {
 /**
  * Get status of RDS database instances
  */
-const getRdsStatus = async (dbNames, verbose = false) => {
+const getRdsStatus = async (instanceIds, verbose = false) => {
   try {
     const clientFactory = new AWSClientFactory(AWS_REGION, getAwsProfile());
     const client = clientFactory.createClient(RDSClient);
     const response = await client.send(new DescribeDBInstancesCommand({}));
 
     const statuses = {};
-    for (const dbName of dbNames) {
-      const instance = response.DBInstances.find((db) => db.DBInstanceIdentifier === dbName);
+    for (const instanceId of instanceIds) {
+      const instance = response.DBInstances.find((db) => db.DBInstanceIdentifier === instanceId);
       if (instance) {
-        statuses[dbName] = {
+        statuses[instanceId] = {
           status: instance.DBInstanceStatus,
           engine: instance.Engine,
           engineVersion: instance.EngineVersion,
@@ -72,7 +72,7 @@ const getRdsStatus = async (dbNames, verbose = false) => {
           endpoint: instance.Endpoint?.Address || "N/A",
         };
       } else {
-        statuses[dbName] = { status: "NOT_FOUND" };
+        statuses[instanceId] = { status: "NOT_FOUND" };
       }
     }
     return statuses;
@@ -217,14 +217,14 @@ export const getProjectStatus = async (verbose = false) => {
   if (config.databases?.production && typeof config.databases.production === "object") {
     const dbEntries = Object.entries(config.databases.production);
     if (dbEntries.length > 0) {
-      const dbNames = dbEntries.map(([, db]) => db.name);
+      const instanceIds = dbEntries.map(([, db]) => db.instanceId);
       console.log("\n🗄️  RDS Databases");
-      const rdsStatuses = await getRdsStatus(dbNames, verbose);
+      const rdsStatuses = await getRdsStatus(instanceIds, verbose);
       if (rdsStatuses.error) {
         console.log(`   Status: ❌ ${rdsStatuses.error}`);
       } else {
-        for (const [dbName, status] of Object.entries(rdsStatuses)) {
-          console.log(`\n   ${dbName}:`);
+        for (const [instanceId, status] of Object.entries(rdsStatuses)) {
+          console.log(`\n   ${instanceId}:`);
           if (status.status === "NOT_FOUND") {
             console.log(`      Status: ❌ NOT_FOUND`);
           } else {
