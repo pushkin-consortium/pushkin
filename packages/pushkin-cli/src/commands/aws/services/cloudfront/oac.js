@@ -11,15 +11,13 @@ import {
   CreateOriginAccessControlCommand,
   DeleteOriginAccessControlCommand,
 } from "@aws-sdk/client-cloudfront";
-import { AWSClientFactory } from "../../utils/aws-client-factory.js";
-import { getAwsProfile } from "../../utils/aws-profile.js";
+import { AwsClientFactory } from "../../utils/aws-client-factory.js";
 import { loadAwsConfig } from "../../utils/aws-config.js";
 import { readAwsResources, updateAwsResourcesField } from "../../utils/aws-resources.js";
 import { OriginAccessControl } from "../../awsConfigs.js";
-import { AWS_REGION } from "../../constants.js";
 
 function createCloudFrontClient() {
-  return new AWSClientFactory(AWS_REGION, getAwsProfile()).createClient(CloudFrontClient);
+  return new AwsClientFactory().createClient(CloudFrontClient);
 }
 
 /**
@@ -108,28 +106,23 @@ async function getOac(verbose = false) {
  * WHY: AWS CloudFront backend has eventual consistency - even after distributions are
  * deleted, AWS may still report the OAC as "in use" for a short period.
  */
-async function deleteOac(oacId, etag, verbose = false) {
+async function deleteOac(oacId, etag) {
   const config = loadAwsConfig();
   const { maxRetries, retryInterval } = config.timeouts.cloudfront.oacDeletion;
-  const waitTime = retryInterval * 1000;
   const client = createCloudFrontClient();
 
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       await client.send(new DeleteOriginAccessControlCommand({ Id: oacId, IfMatch: etag }));
-      if (verbose && attempt > 0)
-        console.log(`✓ Successfully deleted OAC ${oacId} after ${attempt} retries`);
       return;
     } catch (error) {
-      if (error.name === "OriginAccessControlInUse" && attempt < maxRetries - 1) {
-        console.log(
-          `OAC ${oacId} still in use, waiting ${retryInterval}s before retry ${attempt + 1}/${maxRetries}...`,
-        );
-        await new Promise((resolve) => setTimeout(resolve, waitTime));
-        continue;
+      if (error.name === "OriginAccessControlInUse" && attempt < maxRetries) {
+        console.log(`OAC ${oacId} still in use, retrying (${attempt}/${maxRetries})...`);
+        await new Promise((resolve) => setTimeout(resolve, retryInterval * 1000));
+      } else {
+        console.error(`Failed to delete origin access control ${oacId}:`, error);
+        throw error;
       }
-      console.error(`Failed to delete origin access control ${oacId}:`, error);
-      throw error;
     }
   }
 }
@@ -167,7 +160,7 @@ async function deleteOacs(deletedCloudFront, verbose = false) {
 
   for (const oac of oacList) {
     const oacResponse = await client.send(new GetOriginAccessControlCommand({ Id: oac.Id }));
-    await deleteOac(oac.Id, oacResponse.ETag, verbose);
+    await deleteOac(oac.Id, oacResponse.ETag);
     if (verbose) console.log(`Updating awsResources with cloudfront info`);
     updateAwsResourcesField("OAC", null);
   }
