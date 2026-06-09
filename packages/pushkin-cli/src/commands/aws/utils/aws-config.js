@@ -1,8 +1,8 @@
 /**
- * AWS Configuration Loader
- *
- * Loads user-configurable AWS deployment parameters from aws-deploy.yaml.
- * Falls back to sensible defaults if the file doesn't exist.
+ * AWS user configuration loader.
+ * Loads user-tunable deployment settings from aws-deploy.yaml.
+ * extraConfig() field in each section allows users to specify raw AWS SDK parameters for advanced use cases.
+ * To tune internal operational constants (timeouts, etc.) edit constants.js.
  * @module aws/utils/aws-config
  */
 
@@ -10,82 +10,97 @@ import fs from "graceful-fs";
 import path from "path";
 import jsYaml from "js-yaml";
 
-/**
- * Default AWS deployment configuration
- * These values are used when aws-deploy.yaml is not present
- */
+const AWS_CONFIG_TEMPLATE = `# AWS deployment configuration for Pushkin
+# Uncomment and modify any field to override the default. All values shown are defaults.
+# Documentation: https://pushkin-consortium.github.io/pushkin/4.2/getting-started/deploying-to-aws/
+
+# AWS region to deploy resources to.
+# region: us-east-1
+
+# CloudFront CDN settings
+# cloudfront:
+#   # PriceClass_100 (cheapest, N.America + EU only) | PriceClass_200 | PriceClass_All
+#   priceClass: PriceClass_100
+#   # Raw CloudFront CreateDistribution parameters to pass through (advanced use)
+#   extraConfig: {}
+
+# ECS container resource allocation
+# Memory is in MB; cpu is in CPU units (1024 = 1 vCPU)
+# ecs:
+#   api:
+#     memory: 512
+#     memoryReservation: 256
+#     cpu: 256
+#   worker:
+#     memory: 512
+#     memoryReservation: 256
+#     cpu: 256
+#   rabbitmq:
+#     memory: 512
+#     memoryReservation: 256
+#     cpu: 256
+#   # Raw ECS task definition parameters to pass through (advanced use)
+#   extraConfig: {}
+
+# RDS PostgreSQL settings
+# rds:
+#   instanceClass: db.t3.micro
+#   allocatedStorage: 20       # GB — initial storage
+#   maxAllocatedStorage: 100   # GB — autoscaling cap
+#   backupRetentionPeriod: 7   # days
+#   multiAZ: false             # set true for production; enables failover but doubles RDS cost
+#   # Raw RDS CreateDBInstance parameters to pass through (advanced use)
+#   extraConfig: {}
+
+# ECS autoscaling settings
+# autoscaling:
+#   minSize: 2
+#   maxSize: 10
+#   desiredCapacity: 2
+#   alarms:
+#     cpu:
+#       threshold: 75          # percent utilization
+#       evaluationPeriods: 2
+#     memory:
+#       threshold: 75          # percent utilization
+#       evaluationPeriods: 2
+#     rds:
+#       writeLatency: 100      # milliseconds
+#       evaluationPeriods: 2
+
+# Security settings
+# security:
+#   enableWAF: true
+#   adminIPWhitelist: []       # e.g. ["203.0.113.0/24"] — IPs allowed to admin endpoints
+
+# Monitoring and logging
+# monitoring:
+#   logRetentionDays: 7
+#   alarmEmail: null           # e.g. "ops@example.com" — receives CloudWatch alarm emails
+`;
+
 const DEFAULT_AWS_CONFIG = {
   region: "us-east-1",
 
-  timeouts: {
-    cloudfront: {
-      maxWaitTime: 1800, // seconds (30 minutes)
-      checkInterval: 30, // seconds
-      oacDeletion: {
-        maxRetries: 10,
-        retryInterval: 10, // seconds
-      },
-    },
-    elb: {
-      listenerDeletion: {
-        maxWaitTime: 300, // seconds
-        checkInterval: 5, // seconds
-      },
-    },
-    route53: {
-      recordSetDeletion: {
-        maxWaitTime: 600, // seconds (10 minutes)
-        checkInterval: 20, // seconds
-      },
-    },
-    rds: {
-      availability: {
-        maxWaitTime: 1200, // seconds (20 min) — waitUntilDBInstanceAvailable
-        minDelay: 10,
-        maxDelay: 20,
-      },
-      endpoint: {
-        maxWaitTime: 120, // seconds — endpoint address waiter
-        minDelay: 10,
-        maxDelay: 30,
-      },
-      recording: {
-        timeoutMs: 1800000, // ms (30 min) — recordDBs race timeout
-      },
-      deletionProtection: {
-        timeoutMs: 300000, // ms (5 min) — waitForDeletionProtectionDisabled
-        checkInterval: 10, // seconds
-      },
-      deletion: {
-        timeoutMs: 1200000, // ms (20 min) — waitForDBsDeletion
-        minDelay: 20,
-        maxDelay: 30,
-      },
-    },
-    cloudformation: {
-      stackDeletion: {
-        maxWaitTime: 600, // seconds (10 minutes)
-        minDelay: 5,
-        maxDelay: 30,
-      },
-    },
-    ecs: {
-      tasksStopped: {
-        maxWaitTime: 600, // seconds (10 minutes)
-        minDelay: 5,
-        maxDelay: 10,
-      },
-      servicesDeletion: {
-        maxWaitTime: 300, // seconds (5 minutes)
-        minDelay: 5,
-        maxDelay: 5,
-      },
-    },
-    default: {
-      maxRetries: 5,
-      backoffMultiplier: 2,
-      baseDelay: 1000,
-    },
+  cloudfront: {
+    priceClass: "PriceClass_100", // PriceClass_100 (cheapest, N.America+EU) | PriceClass_200 | PriceClass_All
+    extraConfig: {},
+  },
+
+  ecs: {
+    api: { memory: 512, memoryReservation: 256, cpu: 256 }, // MB / MB / CPU units (1024 = 1 vCPU)
+    worker: { memory: 512, memoryReservation: 256, cpu: 256 },
+    rabbitmq: { memory: 512, memoryReservation: 256, cpu: 256 },
+    extraConfig: {},
+  },
+
+  rds: {
+    instanceClass: "db.t3.micro",
+    allocatedStorage: 20, // GB
+    maxAllocatedStorage: 100, // GB
+    backupRetentionPeriod: 7, // days
+    multiAZ: false, // set to true for production — enables automatic failover but doubles RDS cost
+    extraConfig: {},
   },
 
   autoscaling: {
@@ -93,57 +108,10 @@ const DEFAULT_AWS_CONFIG = {
     maxSize: 10,
     desiredCapacity: 2,
     alarms: {
-      cpu: {
-        threshold: 75,
-        evaluationPeriods: 2,
-      },
-      memory: {
-        threshold: 75,
-        evaluationPeriods: 2,
-      },
-      rds: {
-        writeLatency: 100,
-        evaluationPeriods: 2,
-      },
+      cpu: { threshold: 75, evaluationPeriods: 2 },
+      memory: { threshold: 75, evaluationPeriods: 2 },
+      rds: { writeLatency: 100, evaluationPeriods: 2 },
     },
-  },
-
-  cloudwatch: {
-    logRetentionDays: 7,
-  },
-
-  ecs: {
-    api: {
-      memory: 512,
-      memoryReservation: 256,
-      cpu: 256,
-    },
-    worker: {
-      memory: 512,
-      memoryReservation: 256,
-      cpu: 256,
-    },
-    rabbitmq: {
-      memory: 512,
-      memoryReservation: 256,
-      cpu: 256,
-    },
-  },
-
-  database: {
-    instanceClass: "db.t3.micro",
-    allocatedStorage: 20,
-    maxAllocatedStorage: 100,
-    backupRetentionPeriod: 7,
-    preferredBackupWindow: "03:00-04:00",
-    preferredMaintenanceWindow: "mon:04:00-mon:05:00",
-  },
-
-  cloudfront: {
-    priceClass: "PriceClass_100",
-    minTTL: 0,
-    defaultTTL: 86400,
-    maxTTL: 31536000,
   },
 
   security: {
@@ -153,93 +121,66 @@ const DEFAULT_AWS_CONFIG = {
 
   monitoring: {
     logRetentionDays: 7,
-    detailedMetrics: false,
     alarmEmail: null,
-  },
-
-  s3: {
-    uploadBatchSize: 10, // Number of files to upload concurrently to avoid overwhelming the connection
-  },
-
-  costs: {
-    useSpotInstances: false,
-    s3Lifecycle: true,
-    autoDeleteLogs: true,
-  },
-
-  advanced: {
-    ecsExec: false,
-    xrayTracing: false,
-    ecsKeyPairName: "my-pushkin-key-pair",
-    vpc: {
-      useDefault: true,
-    },
-  },
-  tagging: {
-    projectTagKey: "PUSHKIN",
   },
 };
 
-/**
- * Deep merge two objects, with source overriding target
- * Arrays are replaced, not merged
- * @param {object} target - The target object (defaults)
- * @param {object} source - The source object (user config)
- * @returns {object} - Merged object
- */
 function deepMerge(target, source) {
   const result = { ...target };
-
   for (const key in source) {
-    if (source[key] === null || source[key] === undefined) {
-      continue; // Skip null/undefined values
-    }
-
+    if (source[key] === null || source[key] === undefined) continue;
     if (
       typeof source[key] === "object" &&
       !Array.isArray(source[key]) &&
       typeof target[key] === "object" &&
       !Array.isArray(target[key])
     ) {
-      // Recursively merge nested objects
       result[key] = deepMerge(target[key] || {}, source[key]);
     } else {
-      // Replace primitive values and arrays
       result[key] = source[key];
     }
   }
-
   return result;
 }
 
 /**
- * Load AWS deployment configuration from aws-deploy.yaml
- * Merges user config with defaults
- * @param {string} [configPath] - Optional path to config file (defaults to cwd/aws-deploy.yaml)
- * @returns {object} - Configuration object with all settings
+ * Writes a commented aws-deploy.yaml template to the project directory if one does not already exist.
+ * @param {string|null} configPath - Optional path; defaults to current directory
  */
-export function loadAwsConfig(configPath = null) {
+function generateAwsConfig(configPath = null) {
   const filePath = configPath || path.join(process.cwd(), "aws-deploy.yaml");
+  if (fs.existsSync(filePath)) return;
+  fs.writeFileSync(filePath, AWS_CONFIG_TEMPLATE, "utf8");
+  console.log(
+    `Created aws-deploy.yaml with default settings. Edit it to customize your deployment before re-running.`,
+  );
+}
 
-  // If no user config, return defaults
-  if (!fs.existsSync(filePath)) {
-    return DEFAULT_AWS_CONFIG;
-  }
+/**
+ * Returns a deep copy of the default AWS configuration object.
+ * Useful for testing or as a template for user configuration.
+ */
+function getDefaultAwsConfig() {
+  return structuredClone(DEFAULT_AWS_CONFIG);
+}
 
+/**
+ * Loads AWS configuration from aws-deploy.yaml in the current project, merging with defaults.
+ * @param {string|null} configPath - Optional path to aws-deploy.yaml; defaults to current directory
+ * @returns {object} Merged AWS configuration object
+ * @throws {Error} If aws-deploy.yaml exists but cannot be read or parsed
+ */
+function loadAwsConfig(configPath = null) {
+  const filePath = configPath || path.join(process.cwd(), "aws-deploy.yaml");
+  if (!fs.existsSync(filePath)) return DEFAULT_AWS_CONFIG;
   try {
-    const fileContent = fs.readFileSync(filePath, "utf8");
-    const userConfig = jsYaml.load(fileContent);
-
-    // Validate that userConfig is an object
-    if (typeof userConfig !== "object" || userConfig === null) {
+    const userConfig = jsYaml.load(fs.readFileSync(filePath, "utf8"));
+    if (userConfig === null) return DEFAULT_AWS_CONFIG;
+    if (typeof userConfig !== "object") {
       console.warn(`Warning: aws-deploy.yaml is not a valid YAML object. Using defaults.`);
       return DEFAULT_AWS_CONFIG;
     }
-
-    // Deep merge user config with defaults
-    const mergedConfig = deepMerge(DEFAULT_AWS_CONFIG, userConfig);
-
-    return mergedConfig;
+    return deepMerge(DEFAULT_AWS_CONFIG, userConfig);
   } catch (error) {
     console.warn(`Warning: Error loading aws-deploy.yaml: ${error.message}. Using defaults.`);
     return DEFAULT_AWS_CONFIG;
@@ -247,23 +188,13 @@ export function loadAwsConfig(configPath = null) {
 }
 
 /**
- * Get default configuration (useful for testing or documentation)
- * @returns {object} - Default configuration object
+ * Validates the AWS configuration object.
+ * @param {object} awsConfig
+ * @returns {string[]} Array of error messages, empty if valid
  */
-export function getDefaultConfig() {
-  return { ...DEFAULT_AWS_CONFIG };
-}
-
-/**
- * Validate configuration values
- * Returns array of validation errors, empty if valid
- * @param {object} config
- * @returns {Array<string>} - Array of error messages
- */
-export function validateConfig(config) {
+function validateAwsConfig(awsConfig) {
   const errors = [];
 
-  // Validate region
   const validRegions = [
     "us-east-1",
     "us-east-2",
@@ -276,81 +207,36 @@ export function validateConfig(config) {
     "ap-southeast-2",
     "ap-northeast-1",
   ];
-  if (!validRegions.includes(config.region)) {
-    errors.push(`Invalid region: ${config.region}. Must be one of: ${validRegions.join(", ")}`);
-  }
+  if (!validRegions.includes(awsConfig.region))
+    errors.push(`Invalid region: ${awsConfig.region}. Must be one of: ${validRegions.join(", ")}`);
 
-  // Validate autoscaling
-  if (config.autoscaling.minSize > config.autoscaling.maxSize) {
+  if (awsConfig.autoscaling.minSize > awsConfig.autoscaling.maxSize)
     errors.push(
-      `autoscaling.minSize (${config.autoscaling.minSize}) cannot be greater than maxSize (${config.autoscaling.maxSize})`,
+      `autoscaling.minSize (${awsConfig.autoscaling.minSize}) cannot be greater than maxSize (${awsConfig.autoscaling.maxSize})`,
     );
-  }
 
   if (
-    config.autoscaling.desiredCapacity < config.autoscaling.minSize ||
-    config.autoscaling.desiredCapacity > config.autoscaling.maxSize
-  ) {
+    awsConfig.autoscaling.desiredCapacity < awsConfig.autoscaling.minSize ||
+    awsConfig.autoscaling.desiredCapacity > awsConfig.autoscaling.maxSize
+  )
     errors.push(
-      `autoscaling.desiredCapacity (${config.autoscaling.desiredCapacity}) must be between minSize and maxSize`,
+      `autoscaling.desiredCapacity (${awsConfig.autoscaling.desiredCapacity}) must be between minSize and maxSize`,
     );
-  }
 
-  // Validate ECS resources (must be positive numbers)
-  const ecsServices = ["api", "worker", "rabbitmq"];
-  for (const service of ecsServices) {
-    if (config.ecs[service].memory <= 0) {
-      errors.push(`ecs.${service}.memory must be positive`);
-    }
-    if (config.ecs[service].cpu <= 0) {
-      errors.push(`ecs.${service}.cpu must be positive`);
-    }
-    if (config.ecs[service].memoryReservation > config.ecs[service].memory) {
+  for (const service of ["api", "worker", "rabbitmq"]) {
+    if (awsConfig.ecs[service].memory <= 0) errors.push(`ecs.${service}.memory must be positive`);
+    if (awsConfig.ecs[service].cpu <= 0) errors.push(`ecs.${service}.cpu must be positive`);
+    if (awsConfig.ecs[service].memoryReservation > awsConfig.ecs[service].memory)
       errors.push(`ecs.${service}.memoryReservation cannot exceed memory hard limit`);
-    }
   }
 
-  // Validate CloudFront price class
   const validPriceClasses = ["PriceClass_100", "PriceClass_200", "PriceClass_All"];
-  if (!validPriceClasses.includes(config.cloudfront.priceClass)) {
+  if (!validPriceClasses.includes(awsConfig.cloudfront.priceClass))
     errors.push(
-      `Invalid cloudfront.priceClass: ${config.cloudfront.priceClass}. Must be one of: ${validPriceClasses.join(", ")}`,
+      `Invalid cloudfront.priceClass: ${awsConfig.cloudfront.priceClass}. Must be one of: ${validPriceClasses.join(", ")}`,
     );
-  }
-
-  // Validate timeout values (must be positive numbers)
-  if (config.timeouts.cloudfront.maxWaitTime <= 0) {
-    errors.push("timeouts.cloudfront.maxWaitTime must be positive");
-  }
-  if (config.timeouts.cloudfront.checkInterval <= 0) {
-    errors.push("timeouts.cloudfront.checkInterval must be positive");
-  }
-  if (config.timeouts.cloudfront.oacDeletion.maxRetries <= 0) {
-    errors.push("timeouts.cloudfront.oacDeletion.maxRetries must be positive");
-  }
-  if (config.timeouts.cloudfront.oacDeletion.retryInterval <= 0) {
-    errors.push("timeouts.cloudfront.oacDeletion.retryInterval must be positive");
-  }
-
-  if (config.timeouts.rds.availability.maxWaitTime <= 0) {
-    errors.push("timeouts.rds.availability.maxWaitTime must be positive");
-  }
-  if (config.timeouts.rds.availability.minDelay <= 0) {
-    errors.push("timeouts.rds.availability.minDelay must be positive");
-  }
-  if (config.timeouts.rds.deletion.timeoutMs <= 0) {
-    errors.push("timeouts.rds.deletion.timeoutMs must be positive");
-  }
-
-  if (config.timeouts.default.maxRetries <= 0) {
-    errors.push("timeouts.default.maxRetries must be positive");
-  }
-  if (config.timeouts.default.backoffMultiplier <= 0) {
-    errors.push("timeouts.default.backoffMultiplier must be positive");
-  }
-  if (config.timeouts.default.baseDelay <= 0) {
-    errors.push("timeouts.default.baseDelay must be positive");
-  }
 
   return errors;
 }
+
+export { generateAwsConfig, getDefaultAwsConfig, loadAwsConfig, validateAwsConfig };
