@@ -6,7 +6,7 @@ import { S3Client } from "@aws-sdk/client-s3";
 import { ECSClient } from "@aws-sdk/client-ecs";
 
 jest.mock("../aws-profile.js", () => ({ getAwsProfile: () => "test-profile" }));
-jest.mock("../../constants.js", () => ({ AWS_REGION: "eu-west-1", PROJECT_TAG_KEY: "PUSHKIN" }));
+jest.mock("../../constants.js", () => ({ AWS_REGION: "eu-west-1", PROJECT_TAG: "PUSHKIN" }));
 
 describe("AwsClientFactory", () => {
   describe("constructor", () => {

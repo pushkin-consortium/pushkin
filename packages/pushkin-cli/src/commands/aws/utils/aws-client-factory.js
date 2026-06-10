@@ -8,7 +8,7 @@ import { getAwsProfile } from "./aws-profile.js";
  */
 class AwsClientFactory {
   /**
-   * Create a new client factory.
+   * Create a new AWS client factory.
    * @param {string} [region]
    */
   constructor(region = AWS_REGION) {
@@ -18,7 +18,7 @@ class AwsClientFactory {
   }
 
   /**
-   * Create any AWS SDK v3 client.
+   * Create any AWS SDK client.
    * @param {Function} ClientClass
    * @returns {object} Client instance with configured region and credentials
    */
