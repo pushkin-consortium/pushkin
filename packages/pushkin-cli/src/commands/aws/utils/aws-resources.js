@@ -1,70 +1,24 @@
-/**
- * AWS Resources File Manager
- *
- * Utility module for reading and writing the awsResources.js file.
- * This file tracks AWS resource IDs (CloudFront, RDS, ECS, etc.) for the current Pushkin project.
- *
- * @module aws/utils/aws-resources
- */
-
 import fs from "graceful-fs";
 import path from "path";
-import jsYaml from "js-yaml";
 
-/**
- * Gets the path to awsResources.js in the current project
- * @returns {string} Absolute path to awsResources.js
- */
-export function getAwsResourcesPath() {
-  return path.join(process.cwd(), "awsResources.js");
+function getAwsResourcesPath() {
+  return path.join(process.cwd(), "awsResources.json");
 }
 
-/**
- * Reads awsResources.js file from the current project
- * @returns {object} Parsed awsResources object
- * @throws {Error} If file cannot be read
- */
-export function readAwsResources() {
-  try {
-    const filePath = getAwsResourcesPath();
-    return jsYaml.load(fs.readFileSync(filePath, "utf8"));
-  } catch (error) {
-    console.error(`Unable to read awsResources.js. That's strange.`);
-    throw error;
-  }
+function loadAwsResources() {
+  const filePath = getAwsResourcesPath();
+  return JSON.parse(fs.readFileSync(filePath, "utf8"));
 }
 
-/**
- * Writes awsResources.js file to the current project
- * @param {object} awsResources
- * @throws {Error} If file cannot be written
- */
-export function writeAwsResources(awsResources) {
-  try {
-    const filePath = getAwsResourcesPath();
-    fs.writeFileSync(filePath, jsYaml.dump(awsResources), "utf8");
-  } catch (error) {
-    console.error(`Can't write to awsResources.js. That's strange.`);
-    throw error;
-  }
+function writeAwsResources(awsResources) {
+  const filePath = getAwsResourcesPath();
+  fs.writeFileSync(filePath, JSON.stringify(awsResources, null, 2), "utf8");
 }
 
-/**
- * Updates a specific field in awsResources.js
- * @param {string} field
- * @param {*} value
- * @throws {Error} If file cannot be read or written
- */
-export function updateAwsResourcesField(field, value) {
-  const awsResources = readAwsResources();
+function updateAwsResourcesField(field, value) {
+  const awsResources = loadAwsResources();
   awsResources[field] = value;
   writeAwsResources(awsResources);
 }
 
-/**
- * Checks if awsResources.js exists in the current project
- * @returns {boolean} True if file exists
- */
-export function awsResourcesExists() {
-  return fs.existsSync(getAwsResourcesPath());
-}
+export { loadAwsResources, writeAwsResources, updateAwsResourcesField };

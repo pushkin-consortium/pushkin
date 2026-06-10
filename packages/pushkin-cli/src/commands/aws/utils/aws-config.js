@@ -1,19 +1,8 @@
-/**
- * AWS Configuration File Manager.
- * Utility module for generating, loading, and validating the aws-deploy.yaml configuration file.
- * @module aws/utils/aws-config
- */
-
 import fs from "graceful-fs";
 import path from "path";
 import jsYaml from "js-yaml";
 import { getProjectRoot } from "../../../utils/pushkin-config.js";
 
-/**
- * Walks up the directory tree from process.cwd() to find aws-deploy.yaml.
- * @returns {string} Absolute path to aws-deploy.yaml
- * @throws {Error} If aws-deploy.yaml is not found in the current directory or any parent
- */
 function getAwsConfigPath() {
   let currentDir = process.cwd();
   const rootDir = path.parse(currentDir).root;
@@ -30,11 +19,6 @@ function getAwsConfigPath() {
   );
 }
 
-/**
- * Copies the default aws-deploy.yaml template into the Pushkin project root.
- * Does nothing if the file already exists.
- * @param {string|null} configPath - Optional destination path; defaults to the directory containing pushkin.yaml
- */
 function generateAwsConfig(configPath = null) {
   const filePath = configPath || path.join(getProjectRoot(), "aws-deploy.yaml");
   if (fs.existsSync(filePath)) return;
@@ -44,11 +28,6 @@ function generateAwsConfig(configPath = null) {
   );
 }
 
-/**
- * Loads and parses aws-deploy.yaml from the current project.
- * @returns {object} Parsed AWS configuration object
- * @throws {Error} If the file is not found, is not valid YAML, or is not an object
- */
 function loadAwsConfig() {
   const configPath = getAwsConfigPath();
   try {
@@ -65,11 +44,6 @@ function loadAwsConfig() {
   }
 }
 
-/**
- * Validates the AWS configuration object.
- * @param {object} config
- * @returns {string[]} Array of error messages, empty if valid
- */
 function validateAwsConfig(config) {
   const errors = [];
 

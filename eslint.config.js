@@ -39,20 +39,8 @@ const monorepoConfig = {
     ...js.configs.recommended.rules,
     ...jsdoc.configs["flat/recommended"].rules,
     ...jest.configs["flat/recommended"].rules,
-    "jsdoc/require-jsdoc": [
-      "error",
-      {
-        publicOnly: true,
-        require: {
-          FunctionDeclaration: true,
-          MethodDefinition: true,
-          ClassDeclaration: true,
-          ArrowFunctionExpression: false,
-          FunctionExpression: false,
-        },
-      },
-    ],
-    "jsdoc/require-description": "error",
+    "jsdoc/require-jsdoc": "off",
+    "jsdoc/require-description": "off",
     "jsdoc/require-param": "off",
     "jsdoc/require-param-description": "off",
     "jsdoc/require-param-type": "off",

@@ -1,9 +1,4 @@
-/**
- * AWS profile management utilities for Pushkin CLI.
- * This module holds the active AWS IAM profile in memory, which is set by initAwsProfile and accessed by getAwsProfile.
- * @module aws/utils/aws-profile
- */
-
+// Module-level singleton: IAM profile is set once by initAwsProfile() at startup and read throughout.
 let profile;
 
 const initAwsProfile = (name) => {
