@@ -1,204 +1,86 @@
 import fs from "graceful-fs";
 import jsYaml from "js-yaml";
 import {
-  loadAwsConfig,
-  getDefaultAwsConfig,
-  validateAwsConfig,
+  getAwsConfigPath,
   generateAwsConfig,
+  loadAwsConfig,
+  validateAwsConfig,
 } from "../aws-config.js";
 
 jest.mock("graceful-fs");
+jest.mock("../../../../utils/pushkin-config.js", () => ({
+  getProjectRoot: jest.fn(() => "/project"),
+}));
 
 beforeEach(() => jest.clearAllMocks());
 
-describe("loadAwsConfig", () => {
-  test("returns defaults when aws-deploy.yaml does not exist", () => {
+// Matches the defaults in aws-deploy.yaml
+const VALID_CONFIG = {
+  region: "us-east-1",
+  cloudfront: { priceClass: "PriceClass_100", extraConfig: {} },
+  ecs: {
+    api: { memory: 512 },
+    worker: { memory: 512 },
+    rabbitmq: { memory: 512 },
+    extraConfig: {},
+  },
+  rds: {
+    instanceClass: "db.t3.micro",
+    allocatedStorage: 20,
+    maxAllocatedStorage: 100,
+    backupRetentionPeriod: 7,
+    multiAZ: false,
+    extraConfig: {},
+  },
+  autoscaling: {
+    minSize: 2,
+    maxSize: 10,
+    desiredCapacity: 2,
+    alarms: {
+      cpu: { threshold: 75, evaluationPeriods: 2 },
+      memory: { threshold: 75, evaluationPeriods: 2 },
+      rds: { writeLatency: 100, evaluationPeriods: 2 },
+    },
+  },
+  security: { enableWAF: false },
+  monitoring: { logRetentionDays: 7 },
+};
+
+describe("getAwsConfigPath", () => {
+  test("returns path when aws-deploy.yaml exists in current directory", () => {
+    fs.existsSync.mockImplementation((filePath) => filePath.endsWith("aws-deploy.yaml"));
+    const result = getAwsConfigPath();
+    expect(result).toContain("aws-deploy.yaml");
+  });
+
+  test("walks up to find aws-deploy.yaml in a parent directory", () => {
+    const parentPath = "/parent/aws-deploy.yaml";
+    fs.existsSync.mockImplementation((filePath) => filePath === parentPath);
+
+    const originalCwd = process.cwd;
+    process.cwd = () => "/parent/child";
+
+    const result = getAwsConfigPath();
+
+    expect(result).toBe(parentPath);
+    process.cwd = originalCwd;
+  });
+
+  test("throws with a helpful message when no aws-deploy.yaml is found", () => {
     fs.existsSync.mockReturnValue(false);
-
-    const config = loadAwsConfig();
-
-    expect(config.region).toBe("us-east-1");
-    expect(config.cloudfront.priceClass).toBe("PriceClass_100");
-    expect(config.ecs.api.memory).toBe(512);
-  });
-
-  test("merges user config over defaults", () => {
-    fs.existsSync.mockReturnValue(true);
-    fs.readFileSync.mockReturnValue(jsYaml.dump({ region: "eu-west-1" }));
-
-    const config = loadAwsConfig();
-
-    expect(config.region).toBe("eu-west-1");
-    expect(config.cloudfront.priceClass).toBeDefined(); // defaults preserved
-  });
-
-  test("deep merges nested user config without clobbering siblings", () => {
-    fs.existsSync.mockReturnValue(true);
-    fs.readFileSync.mockReturnValue(jsYaml.dump({ ecs: { api: { memory: 1024 } } }));
-
-    const config = loadAwsConfig();
-
-    expect(config.ecs.api.memory).toBe(1024); // overridden
-    expect(config.ecs.api.cpu).toBe(256); // default preserved
-    expect(config.ecs.worker.memory).toBe(512); // sibling default preserved
-  });
-
-  test("accepts an explicit config path", () => {
-    fs.existsSync.mockReturnValue(true);
-    fs.readFileSync.mockReturnValue(jsYaml.dump({ region: "ap-northeast-1" }));
-
-    const config = loadAwsConfig("/custom/path/aws-deploy.yaml");
-
-    expect(fs.existsSync).toHaveBeenCalledWith("/custom/path/aws-deploy.yaml");
-    expect(config.region).toBe("ap-northeast-1");
-  });
-
-  test("returns defaults silently when file is all comments (parses to null)", () => {
-    fs.existsSync.mockReturnValue(true);
-    fs.readFileSync.mockReturnValue("# just a comment");
-    const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
-
-    const config = loadAwsConfig();
-
-    expect(config.region).toBe("us-east-1");
-    expect(warnSpy).not.toHaveBeenCalled();
-    warnSpy.mockRestore();
-  });
-
-  test("returns defaults with a warning when file content is not a YAML object", () => {
-    fs.existsSync.mockReturnValue(true);
-    fs.readFileSync.mockReturnValue(jsYaml.dump("just a string")); // valid YAML, but not an object
-    const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
-
-    const config = loadAwsConfig();
-
-    expect(config.region).toBe("us-east-1");
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("not a valid YAML object"));
-    warnSpy.mockRestore();
-  });
-
-  test("returns defaults when file read throws", () => {
-    fs.existsSync.mockReturnValue(true);
-    fs.readFileSync.mockImplementation(() => {
-      throw new Error("Permission denied");
-    });
-
-    const config = loadAwsConfig();
-
-    expect(config.region).toBe("us-east-1");
-  });
-});
-
-describe("getDefaultAwsConfig", () => {
-  test("returns a copy — mutating top-level fields does not affect subsequent calls", () => {
-    const config = getDefaultAwsConfig();
-    config.region = "mutated";
-
-    expect(getDefaultAwsConfig().region).toBe("us-east-1");
-  });
-
-  test("returns a deep copy — mutating nested fields does not affect subsequent calls", () => {
-    const config = getDefaultAwsConfig();
-    config.ecs.api.memory = 9999;
-
-    expect(getDefaultAwsConfig().ecs.api.memory).toBe(512);
-  });
-});
-
-describe("validateAwsConfig", () => {
-  test("returns no errors for the default config", () => {
-    expect(validateAwsConfig(getDefaultAwsConfig())).toEqual([]);
-  });
-
-  test("rejects an invalid region", () => {
-    const config = { ...getDefaultAwsConfig(), region: "mars-east-1" };
-    const errors = validateAwsConfig(config);
-
-    expect(errors.length).toBeGreaterThan(0);
-    expect(errors[0]).toMatch(/region/);
-  });
-
-  test("rejects minSize greater than maxSize", () => {
-    const config = {
-      ...getDefaultAwsConfig(),
-      autoscaling: { minSize: 10, maxSize: 2, desiredCapacity: 5 },
-    };
-    const errors = validateAwsConfig(config);
-
-    expect(errors.some((e) => e.includes("minSize"))).toBe(true);
-  });
-
-  test("rejects desiredCapacity outside min/max range", () => {
-    const config = {
-      ...getDefaultAwsConfig(),
-      autoscaling: { minSize: 2, maxSize: 10, desiredCapacity: 20 },
-    };
-    const errors = validateAwsConfig(config);
-
-    expect(errors.some((e) => e.includes("desiredCapacity"))).toBe(true);
-  });
-
-  test("rejects memoryReservation exceeding memory for an ECS service", () => {
-    const config = {
-      ...getDefaultAwsConfig(),
-      ecs: {
-        ...getDefaultAwsConfig().ecs,
-        api: { memory: 256, memoryReservation: 512, cpu: 256 },
-      },
-    };
-    const errors = validateAwsConfig(config);
-
-    expect(errors.some((e) => e.includes("ecs.api.memoryReservation"))).toBe(true);
-  });
-
-  test("rejects an invalid CloudFront price class", () => {
-    const config = {
-      ...getDefaultAwsConfig(),
-      cloudfront: { ...getDefaultAwsConfig().cloudfront, priceClass: "PriceClass_Free" },
-    };
-    const errors = validateAwsConfig(config);
-
-    expect(errors.some((e) => e.includes("priceClass"))).toBe(true);
-  });
-
-  test("rejects zero or negative ECS memory or cpu", () => {
-    const config = {
-      ...getDefaultAwsConfig(),
-      ecs: {
-        ...getDefaultAwsConfig().ecs,
-        worker: { memory: 0, memoryReservation: 0, cpu: -1 },
-      },
-    };
-    const errors = validateAwsConfig(config);
-
-    expect(errors.some((e) => e.includes("ecs.worker.memory"))).toBe(true);
-    expect(errors.some((e) => e.includes("ecs.worker.cpu"))).toBe(true);
-  });
-});
-
-describe("deepMerge (via loadAwsConfig)", () => {
-  test("user-specified arrays replace defaults rather than merge", () => {
-    fs.existsSync.mockReturnValue(true);
-    fs.readFileSync.mockReturnValue(
-      jsYaml.dump({ security: { adminIPWhitelist: ["203.0.113.0/24"] } }),
-    );
-
-    const config = loadAwsConfig();
-
-    expect(config.security.adminIPWhitelist).toEqual(["203.0.113.0/24"]);
+    expect(() => getAwsConfigPath()).toThrow("pushkin aws init");
   });
 });
 
 describe("generateAwsConfig", () => {
-  test("writes a template file when aws-deploy.yaml does not exist", () => {
+  test("copies the template into the project root when no path is given", () => {
     fs.existsSync.mockReturnValue(false);
 
     generateAwsConfig();
 
-    expect(fs.writeFileSync).toHaveBeenCalledWith(
+    expect(fs.copyFileSync).toHaveBeenCalledWith(
       expect.stringContaining("aws-deploy.yaml"),
-      expect.stringContaining("region"),
-      "utf8",
+      "/project/aws-deploy.yaml",
     );
   });
 
@@ -217,19 +99,141 @@ describe("generateAwsConfig", () => {
 
     generateAwsConfig();
 
-    expect(fs.writeFileSync).not.toHaveBeenCalled();
+    expect(fs.copyFileSync).not.toHaveBeenCalled();
   });
 
-  test("respects an explicit config path", () => {
+  test("respects an explicit destination path", () => {
     fs.existsSync.mockReturnValue(false);
 
     generateAwsConfig("/custom/path/aws-deploy.yaml");
 
     expect(fs.existsSync).toHaveBeenCalledWith("/custom/path/aws-deploy.yaml");
-    expect(fs.writeFileSync).toHaveBeenCalledWith(
+    expect(fs.copyFileSync).toHaveBeenCalledWith(
+      expect.stringContaining("aws-deploy.yaml"),
       "/custom/path/aws-deploy.yaml",
-      expect.any(String),
-      "utf8",
     );
   });
+});
+
+describe("loadAwsConfig", () => {
+  test("returns parsed config when aws-deploy.yaml is valid", () => {
+    fs.existsSync.mockReturnValue(true);
+    fs.readFileSync.mockReturnValue(jsYaml.dump(VALID_CONFIG));
+
+    const config = loadAwsConfig();
+
+    expect(config.region).toBe("us-east-1");
+    expect(config.cloudfront.priceClass).toBe("PriceClass_100");
+    expect(config.ecs.api.memory).toBe(512);
+  });
+
+  test("throws when aws-deploy.yaml does not exist", () => {
+    fs.existsSync.mockReturnValue(false);
+
+    expect(() => loadAwsConfig()).toThrow("pushkin aws init");
+  });
+
+  test("throws when file parses to null (empty or all comments)", () => {
+    fs.existsSync.mockReturnValue(true);
+    fs.readFileSync.mockReturnValue("# just a comment");
+
+    expect(() => loadAwsConfig()).toThrow("empty or not a valid YAML object");
+  });
+
+  test("throws when file content is not a YAML object", () => {
+    fs.existsSync.mockReturnValue(true);
+    fs.readFileSync.mockReturnValue(jsYaml.dump("just a string"));
+
+    expect(() => loadAwsConfig()).toThrow("empty or not a valid YAML object");
+  });
+
+  test("throws when file content is a YAML array", () => {
+    fs.existsSync.mockReturnValue(true);
+    fs.readFileSync.mockReturnValue(jsYaml.dump(["item1", "item2"]));
+
+    expect(() => loadAwsConfig()).toThrow("empty or not a valid YAML object");
+  });
+
+  test("throws with a YAML error message when file contains invalid YAML", () => {
+    fs.existsSync.mockReturnValue(true);
+    fs.readFileSync.mockReturnValue("key: [unclosed");
+
+    expect(() => loadAwsConfig()).toThrow("Invalid YAML");
+  });
+
+  test("throws when file cannot be read", () => {
+    fs.existsSync.mockReturnValue(true);
+    fs.readFileSync.mockImplementation(() => {
+      throw new Error("Permission denied");
+    });
+
+    expect(() => loadAwsConfig()).toThrow("Permission denied");
+  });
+});
+
+describe("validateAwsConfig", () => {
+  test("returns no errors for the default config", () => {
+    expect(validateAwsConfig(VALID_CONFIG)).toEqual([]);
+  });
+
+  test("rejects an invalid region", () => {
+    const config = { ...VALID_CONFIG, region: "mars-east-1" };
+    const errors = validateAwsConfig(config);
+
+    expect(errors.length).toBeGreaterThan(0);
+    expect(errors[0]).toMatch(/region/);
+  });
+
+  test("rejects minSize greater than maxSize", () => {
+    const config = {
+      ...VALID_CONFIG,
+      autoscaling: { ...VALID_CONFIG.autoscaling, minSize: 10, maxSize: 2, desiredCapacity: 5 },
+    };
+    const errors = validateAwsConfig(config);
+
+    expect(errors.some((error) => error.includes("minSize"))).toBe(true);
+  });
+
+  test("rejects desiredCapacity above maxSize", () => {
+    const config = {
+      ...VALID_CONFIG,
+      autoscaling: { ...VALID_CONFIG.autoscaling, minSize: 2, maxSize: 10, desiredCapacity: 20 },
+    };
+    const errors = validateAwsConfig(config);
+
+    expect(errors.some((error) => error.includes("desiredCapacity"))).toBe(true);
+  });
+
+  test("rejects desiredCapacity below minSize", () => {
+    const config = {
+      ...VALID_CONFIG,
+      autoscaling: { ...VALID_CONFIG.autoscaling, minSize: 5, maxSize: 10, desiredCapacity: 1 },
+    };
+    const errors = validateAwsConfig(config);
+
+    expect(errors.some((error) => error.includes("desiredCapacity"))).toBe(true);
+  });
+
+  test("rejects an invalid CloudFront price class", () => {
+    const config = {
+      ...VALID_CONFIG,
+      cloudfront: { ...VALID_CONFIG.cloudfront, priceClass: "PriceClass_Free" },
+    };
+    const errors = validateAwsConfig(config);
+
+    expect(errors.some((error) => error.includes("priceClass"))).toBe(true);
+  });
+
+  test.each(["api", "worker", "rabbitmq"])(
+    "rejects zero or negative ECS memory for %s",
+    (service) => {
+      const config = {
+        ...VALID_CONFIG,
+        ecs: { ...VALID_CONFIG.ecs, [service]: { memory: 0 } },
+      };
+      const errors = validateAwsConfig(config);
+
+      expect(errors.some((error) => error.includes(`ecs.${service}.memory`))).toBe(true);
+    },
+  );
 });
