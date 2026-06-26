@@ -11,7 +11,7 @@ const tables = {
 test.describe("Local transaction db", () => {
   let db;
   test.beforeEach(async () => {
-    db = connectToDB("localtransactiondb");
+    db = connectToDB("transaction");
   });
   test("has the expected tables", async () => {
     const tableNames = Object.keys(tables);
@@ -39,7 +39,7 @@ test.describe("Security measures:", () => {
   test("no DB connection with a bad password", async () => {
     // Knex doesn't throw the error when you create the db instance with bad credentials
     // It waits until you try to use the connection
-    db = connectToDB("localtransactiondb", "password123");
+    db = connectToDB("transaction", "password123");
     // Make sure it throws with the expected error message
     expect(async () => await getTableNames(db)).rejects.toThrow("password authentication failed");
     await db.destroy();

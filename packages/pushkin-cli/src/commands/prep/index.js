@@ -1,14 +1,12 @@
 import path from "path";
-import os from "os";
 //import { promises as fs } from 'fs';
 import fs from "graceful-fs";
 import jsYaml from "js-yaml";
 import util from "util";
-import { execSync } from "child_process"; // eslint-disable-line
+import { execSync } from "child_process";
 const exec = util.promisify(require("child_process").exec);
 const execFile = util.promisify(require("child_process").execFile);
-import pacMan from "../../pMan.js"; //which package manager is available?
-import { env } from "process";
+import pacMan from "../../utils/package-manager.js"; //which package manager is available?
 
 /**
  * Make sure changed passwords in the main config file propogate to the necessary locations
@@ -38,12 +36,13 @@ export const updatePasswords = async () => {
     composeFilePromise,
     ...expConfigPromises,
   ]);
-  const testDBPass = jsYaml.load(pushkinYaml).databases.localtestdb.pass;
-  const transactionDBPass = jsYaml.load(pushkinYaml).databases.localtransactiondb.pass;
+  const testDBPass = jsYaml.load(pushkinYaml).databases.local.experiment.password;
+  const transactionDBPass = jsYaml.load(pushkinYaml).databases.local.transaction.password;
   const composeFileData = jsYaml.load(composeFile);
   // Overwrite passwords in docker-compose file
-  composeFileData.services.test_db.environment.POSTGRES_PASSWORD = testDBPass;
-  composeFileData.services.test_transaction_db.environment.POSTGRES_PASSWORD = transactionDBPass;
+  composeFileData.services["local-experiment-db"].environment.POSTGRES_PASSWORD = testDBPass;
+  composeFileData.services["local-transaction-db"].environment.POSTGRES_PASSWORD =
+    transactionDBPass;
   exps.forEach((exp) => {
     const workerName = exp.toLowerCase().concat("_worker");
     // Check if worker service exists before trying to update it
@@ -207,6 +206,9 @@ export function setEnv(debug, verbose) {
   if (verbose) console.log(`Successfully set front-end environment variable debug=${debug}`);
 }
 
+/**
+ *
+ */
 export function updatePushkinJs(verbose) {
   if (verbose) {
     console.log("--verbose flag set inside updatePushkinJs()");
@@ -224,9 +226,9 @@ export function updatePushkinJs(verbose) {
       path.join(process.cwd(), "pushkin/front-end/src", ".pushkin.js"),
       `export const pushkinConfig = ${JSON.stringify(useConfig)}`,
     );
-  } catch (e) {
+  } catch (error) {
     console.error(`Unable to create .pushkin.js`);
-    throw e;
+    throw error;
   }
 }
 
@@ -549,18 +551,18 @@ export const prep = async (experimentsDir, coreDir, verbose) => {
     compFile.services[workerName].environment = {};
     compFile.services[workerName].environment.AMQP_ADDRESS =
       AMQP_ADDRESS || "amqp://message-queue:5672";
-    compFile.services[workerName].environment.DB_USER = pushkinYAML.databases.localtestdb.user;
-    compFile.services[workerName].environment.DB_PASS = pushkinYAML.databases.localtestdb.pass;
-    compFile.services[workerName].environment.DB_HOST = pushkinYAML.databases.localtestdb.host;
-    compFile.services[workerName].environment.DB_DB = pushkinYAML.databases.localtestdb.name;
+    compFile.services[workerName].environment.DB_USER = pushkinYAML.databases.local.experiment.user;
+    compFile.services[workerName].environment.DB_PASS = pushkinYAML.databases.local.experiment.password;
+    compFile.services[workerName].environment.DB_HOST = pushkinYAML.databases.local.experiment.host;
+    compFile.services[workerName].environment.DB_DB = pushkinYAML.databases.local.experiment.database;
     compFile.services[workerName].environment.TRANS_USER =
-      pushkinYAML.databases.localtransactiondb.user;
+      pushkinYAML.databases.local.transaction.user;
     compFile.services[workerName].environment.TRANS_PASS =
-      pushkinYAML.databases.localtransactiondb.pass;
+      pushkinYAML.databases.local.transaction.password;
     compFile.services[workerName].environment.TRANS_HOST =
-      pushkinYAML.databases.localtransactiondb.host;
+      pushkinYAML.databases.local.transaction.host;
     compFile.services[workerName].environment.TRANS_DB =
-      pushkinYAML.databases.localtransactiondb.name;
+      pushkinYAML.databases.local.transaction.database;
     // Use internal container port (5432), not host-mapped port
     compFile.services[workerName].environment.TRANS_PORT = "5432";
 

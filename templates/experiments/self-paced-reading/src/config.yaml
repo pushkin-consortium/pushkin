@@ -10,14 +10,14 @@ worker:
     image: *shortName
     links:
       - message-queue
-      - test_db
-      - test_transaction_db
+      - local-experiment-db
+      - local-transaction-db
     environment:
       AMQP_ADDRESS: 'amqp://message-queue:5672'
       DB_USER: "postgres"
       DB_PASS: "example"
-      DB_URL: "test_db"
-      DB_NAME: "test_db"     
+      DB_URL: "local-experiment-db"
+      DB_NAME: "local-experiment-db"     
 webPage:
   location: 'web page'
 migrations:
@@ -27,7 +27,8 @@ seeds:
 # Used for migration and seed commands via main CLI
 # Note that these might be different than those given to the worker,
 # Since it's running inside a linked docker container
-database: 'localtestdb'
+database: 'experiment'
+productionDB: 'experiment'
 logo: 'logo512.png'
 text: 'Enter your experiment description here.'
 tagline: 'Be a citizen scientist! Try this quiz.'

@@ -1,7 +1,7 @@
 version: '3.1'
 volumes:
   message_queue_volume: null
-  test_db_volume: null
+  local-experiment-db-volume: null
 services:
   api:
     image: api
@@ -38,15 +38,15 @@ services:
       - '433:433'
     links:
       - api
-  test_db:
+  local-experiment-db:
     image: 'postgres:11'
     environment:
       POSTGRES_PASSWORD: example
-      POSTGRES_DB: test_db
+      POSTGRES_DB: local-experiment-db
     ports:
       - '5432:5432'
     volumes:
-      - 'test_db_volume:/var/lib/postgresql/data'
+      - 'local-experiment-db-volume:/var/lib/postgresql/data'
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s

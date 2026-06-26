@@ -6,6 +6,10 @@
     "!templates/experiments/template-sync"
   ],
   "scripts": {
+    "build:api": "yarn workspace pushkin-api build",
+    "build:cli": "yarn workspace pushkin-cli build",
+    "build:client": "yarn workspace pushkin-client build",
+    "build:worker": "yarn workspace pushkin-worker build",
     "copy-from-basic-exp": "node templates/experiments/template-sync/copy-from-basic.js",
     "docs:deploy": "poetry install --no-root && poetry run mike deploy -u --alias-type=redirect",
     "docs:serve": "poetry run mike serve",
@@ -67,5 +71,9 @@
   "lint-staged": {
     "*": "eslint"
   },
-  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e",
+  "dependencies": {
+    "@aws-sdk/util-waiter": "^3.370.0",
+    "@smithy/util-waiter": "^4.4.1"
+  }
 }

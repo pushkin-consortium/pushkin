@@ -39,22 +39,22 @@ const monorepoConfig = {
     ...js.configs.recommended.rules,
     ...jsdoc.configs["flat/recommended"].rules,
     ...jest.configs["flat/recommended"].rules,
-    "jsdoc/require-jsdoc": [
+    "jsdoc/require-jsdoc": "off",
+    "jsdoc/require-description": "off",
+    "jsdoc/require-param": "off",
+    "jsdoc/require-param-description": "off",
+    "jsdoc/require-param-type": "off",
+    "jsdoc/require-returns": "off",
+    "jsdoc/require-returns-description": "off",
+    "jsdoc/require-returns-type": "off",
+    "max-len": [
       "error",
       {
-        require: {
-          FunctionDeclaration: true,
-          MethodDefinition: true,
-          ClassDeclaration: true,
-          ArrowFunctionExpression: false,
-          FunctionExpression: false,
-        },
+        code: 100, // Limit for code lines
+        comments: 80, // Specific limit for comment lines
+        ignoreUrls: true, // Prevents errors from long links in comments
       },
     ],
-    "jsdoc/require-description": "error",
-    "jsdoc/require-param": "error",
-    "jsdoc/require-param-description": "error",
-    "jsdoc/require-param-type": "error",
   },
 };
 

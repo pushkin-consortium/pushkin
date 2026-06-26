@@ -7,7 +7,7 @@ import jsYaml from 'js-yaml';
 import util from 'util';
 const exec = util.promisify(require('child_process').exec);
 const shell = require('shelljs');
-import pacMan from '../../pMan.js'; //which package manager is available?
+import pacMan from '../../utils/package-manager.js'; //which package manager is available?
 
 /**
  * Installs dependencies and builds the front-end and API packages for Pushkin sites (also used for experiment workers).
@@ -113,7 +113,7 @@ export const setupPushkinExp = async (longName, shortName, expDir, rootDir, verb
   expConfig.experimentName = longName;
   // Update exp config file with db password from main config
   const pushkinYaml = jsYaml.load(fs.readFileSync(path.join(rootDir, "pushkin.yaml")));
-  expConfig.worker.service.environment.DB_PASS = pushkinYaml.databases.localtestdb.pass;
+  expConfig.worker.service.environment.DB_PASS = pushkinYaml.databases.local.experiment.password;
 
   try {
     fs.writeFileSync(path.join(expDir, 'config.yaml'), jsYaml.dump(expConfig), 'utf8');

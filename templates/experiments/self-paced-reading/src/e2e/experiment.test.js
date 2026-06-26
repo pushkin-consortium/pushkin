@@ -21,11 +21,11 @@ function connectToDB() {
   return knex({
     client: "pg",
     connection: {
-      host: pushkinConfig.databases.localtestdb.url,
-      database: pushkinConfig.databases.localtestdb.name,
-      port: pushkinConfig.databases.localtestdb.port,
-      user: pushkinConfig.databases.localtestdb.user,
-      password: pushkinConfig.databases.localtestdb.pass,
+      host: pushkinConfig.databases.local.experiment.url,
+      database: pushkinConfig.databases.local.experiment.name,
+      port: pushkinConfig.databases.local.experiment.port,
+      user: pushkinConfig.databases.local.experiment.user,
+      password: pushkinConfig.databases.local.experiment.pass,
     },
   });
 }

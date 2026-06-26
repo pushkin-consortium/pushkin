@@ -3,19 +3,20 @@ const { pushkinConfig } = require("./siteInfo");
 
 /**
  * Connect to a Pushkin database
- * @param {string} dbType Either "localtestdb" or "localtransactiondb"
+ * @param {string} dbType Either "experiment" or "transaction"
  * @param {string} password Defaults to the password in the Pushkin config; can be overridden for test purposes
  * @returns {knex} A connection to the Pushkin database
  */
 function connectToDB(dbType, password) {
   const connection = {};
-  if (dbType === "localtestdb" || dbType === "localtransactiondb") {
+  if (dbType === "experiment" || dbType === "transaction") {
+    const dbConfig = pushkinConfig.databases.local[dbType];
     Object.assign(connection, {
-      host: pushkinConfig.databases[dbType].url,
-      database: pushkinConfig.databases[dbType].name,
-      port: pushkinConfig.databases[dbType].port,
-      user: pushkinConfig.databases[dbType].user,
-      password: password || pushkinConfig.databases[dbType].pass,
+      host: dbConfig.url,
+      database: dbConfig.name,
+      port: dbConfig.port,
+      user: dbConfig.user,
+      password: password || dbConfig.pass,
     });
   } else {
     throw new Error(`Invalid database type: ${dbType}`);
